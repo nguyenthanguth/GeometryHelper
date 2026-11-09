@@ -6,6 +6,24 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** The presenter's Properties panel edits polylines, ellipses, hatches, dimensions, MTEXTs, block references,
+viewports and multileaders with AutoCAD 2021's rows, each edit one undo step. Current vertex steps through a polyline (on
+the rectangle 30 by 20, vertex 3 reads (30, 20), and Vertex Y 25 moves that corner alone), with its segment widths, Global
+width, Elevation, Closed and Linetype generation. An ellipse of radii 20 and 10 given a Major radius of 40 becomes 40 by
+20. A hatch takes its Type, Pattern name, Angle, Scale or Spacing, Double, Origin, Island detection and Background color.
+A dimension's Lines & Arrows, Text, Fit and Primary Units rows are written as overrides and the dimension drawn again:
+Precision 0.000, Suppress trailing zeros No and Dim suffix " TYP" show "300.000 TYP" on a dimension of 300. An MTEXT takes
+Style, Justify, Direction, line spacing, Defined width and Columns, and its Contents row opens the MTEXT editor; an INSERT
+shows each attribute by its tag and sets its value; a viewport takes Standard scale 1:50, Display locked, and a Height or
+Width that keeps its scale; a multileader takes its style, leader type, landing and text. `CadPropertyRow.Choices` lists
+the values of a row of a list and `CadSelection.CurrentVertex` the vertex shown.
+
+**NEW.** MATCHPROP asks "Select destination object(s) or [Settings]:", and Settings shows the Property Settings dialog of
+AutoCAD 2021 (`CadCommandSession.MatchProperties`): with Layer alone checked, a red line matched to one on Steel goes to
+Steel and stays red. The special properties are copied too: a dimension's style and overrides, a text's style and height,
+a hatch's pattern, angle and scale, a polyline's width and linetype generation, a viewport's scale, lock and frozen
+layers, a table's style and a multileader's style. Plot style, Material, Shadow display and Center object are greyed.
+
 **NEW.** The presenter takes AutoCAD's point modifiers at any prompt for a point, typed or from the top of the
 Shift+right-click menu (Temporary track point, From, Mid Between 2 Points, Point Filters with .X .Y .Z .XY .XZ .YZ), with
 AutoCAD's prompts. LINE with FROM, the base point 100,50 and the offset `@30,20` starts at (130, 70); M2P (or MTP) between

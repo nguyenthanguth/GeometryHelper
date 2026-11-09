@@ -18,6 +18,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>The choice of the Color row of Properties that shows AutoCAD's Select Color dialog.</summary>
         public const string SelectColorOption = "Select Color...";
 
+        /// <summary>The choice of the Contents row of one MTEXT in Properties that opens the MTEXT editor on it, as the palette's button does.</summary>
+        public const string EditMTextOption = "Edit in the MTEXT editor...";
+
         /// <summary>The last choice of the colour box of the ribbon's Properties panel, which shows the Select Color dialog for the colour of new objects.</summary>
         public const string MoreColorsOption = "More colors...";
 

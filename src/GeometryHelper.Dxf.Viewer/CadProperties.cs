@@ -13,10 +13,21 @@ namespace GeometryHelper.Dxf.Viewer
         /// <param name="value">The value as text; "*Varies*" where the selected entities differ.</param>
         /// <param name="isReadOnly">Whether the value cannot be edited.</param>
         public CadPropertyRow(string label, string value, bool isReadOnly)
+            : this(label, value, isReadOnly, null)
+        {
+        }
+
+        /// <summary>Makes a row whose value is one of a list, as the Justify row of an MTEXT offers Top left to Bottom right.</summary>
+        /// <param name="label">The label.</param>
+        /// <param name="value">The value as text; "*Varies*" where the selected entities differ.</param>
+        /// <param name="isReadOnly">Whether the value cannot be edited.</param>
+        /// <param name="choices">The values the row offers, in the order of AutoCAD's drop-down; null for a row typed into.</param>
+        public CadPropertyRow(string label, string value, bool isReadOnly, IReadOnlyList<string> choices)
         {
             Label = label ?? throw new ArgumentNullException(nameof(label));
             Value = value ?? string.Empty;
             IsReadOnly = isReadOnly;
+            Choices = choices;
         }
 
         /// <summary>Gets the label.</summary>
@@ -27,6 +38,9 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>Gets whether the value cannot be edited.</summary>
         public bool IsReadOnly { get; }
+
+        /// <summary>Gets the values the row offers, as the Text pos vert row of a dimension offers Centered, Above, Outside, JIS and Below; null for a row typed into.</summary>
+        public IReadOnlyList<string> Choices { get; }
 
         /// <summary>Gets whether the selected entities differ in this property.</summary>
         public bool Varies => Value == VariesText;
@@ -74,9 +88,22 @@ namespace GeometryHelper.Dxf.Viewer
     }
 
     /// <summary>Describes a selection for the Properties panel, as AutoCAD's Properties palette does.</summary>
-    public static class CadProperties
+    public static partial class CadProperties
     {
         private static readonly string[] ColorNames = { null, "Red", "Yellow", "Green", "Cyan", "Blue", "Magenta", "White" };
+
+        internal static readonly string[] YesNoChoices = { "Yes", "No" };
+        internal static readonly string[] EnabledChoices = { "Enabled", "Disabled" };
+        internal static readonly string[] JustifyChoices = { "Top left", "Top center", "Top right", "Middle left", "Middle center", "Middle right", "Bottom left", "Bottom center", "Bottom right" };
+        internal static readonly string[] DirectionChoices = { "Left to right", "Top to bottom", "By style" };
+        internal static readonly string[] LineSpaceChoices = { "At least", "Exactly" };
+        internal static readonly string[] ColumnChoices = { "None", "Static", "Dynamic" };
+        internal static readonly string[] HatchTypeChoices = { "User defined", "Predefined", "Custom" };
+        internal static readonly string[] IslandChoices = { "Normal", "Outer", "Ignore" };
+        internal static readonly string[] LeaderTypeChoices = { "None", "Straight", "Spline" };
+
+        /// <summary>The standard scales of a viewport in the order of AutoCAD's list, those but Scale to fit and Custom.</summary>
+        internal static readonly string[] ScaleChoices = StandardScales();
 
         /// <summary>
         /// Describes the selected entities as AutoCAD's Properties palette does. With none selected, the current settings
@@ -140,7 +167,7 @@ namespace GeometryHelper.Dxf.Viewer
                 return new CadSelectionInfo("No selection", Nothing(document, space, view));
             }
 
-            var format = new Formats(document.Database);
+            var format = new Formats(document.Database) { Vertex = document.Selection.CurrentVertex };
             string kind = KindOf(entities[0]);
             bool oneKind = true;
 
@@ -282,6 +309,8 @@ namespace GeometryHelper.Dxf.Viewer
 
             CadPropertyRow Row(string label, Func<string> value, bool isReadOnly = false) => new CadPropertyRow(label, Read(value, string.Empty), isReadOnly);
 
+            CadPropertyRow Pick(string label, Func<string> value, IReadOnlyList<string> choices, bool isReadOnly = false) => new CadPropertyRow(label, Read(value, string.Empty), isReadOnly, choices);
+
             switch (entity)
             {
                 case DxfLine line:
@@ -317,14 +346,40 @@ namespace GeometryHelper.Dxf.Viewer
                         Row("End angle", () => f.Angle(arc.EndAngle)),
                         Row("Arc length", () => Length(arc.Length), true));
                     break;
-                case DxfPolyline polyline:
+                case DxfEllipse ellipse:
                     Group(
                         "Geometry",
-                        Row("Vertices", () => polyline.NumberOfVertices.ToString(CultureInfo.InvariantCulture), true),
-                        Row("Length", () => Length(polyline.Length), true),
-                        Row("Area", () => Length(polyline.Area), true));
-                    Group("Misc", Row("Closed", () => YesNo(polyline.Closed)));
+                        Row("Center X", () => Length(ellipse.Center.X)),
+                        Row("Center Y", () => Length(ellipse.Center.Y)),
+                        Row("Center Z", () => Length(ellipse.Center.Z)),
+                        Row("Major radius", () => Length(ellipse.MajorRadius)),
+                        Row("Minor radius", () => Length(ellipse.MinorRadius)),
+                        Row("Radius ratio", () => Length(ellipse.RadiusRatio)),
+                        Row("Start angle", () => f.Angle(ellipse.StartAngle)),
+                        Row("End angle", () => f.Angle(ellipse.EndAngle)),
+                        Row("Area", () => Length(ellipse.Area), true));
                     break;
+                case DxfPolyline polyline:
+                    {
+                        int at = Math.Max(0, Math.Min(f.Vertex, Read(() => polyline.NumberOfVertices, 0)) - 1);
+                        Group(
+                            "Geometry",
+                            Row("Current vertex", () => (at + 1).ToString(CultureInfo.InvariantCulture)),
+                            Row("Vertex X", () => Length(polyline.GetPoint2dAt(at).X)),
+                            Row("Vertex Y", () => Length(polyline.GetPoint2dAt(at).Y)),
+                            Row("Start segment width", () => Length(polyline.GetStartWidthAt(at))),
+                            Row("End segment width", () => Length(polyline.GetEndWidthAt(at))),
+                            Row("Global width", () => Length(polyline.ConstantWidth)),
+                            Row("Elevation", () => Length(polyline.Elevation)),
+                            Row("Vertices", () => polyline.NumberOfVertices.ToString(CultureInfo.InvariantCulture), true),
+                            Row("Length", () => Length(polyline.Length), true),
+                            Row("Area", () => Length(polyline.Area), true));
+                        Group(
+                            "Misc",
+                            Pick("Closed", () => YesNo(polyline.Closed), YesNoChoices),
+                            Pick("Linetype generation", () => polyline.Plinegen ? "Enabled" : "Disabled", EnabledChoices));
+                        break;
+                    }
                 case DxfDBText text:
                     Group(
                         "Text",
@@ -341,8 +396,16 @@ namespace GeometryHelper.Dxf.Viewer
                     Group(
                         "Text",
                         Row("Contents", () => mtext.Text),
+                        Pick("Style", () => mtext.TextStyleName, TextStyles(f.Database)),
+                        Pick("Justify", () => JustifyText(mtext.Attachment), JustifyChoices),
+                        Pick("Direction", () => DirectionText(mtext.FlowDirection), DirectionChoices),
                         Row("Text height", () => Length(mtext.TextHeight)),
-                        Row("Rotation", () => f.Angle(mtext.Rotation)));
+                        Row("Rotation", () => f.Angle(mtext.Rotation)),
+                        Row("Line space factor", () => Length(mtext.LineSpacingFactor)),
+                        Row("Line space distance", () => Length(mtext.LineSpaceDistance)),
+                        Pick("Line space style", () => mtext.LineSpacingStyle == DxfLineSpacingStyle.Exactly ? "Exactly" : "At least", LineSpaceChoices),
+                        Row("Defined width", () => Length(mtext.Width)),
+                        Pick("Columns", () => ColumnsText(mtext.ColumnType), ColumnChoices));
                     Group(
                         "Geometry",
                         Row("Position X", () => Length(mtext.Location.X)),
@@ -360,27 +423,60 @@ namespace GeometryHelper.Dxf.Viewer
                         Row("Scale Z", () => Length(insert.ScaleFactors.Z)));
                     Group(
                         "Misc",
-                        Row("Name", () => insert.Name),
+                        Row("Name", () => insert.Name, true),
                         Row("Rotation", () => f.Angle(insert.Rotation)));
+                    AttributesOf(insert, groups);
                     break;
                 case DxfMLeader mleader:
-                    Group("Leaders", Row("Arrowhead", () => CadArrowheads.NameOf(mleader.ArrowSymbol)));
+                    Group(
+                        "Misc",
+                        Pick("Multileader style", () => mleader.MLeaderStyle, MLeaderStyles(f.Database)));
+                    Group(
+                        "Leaders",
+                        Pick("Leader type", () => LeaderTypeText(mleader.LeaderLineType), LeaderTypeChoices),
+                        Pick("Arrowhead", () => CadArrowheads.NameOf(mleader.ArrowSymbol), CadArrowheads.Names),
+                        Pick("Horizontal landing", () => YesNo(mleader.EnableLanding), YesNoChoices),
+                        Row("Landing distance", () => Length(mleader.DoglegLength)));
+                    if (Read(() => mleader.ContentType == DxfContentType.MTextContent, false))
+                    {
+                        Group(
+                            "Text",
+                            Row("Contents", () => mleader.MText.Text),
+                            Pick("Text style", () => mleader.MText.TextStyleName, TextStyles(f.Database)),
+                            Row("Text height", () => Length(mleader.TextHeight)));
+                    }
+
                     break;
                 case DxfDimension dimension:
-                    Group("Misc", Row("Dim style", () => dimension.DimensionStyleName));
-                    Group(
-                        "Text",
-                        Row("Measurement", () => IsAngular(dimension) ? f.Angle(dimension.Measurement) : Length(dimension.Measurement), true),
-                        Row("Text override", () => dimension.DimensionText));
+                    groups.AddRange(DimensionGroups(dimension, f));
                     break;
                 case DxfHatch hatch:
-                    Group(
-                        "Pattern",
-                        Row("Pattern name", () => hatch.IsGradient ? hatch.GradientName : hatch.PatternName),
-                        Row("Angle", () => f.Angle(hatch.PatternAngle)),
-                        Row("Scale", () => Length(hatch.PatternScale)));
-                    Group("Geometry", Row("Area", () => Length(hatch.Area), true));
-                    break;
+                    {
+                        bool gradient = Read(() => hatch.IsGradient, false);
+                        bool solid = gradient || Read(() => hatch.IsSolidFill, false);
+                        bool user = !solid && Read(() => hatch.PatternType == DxfHatchPatternType.UserDefined, false);
+                        Group(
+                            "Pattern",
+                            Pick("Type", () => HatchTypeText(hatch.PatternType), HatchTypeChoices, gradient),
+                            Row("Pattern name", () => gradient ? hatch.GradientName : hatch.PatternName, gradient),
+                            Row("Angle", () => f.Angle(hatch.PatternAngle), solid),
+                            Row("Scale", () => Length(hatch.PatternScale), solid || user),
+                            Row("Spacing", () => Length(hatch.PatternSpace), !user),
+                            Pick("Double", () => YesNo(hatch.PatternDouble), YesNoChoices, !user),
+                            Row("Origin X", () => solid || hatch.NumberOfPatternDefinitions == 0 ? Length(0.0) : Length(hatch.GetPatternDefinitionAt(0).BaseX), solid || user),
+                            Row("Origin Y", () => solid || hatch.NumberOfPatternDefinitions == 0 ? Length(0.0) : Length(hatch.GetPatternDefinitionAt(0).BaseY), solid || user));
+                        Group(
+                            "Geometry",
+                            Row("Elevation", () => Length(hatch.Elevation)),
+                            Row("Area", () => Length(hatch.Area), true));
+                        Group(
+                            "Misc",
+                            Row("Associative", () => YesNo(hatch.Associative), true),
+                            Pick("Island detection", () => IslandText(hatch.HatchStyle), IslandChoices),
+                            Row("Background color", () => BackgroundText(hatch.BackgroundColor)));
+                        break;
+                    }
+
                 case DxfViewport viewport:
                     Group(
                         "Geometry",
@@ -391,9 +487,12 @@ namespace GeometryHelper.Dxf.Viewer
                         Row("Width", () => Length(viewport.Width)));
                     Group(
                         "Misc",
-                        Row("On", () => YesNo(viewport.On)),
-                        Row("Standard scale", () => ScaleText(viewport.StandardScale)),
-                        Row("Custom scale", () => Length(viewport.CustomScale)));
+                        Pick("On", () => YesNo(viewport.On), YesNoChoices),
+                        Row("Clipped", () => YesNo(viewport.NonRectClipOn), true),
+                        Pick("Display locked", () => YesNo(viewport.Locked), YesNoChoices),
+                        Pick("Standard scale", () => ScaleText(viewport.StandardScale), ScaleChoices),
+                        Row("Custom scale", () => Scale(viewport.CustomScale)),
+                        Row("Visual style", () => "2D Wireframe", true));
                     break;
             }
 
@@ -431,7 +530,7 @@ namespace GeometryHelper.Dxf.Viewer
 
                     if (match != null)
                     {
-                        rows.Add(match.Value == row.Value ? row : new CadPropertyRow(row.Label, CadPropertyRow.VariesText, row.IsReadOnly || match.IsReadOnly));
+                        rows.Add(match.Value == row.Value && match.IsReadOnly == row.IsReadOnly ? row : new CadPropertyRow(row.Label, match.Value == row.Value ? row.Value : CadPropertyRow.VariesText, row.IsReadOnly || match.IsReadOnly, row.Choices));
                     }
                 }
 
@@ -591,6 +690,147 @@ namespace GeometryHelper.Dxf.Viewer
             return name;
         }
 
+        private static string[] StandardScales()
+        {
+            var names = new List<string>();
+
+            foreach (DxfStandardScaleType scale in (DxfStandardScaleType[])Enum.GetValues(typeof(DxfStandardScaleType)))
+            {
+                if (scale != DxfStandardScaleType.ScaleToFit && scale != DxfStandardScaleType.CustomScale)
+                {
+                    names.Add(ScaleText(scale));
+                }
+            }
+
+            return names.ToArray();
+        }
+
+        /// <summary>The standard scale a name of <see cref="ScaleChoices"/> stands for, as 1:50; false for none.</summary>
+        internal static bool TryParseScale(string text, out DxfStandardScaleType scale)
+        {
+            foreach (DxfStandardScaleType each in (DxfStandardScaleType[])Enum.GetValues(typeof(DxfStandardScaleType)))
+            {
+                if (each != DxfStandardScaleType.ScaleToFit && each != DxfStandardScaleType.CustomScale && string.Equals(ScaleText(each), text, StringComparison.OrdinalIgnoreCase))
+                {
+                    scale = each;
+                    return true;
+                }
+            }
+
+            scale = DxfStandardScaleType.CustomScale;
+            return false;
+        }
+
+        /// <summary>The Attributes group of a block reference, a row of each attribute by its tag, and its Dynamic Block rows, read-only.</summary>
+        private static void AttributesOf(DxfBlockReference insert, List<CadPropertyGroup> groups)
+        {
+            var attributes = new List<CadPropertyRow>();
+
+            foreach (DxfAttributeReference attribute in Read(() => (IEnumerable<DxfAttributeReference>)insert.AttributeCollection, Array.Empty<DxfAttributeReference>()))
+            {
+                if (!attribute.IsErased && !string.IsNullOrEmpty(attribute.Tag) && attributes.TrueForAll(r => r.Label != attribute.Tag))
+                {
+                    attributes.Add(new CadPropertyRow(attribute.Tag, Read(() => attribute.TextString, string.Empty), Read(() => attribute.IsConstant, false)));
+                }
+            }
+
+            if (attributes.Count > 0)
+            {
+                groups.Add(new CadPropertyGroup("Attributes", attributes));
+            }
+
+            var dynamic = new List<CadPropertyRow>();
+
+            foreach (DxfDynamicBlockReferenceProperty property in Read(() => insert.IsDynamicBlock ? insert.DynamicBlockReferencePropertyCollection : null, null) ?? Array.Empty<DxfDynamicBlockReferenceProperty>())
+            {
+                if (!string.IsNullOrEmpty(property.PropertyName) && dynamic.TrueForAll(r => r.Label != property.PropertyName))
+                {
+                    dynamic.Add(new CadPropertyRow(property.PropertyName, Read(() => DynamicText(property.Value), string.Empty), true));
+                }
+            }
+
+            if (dynamic.Count > 0)
+            {
+                groups.Add(new CadPropertyGroup("Dynamic Block", dynamic));
+            }
+        }
+
+        private static string DynamicText(object value)
+        {
+            switch (value)
+            {
+                case null:
+                    return string.Empty;
+                case double number:
+                    return Length(number);
+                case IFormattable formattable:
+                    return formattable.ToString(null, CultureInfo.InvariantCulture);
+                default:
+                    return value.ToString();
+            }
+        }
+
+        /// <summary>The names of the drawing's text styles, in the order of the table.</summary>
+        private static IReadOnlyList<string> TextStyles(DxfDatabase database)
+        {
+            var names = new List<string>();
+
+            foreach (DxfTextStyleTableRecord style in Read(() => (IEnumerable<DxfTextStyleTableRecord>)database.TextStyleTable, Array.Empty<DxfTextStyleTableRecord>()))
+            {
+                if (!string.IsNullOrEmpty(style.Name) && !style.IsShapeFile)
+                {
+                    names.Add(style.Name);
+                }
+            }
+
+            return names;
+        }
+
+        /// <summary>The names of the drawing's multileader styles, in the order of its dictionary.</summary>
+        private static IReadOnlyList<string> MLeaderStyles(DxfDatabase database)
+        {
+            var names = new List<string>();
+
+            foreach (DxfDBDictionaryEntry entry in Read(() => (IEnumerable<DxfDBDictionaryEntry>)database.MLeaderStyleDictionary, null) ?? Array.Empty<DxfDBDictionaryEntry>())
+            {
+                names.Add(entry.Key);
+            }
+
+            return names;
+        }
+
+        internal static string JustifyText(DxfAttachmentPoint attachment)
+        {
+            int index = (int)attachment - 1;
+            return index >= 0 && index < JustifyChoices.Length ? JustifyChoices[index] : attachment.ToString();
+        }
+
+        internal static string DirectionText(DxfFlowDirection direction)
+        {
+            switch (direction)
+            {
+                case DxfFlowDirection.TopToBottom: return "Top to bottom";
+                case DxfFlowDirection.ByStyle: return "By style";
+                case DxfFlowDirection.RightToLeft: return "Right to left";
+                case DxfFlowDirection.BottomToTop: return "Bottom to top";
+                default: return "Left to right";
+            }
+        }
+
+        internal static string ColumnsText(DxfColumnType type) => type == DxfColumnType.StaticColumns ? "Static" : type == DxfColumnType.DynamicColumns ? "Dynamic" : "None";
+
+        internal static string HatchTypeText(DxfHatchPatternType type) => type == DxfHatchPatternType.UserDefined ? "User defined" : type == DxfHatchPatternType.CustomDefined ? "Custom" : "Predefined";
+
+        internal static string IslandText(DxfHatchStyle style) => style == DxfHatchStyle.Outer ? "Outer" : style == DxfHatchStyle.Ignore ? "Ignore" : "Normal";
+
+        internal static string LeaderTypeText(DxfLeaderType type) => type == DxfLeaderType.InVisibleLeader ? "None" : type == DxfLeaderType.SplineLeader ? "Spline" : "Straight";
+
+        /// <summary>The background colour of a hatch as the palette writes it: None, or a colour as <see cref="ColorText"/> writes one.</summary>
+        private static string BackgroundText(DxfColor color) => color == null || color.IsNone ? "None" : ColorText(color);
+
+        /// <summary>A scale to as many places as tell it from its neighbours, 0.0200 for 1:50 and 0.003333333333333 for 1:300.</summary>
+        private static string Scale(double value) => value.ToString("0.0000###########", CultureInfo.InvariantCulture);
+
         private static string YesNo(bool value) => value ? "Yes" : "No";
 
         /// <summary>A length or coordinate to 4 places, as AutoCAD's palette writes one at <c>$LUPREC</c> 4.</summary>
@@ -618,7 +858,14 @@ namespace GeometryHelper.Dxf.Viewer
                 int places = Read(() => database.Auprec, 0);
                 places = Math.Max(0, Math.Min(8, places));
                 _angle = places == 0 ? "0" : "0." + new string('0', places);
+                Database = database;
             }
+
+            /// <summary>The drawing, whose styles the rows of a dimension, a hatch or an MTEXT offer.</summary>
+            public DxfDatabase Database { get; }
+
+            /// <summary>The vertex of a polyline shown, from 1, as <see cref="CadSelection.CurrentVertex"/>.</summary>
+            public int Vertex { get; set; } = 1;
 
             /// <summary>An angle in radians written in degrees from 0 up to 360.</summary>
             public string Angle(double radians)

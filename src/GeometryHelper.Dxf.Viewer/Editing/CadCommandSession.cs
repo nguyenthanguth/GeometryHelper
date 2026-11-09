@@ -39,7 +39,8 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// Gets what is asked: PROPERTIES, LAYER, OPTIONS, QSAVE, RECOVER, PLOT, PREVIEW, PAGESETUP, -PLOT to write a plot to a
-        /// file, PNGOUT, JPGOUT or BMPOUT for the file of an image, or IMAGEOUT to draw the image and write it.
+        /// file, PNGOUT, JPGOUT or BMPOUT for the file of an image, IMAGEOUT to draw the image and write it, or MATCHPROP for
+        /// its Property Settings dialog, which sets the session's <see cref="CadCommandSession.MatchProperties"/>.
         /// </summary>
         public string Name { get; }
 
@@ -131,6 +132,13 @@ namespace GeometryHelper.Dxf.Viewer
         /// and other copies of the app.
         /// </summary>
         public ICadClipboard Clipboard { get; set; } = new CadMemoryClipboard();
+
+        /// <summary>
+        /// Gets or sets the properties MATCHPROP copies, as the check boxes of its Property Settings dialog: every one until
+        /// changed, as in AutoCAD. With Layer alone left checked, MATCHPROP moves the objects to the source's layer and keeps
+        /// their colour.
+        /// </summary>
+        public CadMatchProperties MatchProperties { get; set; } = CadMatchProperties.All;
 
         /// <summary>Gets or sets where the cursor is, in drawing units, so that a number typed at a point prompt is a distance along the rubber band, as AutoCAD's direct distance entry.</summary>
         public GeoPoint2? Cursor { get; set; }

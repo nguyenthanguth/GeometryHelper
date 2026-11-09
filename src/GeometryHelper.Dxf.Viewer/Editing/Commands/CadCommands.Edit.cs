@@ -453,8 +453,31 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             string source = c.Input.Handles[0];
-            c.Write("Current active settings: Color Layer Ltype Ltscale Lineweight Transparency");
-            yield return CadPrompt.ForSelection("Select destination object(s)");
+            c.Write("Current active settings: " + CadPropertyMatcher.Describe(c.Session.MatchProperties));
+
+            while (true)
+            {
+                yield return CadPrompt.ForSelection("Select destination object(s)", new[] { "Settings" });
+
+                if (!c.Input.Is("Settings"))
+                {
+                    break;
+                }
+
+                // The window's Property Settings dialog sets the session's choice; the command goes on with it.
+                if (!c.Session.Request("MATCHPROP", c.Document))
+                {
+                    c.Write("The Property Settings dialog is shown by the window.");
+                }
+
+                c.Write("Current active settings: " + CadPropertyMatcher.Describe(c.Session.MatchProperties));
+            }
+
+            if (c.Input.Kind != CadInputKind.Selection)
+            {
+                yield break;
+            }
+
             var targets = new List<string>();
 
             foreach (string handle in c.Input.Handles)
@@ -487,6 +510,7 @@ namespace GeometryHelper.Dxf.Viewer
                 planned.Add(new CadEditRecord(CadEditRecordKind.PropertyChanged, handle, "Match properties", null, source));
             }
 
+            CadMatchProperties which = c.Session.MatchProperties;
             c.Apply(planned, s =>
             {
                 DxfEntity from = s.Document.FindEntity(source);
@@ -498,16 +522,7 @@ namespace GeometryHelper.Dxf.Viewer
                         continue;
                     }
 
-                    DxfEntity to = s.Document.FindEntity(handle);
-                    to.Layer = from.Layer;
-                    to.Color = from.Color;
-                    to.Linetype = from.Linetype;
-                    to.LinetypeScale = from.LinetypeScale;
-                    to.LineWeight = from.LineWeight;
-                    if (!Equals(to.Transparency, from.Transparency))
-                    {
-                        to.Transparency = from.Transparency;
-                    }
+                    CadPropertyMatcher.Apply(s.Database, from, s.Document.FindEntity(handle), which);
                 }
             });
         }

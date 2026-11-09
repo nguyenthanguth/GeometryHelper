@@ -348,6 +348,42 @@ The row "Text override" of a dimension is set as in AutoCAD: `<>` stands for the
 and one undo takes it back. On a model drawing the edit goes through its owner as a hand edit (see
 [Owners](owners.md#what-the-model-drawing-makes-of-each)).
 
+The other kinds have AutoCAD 2021's rows too, each set the same way:
+
+| Kind | Rows that can be set | Read only |
+|---|---|---|
+| Polyline | Current vertex, Vertex X and Y, Start and End segment width, Global width, Elevation, Closed, Linetype generation | Vertices, Length, Area |
+| Ellipse | Center X, Y and Z, Major radius, Minor radius, Radius ratio, Start and End angle | Area |
+| Hatch | Type, Pattern name, Angle, Scale, Spacing, Double, Origin X and Y, Elevation, Island detection, Background color | Associative, Area |
+| Dimension | Dim style; the Lines & Arrows, Text, Fit and Primary Units rows of the Dimension Style dialog's variables; Text override | Measurement |
+| MTEXT | Contents, Style, Justify, Direction, Text height, Rotation, Line space factor, distance and style, Defined width, Columns, Position | |
+| Block reference | Position, Scale X, Y and Z, Rotation, each attribute by its tag | Name, the Dynamic Block rows |
+| Viewport | Center, Height, Width, On, Display locked, Standard scale, Custom scale | Clipped, Visual style |
+| Multileader | Multileader style, Leader type, Arrowhead, Horizontal landing, Landing distance, Contents, Text style, Text height | |
+
+Current vertex steps through a polyline's vertices and is no step of undo
+([`CadSelection.CurrentVertex`](xref:GeometryHelper.Dxf.Viewer.CadSelection.CurrentVertex)): on the rectangle (0, 0)
+(30, 0) (30, 20) (0, 20), vertex 3 shows Vertex X 30.0000 and Vertex Y 20.0000, and Vertex Y typed as 25 moves that corner
+alone. A row of a dimension is written as an override of its variable, the style left as it is, and the dimension drawn
+again: Precision 0.000 with Suppress trailing zeros No and Dim suffix " TYP" turns a dimension of 300 under ISO-25 into
+"300.000 TYP". Arrow 1 makes the arrows separate (DIMSAH), the other end keeping the arrow it showed. A Major radius of 40
+scales an ellipse of radii 20 and 10 whole, to 40 and 20; a Minor radius above the major is refused. A Height or Width of a
+viewport keeps its scale, the view growing with it. A row of a list ([`CadPropertyRow.Choices`](xref:GeometryHelper.Dxf.Viewer.CadPropertyRow.Choices))
+is a drop-down in the window, and the Contents row of one MTEXT offers its MTEXT editor.
+
+## MATCHPROP
+
+MATCHPROP (MA) asks for the source object, says the settings it copies ("Current active settings: Color Layer Ltype
+Ltscale Lineweight Transparency Thickness Dim Text Hatch Polyline Viewport Table Multileader") and asks "Select
+destination object(s) or [Settings]:". Settings shows the Property Settings dialog, whose check boxes are
+[`CadCommandSession.MatchProperties`](xref:GeometryHelper.Dxf.Viewer.CadCommandSession.MatchProperties), every one until
+changed: with Layer alone checked, a red line matched to a line on Steel goes to Steel and stays red. The special
+properties are copied between objects of one kind: a dimension's style and its overrides (drawn again), a text's or an
+MTEXT's text style and height (and a text's oblique angle and width factor onto a text), a hatch's pattern, angle and scale
+or spacing and double, a polyline's linetype generation and its width where the source has one width all along, a
+viewport's scale, display lock and frozen layers, a table's table style and a multileader's style. Plot style, Material,
+Shadow display and Center object are greyed.
+
 ## Layers
 
 CECOLOR, or the colour box of the Properties panel, sets the colour new objects take: ByLayer, ByBlock, a name or an index 1 to 255. A line drawn after CECOLOR red is red; a true colour is refused, because the header holds an index.
