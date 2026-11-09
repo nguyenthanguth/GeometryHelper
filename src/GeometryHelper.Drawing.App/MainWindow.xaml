@@ -27,17 +27,17 @@
                                 <Trigger Property="IsMouseOver" Value="True">
                                     <Setter TargetName="Chrome" Property="Background" Value="{StaticResource GhHover}" />
                                 </Trigger>
-                                <MultiTrigger>
-                                    <MultiTrigger.Conditions>
-                                        <Condition Property="IsMouseOver" Value="True" />
-                                        <Condition Property="Tag" Value="Close" />
-                                    </MultiTrigger.Conditions>
-                                    <Setter TargetName="Chrome" Property="Background" Value="#C42B1C" />
-                                </MultiTrigger>
                             </ControlTemplate.Triggers>
                         </ControlTemplate>
                     </Setter.Value>
                 </Setter>
+            </Style>
+
+            <!-- The window's close: the orange-red cross of the dialogs, the size of the caption buttons beside it. -->
+            <Style x:Key="CaptionCloseButton" TargetType="Button" BasedOn="{StaticResource GhTitleCloseButton}">
+                <Setter Property="Width" Value="40" />
+                <Setter Property="Height" Value="32" />
+                <Setter Property="shell:WindowChrome.IsHitTestVisibleInChrome" Value="True" />
             </Style>
         </ResourceDictionary>
     </Window.Resources>
@@ -55,9 +55,7 @@
                 <Button Style="{StaticResource CaptionButton}" Click="OnMaximise" ToolTip="Maximise">
                     <gh:IconView Size="16" StrokeThickness="1.6" Data="M6 6h12v12H6z" />
                 </Button>
-                <Button Style="{StaticResource CaptionButton}" Click="OnClose" ToolTip="Close" Tag="Close">
-                    <gh:IconView Size="16" StrokeThickness="1.6" Data="M6 6l12 12M18 6 6 18" />
-                </Button>
+                <Button Style="{StaticResource CaptionCloseButton}" Click="OnClose" ToolTip="Close" />
             </StackPanel>
         </gh:CadWorkspace.TitleBarContent>
     </gh:CadWorkspace>

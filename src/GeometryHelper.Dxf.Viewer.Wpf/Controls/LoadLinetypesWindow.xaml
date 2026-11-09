@@ -20,9 +20,7 @@
         <DockPanel>
             <Border DockPanel.Dock="Top" Background="{StaticResource GhHeader}" Padding="16,10" MouseLeftButtonDown="OnHeaderDown">
                 <DockPanel>
-                    <Button DockPanel.Dock="Right" Style="{StaticResource GhFlatButton}" Width="24" Height="24" Click="OnCancel" ToolTip="Close">
-                        <local:IconView Size="14" StrokeThickness="2" Stroke="{StaticResource GhTextMuted}" Data="{StaticResource GhIconClose}" />
-                    </Button>
+                    <Button DockPanel.Dock="Right" Style="{StaticResource GhTitleCloseButton}" Click="OnCancel" ToolTip="Close" />
                     <TextBlock Text="Load or Reload Linetypes" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" />
                 </DockPanel>
             </Border>

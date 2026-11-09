@@ -1,6 +1,7 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-                    xmlns:sys="clr-namespace:System;assembly=mscorlib">
+                    xmlns:sys="clr-namespace:System;assembly=mscorlib"
+                    xmlns:local="clr-namespace:GeometryHelper.Dxf.Viewer.Wpf">
 
     <!-- The colour tokens of the design (50-ui.md), Dark set. -->
     <Color x:Key="GhBgColor">#1E2228</Color>
@@ -39,6 +40,14 @@
     <SolidColorBrush x:Key="GhWarn" Color="{StaticResource GhWarnColor}" />
     <SolidColorBrush x:Key="GhError" Color="{StaticResource GhErrorColor}" />
     <SolidColorBrush x:Key="GhHover" Color="#323944" />
+
+    <!-- Close is orange-red (design v70): the footer button filled, the cross of a title bar or a drawing row stroked. The
+         cross on a selected row is lighter, #FF9A6E, since #F26B3A on #1F4E79 is only 2.9 to 1 and #FF9A6E is 4.2 to 1. -->
+    <SolidColorBrush x:Key="GhClose" Color="#C2410C" />
+    <SolidColorBrush x:Key="GhCloseHover" Color="#DC5A1E" />
+    <SolidColorBrush x:Key="GhClosePressed" Color="#A8380A" />
+    <SolidColorBrush x:Key="GhCloseCross" Color="#F26B3A" />
+    <SolidColorBrush x:Key="GhCloseCrossOnSelected" Color="#FF9A6E" />
 
     <!-- Type: Inter where it is installed, else Segoe UI (shipping Inter with the app is a later item, D11). -->
     <FontFamily x:Key="GhFont">Inter, Segoe UI</FontFamily>
@@ -168,6 +177,73 @@
                 <Setter Property="Foreground" Value="{StaticResource GhTextMuted}" />
             </Trigger>
         </Style.Triggers>
+    </Style>
+
+    <!-- The Close button of a dialog's footer: filled orange-red, white semibold text, no border, corners of 4; lighter under
+         the mouse, darker pressed, grey when disabled. -->
+    <Style x:Key="GhCloseButton" TargetType="Button" BasedOn="{StaticResource GhFlatButton}">
+        <Setter Property="Background" Value="{StaticResource GhClose}" />
+        <Setter Property="Foreground" Value="#FFFFFF" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="FontSize" Value="{StaticResource GhFontSize}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Padding" Value="14,5" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Chrome" Background="{TemplateBinding Background}" CornerRadius="4" Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="IsMouseOver" Value="True" />
+                                <Condition Property="IsEnabled" Value="True" />
+                            </MultiTrigger.Conditions>
+                            <Setter TargetName="Chrome" Property="Background" Value="{StaticResource GhCloseHover}" />
+                        </MultiTrigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Chrome" Property="Background" Value="{StaticResource GhClosePressed}" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="Chrome" Property="Background" Value="{StaticResource GhBorder}" />
+                            <Setter Property="Foreground" Value="{StaticResource GhTextMuted}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- The close cross of a dialog's title bar, 24 by 24: an orange-red cross on nothing; under the mouse a filled
+         orange-red square with a white cross. -->
+    <Style x:Key="GhTitleCloseButton" TargetType="Button" BasedOn="{StaticResource GhFlatButton}">
+        <Setter Property="Width" Value="24" />
+        <Setter Property="Height" Value="24" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Chrome" Background="Transparent" CornerRadius="4">
+                        <local:IconView x:Name="Cross" Size="14" StrokeThickness="2" Stroke="{StaticResource GhCloseCross}" Data="M6 6l12 12M18 6 6 18"
+                                        HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="IsMouseOver" Value="True" />
+                                <Condition Property="IsEnabled" Value="True" />
+                            </MultiTrigger.Conditions>
+                            <Setter TargetName="Chrome" Property="Background" Value="{StaticResource GhClose}" />
+                            <Setter TargetName="Cross" Property="Stroke" Value="#FFFFFF" />
+                        </MultiTrigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Chrome" Property="Background" Value="{StaticResource GhClosePressed}" />
+                            <Setter TargetName="Cross" Property="Stroke" Value="#FFFFFF" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
     </Style>
 
     <!-- A menu of the window (CadMenus): dark, an item highlighted under the mouse, its tick in a narrow gutter, greyed when off. -->

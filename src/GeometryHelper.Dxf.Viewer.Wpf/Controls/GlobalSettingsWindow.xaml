@@ -144,9 +144,7 @@
         <DockPanel>
             <Border DockPanel.Dock="Top" Background="{StaticResource GhHeader}" Padding="16,10" CornerRadius="6,6,0,0" MouseLeftButtonDown="OnHeaderDown">
                 <DockPanel>
-                    <Button DockPanel.Dock="Right" Style="{StaticResource GhFlatButton}" Width="24" Height="24" Command="{Binding CancelCommand}" ToolTip="Close">
-                        <local:IconView Size="14" StrokeThickness="2" Stroke="{StaticResource GhTextMuted}" Data="{StaticResource GhIconClose}" />
-                    </Button>
+                    <Button DockPanel.Dock="Right" Style="{StaticResource GhTitleCloseButton}" Command="{Binding CancelCommand}" ToolTip="Close" />
                     <TextBlock Text="Global settings" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" />
                 </DockPanel>
             </Border>

@@ -54,9 +54,7 @@
         <DockPanel>
             <Border DockPanel.Dock="Top" Background="{StaticResource GhHeader}" Padding="16,10" CornerRadius="6,6,0,0" MouseLeftButtonDown="OnHeaderDown">
                 <DockPanel>
-                    <Button DockPanel.Dock="Right" Style="{StaticResource GhFlatButton}" Width="24" Height="24" Click="OnClose" ToolTip="Close">
-                        <local:IconView Size="14" StrokeThickness="2" Stroke="{StaticResource GhTextMuted}" Data="{StaticResource GhIconClose}" />
-                    </Button>
+                    <Button DockPanel.Dock="Right" Style="{StaticResource GhTitleCloseButton}" Click="OnClose" ToolTip="Close" />
                     <TextBlock Text="Plugin manager" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" />
                 </DockPanel>
             </Border>
@@ -76,7 +74,7 @@
 
             <Border DockPanel.Dock="Bottom" Background="{StaticResource GhHeader}" Padding="16,10" CornerRadius="0,0,6,6">
                 <DockPanel>
-                    <Button DockPanel.Dock="Right" Style="{StaticResource Secondary}" Content="Close" Margin="0" Click="OnClose" />
+                    <Button DockPanel.Dock="Right" Style="{StaticResource GhCloseButton}" Content="Close" Margin="0" Click="OnClose" />
                     <TextBlock Foreground="{StaticResource GhTextMuted}" VerticalAlignment="Center"
                                Text="Each plugin run is one undo step. Loading a .dll runs its code with your rights." />
                 </DockPanel>

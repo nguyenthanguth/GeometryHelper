@@ -732,7 +732,7 @@
                                                     <Button DockPanel.Dock="Right" Style="{StaticResource GhFlatButton}" Width="18" Height="18" Margin="6,0,0,0" VerticalAlignment="Center"
                                                             Visibility="{Binding IsOpen, Converter={StaticResource Shown}}" ToolTip="Close (CLOSE, Ctrl+W)"
                                                             Command="{Binding DataContext.CloseFileCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}">
-                                                        <local:IconView Size="10" StrokeThickness="2" Stroke="{StaticResource GhTextMuted}" Data="{StaticResource GhIconClose}" />
+                                                        <local:IconView x:Name="CloseCross" Size="10" StrokeThickness="2.4" Stroke="{StaticResource GhCloseCross}" Data="{StaticResource GhIconClose}" />
                                                     </Button>
                                                     <TextBlock DockPanel.Dock="Right" Text="{Binding Right}" FontSize="11" FontWeight="Medium" Margin="8,0,0,0"
                                                                Foreground="{StaticResource GhTextMuted}" VerticalAlignment="Center" />
@@ -761,6 +761,7 @@
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding IsCurrent}" Value="True">
                                             <Setter TargetName="Row" Property="Background" Value="{StaticResource GhSelected}" />
+                                            <Setter TargetName="CloseCross" Property="Stroke" Value="{StaticResource GhCloseCrossOnSelected}" />
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding State}" Value="Edited">
                                             <Setter TargetName="Dot" Property="Visibility" Value="Visible" />

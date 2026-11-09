@@ -37,9 +37,7 @@
             <!-- Header: the title, dragged to move the dialog, and the close button. -->
             <Border DockPanel.Dock="Top" Background="{StaticResource GhHeader}" Padding="16,10" MouseLeftButtonDown="OnHeaderDown">
                 <DockPanel>
-                    <Button DockPanel.Dock="Right" Style="{StaticResource GhFlatButton}" Width="24" Height="24" Click="OnClose" ToolTip="Close">
-                        <local:IconView Size="14" StrokeThickness="2" Stroke="{StaticResource GhTextMuted}" Data="{StaticResource GhIconClose}" />
-                    </Button>
+                    <Button DockPanel.Dock="Right" Style="{StaticResource GhTitleCloseButton}" Click="OnClose" ToolTip="Close" />
                     <TextBlock Text="{Binding Title}" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" />
                 </DockPanel>
             </Border>
@@ -47,7 +45,7 @@
             <!-- Footer: the summary and Close. -->
             <Border DockPanel.Dock="Bottom" Background="{StaticResource GhHeader}" Padding="16,10">
                 <DockPanel>
-                    <Button DockPanel.Dock="Right" Style="{StaticResource GhDialogButton}" Content="Close" Padding="14,5" Click="OnClose" IsCancel="True" />
+                    <Button DockPanel.Dock="Right" Style="{StaticResource GhCloseButton}" Content="Close" Padding="14,5" Click="OnClose" IsCancel="True" />
                     <TextBlock Text="{Binding Summary}" Foreground="{StaticResource GhTextMuted}" VerticalAlignment="Center" />
                 </DockPanel>
             </Border>

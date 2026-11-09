@@ -93,6 +93,11 @@ another file of the folder was opened, or once it was saved with Save and shown 
 now says, for example, "Test bodies (from file)" until the drawing is made again. The out-of-date dot now shows on such a
 drawing too, checked in the source its file names without changing it.
 
+**CHANGED.** Close is orange-red in the WPF apps, as designed: the footer Close of the Layer manager, Plugin manager, plugin
+settings, Text style, Dimension style manager and Compare dimension styles is filled #C2410C, the title-bar cross of every
+dialog and of the main window is drawn #F26B3A and fills orange-red under the mouse, and the close cross of an open drawing in
+the DRAWINGS list is #F26B3A, #FF9A6E on the current row so it keeps 3 to 1 contrast on #1F4E79.
+
 **NEW.** The presenter carries one font of its own, GeometryHelper Simplex (`CadFonts.BuiltIn`, named `ghsimplex`): the Roman
 Simplex letters of the Hershey fonts (U.S. National Bureau of Standards, 1967; notice in the project's THIRD-PARTY-NOTICES.md),
 98 letters with the degree, plus-minus and diameter signs, drawn as an SHX font is, its capitals as high as the text. It is

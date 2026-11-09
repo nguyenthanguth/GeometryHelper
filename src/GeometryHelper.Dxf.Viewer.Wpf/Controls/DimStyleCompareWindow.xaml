@@ -16,7 +16,7 @@
                 <TextBlock Text="Compare Dimension Styles" FontSize="13" FontWeight="SemiBold" />
             </Border>
             <Border DockPanel.Dock="Bottom" Background="{StaticResource GhHeader}" Padding="16,10">
-                <Button HorizontalAlignment="Right" Style="{StaticResource GhDialogButton}" Content="Close" Padding="14,5" Command="{Binding CloseCommand}" IsCancel="True" />
+                <Button HorizontalAlignment="Right" Style="{StaticResource GhCloseButton}" Content="Close" Padding="14,5" Command="{Binding CloseCommand}" IsCancel="True" />
             </Border>
             <DockPanel Margin="16,12">
                 <Grid DockPanel.Dock="Top" Margin="0,0,0,10">

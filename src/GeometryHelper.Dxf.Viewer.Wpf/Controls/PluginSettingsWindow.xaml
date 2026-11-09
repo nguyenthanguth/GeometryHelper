@@ -21,15 +21,13 @@
         <DockPanel>
             <Border DockPanel.Dock="Top" Background="{StaticResource GhHeader}" Padding="16,10" CornerRadius="6,6,0,0" MouseLeftButtonDown="OnHeaderDown">
                 <DockPanel>
-                    <Button DockPanel.Dock="Right" Style="{StaticResource GhFlatButton}" Width="24" Height="24" Click="OnClose" ToolTip="Close">
-                        <local:IconView Size="14" StrokeThickness="2" Stroke="{StaticResource GhTextMuted}" Data="{StaticResource GhIconClose}" />
-                    </Button>
+                    <Button DockPanel.Dock="Right" Style="{StaticResource GhTitleCloseButton}" Click="OnClose" ToolTip="Close" />
                     <TextBlock FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center"><Run Text="Settings of " /><Run Text="{Binding Title, Mode=OneWay}" /></TextBlock>
                 </DockPanel>
             </Border>
             <Border DockPanel.Dock="Bottom" Background="{StaticResource GhHeader}" Padding="16,10" CornerRadius="0,0,6,6">
                 <DockPanel>
-                    <Button DockPanel.Dock="Right" Style="{StaticResource GhDialogButton}" Content="Close" Click="OnClose" IsDefault="True" IsCancel="True" />
+                    <Button DockPanel.Dock="Right" Style="{StaticResource GhCloseButton}" Content="Close" Click="OnClose" IsDefault="True" IsCancel="True" />
                     <TextBlock Foreground="{StaticResource GhTextMuted}" VerticalAlignment="Center" Text="Each value is taken as it is set." />
                 </DockPanel>
             </Border>
