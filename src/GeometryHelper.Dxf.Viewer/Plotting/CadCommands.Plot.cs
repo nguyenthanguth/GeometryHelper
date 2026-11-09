@@ -14,7 +14,7 @@ namespace GeometryHelper.Dxf.Viewer
     /// </summary>
     internal static partial class CadCommands
     {
-        private static readonly string[] YesNo = { "Yes", "No" };
+        private static readonly string[] PlotYesNo = { "Yes", "No" };
 
         internal static void AddPlotTo(CadCommandRegistry registry)
         {
@@ -79,7 +79,7 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>-PLOT: AutoCAD's prompts, the detailed configuration or a page setup, then the file the window writes.</summary>
         private static IEnumerable<CadPrompt> PlotTyped(CadCommandContext c)
         {
-            yield return CadPrompt.ForKeyword("Detailed plot configuration?", YesNo, "No");
+            yield return CadPrompt.ForKeyword("Detailed plot configuration?", PlotYesNo, "No");
             bool detailed = c.Input.Is("Yes");
             CadSpace space = c.Space;
 
@@ -176,9 +176,9 @@ namespace GeometryHelper.Dxf.Viewer
                 file += ".pdf";
             }
 
-            yield return CadPrompt.ForKeyword("Save changes to page setup", YesNo, "No");
+            yield return CadPrompt.ForKeyword("Save changes to page setup", PlotYesNo, "No");
             bool save = c.Input.Is("Yes");
-            yield return CadPrompt.ForKeyword("Proceed with plot", YesNo, "Yes");
+            yield return CadPrompt.ForKeyword("Proceed with plot", PlotYesNo, "Yes");
             bool proceed = !c.Input.Is("No");
             DisplayBox display = c.Session.View?.VisibleBox ?? DisplayBox.Empty;
 
@@ -247,7 +247,7 @@ namespace GeometryHelper.Dxf.Viewer
             bool inches = c.Input.Is("Inches");
             yield return CadPrompt.ForKeyword("Enter drawing orientation", new[] { "Portrait", "Landscape" }, settings.Landscape ? "Landscape" : "Portrait");
             settings.Landscape = c.Input.IsNone ? settings.Landscape : c.Input.Is("Landscape");
-            yield return CadPrompt.ForKeyword("Plot upside down?", YesNo, settings.UpsideDown ? "Yes" : "No");
+            yield return CadPrompt.ForKeyword("Plot upside down?", PlotYesNo, settings.UpsideDown ? "Yes" : "No");
             settings.UpsideDown = c.Input.IsNone ? settings.UpsideDown : c.Input.Is("Yes");
 
             string[] areas = space.IsModel ? new[] { "Display", "Extents", "Limits", "Window" } : new[] { "Display", "Extents", "Layout", "Window" };
@@ -323,7 +323,7 @@ namespace GeometryHelper.Dxf.Viewer
                 break;
             }
 
-            yield return CadPrompt.ForKeyword("Plot with plot styles?", YesNo, settings.PlotWithPlotStyles ? "Yes" : "No");
+            yield return CadPrompt.ForKeyword("Plot with plot styles?", PlotYesNo, settings.PlotWithPlotStyles ? "Yes" : "No");
             settings.PlotWithPlotStyles = c.Input.IsNone ? settings.PlotWithPlotStyles : c.Input.Is("Yes");
 
             while (true)
@@ -365,7 +365,7 @@ namespace GeometryHelper.Dxf.Viewer
                 break;
             }
 
-            yield return CadPrompt.ForKeyword("Plot with lineweights?", YesNo, settings.PlotLineweights ? "Yes" : "No");
+            yield return CadPrompt.ForKeyword("Plot with lineweights?", PlotYesNo, settings.PlotLineweights ? "Yes" : "No");
             settings.PlotLineweights = c.Input.IsNone ? settings.PlotLineweights : c.Input.Is("Yes");
 
             if (space.IsModel)
@@ -375,12 +375,12 @@ namespace GeometryHelper.Dxf.Viewer
             }
             else
             {
-                yield return CadPrompt.ForKeyword("Scale lineweights with plot scale?", YesNo, settings.ScaleLineweights ? "Yes" : "No");
+                yield return CadPrompt.ForKeyword("Scale lineweights with plot scale?", PlotYesNo, settings.ScaleLineweights ? "Yes" : "No");
                 settings.ScaleLineweights = c.Input.IsNone ? settings.ScaleLineweights : c.Input.Is("Yes");
 
                 // Paper space plots after its viewports and shows its objects, whatever is answered.
-                yield return CadPrompt.ForKeyword("Plot paper space first?", YesNo, "No");
-                yield return CadPrompt.ForKeyword("Hide paperspace objects?", YesNo, "No");
+                yield return CadPrompt.ForKeyword("Plot paper space first?", PlotYesNo, "No");
+                yield return CadPrompt.ForKeyword("Hide paperspace objects?", PlotYesNo, "No");
             }
         }
 
