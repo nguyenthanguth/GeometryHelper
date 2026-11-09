@@ -134,8 +134,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             CadDocument document = CadDocument.From(db, "cross.dxf");
             var at = new GeoPoint2(50, 50);
 
-            // Two lines cross at the pick: the list holds both, nearest first, with their layers; one object alone is no list.
-            Assert.Equal(new[] { across.Handle, up.Handle }, CadPicking.Overlapping(document, document.ModelSpace, null, at, 1.0));
+            // Two lines cross at the pick: the list holds both, the one drawn on top first, with their layers; one object alone is no list.
+            Assert.Equal(new[] { up.Handle, across.Handle }, CadPicking.Overlapping(document, document.ModelSpace, null, at, 1.0));
             Assert.Equal("Line · WALLS", CadPicking.CycleLabel(document, across.Handle));
             Assert.Empty(CadPicking.Overlapping(document, document.ModelSpace, null, new GeoPoint2(510, 500), 1.0));
             Assert.True(CadPicking.Choose(document, null, up.Handle, false));
@@ -147,11 +147,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             Assert.Empty(CadPicking.Overlapping(document, document.ModelSpace, null, at, 1.0));
             var cycler = new CadSelectionCycler();
             cycler.Arm();
-            Assert.Equal(across.Handle, cycler.Next(document, document.ModelSpace, at, 1.0));
             Assert.Equal(up.Handle, cycler.Next(document, document.ModelSpace, at, 1.0));
-            Assert.Equal(new[] { up.Handle }, document.Selection.Handles);
             Assert.Equal(across.Handle, cycler.Next(document, document.ModelSpace, at, 1.0));
             Assert.Equal(new[] { across.Handle }, document.Selection.Handles);
+            Assert.Equal(up.Handle, cycler.Next(document, document.ModelSpace, at, 1.0));
+            Assert.Equal(new[] { up.Handle }, document.Selection.Handles);
         }
     }
 }

@@ -128,7 +128,7 @@ with its display list.
 
 | Call | Gives |
 |---|---|
-| `Pick(x, y, tolerance)` | the handles of the entities drawn within `tolerance` of the point, the nearest first, a tie by handle |
+| `Pick(x, y, tolerance)` | the handles of the entities drawn within `tolerance` of the point, the nearest first; among those within a tenth of `tolerance` of the nearest of them, the one drawn on top first while the drawing's SORTENTS holds its bit 1 (object selection, in AutoCAD's default 127), else by handle. Two lines crossing at the point come back the one drawn later first; with a tolerance of 3, a line under the point comes before one drawn on top of it 0.6 away |
 | `IndicesIn(box)` | the places of the items whose box meets the box, in drawing order: what the canvas draws of a view |
 | `Window(box)` | the entities drawn wholly inside the box, as a window selection takes them |
 | `Crossing(box)` | the entities that cross or lie in the box, as a crossing selection takes them |

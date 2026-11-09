@@ -6,8 +6,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 {
     /// <summary>
     /// Selection cycling with Shift+Space, as AutoCAD's: once armed, each click at the same place selects the next of the
-    /// objects that lie there, in place of the one before, the nearest first and round again; a click elsewhere starts over
-    /// at the nearest there. Esc disarms it.
+    /// objects that lie there, in place of the one before, the nearest first (of those as near, the one drawn on top) and
+    /// round again; a click elsewhere starts over at the first there. Esc disarms it.
     /// </summary>
     internal sealed class CadSelectionCycler
     {

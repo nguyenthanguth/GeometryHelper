@@ -14,8 +14,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     internal static class CadPicking
     {
         /// <summary>
-        /// Gets the objects SELECTIONCYCLING 2 lists for a click: those within the aperture, the nearest first, where more than
-        /// one lies there and the click would pick (no command, or "Select objects:" and the like); else none.
+        /// Gets the objects SELECTIONCYCLING 2 lists for a click: those within the aperture, the nearest first and of those as
+        /// near the one drawn on top first (<see cref="PickIndex.Pick"/>), where more than one lies there and the click would
+        /// pick (no command, or "Select objects:" and the like); else none.
         /// </summary>
         public static IReadOnlyList<string> Overlapping(CadDocument document, CadSpace space, CadCommandSession session, GeoPoint2 at, double aperture)
         {

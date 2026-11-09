@@ -15,6 +15,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     {
         private readonly List<string> _handles = new List<string>();
         private readonly List<double[]> _paths = new List<double[]>();
+        private readonly List<DisplayRay2> _rays = new List<DisplayRay2>();
         private CadCommand _command;
         private DisplayList2 _list;
         private double _tolerance;
@@ -106,7 +107,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>
         /// Gets the outlines of the objects in drawing units, each a run of X and Y: lines, polylines, arcs flattened to the
-        /// tolerance, the rings of fills, and a text's box. Kept until the objects, the display list or the zoom much change.
+        /// tolerance, the rings of fills, and a text's box. Kept until the objects, the display list or the zoom much change. An
+        /// XLINE or a RAY has no outline here: <see cref="Rays"/> gives the part of it the view shows once it is transformed.
         /// </summary>
         public IReadOnlyList<double[]> Paths(CadDocument document, CadSpace space, double tolerance)
         {
@@ -118,6 +120,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             _paths.Clear();
+            _rays.Clear();
             _list = list;
             _tolerance = tolerance;
             _built = true;
@@ -182,10 +185,45 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                         DisplayBox box = text.Bounds;
                         _paths.Add(new[] { box.MinX, box.MinY, box.MaxX, box.MinY, box.MaxX, box.MaxY, box.MinX, box.MaxY, box.MinX, box.MinY });
                         break;
+                    case DisplayRay2 ray:
+                        _rays.Add(ray);
+                        break;
                 }
             }
 
             return _paths;
+        }
+
+        /// <summary>
+        /// Gets the XLINEs and RAYs among the objects the last <see cref="Paths"/> found, each transformed and cut to a view as
+        /// the canvas draws them: X and Y of its two ends in drawing units, the transformation already applied; one that misses
+        /// the view gives none. An XLINE level through the origin, moved by (10, 20), is the run from (-100, 20) to (100, 20) of
+        /// the view from (-100, -100) to (100, 100).
+        /// </summary>
+        public IReadOnlyList<double[]> Rays(Affine2 moved, DisplayBox view)
+        {
+            var parts = new List<double[]>();
+
+            foreach (DisplayRay2 ray in _rays)
+            {
+                double dx = moved.A * ray.Dx + moved.C * ray.Dy;
+                double dy = moved.B * ray.Dx + moved.D * ray.Dy;
+
+                // A transformation that flattens the way (a scale of nought) leaves no line to draw.
+                if (!(dx * dx + dy * dy > 0.0))
+                {
+                    continue;
+                }
+
+                var placed = new DisplayRay2(moved.X(ray.X, ray.Y), moved.Y(ray.X, ray.Y), dx, dy, ray.IsBothWays, ray.Style, ray.Handle, ray.Layer);
+
+                if (placed.TryClip(view, out double x0, out double y0, out double x1, out double y1))
+                {
+                    parts.Add(new[] { x0, y0, x1, y1 });
+                }
+            }
+
+            return parts;
         }
 
         /// <summary>A linear map about a point: x' = b + M (x - b), M given by its columns (a, b) and (c, d).</summary>
@@ -204,6 +242,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             _handles.Clear();
             _paths.Clear();
+            _rays.Clear();
             _built = false;
         }
     }

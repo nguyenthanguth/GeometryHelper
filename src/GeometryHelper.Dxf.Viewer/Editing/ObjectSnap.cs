@@ -16,10 +16,10 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>None.</summary>
         None = 0,
 
-        /// <summary>The ends of lines, arcs and polyline segments, and the corners of polylines and fills.</summary>
+        /// <summary>The ends of lines, arcs and polyline segments, the corners of polylines and fills, and the base point of a RAY.</summary>
         Endpoint = 1,
 
-        /// <summary>The middle of a line, an arc or a polyline segment.</summary>
+        /// <summary>The middle of a line, an arc or a polyline segment, and the root point of an XLINE, as AutoCAD takes it.</summary>
         Midpoint = 2,
 
         /// <summary>The centre of an arc or a circle.</summary>
@@ -227,8 +227,10 @@ namespace GeometryHelper.Dxf.Viewer
     /// circle whose rim is under the cursor, the centroid of a closed polyline under it, the insertion point of a block or a
     /// text under it, the apparent intersection with an object clicked first); then a point on an extension, a parallel or a
     /// tracking line near the cursor; then the object offered as the first of an extended apparent intersection; then
-    /// nearest. A POINT is a node, not an endpoint, as in AutoCAD. Where no object snap is found, the cursor is put on the
-    /// grid, then held level or upright (ortho) or on a polar angle from the base point.
+    /// nearest. A POINT is a node, not an endpoint, as in AutoCAD. An XLINE and a RAY are snapped along their whole length,
+    /// as lines without end: nearest, perpendicular and their crossings however far from their base points; the base point
+    /// of a RAY is an endpoint and the root point of an XLINE a midpoint, as AutoCAD gives them. Where no object snap is
+    /// found, the cursor is put on the grid, then held level or upright (ortho) or on a polar angle from the base point.
     /// <para>
     /// Extension, Parallel and object snap tracking work from points acquired by resting the cursor (<see cref="Acquire"/>):
     /// seven at most, the oldest let go first, each let go when the cursor rests on it again, and all of them by
@@ -427,6 +429,9 @@ namespace GeometryHelper.Dxf.Viewer
                         break;
                     case DisplayArc2 arc:
                         AddArc(arc, cursor, aperture, basePoint, near, onObject, nearest, curves, found.Ends);
+                        break;
+                    case DisplayRay2 ray:
+                        AddRay(ray, cursor, aperture, basePoint, near, onObject, nearest, curves, found.Ends);
                         break;
                 }
 
@@ -720,6 +725,66 @@ namespace GeometryHelper.Dxf.Viewer
             }
         }
 
+        /// <summary>
+        /// An XLINE or a RAY, as AutoCAD snaps to them: the base point of a ray is an endpoint, whose run Extension follows back
+        /// behind it, and the root point of an xline a midpoint; along them, nearest, perpendicular and the crossings with what
+        /// else lies under the cursor, however far from the base point. A ray along +X from (100, 0) gives the perpendicular
+        /// from (500, 80) at (500, 0), and none from (0, 80), whose foot lies behind it.
+        /// </summary>
+        private void AddRay(DisplayRay2 ray, GeoPoint2 cursor, double aperture, GeoPoint2? basePoint, List<Candidate> near, List<Candidate> onObject, List<Candidate> nearest, List<Curve> curves, List<End> ends)
+        {
+            var origin = new GeoPoint2(ray.X, ray.Y);
+            var way = new GeoVector2(ray.Dx, ray.Dy);
+            double least = ray.IsBothWays ? double.NegativeInfinity : 0.0;
+            GeoPoint2 foot = Foot(cursor, origin, way, least, out _);
+            double reach = (foot - cursor).Length;
+
+            if (ray.IsBothWays)
+            {
+                if (Has(CadSnapModes.Midpoint))
+                {
+                    Near(near, CadSnapKind.Midpoint, origin, ray.Handle, cursor, aperture);
+                }
+            }
+            else
+            {
+                if (Has(CadSnapModes.Endpoint))
+                {
+                    Near(near, CadSnapKind.Endpoint, origin, ray.Handle, cursor, aperture);
+                }
+
+                double toBase = (origin - cursor).Length;
+
+                if (ends != null && toBase <= aperture)
+                {
+                    ends.Add(new End { Point = origin, Handle = ray.Handle, Reach = toBase, OnIt = reach, Along = -way });
+                }
+            }
+
+            if (reach > aperture)
+            {
+                return;
+            }
+
+            curves.Add(Curve.Ray(origin, way, least, ray.Handle, reach, foot));
+
+            if (Has(CadSnapModes.Nearest))
+            {
+                nearest.Add(new Candidate(CadSnapKind.Nearest, foot, ray.Handle, reach));
+            }
+
+            if (basePoint.HasValue && Has(CadSnapModes.Perpendicular))
+            {
+                // The way is of unit length, so the distance along it is in drawing units.
+                GeoPoint2 perpendicular = Foot(basePoint.Value, origin, way, least, out double t);
+
+                if (t >= least - Tolerance.EqualPoint)
+                {
+                    onObject.Add(new Candidate(CadSnapKind.Perpendicular, perpendicular, ray.Handle, reach));
+                }
+            }
+        }
+
         private void AddIntersections(List<Curve> curves, GeoPoint2 cursor, double aperture, List<Candidate> near)
         {
             for (int i = 0; i < curves.Count; i++)
@@ -740,8 +805,8 @@ namespace GeometryHelper.Dxf.Viewer
         {
             if (a.Radius < 0.0 && b.Radius < 0.0)
             {
-                GeoVector2 r = a.B - a.A;
-                GeoVector2 s = b.B - b.A;
+                GeoVector2 r = a.Run;
+                GeoVector2 s = b.Run;
                 double denominator = r.X * s.Y - r.Y * s.X;
                 double lengths = r.Length * s.Length;
 
@@ -756,7 +821,7 @@ namespace GeometryHelper.Dxf.Viewer
                 double slackT = Tolerance.EqualPoint / r.Length;
                 double slackU = Tolerance.EqualPoint / s.Length;
 
-                if (extended || (t >= -slackT && t <= 1.0 + slackT && u >= -slackU && u <= 1.0 + slackU))
+                if (extended || (t >= a.Least - slackT && t <= a.Most + slackT && u >= b.Least - slackU && u <= b.Most + slackU))
                 {
                     yield return a.A + r * t;
                 }
@@ -785,7 +850,7 @@ namespace GeometryHelper.Dxf.Viewer
 
         private IEnumerable<GeoPoint2> LineCircle(Curve line, Curve circle, bool extended)
         {
-            GeoVector2 d = line.B - line.A;
+            GeoVector2 d = line.Run;
             double length = d.Length;
 
             if (length <= 0.0)
@@ -803,7 +868,7 @@ namespace GeometryHelper.Dxf.Viewer
             if (discriminant < 0.0)
             {
                 // A line within the tolerance of touching the circle touches it at the foot from the centre.
-                GeoPoint2 foot = Foot(circle.Center, line.A, line.B, out double tf);
+                GeoPoint2 foot = line.IsEndless ? Foot(circle.Center, line.A, d, line.Least, out double tf) : Foot(circle.Center, line.A, line.B, out tf);
 
                 if (extended)
                 {
@@ -818,7 +883,7 @@ namespace GeometryHelper.Dxf.Viewer
                     yield break;
                 }
 
-                if (Math.Abs((foot - circle.Center).Length - circle.Radius) <= Tolerance.EqualPoint && tf >= -slack && tf <= 1.0 + slack && circle.Covers(foot, Tolerance))
+                if (Math.Abs((foot - circle.Center).Length - circle.Radius) <= Tolerance.EqualPoint && tf >= line.Least - slack && tf <= line.Most + slack && circle.Covers(foot, Tolerance))
                 {
                     yield return foot;
                 }
@@ -832,7 +897,7 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 GeoPoint2 point = line.A + d * t;
 
-                if (extended || (t >= -slack && t <= 1.0 + slack && circle.Covers(point, Tolerance)))
+                if (extended || (t >= line.Least - slack && t <= line.Most + slack && circle.Covers(point, Tolerance)))
                 {
                     yield return point;
                 }
@@ -904,6 +969,13 @@ namespace GeometryHelper.Dxf.Viewer
             t = length2 <= 0.0 ? 0.0 : ((p.X - a.X) * ab.X + (p.Y - a.Y) * ab.Y) / length2;
             double clamped = Math.Max(0.0, Math.Min(1.0, t));
             return a + ab * clamped;
+        }
+
+        /// <summary>The foot of a point on a line without end from <paramref name="a"/> along a unit way, held at <paramref name="least"/> along it at the back: nought for a ray, minus infinity for an xline.</summary>
+        private static GeoPoint2 Foot(GeoPoint2 p, GeoPoint2 a, GeoVector2 way, double least, out double t)
+        {
+            t = (p.X - a.X) * way.X + (p.Y - a.Y) * way.Y;
+            return a + way * Math.Max(least, t);
         }
 
         /// <summary>
@@ -996,6 +1068,18 @@ namespace GeometryHelper.Dxf.Viewer
 
             public GeoPoint2 B { get; private set; }
 
+            /// <summary>The way from <see cref="A"/> to <see cref="B"/>; of a line without end, its unit way exactly.</summary>
+            public GeoVector2 Run { get; private set; }
+
+            /// <summary>How far back along <see cref="Run"/> from <see cref="A"/> a straight curve reaches: nought for a segment and a ray, minus infinity for an xline.</summary>
+            public double Least { get; private set; }
+
+            /// <summary>How far on along <see cref="Run"/> from <see cref="A"/> a straight curve reaches: one for a segment, infinity for a ray and an xline.</summary>
+            public double Most { get; private set; } = 1.0;
+
+            /// <summary>Whether it is an XLINE or a RAY, whose <see cref="B"/> lies one unit along it from its base point.</summary>
+            public bool IsEndless { get; private set; }
+
             public GeoPoint2 Center { get; private set; }
 
             public double Radius { get; private set; } = -1.0;
@@ -1012,7 +1096,10 @@ namespace GeometryHelper.Dxf.Viewer
             public bool Sampled { get; private set; }
 
             public static Curve Segment(GeoPoint2 a, GeoPoint2 b, string handle, double reach, GeoPoint2 foot, bool sampled)
-                => new Curve { A = a, B = b, Handle = handle, Reach = reach, Foot = foot, Sampled = sampled };
+                => new Curve { A = a, B = b, Run = b - a, Handle = handle, Reach = reach, Foot = foot, Sampled = sampled };
+
+            public static Curve Ray(GeoPoint2 origin, GeoVector2 way, double least, string handle, double reach, GeoPoint2 foot)
+                => new Curve { A = origin, B = origin + way, Run = way, Least = least, Most = double.PositiveInfinity, IsEndless = true, Handle = handle, Reach = reach, Foot = foot };
 
             public static Curve Arc(DisplayArc2 arc, double reach) => new Curve { _arc = arc, Center = new GeoPoint2(arc.Cx, arc.Cy), Radius = arc.Radius, Handle = arc.Handle, Reach = reach };
 

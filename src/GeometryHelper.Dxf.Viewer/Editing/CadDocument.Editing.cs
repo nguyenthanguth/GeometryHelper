@@ -368,20 +368,6 @@ namespace GeometryHelper.Dxf.Viewer
             return Write(name, planned, apply, handled);
         }
 
-        /// <summary>
-        /// Keeps the drawing as it stands in the open group, for <see cref="RollBack"/>, as TRIM's Undo goes back one pick: the
-        /// drawing before the group where the group has made nothing yet, so the first pick of a command costs no saving.
-        /// </summary>
-        internal KeyValuePair<byte[], int> Savepoint()
-        {
-            EnsureStart();
-            int kept = _groupRecords?.Count ?? 0;
-            return new KeyValuePair<byte[], int>(kept == 0 ? _states[_position] : Snapshot(), kept);
-        }
-
-        /// <summary>Reads the drawing back from a savepoint <see cref="Savepoint"/> took in the open group.</summary>
-        internal void RollBack(KeyValuePair<byte[], int> savepoint) => Restore(savepoint.Key, savepoint.Value);
-
         /// <summary>Reads the drawing back from a savepoint taken in the open group, the group's records made since dropped.</summary>
         private void Restore(byte[] savepoint, int kept)
         {
@@ -533,7 +519,9 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// Takes a savepoint inside the open group, which <see cref="BackTo"/> reads the drawing back to: the Undo option inside
-        /// OFFSET, FILLET and CHAMFER takes back the last pick so, the rest of the command's edits kept in its one step.
+        /// TRIM, EXTEND, LENGTHEN, OFFSET, FILLET and CHAMFER takes back the last pick so, the rest of the command's edits kept
+        /// in its one step. Where the group has made nothing yet the savepoint is the drawing before the group, so the first
+        /// pick of a command costs no saving.
         /// </summary>
         /// <exception cref="InvalidOperationException">Thrown when no group is open.</exception>
         internal CadGroupMark MarkGroup()
@@ -544,7 +532,8 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             EnsureStart();
-            return new CadGroupMark(Snapshot(), _groupRecords.Count);
+            int kept = _groupRecords.Count;
+            return new CadGroupMark(kept == 0 ? _states[_position] : Snapshot(), kept);
         }
 
         /// <summary>Reads the drawing back to a savepoint <see cref="MarkGroup"/> took in the group still open, the records made since dropped.</summary>
