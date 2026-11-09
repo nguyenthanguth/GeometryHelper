@@ -76,13 +76,13 @@ the ones wanted.
       multileader) (M)
 - [ ] Variables: PICKADD, POLARMODE, ATTREQ, ATTDIA, FILEDIA, CMDDIA; AUTOSNAP's other bits; DYNMODE values; ORTHOMODE
       written to the drawing; new dimensions follow DIMSCALE; polar angle field in Global settings (S)
-- [ ] Utilities: command line AutoComplete (suggestions as you type, mid-string search, most used first) (M)
+- [ ] Utilities: command line AutoComplete (suggestions as you type, mid-string search, most used first) (M) (running)
 - [ ] Modify (running): PEDIT (Close/Open, Join, Width, Edit vertex, Fit/Spline/Decurve, Ltype gen, Reverse, Multiple; lines and
       arcs made a polyline) (L)
 - [ ] Dimensions: dimension grips (text position, dimension line, extension origins) (M) (running)
 - [ ] Layouts (running): MSPACE/PSPACE through a viewport (double click inside, the MODEL/PAPER button) and the viewport scale in
       Properties and the status bar (L)
-- [ ] Files: recent files on the start screen and the application menu (S)
+- [ ] Files: recent files on the start screen and the application menu (S) (running)
 - [ ] Draw: REVCLOUD (Arc length, Object, Rectangular, Polygonal, Freehand, Style) (M) (running)
 - [ ] Layers: VP Freeze per viewport (VPLAYER, the Layer manager's VP columns, LAYVPI) (M)
 - [ ] Dimensions: MLEADERSTYLE, the Multileader Style Manager (M, design first)
@@ -92,7 +92,7 @@ the ones wanted.
       rows (L)
 
 ### To do
-- [ ] Dxf.App: the start screen and welcome line still offer "New drawing from a model" and Ctrl+N; hide what belongs to
+- [ ] Dxf.App (running): the start screen and welcome line still offer "New drawing from a model" and Ctrl+N; hide what belongs to
       Drawing when no host handles it (design first)
 - [ ] Dxf.App: an app icon, file association for .dxf (installer or registry), `--tab Home` in screenshot mode
 - [ ] Images of an area: PNG and JPG devices in PLOT and -PLOT ("GeometryHelper PNG", "GeometryHelper JPG", as AutoCAD's
