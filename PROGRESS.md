@@ -96,7 +96,7 @@ the ones wanted.
 - [ ] Files: recent files on the start screen and the application menu (S) (running)
 - [ ] Layers: VP Freeze per viewport (VPLAYER, the Layer manager's VP columns, LAYVPI) (M) (running)
 - [ ] Dimensions: MLEADERSTYLE, the Multileader Style Manager (M, design first) (running)
-- [ ] Dimensions: associative dimensions that follow their geometry (DIMASSOC 2, DIMREASSOCIATE) (L)
+- [ ] Dimensions: associative dimensions that follow their geometry (DIMASSOC 2, DIMREASSOCIATE) (L) (running)
 - [ ] Blocks: BEDIT, the Block Editor (L, design first)
 - [ ] Blocks: dynamic blocks in use: custom grips (visibility, lookup, stretch, flip, rotate, array) and their Properties
       rows (L)
