@@ -9,6 +9,7 @@
     <Project Path="src/GeometryHelper.Drawing/GeometryHelper.Drawing.csproj" />
     <Project Path="src/GeometryHelper.Drawing.Wpf/GeometryHelper.Drawing.Wpf.csproj" />
     <Project Path="src/GeometryHelper.Drawing.App/GeometryHelper.Drawing.App.csproj" />
+    <Project Path="src/GeometryHelper.Dxf.App/GeometryHelper.Dxf.App.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/GeometryHelper.UnitTest/GeometryHelper.UnitTest.csproj" />

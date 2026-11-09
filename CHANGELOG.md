@@ -6,6 +6,16 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** GeometryHelper DXF, `GeometryHelper.Dxf.App.exe`, the presenter's own app: the window of the 2D presenter with no
+model drawing, built only on `GeometryHelper.Dxf.Viewer` and its controls, to open, edit and plot DXF drawings in place of
+AutoCAD. `GeometryHelper.Dxf.App.exe plan.dxf` opens a drawing, as a file association does; its command plugins are kept in
+`%AppData%\GeometryHelper\Dxf`, apart from GeometryHelper Drawing's. Both apps now start through `CadAppHost` and show
+`CadAppWindow`, both in `GeometryHelper.Dxf.Viewer.Wpf`, and take the same `--screenshot` options; GeometryHelper Drawing
+adds its own (`--new-drawing`, `--pick`, `--hand-edit` and the dialogs of the model drawing) through the host's protected
+members. Its pictures are the same as before, pixel for pixel but for the clock of a log line, on 34 combinations of
+options. `CadWorkspace.AppName` puts
+the app's name in the title bar and on the start screen, "GeometryHelper Drawing" unless a host gives its own.
+
 **NEW.** The presenter's ribbon has an Insert tab, after a host's tabs and before Annotate, as AutoCAD 2021's for what is
 built: Block (Insert, whose arrow drops a gallery of the drawing's blocks, a click on a tile starting INSERT with that
 block; Edit Attribute), Block Definition (Create Block and Write Block, Define Attributes, Set Base Point) and Reference
