@@ -7,8 +7,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 {
     /// <summary>
     /// AutoCAD's Enhanced Attribute Editor, which EATTEDIT shows and a double click on an INSERT with attributes opens: the
-    /// block and tag, the tabs Attribute, Text Options and Properties; Apply, Cancel, OK, and Select block, which closes it for
-    /// the command line to ask another. Its logic is <see cref="AttributeEditorViewModel"/>.
+    /// block and tag, the tabs Attribute, Text Options and Properties; Apply, which keeps what was typed and the editor open,
+    /// Cancel, OK, and Select block, which closes it for the command line to ask another. Its logic is
+    /// <see cref="AttributeEditorViewModel"/>.
     /// </summary>
     public partial class AttributeEditorWindow : Window
     {
@@ -65,7 +66,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         private void OnOk(object sender, RoutedEventArgs e) => CloseWith(CadDialogAction.Ok);
 
-        private void OnApply(object sender, RoutedEventArgs e) => CloseWith(CadDialogAction.Apply);
+        private void OnApply(object sender, RoutedEventArgs e) => Model.Apply();
 
         private void OnSelectBlock(object sender, RoutedEventArgs e) => CloseWith(CadDialogAction.SelectBlock);
 

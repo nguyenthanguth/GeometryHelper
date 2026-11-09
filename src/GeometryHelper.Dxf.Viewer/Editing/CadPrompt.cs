@@ -76,6 +76,33 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         public CadInPlaceEdit InPlace { get; private set; }
 
+        /// <summary>
+        /// Gets the block dragged with the cursor while the prompt waits, as INSERT drags it while it asks the insertion point,
+        /// the scale and the rotation: the canvas draws the block's outlines where the cursor would place it. Null for every
+        /// other prompt.
+        /// </summary>
+        public CadBlockDrag Drag { get; private set; }
+
+        /// <summary>
+        /// Gets the point the canvas marks with a cross while the prompt waits, as -ATTEDIT marks the attribute it is editing;
+        /// null for none.
+        /// </summary>
+        public GeoPoint2? Mark { get; private set; }
+
+        /// <summary>Gives the prompt a block dragged with the cursor (<see cref="Drag"/>).</summary>
+        internal CadPrompt Dragging(CadBlockDrag drag)
+        {
+            Drag = drag;
+            return this;
+        }
+
+        /// <summary>Gives the prompt a point marked on the canvas (<see cref="Mark"/>).</summary>
+        internal CadPrompt Marking(GeoPoint2 point)
+        {
+            Mark = point;
+            return this;
+        }
+
         /// <summary>Gets the whole text the command line shows: <c>Specify base point or [Displacement] &lt;Displacement&gt;:</c>.</summary>
         public string Text
         {
@@ -304,6 +331,12 @@ namespace GeometryHelper.Dxf.Viewer
         /// for every other answer.
         /// </summary>
         public bool Shift { get; internal set; }
+
+        /// <summary>
+        /// The objects of a selection that clicks alone picked, each with the point it was clicked at, in the order clicked; an
+        /// object a window, a crossing box or ALL took as well is not among them. Empty for every other answer.
+        /// </summary>
+        internal IReadOnlyList<KeyValuePair<string, GeoPoint2>> Clicks { get; set; } = Array.Empty<KeyValuePair<string, GeoPoint2>>();
 
         /// <summary>Gets whether the answer is Enter with nothing typed.</summary>
         public bool IsNone => Kind == CadInputKind.None;

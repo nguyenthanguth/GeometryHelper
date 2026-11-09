@@ -41,7 +41,9 @@ namespace GeometryHelper.Dxf.Viewer
         /// Gets what the command hands its dialog, which the window fills and closes with an action: a
         /// <see cref="CadBlockDefinitionRequest"/> for BLOCK, <see cref="CadInsertRequest"/> for INSERT,
         /// <see cref="CadWriteBlockRequest"/> for WBLOCK, <see cref="CadAttributeDefinitionRequest"/> for ATTDEF and
-        /// <see cref="CadAttributeEditRequest"/> for EATTEDIT; null for the other requests.
+        /// <see cref="CadAttributeEditRequest"/> for EATTEDIT; for REDEFINE, which INSERT asks when the block chosen from another
+        /// drawing has a namesake in this one, the name of the block, "Yes" in <see cref="Answer"/> redefining it; null for the
+        /// other requests.
         /// </summary>
         public object Payload { get; }
 
@@ -50,7 +52,7 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// Gets or sets what the window's dialog answered, for a command that goes on with it: for PASTESPEC the paste chosen,
-        /// PASTECLIP, PASTEBLOCK, PASTEORIG or TEXT; null where it was cancelled or asks nothing.
+        /// PASTECLIP, PASTEBLOCK, PASTEORIG or TEXT; for REDEFINE Yes or No; null where it was cancelled or asks nothing.
         /// </summary>
         public string Answer { get; set; }
     }
@@ -73,6 +75,8 @@ namespace GeometryHelper.Dxf.Viewer
 
         private readonly List<string> _history = new List<string>();
         private readonly SortedSet<string> _gathered = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
+        private readonly List<KeyValuePair<string, GeoPoint2>> _clicks = new List<KeyValuePair<string, GeoPoint2>>();
+        private readonly SortedSet<string> _whole = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
         private IEnumerator<CadPrompt> _body;
         private CadCommandContext _context;
         private bool _grouped;
@@ -199,7 +203,7 @@ namespace GeometryHelper.Dxf.Viewer
             Current = command;
             LastCommandName = command.Name;
             _context = new CadCommandContext(this, command, preSelected);
-            _gathered.Clear();
+            ClearGathering();
 
             try
             {
@@ -275,7 +279,7 @@ namespace GeometryHelper.Dxf.Viewer
                         return Answer(new CadInput(CadInputKind.Selection, point, 0.0, null, new[] { picked[0] }) { Shift = shift }, Prompt.Text, null);
                     }
 
-                    return FeedSelection(new[] { picked[0] });
+                    return TakeSelection(new[] { picked[0] }, point);
                 default:
                     return Invalid("Point is not valid here.");
             }
@@ -348,6 +352,7 @@ namespace GeometryHelper.Dxf.Viewer
                         }
 
                         Write(echo);
+                        _whole.UnionWith(all);
                         return Gather(all);
                     }
 
@@ -414,7 +419,10 @@ namespace GeometryHelper.Dxf.Viewer
         /// <param name="handles">The handles.</param>
         /// <returns>Whether the prompt took them.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the handles are null.</exception>
-        public bool FeedSelection(IEnumerable<string> handles)
+        public bool FeedSelection(IEnumerable<string> handles) => TakeSelection(handles, null);
+
+        /// <summary>Answers "Select objects:" with objects, a click's point with them where one picked them.</summary>
+        private bool TakeSelection(IEnumerable<string> handles, GeoPoint2? clicked)
         {
             if (handles == null)
             {
@@ -452,7 +460,23 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             Write(Prompt.Text);
-            return Gather(new List<string>(Document.WithGroups(found)));
+            var gathered = new List<string>(Document.WithGroups(found));
+
+            // The object a click picked is kept with the click's point, as -ATTEDIT takes the one attribute clicked; any
+            // other way of selecting takes an object whole.
+            foreach (string handle in gathered)
+            {
+                if (clicked.HasValue && string.Equals(handle, found[0], StringComparison.OrdinalIgnoreCase))
+                {
+                    _clicks.Add(new KeyValuePair<string, GeoPoint2>(handle, clicked.Value));
+                }
+                else
+                {
+                    _whole.Add(handle);
+                }
+            }
+
+            return Gather(gathered);
         }
 
         /// <summary>
@@ -474,8 +498,9 @@ namespace GeometryHelper.Dxf.Viewer
             if (Prompt.Kind == CadPromptKind.Selection)
             {
                 var handles = new List<string>(_gathered);
-                _gathered.Clear();
-                Answer(new CadInput(CadInputKind.Selection, default, 0.0, null, handles), Prompt.Text, null);
+                List<KeyValuePair<string, GeoPoint2>> clicks = _clicks.FindAll(p => !_whole.Contains(p.Key));
+                ClearGathering();
+                Answer(new CadInput(CadInputKind.Selection, default, 0.0, null, handles) { Clicks = clicks }, Prompt.Text, null);
                 return;
             }
 
@@ -580,6 +605,14 @@ namespace GeometryHelper.Dxf.Viewer
             var args = new CadUiRequestEventArgs(name, document, payload);
             UiRequested?.Invoke(this, args);
             return args;
+        }
+
+        /// <summary>Forgets the objects "Select objects:" gathered and the clicks that picked them.</summary>
+        private void ClearGathering()
+        {
+            _gathered.Clear();
+            _clicks.Clear();
+            _whole.Clear();
         }
 
         private bool Gather(List<string> handles)
@@ -698,7 +731,7 @@ namespace GeometryHelper.Dxf.Viewer
             _context = null;
             Current = null;
             Prompt = null;
-            _gathered.Clear();
+            ClearGathering();
             LastOutcome = outcome;
 
             if (cleared)

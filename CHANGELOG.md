@@ -25,6 +25,20 @@ built is greyed with its reason. Annotate and View now shrink as Home does: in a
 wide instead of 118, and View's below 694. View is now a `RibbonStrip` of the panels Navigate, Views, Interface and
 Drafting, each button bound as before. A collapsed panel's name of two words, as Block Definition, goes on two lines.
 
+**NEW.** The presenter's block commands come closer to AutoCAD 2021's. The Enhanced Attribute Editor shows a value on the
+canvas as it is typed; Apply keeps it with the editor open, and Cancel takes back only what was typed after the last
+Apply, the whole edit one undo step (`CadAttributeEditRequest.Preview` and `Apply`). INSERT drags the block with the
+cursor while it asks the insertion point, the scale and the rotation (`CadPrompt.Drag`, a `CadBlockDrag`): a block drawn
+about (100, 70) dragged to (500, 500) has its circle about (100, 100) drawn about (500, 530), and the INSERT is then placed
+exactly as dragged. -ATTEDIT takes the one attribute clicked, not every attribute of its INSERT, and marks the attribute it
+is editing with a cross (`CadPrompt.Mark`). ATTSYNC (?, Name, Select) brings every INSERT of a block, those nested in other
+blocks too, in line with its attribute definitions in one undo step: an attribute for each definition in the block's
+order, the values of the tags kept, those of tags dropped removed, each placed from its definition. Block Definition
+draws the objects selected for a new block. Inserting a block of another drawing whose name the drawing has asks "Block
+GB already exists. Redefine?" in the window, `Block "GB" already exists. Redefine it? [Yes/No] <No>:` on the command line
+of -INSERT; Yes gives the drawing's block the other's entities, base point and unit. AutoCAD 2021 audited drawings left by
+ATTSYNC, -ATTEDIT and a redefinition with no error.
+
 **NEW.** The presenter attaches and shows external references and images, as AutoCAD 2021 does: XATTACH and IMAGEATTACH
 (the Attach External Reference and Attach Image dialogs), the External References palette (XREF, ER, IMAGE), -XREF,
 -IMAGE, IMAGECLIP, IMAGEFRAME and TRANSPARENCY. A DXF referenced is read and drawn under its INSERT, its layers named after

@@ -814,6 +814,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 DrawTags(drawingContext, view, scale);
                 DrawGrips(drawingContext, view, scale);
                 DrawCells(drawingContext, view, scale);
+                DrawMark(drawingContext, view, scale);
                 DrawPrompt(drawingContext, view, scale);
                 DrawCrosshair(drawingContext);
             }
@@ -1363,10 +1364,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             return document.GetPickIndex(Space).Pick(x, y, PickboxPixels * scale / view.PixelsPerUnit).Count > 0;
         }
 
-        /// <summary>The ghost copy of the objects a transforming command took, dashed in the selection colour, under the transformation the cursor gives.</summary>
+        /// <summary>
+        /// The ghost copy of the objects a transforming command took, dashed in the selection colour, under the transformation
+        /// the cursor gives; or the block INSERT drags, placed as the cursor would place it.
+        /// </summary>
         private void DrawGhost(DrawingContext dc, CadView view, double scale, GeoPoint2 target)
         {
-            Affine2? moved = CadGhost.Transform(Session, target);
+            CadBlockDrag drag = Session?.Prompt?.Drag;
+            Affine2? moved = drag != null ? drag.Transform(target) : CadGhost.Transform(Session, target);
 
             if (!moved.HasValue || Document == null || Space == null)
             {
@@ -1374,10 +1379,24 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             Affine2 m = moved.Value;
-            IReadOnlyList<double[]> paths = _ghost.Paths(Document, Space, 0.5 * scale / view.PixelsPerUnit);
+            double tolerance = 0.5 * scale / view.PixelsPerUnit;
+            IReadOnlyList<double[]> paths;
+            IReadOnlyList<double[]> rays;
 
             // An XLINE or a RAY is cut, once transformed, to the view grown by a few pixels, so that its ends lie off the canvas.
-            IReadOnlyList<double[]> rays = _ghost.Rays(m, view.VisibleBox.Inflate(4.0 * scale / view.PixelsPerUnit));
+            DisplayBox grown = view.VisibleBox.Inflate(4.0 * scale / view.PixelsPerUnit);
+
+            if (drag != null)
+            {
+                // Outlined in the block's own units, as SCALE's ghost is outlined before it is scaled.
+                paths = _ghost.Paths(drag, tolerance);
+                rays = _ghost.DragRays(m, grown);
+            }
+            else
+            {
+                paths = _ghost.Paths(Document, Space, tolerance);
+                rays = _ghost.Rays(m, grown);
+            }
 
             if (paths.Count == 0 && rays.Count == 0)
             {
@@ -2207,6 +2226,22 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     dc.DrawLine(DottedPen(pen), ToScreen(view, track[i - 1], scale), ToScreen(view, track[i], scale));
                 }
             }
+        }
+
+        /// <summary>The point the prompt waiting marks (<see cref="CadPrompt.Mark"/>), as -ATTEDIT marks the attribute it edits: a cross, 10 pixels across, in the colour of the snap markers.</summary>
+        private void DrawMark(DrawingContext dc, CadView view, double scale)
+        {
+            GeoPoint2? mark = Session?.Prompt?.Mark;
+
+            if (!mark.HasValue)
+            {
+                return;
+            }
+
+            Pen pen = MarkerPen(Options.Background);
+            Point at = ToScreen(view, mark.Value, scale);
+            dc.DrawLine(pen, new Point(at.X - 5.0, at.Y - 5.0), new Point(at.X + 5.0, at.Y + 5.0));
+            dc.DrawLine(pen, new Point(at.X - 5.0, at.Y + 5.0), new Point(at.X + 5.0, at.Y - 5.0));
         }
 
         /// <summary>The tip by the cursor, as AutoCAD's dynamic input: the snap's name, the distance and the angle from the base point, the angle from the X axis of the UCS.</summary>
