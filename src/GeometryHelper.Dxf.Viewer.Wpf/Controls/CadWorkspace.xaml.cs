@@ -38,6 +38,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public static readonly DependencyProperty TitleBarContentProperty = DependencyProperty.Register(
             nameof(TitleBarContent), typeof(object), typeof(CadWorkspace), new PropertyMetadata(null));
 
+        /// <summary>Identifies the <see cref="AppName"/> property.</summary>
+        public static readonly DependencyProperty AppNameProperty = DependencyProperty.Register(
+            nameof(AppName), typeof(string), typeof(CadWorkspace), new PropertyMetadata("GeometryHelper Drawing"));
+
         private readonly System.Windows.Threading.DispatcherTimer _autosave = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMinutes(1) };
         private MainViewModel _model;
         private DateTime _lastAutosave = DateTime.UtcNow;
@@ -85,6 +89,16 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             get => GetValue(TitleBarContentProperty);
             set => SetValue(TitleBarContentProperty, value);
+        }
+
+        /// <summary>
+        /// Gets or sets the name of the app, shown at the left of the title in the title bar and as the heading of the start
+        /// screen: "GeometryHelper Drawing" unless a host gives its own, as GeometryHelper DXF does.
+        /// </summary>
+        public string AppName
+        {
+            get => (string)GetValue(AppNameProperty);
+            set => SetValue(AppNameProperty, value);
         }
 
         /// <summary>Gets the canvas, so that a host can draw it at once (<see cref="CadCanvas.RenderNow"/>) before a screenshot.</summary>

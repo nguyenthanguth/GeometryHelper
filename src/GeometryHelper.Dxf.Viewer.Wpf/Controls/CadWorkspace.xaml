@@ -1293,7 +1293,7 @@
                 </StackPanel>
             </StackPanel>
             <TextBlock Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="14,0" TextTrimming="CharacterEllipsis">
-                <Run Text="GeometryHelper Drawing" Foreground="{StaticResource GhTextMuted}" /><Run Text="    " /><Run Text="{Binding Title, Mode=OneWay}" />
+                <Run Text="{Binding AppName, Mode=OneWay, RelativeSource={RelativeSource AncestorType=local:CadWorkspace}}" Foreground="{StaticResource GhTextMuted}" /><Run Text="    " /><Run Text="{Binding Title, Mode=OneWay}" />
             </TextBlock>
             <Border Grid.Column="2" Width="220" Background="{StaticResource GhInput}" CornerRadius="4" Padding="8,3" VerticalAlignment="Center"
                     Margin="0,0,12,0" shell:WindowChrome.IsHitTestVisibleInChrome="True">
@@ -1904,7 +1904,7 @@
                     </Canvas>
                     <StackPanel Width="680" HorizontalAlignment="Center" VerticalAlignment="Center"
                                 Visibility="{Binding HasDocument, Converter={StaticResource Hidden}}">
-                        <TextBlock Text="GeometryHelper Drawing" FontSize="28" FontWeight="Bold" />
+                        <TextBlock Text="{Binding AppName, RelativeSource={RelativeSource AncestorType=local:CadWorkspace}}" FontSize="28" FontWeight="Bold" />
                         <TextBlock Text="Open and edit any 2D drawing, or make drawings from a model. No file is open."
                                    Foreground="{StaticResource GhTextMuted}" Margin="0,6,0,20" />
                         <StackPanel Orientation="Horizontal">

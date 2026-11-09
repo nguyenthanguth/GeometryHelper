@@ -13,7 +13,7 @@ namespace GeometryHelper.Drawing.Wpf
     /// <remarks>
     /// <code>
     /// var model = new MainViewModel();
-    /// var window = new MainWindow(model);
+    /// var window = new CadAppWindow(model, "GeometryHelper Drawing");
     /// DrawingWorkspace drawings = window.WorkspaceView.AddModelDrawings(model, DrawingWorkspaceExtensions.DefaultSources(Tolerance.Default), Tolerance.Default);
     /// </code>
     /// </remarks>

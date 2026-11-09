@@ -1,7 +1,7 @@
 # Settings, autosave and the window
 
 What the presenter keeps between runs and how the window behaves: global settings in a JSON file, the copies autosave
-leaves beside a drawing, how a drawing is closed, the keys and the mouse, and the options of the standalone app. The
+leaves beside a drawing, how a drawing is closed, the keys and the mouse, and the two standalone apps with their options. The
 settings are in the core and run in a test; autosave, closing and the window belong to the controls
 (`GeometryHelper.Dxf.Viewer.Wpf`), which the API reference does not list, so they are described here and not linked.
 
@@ -133,24 +133,65 @@ The function keys, Delete and the Ctrl keys of [the defaults](editing.md#aliases
 While MOVE, COPY, ROTATE, SCALE or MIRROR waits for its second point, a dashed ghost of the objects follows the cursor; an
 XLINE or a RAY among them is drawn across the view as the canvas draws it, moved, turned, scaled or mirrored with the rest.
 
-## The app
+## The apps
+
+There are two standalone apps, both net8.0-windows, both the same window over the same settings file:
+
+| App | What it is | Use it to |
+|---|---|---|
+| GeometryHelper DXF, `GeometryHelper.Dxf.App.exe` | the presenter alone: `GeometryHelper.Dxf.Viewer` and its controls, no model drawing | open, edit and plot DXF drawings in place of AutoCAD; the program to associate with `.dxf` files |
+| GeometryHelper Drawing, `GeometryHelper.Drawing.App.exe` | the presenter with the model drawing added: the Drawing tab, New drawing, Update from model and the drawing plugins | make drawings from a model (see [Model drawings](../drawing/index.md#the-app)) and edit them |
 
 ```
-GeometryHelper.Drawing.App.exe plan.dxf
+GeometryHelper.Dxf.App.exe plan.dxf
 ```
 
-opens the window on a drawing. The app reads the global settings from the user's file, loads the command plugins of the
-plugin folder and the startup list, and adds the model drawing's tab and its sources (see
-[Model drawings](../drawing/index.md#the-app)). For a picture of the window in a test or a document:
+opens the window on a drawing, as double-clicking a file associated with the app does. The app reads the global settings from
+the user's file and loads the command plugins of its plugin folder on the startup list: GeometryHelper DXF keeps them in
+`%AppData%\GeometryHelper\Dxf`, GeometryHelper Drawing in `%AppData%\GeometryHelper\Drawing`, so that a drawing plugin is
+never offered to the app that has no model drawing. The title bar and the start screen carry the app's name.
+
+Both apps start through `CadAppHost` of `GeometryHelper.Dxf.Viewer.Wpf`, and their window is its `CadAppWindow`. GeometryHelper
+Drawing derives from `CadAppHost` to add its parts: the host's protected members take its options off the command line, put
+the model drawing into the view model, make a drawing before the file is opened, draw its dialogs and select what its
+options name. A host of its own does the same.
+
+### Screenshots
+
+For a picture of the window in a test or a document:
 
 ```
-GeometryHelper.Drawing.App.exe --screenshot out.png plan.dxf --size 1600 960
+GeometryHelper.Dxf.App.exe --screenshot out.png plan.dxf --size 1600 960
 ```
 
 draws the window with the drawing open into a PNG, with no window shown, and exits: 0 when written, 2 for arguments or a file
-it cannot read. `--space "Layout1"` shows a layout, `--select H1,H2` selects entities, `--run "MOVE;0,0"` types lines on the
-command line, parted by semicolons, `--cursor x,y` puts the cursor on a point to show the snap and the rubber band, `--toggle`
-switches the status toggles, and `--layers` draws the Layer manager instead.
+it cannot read. Both apps take these options:
+
+| Option | Does |
+|---|---|
+| `--size 1600 960` | the size of the picture of the window, 1 600 by 960 by default; a dialog is drawn at its own size |
+| `--space "Layout1"` | shows a layout |
+| `--select H1,H2` | selects entities by handle |
+| `--run "MOVE;0,0"` | types lines on the command line, parted by semicolons, an empty part being Enter |
+| `--cursor x,y` | puts the cursor on a point of the drawing, to show the snap and the rubber band of the prompt waiting |
+| `--toggle GRID,DYN` | switches status toggles |
+| `--tab Insert` | shows a ribbon tab: Insert, Annotate, View, Plugins, Settings, or a host's, as Drawing |
+| `--plugin path.dll` | loads a command plugin, every file trusted, into a folder of the run under the temporary folder |
+| `--layers` | draws the Layer manager instead of the window |
+| `--dialog name` | draws a dialog or a menu instead of the window, the lines of `--run` typed first where it needs them |
+
+The dialogs are `save-changes`; `options` or `settings:Canvas and cursor` (Global settings on a category); `plugins`,
+`plugin-settings` and `plugin-untrusted`; `color`, `truecolor` and `truecolor-rgb` (Select Color on index 30);
+`dsettings[:Tab]`; the menus `osnap-menu`, `snap-menu` (after `--run "LINE"`) and `drawings-menu`; `missing-shx` and
+`missing-shx-replace`; `ptype`; `linetype`, `linetype-load`, `select-linetype`, `hatch`, `hatch-gradient`, `hatch-user`,
+`hatch-solid` and `hatch-file`; `block`, `insert`, `wblock`, `attdef` and `eattedit[:Tab]`; `style`, `style-new`,
+`dimstyle`, `dimstyle-new`, `dimstyle-modify[:Tab]`, `dimstyle-override[:Tab]` and `dimstyle-compare[:Other]`; and
+`pastespec`. A name neither app knows exits with 2: `--dialog update: no such dialog.` from GeometryHelper DXF.
+
+GeometryHelper Drawing adds its own: `--new-drawing "Test bodies" Assembly` makes a model drawing from a source with a
+preset and shows it, `--tab Drawing` shows its tab, `--pick view|dimension|mark|line` selects the first entity of the
+drawing that draws one, `--hand-edit` moves its first dimension 25 up by hand, and `--dialog
+new|new-source|new-settings|update|settings[:Tab]|export|message|run-plugin` draws a dialog of the model drawing.
 
 Fonts are looked for in the folder of the drawing, then in Global settings > Fonts > Font search folders in order, a bare name taking `.shx` and a full path used as it is; the list is empty by default, and AutoCAD's own Fonts folders are never looked in unless you add them there. A TrueType file is also looked for in the Windows Fonts folder. A style naming `romans.shx` is drawn as the single strokes of romans, read from the file: shapes, unifont and big fonts, every pen code; a TEXT of romans.shx `ABC123` 10 high right-aligned on x 100 is inked from 44.762 to 100, as AutoCAD puts it. A style naming Arial is drawn by the canvas. A font named in the substitution table, or in the font mapping file (an `.fmp` file of `oldfont;newfont` lines, as FONTMAP), is drawn in the font given for it. A font not found is drawn in the replacement font (as FONTALT): by default GeometryHelper Simplex (`ghsimplex`), the presenter's own single-stroke font after the Hershey Roman Simplex letters, its capitals as high as the text. Write `simplex.shx,gbcbig.shx` to give a big font for big fonts not found too. On opening, the command line lists the missing SHX files once, each with what it is drawn in: `Missing SHX files: romans.shx drawn in GeometryHelper Simplex.` The Chinese, Japanese and Korean code pages of the big fonts are registered by the app at start.
 

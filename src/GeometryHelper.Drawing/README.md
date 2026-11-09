@@ -17,7 +17,7 @@ standalone app.
 **Status: built, not yet packed.** Both parts exist and have guides; the plan below is still the reference for what is left.
 
 - **Part A, the 2D presenter,** is `GeometryHelper.Dxf.Viewer` (the core, no window), `GeometryHelper.Dxf.Viewer.Wpf` (the
-  controls) and `GeometryHelper.Drawing.App` (the window). It opens a DXF as a `CadDocument`, draws it from display lists,
+  controls) and `GeometryHelper.Dxf.App` (its own window, GeometryHelper DXF). It opens a DXF as a `CadDocument`, draws it from display lists,
   picks and selects, edits as AutoCAD does (command line with 32 commands and their aliases, object snaps, grips, Properties,
   layers, undo and redo that give the file back byte for byte), keeps the entities of an owner under the owner contract, loads
   command plugins while it runs, keeps global settings as JSON, autosaves and closes drawings. The guides start at
