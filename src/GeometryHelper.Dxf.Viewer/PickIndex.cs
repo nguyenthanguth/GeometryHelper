@@ -122,6 +122,16 @@ namespace GeometryHelper.Dxf.Viewer
         private readonly int[] _cellStart;
         private readonly int[] _cellItems;
         private readonly List<int> _large = new List<int>();
+
+        // The lines without end, XLINE and RAY: looked at only where they pass through or near the box asked about.
+        private readonly List<int> _rays = new List<int>();
+        private readonly List<DisplayRay2> _rayItems = new List<DisplayRay2>();
+
+        // The base point and the way of each, four numbers a line, so that most are passed by without reaching the item.
+        private readonly double[] _rayLines;
+
+        // An empty list of places, never added to.
+        private static readonly List<int> NoPlaces = new List<int>();
         private readonly int _n;
         private readonly double _x0;
         private readonly double _y0;
@@ -157,7 +167,15 @@ namespace GeometryHelper.Dxf.Viewer
                     {
                         if (pass == 0 && ix0 < 0)
                         {
-                            _large.Add(i);
+                            if (items[i] is DisplayRay2 ray)
+                            {
+                                _rays.Add(i);
+                                _rayItems.Add(ray);
+                            }
+                            else
+                            {
+                                _large.Add(i);
+                            }
                         }
 
                         continue;
@@ -200,6 +218,17 @@ namespace GeometryHelper.Dxf.Viewer
 
                     _cellStart[0] = 0;
                 }
+            }
+
+            _rayLines = new double[4 * _rayItems.Count];
+
+            for (int k = 0; k < _rayItems.Count; k++)
+            {
+                DisplayRay2 ray = _rayItems[k];
+                _rayLines[4 * k] = ray.X;
+                _rayLines[4 * k + 1] = ray.Y;
+                _rayLines[4 * k + 2] = ray.Dx;
+                _rayLines[4 * k + 3] = ray.Dy;
             }
         }
 
@@ -455,7 +484,10 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// Gets the items whose box meets a box, in the order they are drawn, as object snaps ask for what lies under the
-        /// cursor's aperture. Items with no handle are left out.
+        /// cursor's aperture. Items with no handle are left out, and so is a line without end (XLINE, RAY) that passes the box
+        /// by further than the box's own size, unless it is drawn for a block reference, whose insertion point a snap takes
+        /// from any of its items: an XLINE level through (0, 300) comes for the box from (5000, 299) to (5002, 301), not for
+        /// the one from (5000, 310) to (5002, 312).
         /// </summary>
         /// <param name="box">The box, in drawing units.</param>
         /// <returns>The items.</returns>
@@ -470,6 +502,21 @@ namespace GeometryHelper.Dxf.Viewer
                 if (!string.IsNullOrEmpty(item.Handle) && item.Bounds.Intersects(box))
                 {
                     indices.Add(i);
+                }
+            }
+
+            if (_rays.Count > 0 && !box.IsEmpty)
+            {
+                var reach = new RayReach(box);
+
+                foreach (int i in _rays)
+                {
+                    var ray = (DisplayRay2)_list.Items[i];
+
+                    if (!string.IsNullOrEmpty(ray.Handle) && _list.InsertionPointsOf(ray.Handle).Count > 0 && ray.Bounds.Intersects(box) && !reach.Meets(ray))
+                    {
+                        indices.Add(i);
+                    }
                 }
             }
 
@@ -533,11 +580,14 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 // A view of a sixteenth of the grid or less: the items met, sorted and each kept once, rather than a flag for
                 // every item of the list, which on a drawing of a million entities would be megabytes a frame.
-                foreach (int i in _large)
+                foreach (List<int> wide in new[] { _large, _rays })
                 {
-                    if (items[i].Bounds.Intersects(box))
+                    foreach (int i in wide)
                     {
-                        found.Add(i);
+                        if (items[i].Bounds.Intersects(box))
+                        {
+                            found.Add(i);
+                        }
                     }
                 }
 
@@ -574,12 +624,15 @@ namespace GeometryHelper.Dxf.Viewer
 
             var seen = new bool[items.Count];
 
-            foreach (int i in _large)
+            foreach (List<int> wide in new[] { _large, _rays })
             {
-                if (!seen[i] && items[i].Bounds.Intersects(box))
+                foreach (int i in wide)
                 {
-                    seen[i] = true;
-                    found.Add(i);
+                    if (!seen[i] && items[i].Bounds.Intersects(box))
+                    {
+                        seen[i] = true;
+                        found.Add(i);
+                    }
                 }
             }
 
@@ -606,6 +659,11 @@ namespace GeometryHelper.Dxf.Viewer
             return found;
         }
 
+        /// <summary>
+        /// The places of the items that may lie in or near a box, each once, in no order: the large ones, the lines without end
+        /// that pass through the box grown by its own size (<see cref="RayReach"/>), and those of the cells the box covers. A line
+        /// without end that passes by further off is left out: no pick, snap or selection in the box can take it.
+        /// </summary>
         private IEnumerable<int> Candidates(DisplayBox box)
         {
             var seen = new HashSet<int>();
@@ -621,6 +679,11 @@ namespace GeometryHelper.Dxf.Viewer
             if (box.IsEmpty)
             {
                 yield break;
+            }
+
+            foreach (int i in RaysMeeting(box))
+            {
+                yield return i;
             }
 
             CellRange(box, out int ix0, out int iy0, out int ix1, out int iy1);
@@ -642,6 +705,66 @@ namespace GeometryHelper.Dxf.Viewer
                     }
                 }
             }
+        }
+
+        /// <summary>The places of the lines without end that pass through or near a box (<see cref="RayReach"/>), ascending; worked out in a plain loop, not in the iterator of <see cref="Candidates"/>.</summary>
+        private List<int> RaysMeeting(DisplayBox box)
+        {
+            List<int> found = null;
+
+            if (_rays.Count > 0 && !box.IsEmpty)
+            {
+                var reach = new RayReach(box);
+                double[] lines = _rayLines;
+
+                for (int k = 0, at = 0; at < lines.Length; k++, at += 4)
+                {
+                    if (reach.PassesNear(lines[at], lines[at + 1], lines[at + 2], lines[at + 3]) && _rayItems[k].TryClip(reach.Box, out _, out _, out _, out _))
+                    {
+                        (found ?? (found = new List<int>())).Add(_rays[k]);
+                    }
+                }
+            }
+
+            return found ?? NoPlaces;
+        }
+
+        /// <summary>
+        /// The box a line without end is tried against for a box asked about: grown on every side by its larger side and by a
+        /// billionth of its coordinates, so that a line whose distance from the box rounds a hair either way is kept, and a box
+        /// of nought round a point still takes a line through it. A pick of 0.5 at (40, 10) tries the box from (38.5, 8.5) to
+        /// (41.5, 11.5). The distance of the box's centre from the line is looked at first, a product and a sum, so that the
+        /// clip is worked out only for the few lines that pass near.
+        /// </summary>
+        private readonly struct RayReach
+        {
+            private readonly DisplayBox _box;
+            private readonly double _cx;
+            private readonly double _cy;
+            private readonly double _radius;
+
+            public RayReach(DisplayBox box)
+            {
+                _box = box.Inflate(Math.Max(box.Width, box.Height) + 1E-9 * (1.0 + Math.Abs(box.MinX) + Math.Abs(box.MinY) + Math.Abs(box.MaxX) + Math.Abs(box.MaxY)));
+                _cx = (_box.MinX + _box.MaxX) / 2.0;
+                _cy = (_box.MinY + _box.MaxY) / 2.0;
+
+                // Half the diagonal, a hundredth more: a line that meets the box passes its centre at no more.
+                _radius = 0.505 * Math.Sqrt(_box.Width * _box.Width + _box.Height * _box.Height);
+            }
+
+            /// <summary>The box grown.</summary>
+            public DisplayBox Box => _box;
+
+            /// <summary>Whether a line whose base point and way are given passes near enough the centre to be clipped.</summary>
+            public bool PassesNear(double x, double y, double dx, double dy)
+            {
+                double across = (_cx - x) * dy - (_cy - y) * dx;
+                return across <= _radius && across >= -_radius;
+            }
+
+            /// <summary>Whether a line without end meets the grown box.</summary>
+            public bool Meets(DisplayRay2 ray) => PassesNear(ray.X, ray.Y, ray.Dx, ray.Dy) && ray.TryClip(_box, out _, out _, out _, out _);
         }
 
         private void CellRange(DisplayBox box, out int ix0, out int iy0, out int ix1, out int iy1)
