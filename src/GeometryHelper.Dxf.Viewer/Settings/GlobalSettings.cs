@@ -70,7 +70,7 @@ namespace GeometryHelper.Dxf.Viewer
     /// pixels, a wheel zoom of 1.2 times, the snaps but Nearest, AutoCAD's aliases and keys (<see cref="CadShortcuts.Default"/>).
     /// </para>
     /// </remarks>
-    public sealed class GlobalSettings
+    public sealed partial class GlobalSettings
     {
         /// <summary>The DXF export layouts, as Drawing defaults names them: layout and viewports, or the sheet in model space (D10).</summary>
         public static readonly IReadOnlyList<string> ExportLayouts = new[] { "LayoutAndViewports", "SheetInModelSpace" };
@@ -475,6 +475,7 @@ namespace GeometryHelper.Dxf.Viewer
             copy._fontSubstitutions = Copy(_fontSubstitutions);
             copy._aliases = Copy(_aliases);
             copy._keys = Copy(_keys);
+            CopyRecordsInto(copy);
             return copy;
         }
 
@@ -670,6 +671,7 @@ namespace GeometryHelper.Dxf.Viewer
             w.Value("exportLayout", _exportLayout);
             w.Value("openAfterExport", OpenAfterExport);
             w.Close();
+            WriteInputAndRecords(w);
             w.Close();
             return w.ToString();
         }
@@ -796,8 +798,14 @@ namespace GeometryHelper.Dxf.Viewer
                 Number("saveAndExport", "backupsKept", v => _s.BackupsKept = Whole(v));
                 Text("saveAndExport", "exportLayout", v => _s.ExportLayout = v);
                 Flag("saveAndExport", "openAfterExport", v => _s.OpenAfterExport = v);
+                Flag("input", "autoComplete", v => _s.AutoComplete = v);
+                Flag("input", "autoCorrect", v => _s.AutoCorrect = v);
+                Flag("input", "searchSystemVariables", v => _s.SearchSystemVariables = v);
+                Flag("input", "midStringSearch", v => _s.MidStringSearch = v);
+                Number("input", "delayMilliseconds", v => _s.AutoCompleteDelay = Whole(v));
                 ReadLayers();
                 ReadShortcuts();
+                _s.ReadRecords(_root, _path);
             }
 
             private static int Whole(double value) => value == Math.Floor(value) && value >= int.MinValue && value <= int.MaxValue ? (int)value : throw new ArgumentException("A whole number is needed.");

@@ -29,6 +29,22 @@ namespace GeometryHelper.Drawing.Wpf.UnitTest
         }
 
         [Fact]
+        public void TheStartScreenOfGeometryHelperDrawing_KeepsNewDrawingFromAModel_AndCtrlNAsksForIt()
+        {
+            var bench = new Bench();
+
+            Assert.True(bench.Model.CanMakeFromModel);
+            Assert.Equal("Open and edit any 2D drawing, or make drawings from a model. No file is open.", bench.Model.StartScreenText);
+            Assert.Equal(new[] { MainViewModel.WelcomeText }, bench.Model.RecentHistory);
+            Assert.Contains(bench.Model.CreateAppMenu("GeometryHelper Drawing").Items[0].Items, i => i.Name == "Drawing from a model");
+
+            bench.Model.NewByShortcut();
+
+            Assert.IsType<NewDrawingViewModel>(Assert.Single(bench.Requests).Model);
+            Assert.False(bench.Model.HasDocument);
+        }
+
+        [Fact]
         public void TheModelDrawingCommandsOnAPlainDxfSayTheyWorkOnAModelDrawing()
         {
             var bench = new Bench();

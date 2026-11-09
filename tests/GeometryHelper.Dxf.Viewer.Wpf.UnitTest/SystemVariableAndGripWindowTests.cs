@@ -134,7 +134,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             Assert.Equal("Value must be at most 360.", model.History.Last());
             model.Execute("30");
 
-            Assert.Equal(4, raised);
+            // Four values set, and each of the four names typed counted as a command used, which the settings file keeps too.
+            Assert.Equal(8, raised);
+            Assert.Equal(1, model.Settings.CommandUses["POLARANG"]);
             Assert.Equal(Math.PI / 6.0, model.Snap.PolarAngle, 12);
             GlobalSettings saved = GlobalSettings.Load(model.SettingsPath);
             Assert.Equal(9, saved.PickboxPixels);
