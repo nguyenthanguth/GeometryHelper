@@ -179,7 +179,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
 
             IReadOnlyList<CadMenuItemViewModel> items = model.SnapOverrideMenu();
 
-            Assert.Equal(new[] { "Endpoint", "Midpoint", "Intersection", "Apparent Intersection", "Extension", "Center", "Geometric Center", "Quadrant", "Tangent", "Perpendicular", "Parallel", "Node", "Insertion", "Nearest", "None", string.Empty, "Osnap Settings..." },
+            Assert.Equal(new[] { "Temporary track point", "From", "Mid Between 2 Points", "Point Filters", string.Empty, "Endpoint", "Midpoint", "Intersection", "Apparent Intersection", "Extension", "Center", "Geometric Center", "Quadrant", "Tangent", "Perpendicular", "Parallel", "Node", "Insertion", "Nearest", "None", string.Empty, "Osnap Settings..." },
                 items.Select(i => i.Header));
             items.Single(i => i.Header == "Midpoint").Command.Execute(null);
             Assert.Equal(CadSnapModes.Midpoint, model.Snap.Override);

@@ -23,11 +23,21 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             Command = run == null ? null : new DelegateCommand(_ => run(), _ => isEnabled);
         }
 
+        /// <summary>Makes an item that opens a menu of its own, as "Point Filters" of the Shift+right-click menu.</summary>
+        internal CadMenuItemViewModel(string header, IReadOnlyList<CadMenuItemViewModel> items)
+            : this(header, (Action)null)
+        {
+            Items = items;
+        }
+
         /// <summary>Gets the text, as "Close All Other Drawings"; empty for a separator.</summary>
         public string Header { get; }
 
+        /// <summary>Gets the items of the menu it opens, as the six filters under "Point Filters"; empty for an item that opens none.</summary>
+        public IReadOnlyList<CadMenuItemViewModel> Items { get; } = Array.Empty<CadMenuItemViewModel>();
+
         /// <summary>Gets whether it is a line between groups of items.</summary>
-        public bool IsSeparator => Command == null;
+        public bool IsSeparator => Command == null && Items.Count == 0;
 
         /// <summary>Gets whether it can be chosen.</summary>
         public bool IsEnabled { get; }
@@ -144,6 +154,24 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             return true;
         }
 
+        /// <summary>
+        /// Starts a point modifier at the prompt waiting for a point, as the Shift+right-click menu does: "_tt", "_from",
+        /// "_m2p" or a point filter ".X" to ".YZ" (<see cref="CadCommandSession.StartPointModifier"/>). The command line says
+        /// it, "Specify first point: _from", and asks "Base point:".
+        /// </summary>
+        /// <param name="modifier">The modifier, as typed.</param>
+        /// <returns>Whether it was started: false where no prompt waits for a point.</returns>
+        public bool ModifyPoint(string modifier)
+        {
+            if (_current == null || !_current.Session.StartPointModifier(modifier))
+            {
+                return false;
+            }
+
+            SyncHistory();
+            return true;
+        }
+
         /// <summary>Makes the view model of Drafting Settings over the snaps, the grid and the polar tracking in use.</summary>
         /// <param name="tab">The tab shown first: "Snap and Grid", "Polar Tracking" or "Object Snap"; null for Object Snap.</param>
         /// <returns>The view model.</returns>
@@ -165,8 +193,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>
-        /// Gets the items of the Shift+right-click menu while a point is asked, in AutoCAD's order: the fourteen snaps, each taken
-        /// for the next point alone (<see cref="OverrideSnap"/>), None, then "Osnap Settings...". Empty while no point is asked.
+        /// Gets the items of the Shift+right-click menu while a point is asked, in AutoCAD's order: the point modifiers
+        /// Temporary track point, From, Mid Between 2 Points and Point Filters (.X to .YZ), each started at the prompt as typed
+        /// (<see cref="ModifyPoint"/>); then the fourteen snaps, each taken for the next point alone (<see cref="OverrideSnap"/>),
+        /// None, then "Osnap Settings...". Empty while no point is asked.
         /// </summary>
         /// <returns>The items.</returns>
         public IReadOnlyList<CadMenuItemViewModel> SnapOverrideMenu()
@@ -176,8 +206,17 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return Array.Empty<CadMenuItemViewModel>();
             }
 
-            var items = OverrideMenuOrder.Select(k => SnapModeTable.First(i => i.Kind == k))
-                .Select(i => new CadMenuItemViewModel(i.Name, () => OverrideSnap(i.Mode), true, null, null, i.Kind)).ToList();
+            var items = new List<CadMenuItemViewModel>
+            {
+                new CadMenuItemViewModel("Temporary track point", () => ModifyPoint("_tt")),
+                new CadMenuItemViewModel("From", () => ModifyPoint("_from")),
+                new CadMenuItemViewModel("Mid Between 2 Points", () => ModifyPoint("_m2p")),
+                new CadMenuItemViewModel("Point Filters", new[] { ".X", ".Y", ".Z", ".XY", ".XZ", ".YZ" }
+                    .Select(f => new CadMenuItemViewModel(f, () => ModifyPoint(f))).ToList()),
+                CadMenuItemViewModel.Separator(),
+            };
+            items.AddRange(OverrideMenuOrder.Select(k => SnapModeTable.First(i => i.Kind == k))
+                .Select(i => new CadMenuItemViewModel(i.Name, () => OverrideSnap(i.Mode), true, null, null, i.Kind)));
             items.Add(new CadMenuItemViewModel("None", () => OverrideSnap(CadSnapModes.None)));
             items.Add(CadMenuItemViewModel.Separator());
             items.Add(new CadMenuItemViewModel("Osnap Settings...", () => RequestDraftingSettings(null)));

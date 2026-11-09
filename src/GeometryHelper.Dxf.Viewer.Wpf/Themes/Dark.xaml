@@ -293,6 +293,41 @@
         </Setter>
     </Style>
 
+    <!-- An item of a menu that opens a menu of its own to the right, as "Point Filters" of the Shift+right-click menu. -->
+    <Style x:Key="GhSubmenuItem" TargetType="MenuItem">
+        <Setter Property="Foreground" Value="{StaticResource GhText}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="MenuItem">
+                    <Grid>
+                        <Border x:Name="Row" Background="Transparent" Padding="0,4,8,4">
+                            <DockPanel>
+                                <TextBlock DockPanel.Dock="Left" Width="22" />
+                                <TextBlock DockPanel.Dock="Right" Text="&#x25B8;" Margin="16,0,0,0" VerticalAlignment="Center" />
+                                <ContentPresenter ContentSource="Header" VerticalAlignment="Center" RecognizesAccessKey="False" />
+                            </DockPanel>
+                        </Border>
+                        <Popup x:Name="PART_Popup" Placement="Right" IsOpen="{TemplateBinding IsSubmenuOpen}" AllowsTransparency="True"
+                               Focusable="False" PopupAnimation="None">
+                            <Border Background="{StaticResource GhInput}" BorderBrush="{StaticResource GhBorder}" BorderThickness="1" Padding="0,3"
+                                    TextElement.FontFamily="{StaticResource GhFont}" TextElement.FontSize="{StaticResource GhFontSize}">
+                                <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Cycle" />
+                            </Border>
+                        </Popup>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsHighlighted" Value="True">
+                            <Setter TargetName="Row" Property="Background" Value="{StaticResource GhSelected}" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Foreground" Value="{StaticResource GhTextMuted}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <Style x:Key="GhMenuSeparator" TargetType="Separator">
         <Setter Property="Template">
             <Setter.Value>

@@ -120,6 +120,14 @@ namespace GeometryHelper.Dxf.Viewer
             return true;
         }
 
+        /// <summary>
+        /// Acquires a point given rather than rested on, as AutoCAD's temporary track point (TT): while OTRACK is on, tracking
+        /// lines run from it as from any point acquired, so that TT at (2 000, 0) holds the cursor near (2 000.3, 700) at
+        /// (2 000, 700). It is drawn as a small cross and counts among the seven, the oldest let go first.
+        /// </summary>
+        /// <param name="point">The point, in drawing units.</param>
+        public void AcquireTrackPoint(GeoPoint2 point) => Add(new CadAcquiredPoint(CadSnapKind.Tracking, point, null));
+
         /// <summary>Lets every acquired point go, and the object clicked first for an apparent intersection: the window calls it once a point is taken or the prompt goes.</summary>
         public void ClearAcquired()
         {
