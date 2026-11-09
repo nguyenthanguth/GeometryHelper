@@ -467,6 +467,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 _model.ShowPlot = dialog => PlotWindow.Show(Window.GetWindow(this), dialog);
                 _model.ShowPlotPreview = preview => PlotPreviewWindow.Show(Window.GetWindow(this), preview);
                 _model.AskPlotFile = AskPlotFile;
+                _model.AskImageFile = AskImageFile;
                 _model.WindowsPrinters = WindowsPrinters;
                 _model.ShowQuickSelect = dialog => QuickSelectWindow.Show(Window.GetWindow(this), dialog);
                 _model.ShowFindReplace = dialog => FindReplaceWindow.Show(Window.GetWindow(this), dialog);
@@ -485,6 +486,21 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private string AskPlotFile(string folder, string name)
         {
             var dialog = new SaveFileDialog { Filter = "PDF files (*.pdf)|*.pdf", Title = "Browse for Plot File", FileName = name, DefaultExt = ".pdf" };
+
+            if (folder != null && Directory.Exists(folder))
+            {
+                dialog.InitialDirectory = folder;
+            }
+
+            return dialog.ShowDialog(Window.GetWindow(this)) == true ? dialog.FileName : null;
+        }
+
+        /// <summary>Create Raster File: where PNGOUT, JPGOUT or BMPOUT writes, of the type of the name offered; null where it is cancelled.</summary>
+        private string AskImageFile(string folder, string name)
+        {
+            string extension = Path.GetExtension(name).ToLowerInvariant();
+            string filter = extension == ".jpg" ? "JPEG files (*.jpg)|*.jpg" : extension == ".bmp" ? "Bitmap files (*.bmp)|*.bmp" : "PNG files (*.png)|*.png";
+            var dialog = new SaveFileDialog { Filter = filter, Title = "Create Raster File", FileName = name, DefaultExt = extension };
 
             if (folder != null && Directory.Exists(folder))
             {

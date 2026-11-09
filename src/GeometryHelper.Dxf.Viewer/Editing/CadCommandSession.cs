@@ -31,7 +31,16 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Gets the plot PLOT, PREVIEW, PAGESETUP or -PLOT hands the window, the <see cref="Payload"/> of those requests; null for every other request.</summary>
         public CadPlotJob Plot => Payload as CadPlotJob;
 
-        /// <summary>Gets what is asked: PROPERTIES, LAYER, OPTIONS, QSAVE, RECOVER, PLOT, PREVIEW, PAGESETUP, or -PLOT to write a plot to a file.</summary>
+        /// <summary>
+        /// Gets the image PNGOUT, JPGOUT or BMPOUT hands the window, the <see cref="Payload"/> of those requests and of
+        /// IMAGEOUT; null for every other request.
+        /// </summary>
+        public CadImageJob Image => Payload as CadImageJob;
+
+        /// <summary>
+        /// Gets what is asked: PROPERTIES, LAYER, OPTIONS, QSAVE, RECOVER, PLOT, PREVIEW, PAGESETUP, -PLOT to write a plot to a
+        /// file, PNGOUT, JPGOUT or BMPOUT for the file of an image, or IMAGEOUT to draw the image and write it.
+        /// </summary>
         public string Name { get; }
 
         /// <summary>Gets the document to show, for RECOVER the drawing recovered; null for the other requests.</summary>
