@@ -84,6 +84,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private bool _fileListShown = true;
         private bool _propertiesShown = true;
         private int _newDrawings;
+        private DelegateCommand _startCommandWithOptionCommand;
+
+        // The option a split button's choice gives the first prompt that offers it, as F for DRAWORDER's Front; null for none.
+        private string _pendingOption;
 
         // What a command of the window leaves to be done once it has ended: a document cannot be changed under a command running.
         private Action _afterCommand;
@@ -126,6 +130,33 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>Gets the command of the + after the layout tabs: LAYOUT New, the layout named as offered (Layout2 after Layout1).</summary>
         public ICommand NewLayoutCommand => _newLayoutCommand ?? (_newLayoutCommand = new DelegateCommand(_ => NewLayout()));
+
+        /// <summary>
+        /// Gets the command a split button's choice runs, given the command and its option, as "DRAWORDER F": the command is
+        /// started, ending any running, and the option given to the first prompt that offers it, the objects asked before it
+        /// picked by the user, as AutoCAD's ribbon macro <c>_draworder;\_f</c> does. "TEXTTOFRONT T" brings the text to the
+        /// front at once; "DRAWORDER B" asks for the objects, then sends them to the back.
+        /// </summary>
+        public ICommand StartCommandWithOptionCommand => _startCommandWithOptionCommand
+            ?? (_startCommandWithOptionCommand = new DelegateCommand(p => StartCommandWithOption(p as string), _ => HasDocument));
+
+        /// <summary>
+        /// Gets or sets whether a pick takes a selectable group whole (PICKSTYLE 1), as Home › Groups › Group Selection On/Off
+        /// shows it; setting it switches PICKSTYLE as Ctrl+Shift+A does, writing "&lt;Group on&gt;" or "&lt;Group off&gt;".
+        /// </summary>
+        public bool IsGroupSelectionOn
+        {
+            get => _current != null && (_current.Document.PickStyle & 1) != 0;
+            set
+            {
+                if (_current != null && value != IsGroupSelectionOn)
+                {
+                    _current.Session.TogglePickStyle();
+                    SyncHistory();
+                    Raise(nameof(IsGroupSelectionOn));
+                }
+            }
+        }
 
         /// <summary>Gets or sets whether the DRAWINGS list is shown at the left (View › Interface).</summary>
         public bool IsFileListShown
@@ -178,6 +209,50 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             for (int i = 1; i < words.Length && IsCommandRunning; i++)
             {
                 Execute(words[i]);
+            }
+        }
+
+        /// <summary>Starts the command of a line as "DRAWORDER F", keeping its option for the first prompt that offers it.</summary>
+        private void StartCommandWithOption(string line)
+        {
+            string[] words = (line ?? string.Empty).Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+
+            if (_current == null || words.Length == 0)
+            {
+                return;
+            }
+
+            if (_current.Session.IsRunning)
+            {
+                _current.Session.Escape();
+            }
+
+            _pendingOption = words.Length > 1 ? words[1] : null;
+            StartCommand(words[0]);
+        }
+
+        /// <summary>
+        /// Gives the option kept by <see cref="StartCommandWithOption"/> to the prompt now asked where it offers it; forgets it
+        /// once the command has ended.
+        /// </summary>
+        private void AnswerPendingOption()
+        {
+            if (_pendingOption == null)
+            {
+                return;
+            }
+
+            CadCommandSession session = _current?.Session;
+
+            if (session == null || !session.IsRunning || session.Prompt == null)
+            {
+                _pendingOption = null;
+            }
+            else if (session.Prompt.MatchKeyword(_pendingOption) != null)
+            {
+                string option = _pendingOption;
+                _pendingOption = null;
+                session.Feed(option);
             }
         }
 

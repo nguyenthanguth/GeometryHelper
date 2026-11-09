@@ -248,6 +248,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             Raise(nameof(ViewportLabel));
             RaiseModified();
             ((DelegateCommand)StartCommandCommand).RaiseCanExecuteChanged();
+            _startCommandWithOptionCommand?.RaiseCanExecuteChanged();
+            Raise(nameof(IsGroupSelectionOn));
             Revision++;
         }
 

@@ -23,9 +23,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// Ctrl+9 shows or hides the command line. In the DRAWINGS list a click selects a row, a double click or Enter opens it,
     /// Delete does nothing and a right click shows Open and the Close items; OSNAP of the status bar has the menu of the object
     /// snaps on its arrow and its right click, and Shift+right-click on the canvas while a point is asked gives the snap menu.
-    /// The arrows of Trim, Fillet and Array on the ribbon drop their other commands (Extend, Chamfer, Polar Array), the button
-    /// then showing and running the one picked until another is, and the title of Modify the rest of the group, as AutoCAD
-    /// 2021's panel slides out.
+    /// The arrows of Trim, Fillet, Array, Draw Order, Paste and the dimension splits on the ribbon drop their other commands
+    /// (Extend, Chamfer, Polar Array, Send to Back, Paste as Block, Radius), the button then showing and running the one picked
+    /// until another is, and the title of Modify the rest of the group, as AutoCAD 2021's panel slides out. As the window
+    /// narrows, Home's panels shrink as AutoCAD's do (<see cref="RibbonStrip"/>): at 1 600 pixels View, Clipboard, Utilities
+    /// and Groups are each one button that drops the panel below it.
     /// Letters typed with the focus on the canvas go to the command line, where Enter or Space runs the line (Space types a
     /// space at a prompt for text) and Up and Down recall what was typed before. A value of Properties is committed by Enter
     /// or by leaving it, and Esc puts the old one back. DXF files dropped on it are opened.
@@ -582,7 +584,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>
         /// An item of a split button's menu picked: the button beside the arrow takes its label, icon and command, as AutoCAD's
         /// split buttons show the one used last, until another is picked. Extend picked from Trim's arrow leaves the button
-        /// reading Extend and running EXTEND. Kept for the window's session only.
+        /// reading Extend and running EXTEND; Radius picked from Linear's arrow leaves the big button's label reading Radius ▾.
+        /// Kept for the window's session only.
         /// </summary>
         private void OnSplitChoice(object sender, RoutedEventArgs e)
         {
@@ -725,9 +728,6 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     break;
             }
         }
-
-        /// <summary>The arrow under Paste: Paste, Paste as Block, Paste to Original Coordinates, Paste Special.</summary>
-        private void OnPasteMenu(object sender, RoutedEventArgs e) => ShowMenu(_model?.PasteMenu(), (UIElement)sender);
 
         /// <summary>A menu of the Text Editor tab: Symbol, Justification, Line Spacing, Case, Clear; the editor keeps the keyboard.</summary>
         private void OnEditorMenu(object sender, RoutedEventArgs e)

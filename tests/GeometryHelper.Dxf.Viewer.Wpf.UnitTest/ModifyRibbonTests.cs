@@ -47,11 +47,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                     {
                         string command = (string)item.CommandParameter;
                         items.Add(command);
-                        Press(model, item.Command != null && item.Command.CanExecute(command), () => item.Command.Execute(command), command);
+                        Press(model, item.Command != null && item.Command.CanExecute(command), () => item.Command.Execute(command), command.Split(' ')[0]);
                     }
                 }
 
-                Assert.Equal(new[] { "BREAKATPOINT", "BREAK", "JOIN", "LENGTHEN", "ALIGN", "TRIM", "EXTEND", "FILLET", "CHAMFER", "ARRAYRECT", "ARRAYPOLAR" }, items);
+                Assert.Equal(new[] { "BREAKATPOINT", "BREAK", "JOIN", "LENGTHEN", "ALIGN", "TRIM", "EXTEND", "FILLET", "CHAMFER", "ARRAYRECT", "ARRAYPOLAR", "DRAWORDER F", "DRAWORDER B", "DRAWORDER A", "DRAWORDER U", "TEXTTOFRONT T" }, items);
             });
         }
 

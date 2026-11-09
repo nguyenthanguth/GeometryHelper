@@ -75,6 +75,32 @@
     <Geometry x:Key="GhIconPolar">M4 20h16M4 20 16 8M4 20 10 6M10 20a6 6 0 0 0-1.8-4.2</Geometry>
     <Geometry x:Key="GhIconOsnap">M8 8h8v8H8zM12 3v5M12 16v5M3 12h5M16 12h5</Geometry>
 
+    <!-- Home's Groups, Draw Order, Clipboard and Quick Select, Annotate's dimension tools, and the pin of a panel dropped down. -->
+    <Geometry x:Key="GhIconGroup">M3 3h8v8H3zM13 13h8v8h-8zM11 7h6v6</Geometry>
+    <Geometry x:Key="GhIconUngroup">M3 3h8v8H3zM13 13h8v8h-8zM15 4l5 5M20 4l-5 5</Geometry>
+    <Geometry x:Key="GhIconGroupEdit">M3 3h8v8H3zM13 13h8v8h-8zM13 10l6-6 2 2-6 6h-2z</Geometry>
+    <Geometry x:Key="GhIconPickStyle">M3 3h11v11H3zM12 12l9 3-4 2-2 4z</Geometry>
+    <Geometry x:Key="GhIconBringToFront">M4 8h9v9H4zM11 4h9v9h-9zM15.5 21v-5M13.5 18l2-2 2 2</Geometry>
+    <Geometry x:Key="GhIconSendToBack">M4 8h9v9H4zM11 4h9v9h-9zM15.5 16v5M13.5 19l2 2 2-2</Geometry>
+    <Geometry x:Key="GhIconBringAbove">M4 15h16M8 10l4-4 4 4M12 6v9M4 20h16</Geometry>
+    <Geometry x:Key="GhIconSendUnder">M4 9h16M8 14l4 4 4-4M12 18V9M4 4h16</Geometry>
+    <Geometry x:Key="GhIconTextToFront">M4 6V4h10v2M9 4v12M6 16h6M18 21v-8M16 15l2-2 2 2</Geometry>
+    <Geometry x:Key="GhIconPasteBlock">M9 4h6v3H9zM6 5H5a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1h-1M8 11h8v6H8z</Geometry>
+    <Geometry x:Key="GhIconPasteOriginal">M9 4h6v3H9zM6 5H5a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1h-1M8 18v-6M8 18h6</Geometry>
+    <Geometry x:Key="GhIconPasteSpecial">M9 4h6v3H9zM6 5H5a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1h-1M12 11l1.2 2.5 2.8.4-2 2 .5 2.8-2.5-1.3-2.5 1.3.5-2.8-2-2 2.8-.4z</Geometry>
+    <Geometry x:Key="GhIconCut">M6 18m-3 0a3 3 0 1 0 6 0a3 3 0 1 0-6 0M18 18m-3 0a3 3 0 1 0 6 0a3 3 0 1 0-6 0M8 16 18 3M16 16 6 3</Geometry>
+    <Geometry x:Key="GhIconCopyBase">M9 9h11v11H9zM4 4h11v3M4 4v11h3M9 20m-1.5 0a1.5 1.5 0 1 0 3 0a1.5 1.5 0 1 0-3 0</Geometry>
+    <Geometry x:Key="GhIconQuickSelect">M4 4h10v10H4zM14 14l6 6M7 9h4</Geometry>
+    <Geometry x:Key="GhIconTable">M3 5h18v14H3zM3 10h18M3 15h18M9 5v14</Geometry>
+    <Geometry x:Key="GhIconQuickDim">M3 18h18M3 15v6M9 15v6M15 15v6M21 15v6M13 3 8 10h5l-2 5</Geometry>
+    <Geometry x:Key="GhIconDimContinue">M2 14h20M2 11v6M10 11v6M22 11v6M5 14l-2 0M16 14h.01</Geometry>
+    <Geometry x:Key="GhIconDimBaseline">M3 6v14M3 10h8M3 15h14M11 7v6M17 12v6</Geometry>
+    <Geometry x:Key="GhIconDimSpace">M4 6h16M4 12h16M4 18h16M20 8v2M20 14v2</Geometry>
+    <Geometry x:Key="GhIconDimBreak">M3 12h7M14 12h7M3 9v6M21 9v6M12 5v4M12 15v4</Geometry>
+    <Geometry x:Key="GhIconDimOblique">M3 20h18M7 20 11 4M17 20l4-16M9 12h10</Geometry>
+    <Geometry x:Key="GhIconDimTextAngle">M4 20h16M6 18 16 8M12 8h4v4</Geometry>
+    <Geometry x:Key="GhIconPin">M12 17v5M8 3h8l-1 6 3 3H6l3-3z</Geometry>
+
     <Geometry x:Key="GhIconPluginCommand">M5 9h14M5 15h14M10 3 8 21M16 3l-2 18</Geometry>
     <Geometry x:Key="GhIconPluginLoad">M12 3v12M7 10l5 5 5-5M4 21h16</Geometry>
     <Geometry x:Key="GhIconPluginUnload">M12 21V9M7 14l5-5 5 5M4 3h16</Geometry>
