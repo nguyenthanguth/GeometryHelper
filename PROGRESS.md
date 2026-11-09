@@ -54,10 +54,10 @@ which aims to work like AutoCAD 2021 and replace it, and Part B, model drawings 
 - [ ] Speed: draw the first display off the UI thread (10–13 s at 1 000 000 entities)
 - [ ] Speed: frame at extents at 1 000 000 entities (0.8–1.1 s, inside Skia); level of detail would change pixels (needs a decision)
 - [ ] Speed: highlight of 100 000 selected objects (1.2–1.6 s)
-- [ ] Blocks: EATTEDIT stays open on Apply; INSERT drag preview; pick one ATTRIB in -ATTEDIT; ATTSYNC; BATTMAN
-- [ ] Blocks: Block Definition dialog previews the selected objects
-- [ ] Dimensions: DIMORDINATE (and its part in DIMCONTINUE, DIMBASELINE, QDIM), DIMJOGLINE, the DIM command
-- [ ] Dimensions: draw DIMTAD and DIMJUST (words above or beside the line)
+- [ ] Blocks: EATTEDIT stays open on Apply; INSERT drag preview; pick one ATTRIB in -ATTEDIT; ATTSYNC (running); BATTMAN (design first)
+- [ ] Blocks: Block Definition dialog previews the selected objects (running)
+- [ ] Dimensions: DIMORDINATE (and its part in DIMCONTINUE, DIMBASELINE, QDIM), DIMJOGLINE, the DIM command (running)
+- [ ] Dimensions: draw DIMTAD and DIMJUST (words above or beside the line) (running)
 - [ ] MTEXT: word wrap at the width, stacked fractions, columns; line spacing 5/3 as AutoCAD (check first)
 - [ ] Clipboard: preview of the objects while PASTECLIP asks for the point
 - [ ] PLOT: print to Windows printers; add named page setups; embed only the glyphs used (smaller PDFs)
