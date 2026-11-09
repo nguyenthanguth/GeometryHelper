@@ -101,6 +101,24 @@
     <Geometry x:Key="GhIconDimTextAngle">M4 20h16M6 18 16 8M12 8h4v4</Geometry>
     <Geometry x:Key="GhIconPin">M12 17v5M8 3h8l-1 6 3 3H6l3-3z</Geometry>
 
+    <!-- The Insert tab: Block, Block Definition and Reference. -->
+    <Geometry x:Key="GhIconInsertBlock">M4 4h9v9H4zM13 13l7 7M14 20h6v-6</Geometry>
+    <Geometry x:Key="GhIconEditAttribute">M4 6h16M4 11h10M4 16h7M14 20l6-6 2 2-6 6h-2z</Geometry>
+    <Geometry x:Key="GhIconCreateBlock">M4 4h9v9H4zM18 4v6M15 7h6M4 17h16M4 21h10</Geometry>
+    <Geometry x:Key="GhIconWriteBlock">M5 3h11l3 3v15H5zM8 3v5h7M8 21v-7h8v7</Geometry>
+    <Geometry x:Key="GhIconDefineAttributes">M4 5h16v14H4zM8 10h8M8 14h5M12 3v4</Geometry>
+    <Geometry x:Key="GhIconManageAttributes">M4 6h10M4 12h10M4 18h10M18 5v14M16 8l2-3 2 3</Geometry>
+    <Geometry x:Key="GhIconBlockEditor">M4 4h9v9H4zM14 20l6-6 2 2-6 6h-2z</Geometry>
+    <Geometry x:Key="GhIconBasePoint">M12 12m-2 0a2 2 0 1 0 4 0a2 2 0 1 0-4 0M12 3v6M12 15v6M3 12h6M15 12h6</Geometry>
+    <Geometry x:Key="GhIconAttach">M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8zM14 3v5h5M9 14h6M12 11v6</Geometry>
+    <Geometry x:Key="GhIconClip">M6 2v16h16M2 6h16v16</Geometry>
+    <Geometry x:Key="GhIconExternalReferences">M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM8 13h8</Geometry>
+    <Geometry x:Key="GhIconAdjust">M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0-18 0M12 3v18</Geometry>
+    <Geometry x:Key="GhIconUnderlayLayers">M12 3 3 8l9 5 9-5zM3 13l9 5 9-5M3 17l9 5 9-5</Geometry>
+    <Geometry x:Key="GhIconImageFrame">M4 4h16v16H4zM8 8h8v8H8z</Geometry>
+    <Geometry x:Key="GhIconTransparency">M4 4h10v10H4zM10 10h10v10H10z</Geometry>
+    <Geometry x:Key="GhIconSnapUnderlay">M12 3v4M12 17v4M3 12h4M17 12h4M12 12m-3 0a3 3 0 1 0 6 0a3 3 0 1 0-6 0</Geometry>
+
     <Geometry x:Key="GhIconPluginCommand">M5 9h14M5 15h14M10 3 8 21M16 3l-2 18</Geometry>
     <Geometry x:Key="GhIconPluginLoad">M12 3v12M7 10l5 5 5-5M4 21h16</Geometry>
     <Geometry x:Key="GhIconPluginUnload">M12 21V9M7 14l5-5 5 5M4 3h16</Geometry>

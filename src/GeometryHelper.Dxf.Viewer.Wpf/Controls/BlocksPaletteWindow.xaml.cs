@@ -12,14 +12,20 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// </summary>
     public partial class BlocksPaletteWindow : Window
     {
-        /// <summary>Makes the palette over its view model.</summary>
+        /// <summary>Makes the palette over its view model, opened on the model's tab: Recent where Insert's gallery asks for it.</summary>
         /// <param name="model">The view model.</param>
         /// <exception cref="ArgumentNullException">Thrown when the model is null.</exception>
         public BlocksPaletteWindow(BlocksPaletteViewModel model)
         {
             Model = model ?? throw new ArgumentNullException(nameof(model));
+            string tab = model.Tab;
             InitializeComponent();
             DataContext = model;
+
+            // The first tab is checked as the window is made, which sets the model's tab; the tab asked for is checked after it.
+            RecentTab.IsChecked = tab == "Recent";
+            OtherTab.IsChecked = tab == "Other drawing";
+            model.Tab = tab;
         }
 
         /// <summary>Gets the view model.</summary>

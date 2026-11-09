@@ -543,6 +543,7 @@ namespace GeometryHelper.Drawing.App
             {
                 model.SelectedTab = string.Equals(tab, "Plugins", StringComparison.OrdinalIgnoreCase) ? model.PluginsTab
                     : string.Equals(tab, "Settings", StringComparison.OrdinalIgnoreCase) ? model.SettingsTab
+                    : string.Equals(tab, "Insert", StringComparison.OrdinalIgnoreCase) ? model.InsertTab
                     : string.Equals(tab, "Annotate", StringComparison.OrdinalIgnoreCase) ? model.AnnotateTab
                     : string.Equals(tab, "View", StringComparison.OrdinalIgnoreCase) ? model.ViewTab
                     : model.Extensions.FirstOrDefault(e => string.Equals(e.TabHeader, tab, StringComparison.OrdinalIgnoreCase));

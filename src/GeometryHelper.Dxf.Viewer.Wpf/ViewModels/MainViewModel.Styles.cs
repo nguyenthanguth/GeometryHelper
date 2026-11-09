@@ -200,9 +200,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             e.Handled = true;
         }
 
-        /// <summary>The style boxes read again: the drawing shown changed, or another is shown.</summary>
+        /// <summary>The style boxes and the image frame box read again: the drawing shown changed, or another is shown.</summary>
         private void RaiseStyles()
         {
+            Raise(nameof(ImageFrameItems));
+            Raise(nameof(CurrentImageFrame));
             Raise(nameof(TextStyleNames));
             Raise(nameof(TextStyleItems));
             Raise(nameof(CurrentTextStyle));
