@@ -270,7 +270,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 // View: Navigate runs its line, Views switches the space, Interface and Drafting toggle the state they show.
                 model.SelectedTab = model.ViewTab;
                 Layout(workspace);
-                List<ButtonBase> view = ButtonsOf(workspace, model.ViewTab.TabContent);
+                // The panels' own toggles, which a collapsed panel draws, are not the tab's buttons.
+                List<ButtonBase> view = ButtonsOf(workspace, model.ViewTab.TabContent).Where(b => !(b.TemplatedParent is RibbonPanel)).ToList();
                 Assert.Equal(16, view.Count);
 
                 foreach (Button button in view.OfType<Button>().Where(b => b.CommandParameter is string))

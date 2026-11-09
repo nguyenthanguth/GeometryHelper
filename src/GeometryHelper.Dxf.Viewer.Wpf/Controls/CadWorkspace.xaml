@@ -92,6 +92,21 @@
                         </DataTemplate>
                     </Setter.Value>
                 </Setter>
+                <!-- In a medium panel the icon alone, as View › Drafting's: a toggle on still lit, the tooltip naming it. -->
+                <Style.Triggers>
+                    <Trigger Property="local:RibbonPanel.IsMedium" Value="True">
+                        <Setter Property="Margin" Value="0,0,0,2" />
+                        <Setter Property="AutomationProperties.Name" Value="{Binding Content, RelativeSource={RelativeSource Self}}" />
+                        <Setter Property="ContentTemplate">
+                            <Setter.Value>
+                                <DataTemplate>
+                                    <local:IconView Size="16" StrokeThickness="1.8"
+                                                    Data="{Binding Tag, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
+                                </DataTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Trigger>
+                </Style.Triggers>
             </Style>
 
             <!-- A big toggle of the ribbon, as the panels of View › Interface. -->
@@ -131,6 +146,15 @@
                         </DataTemplate>
                     </Setter.Value>
                 </Setter>
+            </Style>
+
+            <!-- A small button whose icon in a medium panel keeps no margin on its right, so that the icons of a column sit close, as Insert's and View's. -->
+            <Style x:Key="NarrowSmallButton" TargetType="Button" BasedOn="{StaticResource SmallButton}">
+                <Style.Triggers>
+                    <Trigger Property="local:RibbonPanel.IsMedium" Value="True">
+                        <Setter Property="Margin" Value="0,0,0,2" />
+                    </Trigger>
+                </Style.Triggers>
             </Style>
 
             <!-- A button of the row under a group's columns: a 14 pixel icon and its label. -->
@@ -185,7 +209,8 @@
                             <StackPanel VerticalAlignment="Center">
                                 <local:IconView Size="26" StrokeThickness="1.6" HorizontalAlignment="Center"
                                                 Data="{Binding Tag, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
-                                <TextBlock Text="{Binding}" Margin="0,2,0,0" HorizontalAlignment="Center" />
+                                <!-- A title of two words wider than the button, as Block Definition, on two lines. -->
+                                <TextBlock Text="{Binding}" Margin="0,2,0,0" HorizontalAlignment="Center" MaxWidth="68" TextWrapping="Wrap" TextAlignment="Center" />
                                 <TextBlock Text="▾" Foreground="{StaticResource GhTextMuted}" HorizontalAlignment="Center" />
                             </StackPanel>
                         </DataTemplate>
@@ -417,6 +442,111 @@
             <DataTemplate DataType="{x:Type local:TableCellViewModel}">
                 <local:TableCellRibbon />
             </DataTemplate>
+
+            <!--
+            A style box: the combo box's look, opened by a click on it (StyleBox), with no button of its own; its list on the
+            header's colour, the current style ticked, a model drawing's marked "model", the dialog's item last under a line. In
+            a medium panel the box narrows 118 to 84 and its caption goes, the tooltip still naming what it sets.
+            -->
+            <Style x:Key="StyleBoxItem" TargetType="ComboBoxItem">
+                <Setter Property="Foreground" Value="{StaticResource GhText}" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ComboBoxItem">
+                            <Border x:Name="Row" Background="Transparent" BorderBrush="{StaticResource GhBorder}" BorderThickness="0" Padding="10,4">
+                                <ContentPresenter />
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsHighlighted" Value="True">
+                                    <Setter TargetName="Row" Property="Background" Value="{StaticResource GhSelected}" />
+                                </Trigger>
+                                <DataTrigger Binding="{Binding IsDialog}" Value="True">
+                                    <Setter TargetName="Row" Property="BorderThickness" Value="0,1,0,0" />
+                                    <Setter TargetName="Row" Property="Margin" Value="0,4,0,0" />
+                                    <Setter TargetName="Row" Property="Padding" Value="10,6,10,4" />
+                                </DataTrigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+            <DataTemplate x:Key="StyleBoxItemTemplate" DataType="{x:Type local:StyleBoxItemViewModel}">
+                <DockPanel>
+                    <TextBlock x:Name="Tick" DockPanel.Dock="Left" Width="14" Margin="0,0,6,0" Text="✓" Foreground="{StaticResource GhOk}" Visibility="Hidden" />
+                    <TextBlock DockPanel.Dock="Right" Margin="8,0,0,0" Text="{Binding Hint}" Foreground="{StaticResource GhTextMuted}" />
+                    <TextBlock Text="{Binding Name}" />
+                </DockPanel>
+                <DataTemplate.Triggers>
+                    <DataTrigger Binding="{Binding IsCurrent}" Value="True">
+                        <Setter TargetName="Tick" Property="Visibility" Value="Visible" />
+                    </DataTrigger>
+                </DataTemplate.Triggers>
+            </DataTemplate>
+            <DataTemplate x:Key="StyleBoxChosenTemplate">
+                <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+            </DataTemplate>
+            <Style x:Key="StyleBoxCombo" TargetType="ComboBox" BasedOn="{StaticResource GhComboBox}">
+                <Setter Property="local:StyleBox.OpensOnClick" Value="True" />
+                <Setter Property="Width" Value="118" />
+                <Setter Property="SelectedValuePath" Value="Name" />
+                <Setter Property="ItemTemplate" Value="{StaticResource StyleBoxItemTemplate}" />
+                <Setter Property="ItemContainerStyle" Value="{StaticResource StyleBoxItem}" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ComboBox">
+                            <Grid>
+                                <Border Background="{StaticResource GhInput}" BorderBrush="{StaticResource GhBorder}" BorderThickness="1" CornerRadius="2" Padding="4,2">
+                                    <DockPanel>
+                                        <local:IconView DockPanel.Dock="Right" Size="10" StrokeThickness="3" Stroke="{StaticResource GhTextMuted}" Data="{StaticResource GhIconChevron}" VerticalAlignment="Center" />
+                                        <ContentPresenter Content="{TemplateBinding SelectionBoxItem}" ContentTemplate="{StaticResource StyleBoxChosenTemplate}" VerticalAlignment="Center" IsHitTestVisible="False" />
+                                    </DockPanel>
+                                </Border>
+                                <Popup Placement="Bottom" AllowsTransparency="True" Focusable="False" IsOpen="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}" StaysOpen="False">
+                                    <Border Background="{StaticResource GhHeader}" BorderBrush="{StaticResource GhBorder}" BorderThickness="1" CornerRadius="4" Padding="0,4" Margin="0,0,8,8"
+                                            MinWidth="190" MaxHeight="320">
+                                        <Border.Effect>
+                                            <DropShadowEffect BlurRadius="16" ShadowDepth="6" Direction="270" Opacity="0.5" Color="Black" />
+                                        </Border.Effect>
+                                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                            <ItemsPresenter />
+                                        </ScrollViewer>
+                                    </Border>
+                                </Popup>
+                            </Grid>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+                <Style.Triggers>
+                    <Trigger Property="local:RibbonPanel.IsMedium" Value="True">
+                        <Setter Property="Width" Value="84" />
+                    </Trigger>
+                </Style.Triggers>
+            </Style>
+            <Style x:Key="StyleBoxLabel" TargetType="TextBlock">
+                <Setter Property="Width" Value="36" />
+                <Setter Property="Margin" Value="0,0,6,0" />
+                <Setter Property="VerticalAlignment" Value="Center" />
+                <Setter Property="Foreground" Value="{StaticResource GhTextMuted}" />
+                <Style.Triggers>
+                    <Trigger Property="local:RibbonPanel.IsMedium" Value="True">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                    </Trigger>
+                </Style.Triggers>
+            </Style>
+            <!-- The frame of the text height box of Annotate › Text, as wide as a style box. -->
+            <Style x:Key="StyleBoxFrame" TargetType="Border">
+                <Setter Property="Width" Value="118" />
+                <Setter Property="Background" Value="{StaticResource GhInput}" />
+                <Setter Property="BorderBrush" Value="{StaticResource GhBorder}" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="CornerRadius" Value="2" />
+                <Setter Property="Padding" Value="4,1" />
+                <Style.Triggers>
+                    <Trigger Property="local:RibbonPanel.IsMedium" Value="True">
+                        <Setter Property="Width" Value="84" />
+                    </Trigger>
+                </Style.Triggers>
+            </Style>
 
             <!--
             The contextual Text Editor tab of the MTEXT editor, as the design draws it: Style, Formatting, Paragraph, Insert,
@@ -737,97 +867,230 @@
                 </local:RibbonStrip>
             </DataTemplate>
 
-            <!-- The panels of the Annotate tab: Text, Dimensions, Leaders, each button starting its command as Home's do. -->
-            <DataTemplate DataType="{x:Type local:AnnotateRibbonViewModel}">
-                <local:RibbonStrip>
+            <!--
+            Insert, as AutoCAD 2021's for what the presenter has built: Block (Insert with its gallery, Edit Attribute), Block
+            Definition (Create Block, Define Attributes, Set Base Point) and Reference (Attach, Clip, External References, the
+            image frame box, Transparency); what is not built greyed with its reason. All full down to a window 876 wide;
+            narrower, Reference and Block Definition go medium, then collapse. Block never shrinks.
+            -->
+            <DataTemplate DataType="{x:Type local:InsertRibbonViewModel}">
+                <local:RibbonStrip Steps="Reference:Medium; Block Definition:Medium; Reference:Collapsed; Block Definition:Collapsed">
                     <local:RibbonStrip.Resources>
-                        <!--
-                        A style box: the combo box's look, opened by a click on it (StyleBox), with no button of its own; its list
-                        on the header's colour, the current style ticked, a model drawing's marked "model", the dialog's item last
-                        under a line.
-                        -->
-                        <Style x:Key="StyleBoxItem" TargetType="ComboBoxItem">
-                            <Setter Property="Foreground" Value="{StaticResource GhText}" />
-                            <Setter Property="Template">
+                        <!-- The label of a split's arrow, in the 11 pixels of the design, two lines where it is long, as Edit Attribute ▾. -->
+                        <Style x:Key="SplitLabel" TargetType="TextBlock">
+                            <Setter Property="FontSize" Value="11" />
+                            <Setter Property="TextWrapping" Value="Wrap" />
+                            <Setter Property="TextAlignment" Value="Center" />
+                        </Style>
+                        <Style x:Key="BigSplitArrow" TargetType="Button" BasedOn="{StaticResource BigSplitArrow}">
+                            <Setter Property="Padding" Value="2,1,2,3" />
+                        </Style>
+                        <!-- The image frame box: a style box 128 wide, 88 in a medium panel, after its icon. -->
+                        <Style x:Key="FrameBoxCombo" TargetType="ComboBox" BasedOn="{StaticResource StyleBoxCombo}">
+                            <Setter Property="Width" Value="128" />
+                            <Style.Triggers>
+                                <Trigger Property="local:RibbonPanel.IsMedium" Value="True">
+                                    <Setter Property="Width" Value="88" />
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                        <!-- A line of the gallery under its tiles: the name, the command it starts on the right. -->
+                        <Style x:Key="GalleryLine" TargetType="Button" BasedOn="{StaticResource GhFlatButton}">
+                            <Setter Property="Padding" Value="10,4" />
+                            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                            <Setter Property="ToolTipService.ShowOnDisabled" Value="True" />
+                            <Setter Property="ContentTemplate">
                                 <Setter.Value>
-                                    <ControlTemplate TargetType="ComboBoxItem">
-                                        <Border x:Name="Row" Background="Transparent" BorderBrush="{StaticResource GhBorder}" BorderThickness="0" Padding="10,4">
-                                            <ContentPresenter />
-                                        </Border>
-                                        <ControlTemplate.Triggers>
-                                            <Trigger Property="IsHighlighted" Value="True">
-                                                <Setter TargetName="Row" Property="Background" Value="{StaticResource GhSelected}" />
-                                            </Trigger>
-                                            <DataTrigger Binding="{Binding IsDialog}" Value="True">
-                                                <Setter TargetName="Row" Property="BorderThickness" Value="0,1,0,0" />
-                                                <Setter TargetName="Row" Property="Margin" Value="0,4,0,0" />
-                                                <Setter TargetName="Row" Property="Padding" Value="10,6,10,4" />
-                                            </DataTrigger>
-                                        </ControlTemplate.Triggers>
-                                    </ControlTemplate>
+                                    <DataTemplate>
+                                        <DockPanel>
+                                            <TextBlock DockPanel.Dock="Right" Text="{Binding Tag, RelativeSource={RelativeSource AncestorType=Button}}" FontFamily="{StaticResource GhMonoFont}"
+                                                       FontSize="10" Foreground="{StaticResource GhTextMuted}" VerticalAlignment="Center" />
+                                            <TextBlock Text="{Binding}" Margin="0,0,8,0" VerticalAlignment="Center" />
+                                        </DockPanel>
+                                    </DataTemplate>
                                 </Setter.Value>
                             </Setter>
-                        </Style>
-                        <DataTemplate x:Key="StyleBoxItemTemplate" DataType="{x:Type local:StyleBoxItemViewModel}">
-                            <DockPanel>
-                                <TextBlock x:Name="Tick" DockPanel.Dock="Left" Width="14" Margin="0,0,6,0" Text="✓" Foreground="{StaticResource GhOk}" Visibility="Hidden" />
-                                <TextBlock DockPanel.Dock="Right" Margin="8,0,0,0" Text="{Binding Hint}" Foreground="{StaticResource GhTextMuted}" />
-                                <TextBlock Text="{Binding Name}" />
-                            </DockPanel>
-                            <DataTemplate.Triggers>
-                                <DataTrigger Binding="{Binding IsCurrent}" Value="True">
-                                    <Setter TargetName="Tick" Property="Visibility" Value="Visible" />
-                                </DataTrigger>
-                            </DataTemplate.Triggers>
-                        </DataTemplate>
-                        <DataTemplate x:Key="StyleBoxChosenTemplate">
-                            <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
-                        </DataTemplate>
-                        <Style x:Key="StyleBoxCombo" TargetType="ComboBox" BasedOn="{StaticResource GhComboBox}">
-                            <Setter Property="local:StyleBox.OpensOnClick" Value="True" />
-                            <Setter Property="Width" Value="118" />
-                            <Setter Property="SelectedValuePath" Value="Name" />
-                            <Setter Property="ItemTemplate" Value="{StaticResource StyleBoxItemTemplate}" />
-                            <Setter Property="ItemContainerStyle" Value="{StaticResource StyleBoxItem}" />
-                            <Setter Property="Template">
-                                <Setter.Value>
-                                    <ControlTemplate TargetType="ComboBox">
-                                        <Grid>
-                                            <Border Background="{StaticResource GhInput}" BorderBrush="{StaticResource GhBorder}" BorderThickness="1" CornerRadius="2" Padding="4,2">
-                                                <DockPanel>
-                                                    <local:IconView DockPanel.Dock="Right" Size="10" StrokeThickness="3" Stroke="{StaticResource GhTextMuted}" Data="{StaticResource GhIconChevron}" VerticalAlignment="Center" />
-                                                    <ContentPresenter Content="{TemplateBinding SelectionBoxItem}" ContentTemplate="{StaticResource StyleBoxChosenTemplate}" VerticalAlignment="Center" IsHitTestVisible="False" />
-                                                </DockPanel>
-                                            </Border>
-                                            <Popup Placement="Bottom" AllowsTransparency="True" Focusable="False" IsOpen="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}" StaysOpen="False">
-                                                <Border Background="{StaticResource GhHeader}" BorderBrush="{StaticResource GhBorder}" BorderThickness="1" CornerRadius="4" Padding="0,4" Margin="0,0,8,8"
-                                                        MinWidth="190" MaxHeight="320">
-                                                    <Border.Effect>
-                                                        <DropShadowEffect BlurRadius="16" ShadowDepth="6" Direction="270" Opacity="0.5" Color="Black" />
-                                                    </Border.Effect>
-                                                    <ScrollViewer VerticalScrollBarVisibility="Auto">
-                                                        <ItemsPresenter />
-                                                    </ScrollViewer>
-                                                </Border>
-                                            </Popup>
-                                        </Grid>
-                                    </ControlTemplate>
-                                </Setter.Value>
-                            </Setter>
-                        </Style>
-                        <Style x:Key="StyleBoxLabel" TargetType="TextBlock">
-                            <Setter Property="Width" Value="36" />
-                            <Setter Property="Margin" Value="0,0,6,0" />
-                            <Setter Property="VerticalAlignment" Value="Center" />
-                            <Setter Property="Foreground" Value="{StaticResource GhTextMuted}" />
                         </Style>
                     </local:RibbonStrip.Resources>
-                    <local:RibbonPanel Title="Text" Icon="{StaticResource GhIconMText}">
+
+                    <!-- Block: Insert (the Blocks palette) with the gallery under its arrow, and Edit Attribute's split. It never shrinks. -->
+                    <local:RibbonPanel Title="Block" MinFullWidth="136" Icon="{StaticResource GhIconInsertBlock}">
                         <StackPanel Orientation="Horizontal">
-                            <Button Style="{StaticResource BigButton}" Tag="{StaticResource GhIconMText}" Content="Multiline Text" IsEnabled="{Binding Model.HasDocument}" Command="{Binding Model.StartCommandCommand}" CommandParameter="MTEXT" ToolTip="MTEXT" />
-                            <Button Style="{StaticResource BigButton}" Tag="{StaticResource GhIconText}" Content="Single Line" IsEnabled="{Binding Model.HasDocument}" Command="{Binding Model.StartCommandCommand}" CommandParameter="TEXT" ToolTip="TEXT" Margin="0" />
+                            <Border x:Name="InsertSplit" Style="{StaticResource BigSplitFrame}" Width="56" Margin="0,0,3,0">
+                                <StackPanel>
+                                    <Button Style="{StaticResource BigSplitTop}" MinWidth="0" Tag="{StaticResource GhIconInsertBlock}" Content="Insert" IsEnabled="{Binding Model.HasDocument}"
+                                            Command="{Binding Model.StartCommandCommand}" CommandParameter="INSERT" ToolTip="Insert: the Blocks palette (INSERT)" />
+                                    <Button Style="{StaticResource BigSplitArrow}" IsEnabled="{Binding Model.HasDocument}" Command="{Binding OpenGalleryCommand}"
+                                            AutomationProperties.Name="Insert gallery" ToolTip="The blocks of the drawing; Recent Blocks, Blocks from Other Drawings">
+                                        <TextBlock Style="{StaticResource SplitLabel}" Text="Insert ▾" />
+                                    </Button>
+                                    <!-- The gallery: a tile per block of the drawing, a click inserting it; then the palette's other tabs. -->
+                                    <Popup IsOpen="{Binding IsGalleryOpen, Mode=TwoWay}" StaysOpen="False" Placement="Bottom" AllowsTransparency="True" Focusable="False"
+                                           PlacementTarget="{Binding ElementName=InsertSplit}">
+                                        <Border Background="{StaticResource GhHeader}" BorderBrush="{StaticResource GhBorder}" BorderThickness="1" CornerRadius="4" Padding="0,6,0,4" Margin="0,0,8,8" Width="320">
+                                            <Border.Effect>
+                                                <DropShadowEffect BlurRadius="16" ShadowDepth="6" Direction="270" Opacity="0.5" Color="Black" />
+                                            </Border.Effect>
+                                            <StackPanel>
+                                                <TextBlock Text="{Binding GalleryTitle}" Margin="10,0,10,6" FontSize="11" FontWeight="Medium" Foreground="{StaticResource GhTextMuted}" TextTrimming="CharacterEllipsis" />
+                                                <TextBlock Text="No blocks in this drawing" Margin="10,4,10,10" Foreground="{StaticResource GhTextMuted}"
+                                                           Visibility="{Binding HasGallery, Converter={StaticResource Hidden}}" />
+                                                <ScrollViewer MaxHeight="300" VerticalScrollBarVisibility="Auto" Margin="10,0,10,8" Visibility="{Binding HasGallery, Converter={StaticResource Shown}}">
+                                                    <ItemsControl ItemsSource="{Binding Gallery}" Focusable="False">
+                                                        <ItemsControl.ItemsPanel>
+                                                            <ItemsPanelTemplate>
+                                                                <UniformGrid Columns="3" />
+                                                            </ItemsPanelTemplate>
+                                                        </ItemsControl.ItemsPanel>
+                                                        <ItemsControl.ItemTemplate>
+                                                            <DataTemplate DataType="{x:Type local:BlockTileViewModel}">
+                                                                <Button Style="{StaticResource GhFlatButton}" Margin="0,0,6,6" Padding="2,4" BorderBrush="{StaticResource GhBorder}" BorderThickness="1"
+                                                                        Background="{StaticResource GhInput}" Command="{Binding DataContext.InsertBlockCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                                        CommandParameter="{Binding Name}" AutomationProperties.Name="{Binding Name}" ToolTip="{Binding Name}">
+                                                                    <StackPanel>
+                                                                        <Border Width="72" Height="48" Background="Black" CornerRadius="2" HorizontalAlignment="Center">
+                                                                            <Image Source="{Binding Picture}" Stretch="Uniform" />
+                                                                        </Border>
+                                                                        <TextBlock Text="{Binding DisplayName}" Margin="0,3,0,0" FontSize="10" FontWeight="Medium" HorizontalAlignment="Center" MaxWidth="80"
+                                                                                   TextTrimming="CharacterEllipsis" />
+                                                                    </StackPanel>
+                                                                </Button>
+                                                            </DataTemplate>
+                                                        </ItemsControl.ItemTemplate>
+                                                    </ItemsControl>
+                                                </ScrollViewer>
+                                                <Border BorderBrush="{StaticResource GhBorder}" BorderThickness="0,1,0,0" Padding="0,3,0,0">
+                                                    <StackPanel>
+                                                        <Button Style="{StaticResource GalleryLine}" Content="Recent Blocks…" Tag="INSERT" Command="{Binding OpenPaletteCommand}" CommandParameter="Recent"
+                                                                ToolTip="The Blocks palette on its Recent tab (INSERT)" />
+                                                        <Button Style="{StaticResource GalleryLine}" Content="Favorite Blocks…" Tag="not offered" IsEnabled="False"
+                                                                ToolTip="Favorite Blocks: not offered, the palette has no Favorites tab" />
+                                                        <Button Style="{StaticResource GalleryLine}" Content="Blocks from Other Drawings…" Tag="INSERT" Command="{Binding OpenPaletteCommand}" CommandParameter="Other drawing"
+                                                                ToolTip="The Blocks palette on its Other drawing tab (INSERT)" />
+                                                    </StackPanel>
+                                                </Border>
+                                            </StackPanel>
+                                        </Border>
+                                    </Popup>
+                                </StackPanel>
+                            </Border>
+                            <Border Style="{StaticResource BigSplitFrame}" Width="64" Margin="0">
+                                <StackPanel>
+                                    <Button Style="{StaticResource BigSplitTop}" MinWidth="0" Tag="{StaticResource GhIconEditAttribute}" Content="Single" IsEnabled="{Binding Model.HasDocument}"
+                                            Command="{Binding Model.StartCommandCommand}" CommandParameter="EATTEDIT" ToolTip="Edit Attribute: Single (EATTEDIT)" />
+                                    <Button Style="{StaticResource BigSplitArrow}" IsEnabled="{Binding Model.HasDocument}" Click="OnRibbonMenu" AutomationProperties.Name="Edit Attribute"
+                                            ToolTip="Single, Edit Attributes">
+                                        <TextBlock Style="{StaticResource SplitLabel}" Text="Edit Attribute ▾" />
+                                        <Button.ContextMenu>
+                                            <ContextMenu Style="{StaticResource GhContextMenu}" DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
+                                                <MenuItem Style="{StaticResource GhMenuItem}" Header="Single" Tag="{StaticResource GhIconEditAttribute}" Click="OnSplitChoice" Command="{Binding Model.StartCommandCommand}" CommandParameter="EATTEDIT" ToolTip="Edit Attribute: Single (EATTEDIT)" />
+                                                <MenuItem Style="{StaticResource GhMenuItem}" Header="Edit Attributes…" Tag="{StaticResource GhIconEditAttribute}" Click="OnSplitChoice" Command="{Binding Model.StartCommandCommand}" CommandParameter="ATTEDIT" ToolTip="Edit Attributes (ATTEDIT)" />
+                                                <MenuItem Style="{StaticResource GhMenuItem}" Header="Multiple" IsEnabled="False" ToolTip="Multiple (-ATTEDIT, the global edit): not offered" />
+                                            </ContextMenu>
+                                        </Button.ContextMenu>
+                                    </Button>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </local:RibbonPanel>
+
+                    <!-- Block Definition: Create Block's split (BLOCK, WBLOCK), Define Attributes, and Set Base Point; Manage Attributes and Block Editor greyed. -->
+                    <local:RibbonPanel Title="Block Definition" MinFullWidth="284" MinMediumWidth="170" MinCollapsedWidth="76" Icon="{StaticResource GhIconCreateBlock}">
+                        <StackPanel Orientation="Horizontal">
+                            <Border Style="{StaticResource BigSplitFrame}" Width="60">
+                                <StackPanel>
+                                    <Button Style="{StaticResource BigSplitTop}" MinWidth="0" Tag="{StaticResource GhIconCreateBlock}" Content="Create Block" IsEnabled="{Binding Model.HasDocument}"
+                                            Command="{Binding Model.StartCommandCommand}" CommandParameter="BLOCK" ToolTip="Create Block (BLOCK)" />
+                                    <Button Style="{StaticResource BigSplitArrow}" IsEnabled="{Binding Model.HasDocument}" Click="OnRibbonMenu" AutomationProperties.Name="Create Block or Write Block"
+                                            ToolTip="Create Block, Write Block">
+                                        <TextBlock Style="{StaticResource SplitLabel}" Text="Create Block ▾" />
+                                        <Button.ContextMenu>
+                                            <ContextMenu Style="{StaticResource GhContextMenu}" DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
+                                                <MenuItem Style="{StaticResource GhMenuItem}" Header="Create Block" Tag="{StaticResource GhIconCreateBlock}" Click="OnSplitChoice" Command="{Binding Model.StartCommandCommand}" CommandParameter="BLOCK" ToolTip="Create Block (BLOCK)" />
+                                                <MenuItem Style="{StaticResource GhMenuItem}" Header="Write Block" Tag="{StaticResource GhIconWriteBlock}" Click="OnSplitChoice" Command="{Binding Model.StartCommandCommand}" CommandParameter="WBLOCK" ToolTip="Write Block (WBLOCK)" />
+                                            </ContextMenu>
+                                        </Button.ContextMenu>
+                                    </Button>
+                                </StackPanel>
+                            </Border>
+                            <Button Style="{StaticResource BigButton}" Width="64" MinWidth="0" Padding="2,4" Tag="{StaticResource GhIconDefineAttributes}" Content="Define Attributes"
+                                    IsEnabled="{Binding Model.HasDocument}" Command="{Binding Model.StartCommandCommand}" CommandParameter="ATTDEF" ToolTip="Define Attributes (ATTDEF)" />
+                            <StackPanel Margin="0,2,0,0" VerticalAlignment="Top">
+                                <Button Style="{StaticResource NarrowSmallButton}" Tag="{StaticResource GhIconManageAttributes}" Content="Manage Attributes" Opacity="0.5" ToolTip="Manage Attributes (BATTMAN): not offered" />
+                                <Button Style="{StaticResource NarrowSmallButton}" Tag="{StaticResource GhIconBlockEditor}" Content="Block Editor" Opacity="0.5" ToolTip="Block Editor (BEDIT): not offered" />
+                                <Button Style="{StaticResource NarrowSmallButton}" Tag="{StaticResource GhIconBasePoint}" Content="Set Base Point" IsEnabled="{Binding Model.HasDocument}"
+                                        Command="{Binding Model.StartCommandCommand}" CommandParameter="BASE" ToolTip="Set Base Point (BASE)" />
+                            </StackPanel>
+                        </StackPanel>
+                    </local:RibbonPanel>
+
+                    <!--
+                    Reference: Attach's split (XATTACH, IMAGEATTACH; the formats not built greyed), Clip (IMAGECLIP), External
+                    References (the palette), the image frame box (IMAGEFRAME) and Transparency; Adjust, Underlay Layers and Snap to
+                    Underlays greyed: no underlays are built.
+                    -->
+                    <local:RibbonPanel Title="Reference" MinFullWidth="432" MinMediumWidth="276" MinCollapsedWidth="64" Icon="{StaticResource GhIconAttach}">
+                        <StackPanel Orientation="Horizontal">
+                            <Border Style="{StaticResource BigSplitFrame}" Width="56">
+                                <StackPanel>
+                                    <Button Style="{StaticResource BigSplitTop}" MinWidth="0" Tag="{StaticResource GhIconAttach}" Content="Attach DXF…" IsEnabled="{Binding Model.HasDocument}"
+                                            Command="{Binding Model.StartCommandCommand}" CommandParameter="XATTACH" ToolTip="Attach DXF (XATTACH)" />
+                                    <Button Style="{StaticResource BigSplitArrow}" IsEnabled="{Binding Model.HasDocument}" Click="OnRibbonMenu" AutomationProperties.Name="Attach"
+                                            ToolTip="Attach DXF, Attach Image">
+                                        <TextBlock Style="{StaticResource SplitLabel}" Text="Attach ▾" />
+                                        <Button.ContextMenu>
+                                            <ContextMenu Style="{StaticResource GhContextMenu}" DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
+                                                <MenuItem Style="{StaticResource GhMenuItem}" Header="Attach DXF…" Tag="{StaticResource GhIconAttach}" Click="OnSplitChoice" Command="{Binding Model.StartCommandCommand}" CommandParameter="XATTACH" ToolTip="Attach DXF (XATTACH)" />
+                                                <MenuItem Style="{StaticResource GhMenuItem}" Header="Attach Image…" Tag="{StaticResource GhIconAttach}" Click="OnSplitChoice" Command="{Binding Model.StartCommandCommand}" CommandParameter="IMAGEATTACH" ToolTip="Attach Image (IMAGEATTACH)" />
+                                                <Separator Style="{StaticResource GhMenuSeparator}" />
+                                                <MenuItem Style="{StaticResource GhMenuItem}" Header="Attach DWG…" IsEnabled="False" ToolTip="Attach DWG: not offered" />
+                                                <MenuItem Style="{StaticResource GhMenuItem}" Header="Attach DWF…" IsEnabled="False" ToolTip="Attach DWF: not offered" />
+                                                <MenuItem Style="{StaticResource GhMenuItem}" Header="Attach DGN…" IsEnabled="False" ToolTip="Attach DGN: not offered" />
+                                                <MenuItem Style="{StaticResource GhMenuItem}" Header="Attach PDF…" IsEnabled="False" ToolTip="Attach PDF: not offered" />
+                                                <MenuItem Style="{StaticResource GhMenuItem}" Header="Attach Point Cloud…" IsEnabled="False" ToolTip="Attach Point Cloud: not offered" />
+                                                <MenuItem Style="{StaticResource GhMenuItem}" Header="Attach Coordination Model…" IsEnabled="False" ToolTip="Attach Coordination Model: not offered" />
+                                            </ContextMenu>
+                                        </Button.ContextMenu>
+                                    </Button>
+                                </StackPanel>
+                            </Border>
+                            <Button Style="{StaticResource BigButton}" Tag="{StaticResource GhIconClip}" Content="Clip" IsEnabled="{Binding Model.HasDocument}"
+                                    Command="{Binding Model.StartCommandCommand}" CommandParameter="IMAGECLIP" ToolTip="Clip an image (IMAGECLIP); a DXF reference cannot be clipped yet" />
+                            <StackPanel Margin="0,2,0,0" VerticalAlignment="Top">
+                                <Button Style="{StaticResource NarrowSmallButton}" Tag="{StaticResource GhIconExternalReferences}" Content="External References" IsEnabled="{Binding Model.HasDocument}"
+                                        Command="{Binding Model.StartCommandCommand}" CommandParameter="EXTERNALREFERENCES" ToolTip="External References palette (ER)" />
+                                <Button Style="{StaticResource NarrowSmallButton}" Tag="{StaticResource GhIconAdjust}" Content="Adjust" Opacity="0.5" ToolTip="Adjust (ADJUST): not offered" />
+                                <Button Style="{StaticResource NarrowSmallButton}" Tag="{StaticResource GhIconUnderlayLayers}" Content="Underlay Layers" Opacity="0.5" ToolTip="Underlay Layers (ULAYERS): not offered" />
+                            </StackPanel>
+                            <StackPanel Margin="6,2,0,0" VerticalAlignment="Top">
+                                <StackPanel Orientation="Horizontal" Margin="4,0,0,2" IsEnabled="{Binding Model.HasDocument}">
+                                    <local:IconView Size="14" StrokeThickness="1.8" Data="{StaticResource GhIconImageFrame}" Margin="0,0,4,0" VerticalAlignment="Center" />
+                                    <ComboBox Style="{StaticResource FrameBoxCombo}" ItemsSource="{Binding Model.ImageFrameItems}" SelectedValue="{Binding Model.CurrentImageFrame, Mode=TwoWay}"
+                                              AutomationProperties.Name="Image frames" ToolTip="Image frames (IMAGEFRAME)" />
+                                </StackPanel>
+                                <Button Style="{StaticResource NarrowSmallButton}" Tag="{StaticResource GhIconTransparency}" Content="Transparency" IsEnabled="{Binding Model.HasDocument}"
+                                        Command="{Binding Model.StartCommandCommand}" CommandParameter="TRANSPARENCY" ToolTip="Background transparency of an image (TRANSPARENCY)" />
+                                <Button Style="{StaticResource NarrowSmallButton}" Tag="{StaticResource GhIconSnapUnderlay}" Content="Snap to Underlays" Opacity="0.5" ToolTip="Snap to Underlays: not offered" />
+                            </StackPanel>
+                        </StackPanel>
+                    </local:RibbonPanel>
+                </local:RibbonStrip>
+            </DataTemplate>
+
+            <!--
+            The panels of the Annotate tab: Text, Dimensions, Leaders, each button starting its command as Home's do. All full
+            down to a window 1 016 wide; narrower, Leaders, Text and Dimensions go medium (captions gone, style boxes 84 wide,
+            the small buttons of Dimensions by their icons), then Leaders and Text collapse. Dimensions never collapses.
+            -->
+            <DataTemplate DataType="{x:Type local:AnnotateRibbonViewModel}">
+                <local:RibbonStrip Steps="Leaders:Medium; Text:Medium; Dimensions:Medium; Leaders:Collapsed; Text:Collapsed">
+                    <local:RibbonPanel Title="Text" MinFullWidth="300" MinMediumWidth="220" MinCollapsedWidth="56" Icon="{StaticResource GhIconMText}">
+                        <StackPanel Orientation="Horizontal">
+                            <!-- The big buttons 56 wide, their labels on two lines, as the design draws them. -->
+                            <Button Style="{StaticResource BigButton}" Width="56" Padding="3,4" Tag="{StaticResource GhIconMText}" Content="Multiline Text" IsEnabled="{Binding Model.HasDocument}" Command="{Binding Model.StartCommandCommand}" CommandParameter="MTEXT" ToolTip="MTEXT" />
+                            <Button Style="{StaticResource BigButton}" Width="56" Padding="3,4" Tag="{StaticResource GhIconText}" Content="Single Line" IsEnabled="{Binding Model.HasDocument}" Command="{Binding Model.StartCommandCommand}" CommandParameter="TEXT" ToolTip="TEXT" Margin="0" />
                             <!-- The current text style ($TEXTSTYLE), its last item the Text Style dialog, and the height TEXT offers. -->
-                            <StackPanel Margin="6,2,0,0" IsEnabled="{Binding Model.HasDocument}">
+                            <StackPanel Margin="2,2,0,0" IsEnabled="{Binding Model.HasDocument}">
                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
                                     <TextBlock Style="{StaticResource StyleBoxLabel}" Text="Style" />
                                     <ComboBox Style="{StaticResource StyleBoxCombo}" ItemsSource="{Binding Model.TextStyleItems}" SelectedValue="{Binding Model.CurrentTextStyle, Mode=TwoWay}"
@@ -835,7 +1098,7 @@
                                 </StackPanel>
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Style="{StaticResource StyleBoxLabel}" Text="Height" />
-                                    <Border Width="118" Background="{StaticResource GhInput}" BorderBrush="{StaticResource GhBorder}" BorderThickness="1" CornerRadius="2" Padding="4,1">
+                                    <Border Style="{StaticResource StyleBoxFrame}">
                                         <TextBox Style="{StaticResource GhTextBox}" FontFamily="{StaticResource GhMonoFont}" Text="{Binding Model.TextHeight, UpdateSourceTrigger=LostFocus}"
                                                  ToolTip="Text height of the next Single Line text (TEXT, MTEXT)" />
                                     </Border>
@@ -847,7 +1110,7 @@
                     Dimensions as AutoCAD 2021's: the type split showing the type used last; Quick, the Continue and Baseline split,
                     Adjust Space and Break; the style; and the title's slide-out with Oblique and Text Angle (DIMEDIT).
                     -->
-                    <local:RibbonPanel Title="Dimensions" Icon="{StaticResource GhIconDimension}">
+                    <local:RibbonPanel Title="Dimensions" MinFullWidth="452" MinMediumWidth="236" Icon="{StaticResource GhIconDimension}">
                         <local:RibbonPanel.Header>
                             <ToggleButton Style="{StaticResource GhStatusToggle}" Foreground="{StaticResource GhTextMuted}" Padding="4,0" Margin="0,4,0,0" Focusable="False"
                                           IsEnabled="{Binding Model.HasDocument}" Content="Dimensions ▾" FontSize="11" ToolTip="More of Dimensions: Oblique, Text Angle"
@@ -893,7 +1156,7 @@
                                 </StackPanel>
                             </Border>
                             <WrapPanel Style="{StaticResource SmallColumn}">
-                                <Button Style="{StaticResource SmallButton}" Tag="{StaticResource GhIconQuickDim}" Content="Quick" IsEnabled="{Binding Model.HasDocument}" Command="{Binding Model.StartCommandCommand}" CommandParameter="QDIM" ToolTip="Quick dimension (QDIM)" />
+                                <Button Style="{StaticResource NarrowSmallButton}" Tag="{StaticResource GhIconQuickDim}" Content="Quick" IsEnabled="{Binding Model.HasDocument}" Command="{Binding Model.StartCommandCommand}" CommandParameter="QDIM" ToolTip="Quick dimension (QDIM)" />
                                 <StackPanel Orientation="Horizontal">
                                     <Button Style="{StaticResource SmallButton}" Margin="0,0,0,2" Tag="{StaticResource GhIconDimContinue}" Content="Continue" IsEnabled="{Binding Model.HasDocument}" Command="{Binding Model.StartCommandCommand}" CommandParameter="DIMCONTINUE" ToolTip="Continue (DIMCONTINUE)" />
                                     <Button Style="{StaticResource SplitArrow}" IsEnabled="{Binding Model.HasDocument}" Click="OnRibbonMenu" ToolTip="Continue, Baseline">
@@ -906,8 +1169,8 @@
                                         </Button.ContextMenu>
                                     </Button>
                                 </StackPanel>
-                                <Button Style="{StaticResource SmallButton}" Tag="{StaticResource GhIconDimSpace}" Content="Adjust Space" IsEnabled="{Binding Model.HasDocument}" Command="{Binding Model.StartCommandCommand}" CommandParameter="DIMSPACE" ToolTip="Adjust Space (DIMSPACE)" />
-                                <Button Style="{StaticResource SmallButton}" Tag="{StaticResource GhIconDimBreak}" Content="Break" IsEnabled="{Binding Model.HasDocument}" Command="{Binding Model.StartCommandCommand}" CommandParameter="DIMBREAK" ToolTip="Dimension break (DIMBREAK)" />
+                                <Button Style="{StaticResource NarrowSmallButton}" Tag="{StaticResource GhIconDimSpace}" Content="Adjust Space" IsEnabled="{Binding Model.HasDocument}" Command="{Binding Model.StartCommandCommand}" CommandParameter="DIMSPACE" ToolTip="Adjust Space (DIMSPACE)" />
+                                <Button Style="{StaticResource NarrowSmallButton}" Tag="{StaticResource GhIconDimBreak}" Content="Break" IsEnabled="{Binding Model.HasDocument}" Command="{Binding Model.StartCommandCommand}" CommandParameter="DIMBREAK" ToolTip="Dimension break (DIMBREAK)" />
                             </WrapPanel>
                             <!-- The current dimension style ($DIMSTYLE), its last item the Dimension Style Manager. -->
                             <StackPanel Orientation="Horizontal" Margin="6,2,0,0" VerticalAlignment="Top" IsEnabled="{Binding Model.HasDocument}">
@@ -917,11 +1180,11 @@
                             </StackPanel>
                         </StackPanel>
                     </local:RibbonPanel>
-                    <local:RibbonPanel Title="Leaders" Icon="{StaticResource GhIconLeader}">
+                    <local:RibbonPanel Title="Leaders" MinFullWidth="240" MinMediumWidth="162" MinCollapsedWidth="64" Icon="{StaticResource GhIconLeader}">
                         <StackPanel Orientation="Horizontal">
-                            <Button Style="{StaticResource BigButton}" Tag="{StaticResource GhIconLeader}" Content="Multileader" IsEnabled="{Binding Model.HasDocument}" Command="{Binding Model.StartCommandCommand}" CommandParameter="MLEADER" ToolTip="MLEADER" Margin="0" />
+                            <Button Style="{StaticResource BigButton}" Width="62" Padding="1,4" Tag="{StaticResource GhIconLeader}" Content="Multileader" IsEnabled="{Binding Model.HasDocument}" Command="{Binding Model.StartCommandCommand}" CommandParameter="MLEADER" ToolTip="MLEADER" Margin="0" />
                             <!-- The current multileader style (CMLEADERSTYLE), opened where the drawing has multileader styles. -->
-                            <StackPanel Orientation="Horizontal" Margin="6,2,0,0" VerticalAlignment="Top" IsEnabled="{Binding Model.HasMLeaderStyles}">
+                            <StackPanel Orientation="Horizontal" Margin="2,2,0,0" VerticalAlignment="Top" IsEnabled="{Binding Model.HasMLeaderStyles}">
                                 <TextBlock Style="{StaticResource StyleBoxLabel}" Text="Style" />
                                 <ComboBox Style="{StaticResource StyleBoxCombo}" ItemsSource="{Binding Model.MLeaderStyleItems}" SelectedValue="{Binding Model.CurrentMLeaderStyle, Mode=TwoWay}"
                                           ToolTip="Multileader style (CMLEADERSTYLE)" />
@@ -931,56 +1194,48 @@
                 </local:RibbonStrip>
             </DataTemplate>
 
-            <!-- The groups of the View tab: Navigate, Views, Interface and the drafting toggles of the status bar. -->
+            <!--
+            The panels of the View tab: Navigate, Views, Interface and the drafting toggles of the status bar. All full down to a
+            window 694 wide; narrower, Drafting and Navigate draw their small buttons by their icons, then Interface and Views
+            collapse. Navigate and Drafting never collapse.
+            -->
             <DataTemplate DataType="{x:Type local:ViewRibbonViewModel}">
-                <StackPanel Orientation="Horizontal">
-                    <Border Style="{StaticResource GroupBorder}">
-                        <DockPanel>
-                            <TextBlock DockPanel.Dock="Bottom" Style="{StaticResource GroupTitle}" Text="Navigate" />
-                            <StackPanel Orientation="Horizontal">
-                                <Button Style="{StaticResource BigButton}" Tag="{StaticResource GhIconExtents}" Content="Extents" IsEnabled="{Binding Model.HasDocument}" Command="{Binding RunCommand}" CommandParameter="ZOOM E" ToolTip="ZOOM Extents" />
-                                <WrapPanel Style="{StaticResource SmallColumn}">
-                                    <Button Style="{StaticResource SmallButton}" Tag="{StaticResource GhIconZoomWindow}" Content="Window" IsEnabled="{Binding Model.HasDocument}" Command="{Binding RunCommand}" CommandParameter="ZOOM W" ToolTip="ZOOM Window" />
-                                    <Button Style="{StaticResource SmallButton}" Tag="{StaticResource GhIconZoomPrevious}" Content="Previous" IsEnabled="{Binding Model.HasDocument}" Command="{Binding RunCommand}" CommandParameter="ZOOM P" ToolTip="ZOOM Previous" />
-                                    <Button Style="{StaticResource SmallButton}" Tag="{StaticResource GhIconPan}" Content="Pan" IsEnabled="{Binding Model.HasDocument}" Command="{Binding RunCommand}" CommandParameter="PAN" ToolTip="PAN" />
-                                    <Button Style="{StaticResource SmallButton}" Tag="{StaticResource GhIconZoomIn}" Content="Zoom In" IsEnabled="{Binding Model.HasDocument}" Command="{Binding RunCommand}" CommandParameter="ZOOM 2X" ToolTip="ZOOM 2X" />
-                                    <Button Style="{StaticResource SmallButton}" Tag="{StaticResource GhIconZoomOut}" Content="Zoom Out" IsEnabled="{Binding Model.HasDocument}" Command="{Binding RunCommand}" CommandParameter="ZOOM 0.5X" ToolTip="ZOOM 0.5X" />
-                                    <Button Style="{StaticResource SmallButton}" Tag="{StaticResource GhIconRefresh}" Content="Regen" IsEnabled="{Binding Model.HasDocument}" Command="{Binding RunCommand}" CommandParameter="REGEN" ToolTip="REGEN" />
-                                </WrapPanel>
-                            </StackPanel>
-                        </DockPanel>
-                    </Border>
-                    <Border Style="{StaticResource GroupBorder}">
-                        <DockPanel>
-                            <TextBlock DockPanel.Dock="Bottom" Style="{StaticResource GroupTitle}" Text="Views" />
-                            <StackPanel Orientation="Horizontal">
-                                <Button Style="{StaticResource BigButton}" Tag="{StaticResource GhIconModel}" Content="Model" IsEnabled="{Binding Model.HasDocument}" Command="{Binding ModelSpaceCommand}" ToolTip="Show model space" />
-                                <Button Style="{StaticResource BigButton}" Tag="{StaticResource GhIconLayout}" Content="Layout" IsEnabled="{Binding Model.HasDocument}" Command="{Binding LayoutCommand}" ToolTip="Show the first layout" Margin="0" />
-                            </StackPanel>
-                        </DockPanel>
-                    </Border>
-                    <Border Style="{StaticResource GroupBorder}">
-                        <DockPanel>
-                            <TextBlock DockPanel.Dock="Bottom" Style="{StaticResource GroupTitle}" Text="Interface" />
-                            <StackPanel Orientation="Horizontal">
-                                <ToggleButton Style="{StaticResource BigToggle}" Tag="{StaticResource GhIconPanelLeft}" Content="Drawings" IsChecked="{Binding Model.IsFileListShown, Mode=TwoWay}" ToolTip="Show or hide the DRAWINGS list" />
-                                <ToggleButton Style="{StaticResource BigToggle}" Tag="{StaticResource GhIconPanelRight}" Content="Properties" IsChecked="{Binding Model.IsPropertiesPanelShown, Mode=TwoWay}" ToolTip="Show or hide Properties (PROPERTIES, PROPERTIESCLOSE)" Margin="0" />
-                            </StackPanel>
-                        </DockPanel>
-                    </Border>
-                    <Border Style="{StaticResource GroupBorder}">
-                        <DockPanel>
-                            <TextBlock DockPanel.Dock="Bottom" Style="{StaticResource GroupTitle}" Text="Drafting" />
+                <local:RibbonStrip Steps="Drafting:Medium; Navigate:Medium; Interface:Collapsed; Views:Collapsed">
+                    <local:RibbonPanel Title="Navigate" MinFullWidth="250" MinMediumWidth="128" Icon="{StaticResource GhIconExtents}">
+                        <StackPanel Orientation="Horizontal">
+                            <Button Style="{StaticResource BigButton}" Tag="{StaticResource GhIconExtents}" Content="Extents" IsEnabled="{Binding Model.HasDocument}" Command="{Binding RunCommand}" CommandParameter="ZOOM E" ToolTip="ZOOM Extents" />
                             <WrapPanel Style="{StaticResource SmallColumn}">
-                                <ToggleButton Style="{StaticResource SmallToggle}" Tag="{StaticResource GhIconGrid}" Content="Grid" IsChecked="{Binding Grid.IsOn, Mode=TwoWay}" ToolTip="GRID (F7)" />
-                                <ToggleButton Style="{StaticResource SmallToggle}" Tag="{StaticResource GhIconSnap}" Content="Snap" IsChecked="{Binding Snap.IsOn, Mode=TwoWay}" ToolTip="SNAP (F9)" />
-                                <ToggleButton Style="{StaticResource SmallToggle}" Tag="{StaticResource GhIconOrtho}" Content="Ortho" IsChecked="{Binding Ortho.IsOn, Mode=TwoWay}" ToolTip="ORTHO (F8)" />
-                                <ToggleButton Style="{StaticResource SmallToggle}" Tag="{StaticResource GhIconPolar}" Content="Polar" IsChecked="{Binding Polar.IsOn, Mode=TwoWay}" ToolTip="POLAR (F10)" />
-                                <ToggleButton Style="{StaticResource SmallToggle}" Tag="{StaticResource GhIconOsnap}" Content="Osnap" IsChecked="{Binding Osnap.IsOn, Mode=TwoWay}" ToolTip="OSNAP (F3)" />
+                                <Button Style="{StaticResource NarrowSmallButton}" Tag="{StaticResource GhIconZoomWindow}" Content="Window" IsEnabled="{Binding Model.HasDocument}" Command="{Binding RunCommand}" CommandParameter="ZOOM W" ToolTip="ZOOM Window" />
+                                <Button Style="{StaticResource NarrowSmallButton}" Tag="{StaticResource GhIconZoomPrevious}" Content="Previous" IsEnabled="{Binding Model.HasDocument}" Command="{Binding RunCommand}" CommandParameter="ZOOM P" ToolTip="ZOOM Previous" />
+                                <Button Style="{StaticResource NarrowSmallButton}" Tag="{StaticResource GhIconPan}" Content="Pan" IsEnabled="{Binding Model.HasDocument}" Command="{Binding RunCommand}" CommandParameter="PAN" ToolTip="PAN" />
+                                <Button Style="{StaticResource NarrowSmallButton}" Tag="{StaticResource GhIconZoomIn}" Content="Zoom In" IsEnabled="{Binding Model.HasDocument}" Command="{Binding RunCommand}" CommandParameter="ZOOM 2X" ToolTip="ZOOM 2X" />
+                                <Button Style="{StaticResource NarrowSmallButton}" Tag="{StaticResource GhIconZoomOut}" Content="Zoom Out" IsEnabled="{Binding Model.HasDocument}" Command="{Binding RunCommand}" CommandParameter="ZOOM 0.5X" ToolTip="ZOOM 0.5X" />
+                                <Button Style="{StaticResource NarrowSmallButton}" Tag="{StaticResource GhIconRefresh}" Content="Regen" IsEnabled="{Binding Model.HasDocument}" Command="{Binding RunCommand}" CommandParameter="REGEN" ToolTip="REGEN" />
                             </WrapPanel>
-                        </DockPanel>
-                    </Border>
-                </StackPanel>
+                        </StackPanel>
+                    </local:RibbonPanel>
+                    <local:RibbonPanel Title="Views" MinFullWidth="130" MinCollapsedWidth="56" Icon="{StaticResource GhIconModel}">
+                        <StackPanel Orientation="Horizontal">
+                            <Button Style="{StaticResource BigButton}" Tag="{StaticResource GhIconModel}" Content="Model" IsEnabled="{Binding Model.HasDocument}" Command="{Binding ModelSpaceCommand}" ToolTip="Show model space" />
+                            <Button Style="{StaticResource BigButton}" Tag="{StaticResource GhIconLayout}" Content="Layout" IsEnabled="{Binding Model.HasDocument}" Command="{Binding LayoutCommand}" ToolTip="Show the first layout" Margin="0" />
+                        </StackPanel>
+                    </local:RibbonPanel>
+                    <local:RibbonPanel Title="Interface" MinFullWidth="130" MinCollapsedWidth="64" Icon="{StaticResource GhIconPanelLeft}">
+                        <StackPanel Orientation="Horizontal">
+                            <ToggleButton Style="{StaticResource BigToggle}" Padding="3,4" Tag="{StaticResource GhIconPanelLeft}" Content="Drawings" IsChecked="{Binding Model.IsFileListShown, Mode=TwoWay}" ToolTip="Show or hide the DRAWINGS list" />
+                            <ToggleButton Style="{StaticResource BigToggle}" Padding="3,4" Tag="{StaticResource GhIconPanelRight}" Content="Properties" IsChecked="{Binding Model.IsPropertiesPanelShown, Mode=TwoWay}" ToolTip="Show or hide Properties (PROPERTIES, PROPERTIESCLOSE)" Margin="0" />
+                        </StackPanel>
+                    </local:RibbonPanel>
+                    <local:RibbonPanel Title="Drafting" MinFullWidth="160" MinMediumWidth="64" Icon="{StaticResource GhIconGrid}">
+                        <WrapPanel Style="{StaticResource SmallColumn}">
+                            <ToggleButton Style="{StaticResource SmallToggle}" Tag="{StaticResource GhIconGrid}" Content="Grid" IsChecked="{Binding Grid.IsOn, Mode=TwoWay}" ToolTip="GRID (F7)" />
+                            <ToggleButton Style="{StaticResource SmallToggle}" Tag="{StaticResource GhIconSnap}" Content="Snap" IsChecked="{Binding Snap.IsOn, Mode=TwoWay}" ToolTip="SNAP (F9)" />
+                            <ToggleButton Style="{StaticResource SmallToggle}" Tag="{StaticResource GhIconOrtho}" Content="Ortho" IsChecked="{Binding Ortho.IsOn, Mode=TwoWay}" ToolTip="ORTHO (F8)" />
+                            <ToggleButton Style="{StaticResource SmallToggle}" Tag="{StaticResource GhIconPolar}" Content="Polar" IsChecked="{Binding Polar.IsOn, Mode=TwoWay}" ToolTip="POLAR (F10)" />
+                            <ToggleButton Style="{StaticResource SmallToggle}" Tag="{StaticResource GhIconOsnap}" Content="Osnap" IsChecked="{Binding Osnap.IsOn, Mode=TwoWay}" ToolTip="OSNAP (F3)" />
+                        </WrapPanel>
+                    </local:RibbonPanel>
+                </local:RibbonStrip>
             </DataTemplate>
 
             <DataTemplate x:Key="LayerItem">
@@ -1078,6 +1333,8 @@
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
+                    <ToggleButton Style="{StaticResource GhRibbonTab}" Content="Insert" IsChecked="{Binding InsertTab.IsTabSelected, Mode=OneWay}"
+                                  Command="{Binding SelectTabCommand}" CommandParameter="{Binding InsertTab}" Margin="0,0,4,0" />
                     <ToggleButton Style="{StaticResource GhRibbonTab}" Content="Annotate" IsChecked="{Binding AnnotateTab.IsTabSelected, Mode=OneWay}"
                                   Command="{Binding SelectTabCommand}" CommandParameter="{Binding AnnotateTab}" Margin="0,0,4,0" />
                     <ToggleButton Style="{StaticResource GhRibbonTab}" Content="View" IsChecked="{Binding ViewTab.IsTabSelected, Mode=OneWay}"

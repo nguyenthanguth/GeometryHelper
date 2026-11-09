@@ -8,6 +8,91 @@ using GeometryHelper.Dxf;
 namespace GeometryHelper.Dxf.Viewer.Wpf
 {
     /// <summary>
+    /// The Insert ribbon tab, as AutoCAD 2021's for what the presenter has built: Block (Insert, its gallery of the drawing's
+    /// blocks, Edit Attribute), Block Definition (Create Block, Define Attributes, Set Base Point) and Reference (Attach, Clip,
+    /// External References, the image frame box, Transparency). A drawing with the blocks DOOR_900 and GRID_BUBBLE shows
+    /// their two tiles in the gallery in that order, and a click on DOOR_900 starts INSERT placing it.
+    /// </summary>
+    public sealed class InsertRibbonViewModel : ObservableObject
+    {
+        private IReadOnlyList<BlockTileViewModel> _gallery = Array.Empty<BlockTileViewModel>();
+        private bool _isGalleryOpen;
+
+        internal InsertRibbonViewModel(MainViewModel model)
+        {
+            Model = model;
+            OpenGalleryCommand = new DelegateCommand(_ => IsGalleryOpen = true);
+            InsertBlockCommand = new DelegateCommand(p =>
+            {
+                IsGalleryOpen = false;
+                model.InsertBlock(p as string);
+            });
+            OpenPaletteCommand = new DelegateCommand(p =>
+            {
+                IsGalleryOpen = false;
+                model.OpenBlocksPalette(p as string);
+            });
+        }
+
+        /// <summary>Gets the window's view model, whose commands the buttons run.</summary>
+        public MainViewModel Model { get; }
+
+        /// <summary>Gets the command of Insert ▾, which drops the gallery.</summary>
+        public ICommand OpenGalleryCommand { get; }
+
+        /// <summary>Gets the command a tile of the gallery runs, given the block's name: INSERT started, placing that block with the palette's options.</summary>
+        public ICommand InsertBlockCommand { get; }
+
+        /// <summary>
+        /// Gets the command of the gallery's lines under the tiles, given the palette's tab: INSERT started, the Blocks palette
+        /// opened on that tab, "Recent" or "Other drawing".
+        /// </summary>
+        public ICommand OpenPaletteCommand { get; }
+
+        /// <summary>Gets or sets whether the gallery is dropped below Insert ▾; dropped, its tiles are read from the drawing shown.</summary>
+        public bool IsGalleryOpen
+        {
+            get => _isGalleryOpen;
+            set
+            {
+                if (Set(ref _isGalleryOpen, value) && value)
+                {
+                    Refill();
+                }
+            }
+        }
+
+        /// <summary>Gets the tiles of the gallery, the drawing's blocks in the order of the Blocks palette: by name, letters of either case alike.</summary>
+        public IReadOnlyList<BlockTileViewModel> Gallery => _gallery;
+
+        /// <summary>Gets whether the drawing has a block to show; with none the gallery reads "No blocks in this drawing".</summary>
+        public bool HasGallery => _gallery.Count > 0;
+
+        /// <summary>Gets the line above the tiles: "Current drawing · plan-level2.dxf".</summary>
+        public string GalleryTitle => "Current drawing · " + (Model.Document?.Title ?? string.Empty);
+
+        /// <summary>The tiles read again from the drawing shown, their pictures drawn when first shown.</summary>
+        private void Refill()
+        {
+            CadDocument document = Model.Document;
+
+            if (document == null)
+            {
+                _gallery = Array.Empty<BlockTileViewModel>();
+            }
+            else
+            {
+                var pictures = new BlockPictures(document.Database, document.Fonts, 72, 48);
+                _gallery = CadBlocks.Named(document.Database).Select(b => new BlockTileViewModel(b.Name, b.Comments, pictures.Draw)).ToList();
+            }
+
+            Raise(nameof(Gallery));
+            Raise(nameof(HasGallery));
+            Raise(nameof(GalleryTitle));
+        }
+    }
+
+    /// <summary>
     /// The Annotate ribbon tab: Text (Multiline Text, Single Line), Dimensions (Linear, Aligned, Angular, Radius, Diameter) and
     /// Leaders (Multileader), each button starting its command through <see cref="MainViewModel.StartCommandCommand"/>, as
     /// the buttons of Home do.
@@ -71,11 +156,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     }
 
     /// <summary>
-    /// The ribbon tabs Annotate and View, a new empty drawing (NEW), Save As (SAVEAS), a new layout, the panels shown or hidden
-    /// and the drafting toggles as typed commands (GRID, SNAP, ORTHO, POLAR, OSNAP).
+    /// The ribbon tabs Insert, Annotate and View, a new empty drawing (NEW), Save As (SAVEAS), a new layout, the panels shown or
+    /// hidden and the drafting toggles as typed commands (GRID, SNAP, ORTHO, POLAR, OSNAP).
     /// </summary>
     public sealed partial class MainViewModel
     {
+        private CadBuiltInTab _insertTab;
         private CadBuiltInTab _annotateTab;
         private CadBuiltInTab _viewTab;
         private DelegateCommand _newCommand;
@@ -92,7 +178,22 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         // What a command of the window leaves to be done once it has ended: a document cannot be changed under a command running.
         private Action _afterCommand;
 
-        /// <summary>Gets the Annotate ribbon tab, always shown, after the extensions' tabs.</summary>
+        /// <summary>Gets the Insert ribbon tab, always shown, after the extensions' tabs and before Annotate.</summary>
+        public CadWorkspaceExtension InsertTab
+        {
+            get
+            {
+                if (_insertTab == null)
+                {
+                    _insertTab = new CadBuiltInTab("Insert", new InsertRibbonViewModel(this));
+                    _builtInTabs.Add(_insertTab);
+                }
+
+                return _insertTab;
+            }
+        }
+
+        /// <summary>Gets the Annotate ribbon tab, always shown, after Insert.</summary>
         public CadWorkspaceExtension AnnotateTab
         {
             get

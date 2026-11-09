@@ -6,6 +6,15 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** The presenter's ribbon has an Insert tab, after a host's tabs and before Annotate, as AutoCAD 2021's for what is
+built: Block (Insert, whose arrow drops a gallery of the drawing's blocks, a click on a tile starting INSERT with that
+block; Edit Attribute), Block Definition (Create Block and Write Block, Define Attributes, Set Base Point) and Reference
+(Attach DXF and Attach Image, Clip, External References, a box that shows and sets IMAGEFRAME, Transparency). What is not
+built is greyed with its reason. Annotate and View now shrink as Home does: in a window 1 280 wide every panel of Insert
+(852 pixels), Annotate (992) and View (670) is full; Annotate's panels go medium below 1 016, their style boxes 84 pixels
+wide instead of 118, and View's below 694. View is now a `RibbonStrip` of the panels Navigate, Views, Interface and
+Drafting, each button bound as before. A collapsed panel's name of two words, as Block Definition, goes on two lines.
+
 **NEW.** The presenter attaches and shows external references and images, as AutoCAD 2021 does: XATTACH and IMAGEATTACH
 (the Attach External Reference and Attach Image dialogs), the External References palette (XREF, ER, IMAGE), -XREF,
 -IMAGE, IMAGECLIP, IMAGEFRAME and TRANSPARENCY. A DXF referenced is read and drawn under its INSERT, its layers named after
