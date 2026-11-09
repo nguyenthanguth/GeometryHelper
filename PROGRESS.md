@@ -40,9 +40,10 @@ The list of work on the drawing stack: Part A, the 2D presenter (`GeometryHelper
 - [x] XLINE and RAY: a pick or snap is handed only those passing near it (20 000 snaps with 200 rays 220 -> 60 ms on .NET 4.8)
 - [x] GeometryHelper.Dxf.App: the presenter as an app of its own (`GeometryHelper.Dxf.App.exe plan.dxf`); the window and the
       screenshot mode shared with Drawing.App through `CadAppHost`
+- [x] Blocks round 2: EATTEDIT live with Apply kept open, INSERT drags the block, -ATTEDIT picks one attribute, ATTSYNC,
+      Block Definition previews the selection, redefine a block brought from another drawing
 
 ### In progress
-
 
 ### To do
 
@@ -67,8 +68,10 @@ The list of work on the drawing stack: Part A, the 2D presenter (`GeometryHelper
 - [ ] Speed: draw the first display off the UI thread (10–13 s at 1 000 000 entities)
 - [ ] Speed: frame at extents at 1 000 000 entities (0.8–1.1 s, inside Skia); level of detail would change pixels (needs a decision)
 - [ ] Speed: highlight of 100 000 selected objects (1.2–1.6 s)
-- [ ] Blocks: EATTEDIT stays open on Apply; INSERT drag preview; pick one ATTRIB in -ATTEDIT; ATTSYNC (running); BATTMAN (design first)
-- [ ] Blocks: Block Definition dialog previews the selected objects (running)
+- [ ] Blocks: BATTMAN, the Block Attribute Manager (design first)
+- [ ] Blocks: INSERT with a base point picked lands wrong for a block of other units (the shift is not scaled by the unit
+      factor)
+- [ ] Blocks: -ATTEDIT by a window takes only the attributes inside the window
 - [ ] Dimensions: DIMORDINATE (and its part in DIMCONTINUE, DIMBASELINE, QDIM), DIMJOGLINE, the DIM command (running)
 - [ ] Dimensions: draw DIMTAD and DIMJUST (words above or beside the line) (running)
 - [ ] MTEXT: word wrap at the width, stacked fractions, columns; line spacing 5/3 as AutoCAD (check first)
