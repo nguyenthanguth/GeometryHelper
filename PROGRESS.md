@@ -42,6 +42,8 @@ The list of work on the drawing stack: Part A, the 2D presenter (`GeometryHelper
       screenshot mode shared with Drawing.App through `CadAppHost`
 - [x] Blocks round 2: EATTEDIT live with Apply kept open, INSERT drags the block, -ATTEDIT picks one attribute, ATTSYNC,
       Block Definition previews the selection, redefine a block brought from another drawing
+- [x] Command line AutoComplete (most used first, aliases, variables, mid-string, synonyms, AutoCorrect, Input Settings,
+      Recent Commands); the application menu with Recent Documents (pins, previews); the DXF app's own start screen
 - [x] PEDIT (single and Multiple, every option) and REVCLOUD (Arc length, Object, Rectangular, Polygonal, Freehand, Style,
       Modify), checked vertex by vertex against AutoCAD's own where its console has the command
 - [x] Dimension grips: extension origins, dimension line, text, chord points, angular and ordinate points; STRETCH of a
@@ -84,7 +86,6 @@ the ones wanted.
       direction, Text position X/Y; hatch origin kept through angle and scale; MATCHPROP plot style and gradient hatch (S)
 - [ ] Variables: PICKADD, POLARMODE, ATTREQ, ATTDIA, FILEDIA, CMDDIA; AUTOSNAP's other bits; DYNMODE values; ORTHOMODE
       written to the drawing; new dimensions follow DIMSCALE; polar angle field in Global settings (S)
-- [ ] Utilities: command line AutoComplete (suggestions as you type, mid-string search, most used first) (M) (running)
 - [ ] Core: `DxfPolyline2d.CurveFit` tangents differ from AutoCAD's for closed polylines (AutoCAD bisects) and open ones of 4
       or more vertices (64.41 against 63.43 degrees in one case); `DxfPolyline3d.SplineFit` vertex order (M)
 - [ ] PEDIT: PEACCEPT and PLINETYPE read through SETVAR; a spline turned into a polyline with a precision; 3D polylines;
@@ -93,7 +94,6 @@ the ones wanted.
       more than closed polylines (S)
 - [ ] Layouts (running): the status bar's MODEL/PAPER button, viewport scale list and padlock restyled to the design (StatusSpace
       board, v104); twisted viewports entered; one undo step per wheel or pan gesture; a ZOOM Previous list per viewport (S)
-- [ ] Files: recent files on the start screen and the application menu (S) (running)
 - [ ] Layers: VP Freeze per viewport (VPLAYER, the Layer manager's VP columns, LAYVPI) (M) (running)
 - [ ] Dimensions: MLEADERSTYLE, the Multileader Style Manager (M, design first) (running)
 - [ ] Dimensions: associative dimensions that follow their geometry (DIMASSOC 2, DIMREASSOCIATE) (L) (running)
@@ -102,8 +102,8 @@ the ones wanted.
       rows (L)
 
 ### To do
-- [ ] Dxf.App (running): the start screen and welcome line still offer "New drawing from a model" and Ctrl+N; hide what belongs to
-      Drawing when no host handles it (design first)
+- [ ] Command line and Recent: previews read off the UI thread; AutoComplete inside a running command; Search Content;
+      Recent Commands kept between sessions; missing files dropped from Recent; an EXPORT command (S)
 - [ ] Dxf.App: an app icon, file association for .dxf (installer or registry), `--tab Home` in screenshot mode
 - [ ] Images of an area: PNG and JPG devices in PLOT and -PLOT ("GeometryHelper PNG", "GeometryHelper JPG", as AutoCAD's
       PublishToWeb PNG/JPG), plot area Window, Extents, Display or Layout, size in pixels (1920 x 1080, 3840 x 2160 or
