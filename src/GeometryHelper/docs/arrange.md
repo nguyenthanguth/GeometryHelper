@@ -224,6 +224,7 @@ overlaps the next and the beam; after `Arranger.Run` all nine are `Placed`, each
 |---|---|---|
 | `Box` | — | The label's box, the rectangle that is moved |
 | `Leader` | — | The segment the label belongs to; its midpoint is the origin of the candidate positions |
+| `Rectangle` | null | The rectangle of the object, to stand along its long side, in place of the `Leader`; the gaps are measured from its long edges |
 | `Offset` | — | Sets `OffsetTop` and `OffsetBottom` both at once; it can be set, not read |
 | `OffsetTop` | 50.0 | The least gap between the label's edge and the leader on the side that faces up in the drawing; the left of a vertical leader; a finite number |
 | `OffsetBottom` | 50.0 | The least gap on the side that faces down; the right of a vertical leader; a finite number |
@@ -251,6 +252,31 @@ the blocks of every item, and a block given to many items is tested once.
 | `Tolerance` | `Tolerance.Global` | Tolerance for geometric comparisons, clearances included; `Tolerance.Global` as it stands when the options are made, and only then |
 
 Default values are in millimeters, matching conventional structural drawings.
+
+## Along the long side of a rectangle
+
+A part is a rectangle more often than a line: a beam or a plate seen from the side has a long side its labels are to stand along.
+Give the item that rectangle as `Rectangle`, a nullable `GeoRectangle2`, in place of the `Leader`:
+
+```csharp
+var part = new GeoRectangle2(new GeoPoint2(1000.0, 500.0), 2000.0, 300.0);   // centre, width, height, angle
+
+var item = new ArrangeItem
+{
+    Rectangle = part,                                                       // the leader is not needed
+    Box       = new GeoRectangle2(part.Center, 100.0, 40.0),                // the label
+    Offset    = 50.0,                                                       // the gap off a long edge
+};
+```
+
+The candidate positions spread out from the centre of the rectangle, in rows on either side of its long side, each sliding
+along it, as they do from the midpoint of a leader. The gaps `Offset`, `OffsetTop` and `OffsetBottom` are measured from the
+long edges: with the rectangle above, the label 40 high and the gap 50, the first rows stand 220 from the middle line, 70 off
+the edge, one above the rectangle and one below it, and each next row a label's height and the row gap further, 270 and then
+more. The top is the long edge that faces up in the drawing, and the left of one whose long side stands upright; `Side` keeps
+the label to one of them. The long side is the width, or the height where that is greater, and the rectangle may be turned by
+any angle. A rectangle with no long side leaves the label where it is. Where both a rectangle and a leader are given, the
+rectangle is used. An item with no rectangle is arranged as it always was, to the bit.
 
 ## Running inside AutoCAD
 

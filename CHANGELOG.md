@@ -93,6 +93,13 @@ another file of the folder was opened, or once it was saved with Save and shown 
 now says, for example, "Test bodies (from file)" until the drawing is made again. The out-of-date dot now shows on such a
 drawing too, checked in the source its file names without changing it.
 
+**NEW.** `ArrangeItem.Rectangle`, a nullable `GeoRectangle2`, sets labels along the long side of the rectangle of a part in
+place of a `Leader`. The rows stand on either side of the long side and slide along it, with the gaps `Offset`, `OffsetTop`
+and `OffsetBottom` measured from the long edges: a rectangle 2 000 by 300, a label 100 by 40 and the default gap of 50 put the
+first rows 70 off the edges, 220 from the middle line. It may be turned by any angle, its long side the width or the height
+where that is greater, and `Side` keeps the label to one edge. Items given no rectangle are arranged as before, to the bit
+(the six Arranging benchmarks match their signatures).
+
 **NEW.** `DxfDatabase.Recover(path or stream, out DxfRepairReport)` opens a damaged DXF as AutoCAD's RECOVER does, and
 `DxfDatabase.Audit(fix)` checks an open drawing as AUDIT does; each reports what it found (`DxfRepairReport`, `DxfRepair`, 26
 kinds of `DxfRepairKind`) and what it fixed. Lines that are not group codes, a file cut short, sections missing or out of

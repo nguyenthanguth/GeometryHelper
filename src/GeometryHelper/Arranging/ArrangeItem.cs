@@ -32,6 +32,29 @@ namespace GeometryHelper.Arranging
         public GeoLine2 Leader { get; set; }
 
         /// <summary>
+        /// Gets or sets the rectangle of the object the label belongs to, to stand along its long side; null, and so
+        /// the <see cref="Leader"/> is used, unless set.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// A rectangle takes the place of the leader: the candidate positions spread out from its centre, in rows on
+        /// either side of its long side, each sliding along it. The gaps <see cref="OffsetTop"/>, <see cref="OffsetBottom"/>
+        /// and <see cref="Offset"/> are measured from the long edges, not from a line through the middle: a rectangle
+        /// 2 000 long and 300 across, a label 100 high and the default gap of 50 put the first row 250 above the
+        /// middle line, 100 above the edge. The top and the bottom are the two long edges, the top the one that faces
+        /// up in the drawing, as for a leader; a rectangle whose long side is vertical has its top on the left.
+        /// <see cref="Side"/> keeps the label to one of them.
+        /// </para>
+        /// <para>
+        /// The long side is the width, or the height where that is greater; of a square, the width. The rectangle may
+        /// be turned by any angle. A rectangle with no long side, within the point tolerance of the options, cannot be
+        /// arranged along, and the label is left where it is. With both a rectangle and a <see cref="Leader"/> set, the
+        /// rectangle is used and the leader is ignored.
+        /// </para>
+        /// </remarks>
+        public GeoRectangle2? Rectangle { get; set; }
+
+        /// <summary>
         /// Sets the least gap between the edge of the label and the leader on both sides of it at once:
         /// <see cref="OffsetTop"/> and <see cref="OffsetBottom"/> both take the value. It only sets, and holds nothing of
         /// its own, so it cannot be read; the sides are what placement reads.

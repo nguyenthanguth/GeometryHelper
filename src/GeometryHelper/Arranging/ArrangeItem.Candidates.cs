@@ -161,11 +161,39 @@ namespace GeometryHelper.Arranging
                 return false;
             }
 
-            // STEP 2: Determine directional axis (unit GeoVector2) along the leader.
-            // This axis points in the direction where the label can slide longitudinally.
-            if (!Leader.Direction.TryGetNormal(out GeoVector2 direction, options.Tolerance))
+            // STEP 2: Determine directional axis (unit GeoVector2) along the leader, or along the long side of the
+            // rectangle. This axis points in the direction where the label can slide longitudinally. A rectangle is the
+            // axis through its centre along its long side, with the labels kept off its two long edges: half of its
+            // short side is added to the gap of each side.
+            GeoVector2 direction;
+            GeoPoint2 anchor;
+            double pathLength;
+            double bodyHalf;
+            if (Rectangle.HasValue)
             {
-                return false;
+                GeoRectangle2 rectangle = Rectangle.Value;
+                bool alongWidth = rectangle.Width + options.Tolerance.EqualPoint >= rectangle.Height;
+                double angle = rectangle.AngleRad + (alongWidth ? 0.0 : Math.PI * 0.5);
+                direction = new GeoVector2(Math.Cos(angle), Math.Sin(angle));
+                anchor = rectangle.Center;
+                pathLength = alongWidth ? rectangle.Width : rectangle.Height;
+                bodyHalf = (alongWidth ? rectangle.Height : rectangle.Width) * 0.5;
+
+                if (pathLength < options.Tolerance.EqualPoint)
+                {
+                    return false;
+                }
+            }
+            else
+            {
+                if (!Leader.Direction.TryGetNormal(out direction, options.Tolerance))
+                {
+                    return false;
+                }
+
+                anchor = Leader.MidPoint;
+                pathLength = Leader.Length;
+                bodyHalf = 0.0;
             }
 
             // Determine axis perpendicular to the label guide path.
@@ -180,7 +208,6 @@ namespace GeometryHelper.Arranging
 
             // STEP 3: Measure label bounding box in the new local coordinate system.
             // Iterate through 4 vertices of the label rectangle (which can be rotated at an arbitrary angle)
-            GeoPoint2 anchor = Leader.MidPoint;
             var vertices = Box.GetVertices();
             for (int i = 0; i < vertices.Length; i++)
             {
@@ -220,8 +247,8 @@ namespace GeometryHelper.Arranging
             double sine = Math.Abs(perpendicular.Y);
             bool vertical = sine <= options.Tolerance.EqualAngleSin && sine < Math.Abs(perpendicular.X);
             bool perpendicularIsTop = vertical ? perpendicular.X < 0.0 : perpendicular.Y > 0.0;
-            double top = height * 0.5 + OffsetTop;
-            double bottom = height * 0.5 + OffsetBottom;
+            double top = bodyHalf + height * 0.5 + OffsetTop;
+            double bottom = bodyHalf + height * 0.5 + OffsetBottom;
 
             // STEP 5: Set up the complete Layout structure
             layout = new Layout(
@@ -236,7 +263,7 @@ namespace GeometryHelper.Arranging
 
                 // MaximumShift: Maximum allowable longitudinal shift distance along the path,
                 // which equals half the path length plus a portion of the label width overshooting the ends (LongitudinalOvershootRatio)
-                Leader.Length * 0.5 + width * options.LongitudinalOvershootRatio,
+                pathLength * 0.5 + width * options.LongitudinalOvershootRatio,
 
                 // Whether the label may stand on the side the perpendicular points to, and on the other side.
                 perpendicularIsTop ? Side != ArrangeSide.Bottom : Side != ArrangeSide.Top,
