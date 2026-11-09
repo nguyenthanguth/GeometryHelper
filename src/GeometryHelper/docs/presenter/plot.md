@@ -1,0 +1,168 @@
+# Plotting to PDF
+
+How a space of the presenter is plotted, as AutoCAD 2021 plots it: the page setup a layout keeps, the sheet the plot is
+laid on, the plot style tables, the PDF the presenter writes, and the commands PLOT (Ctrl+P), -PLOT, PREVIEW and
+PAGESETUP. The page setup and the sheet are worked out by
+[`CadPlotSettings`](xref:GeometryHelper.Dxf.Viewer.CadPlotSettings) and
+[`CadPlotPage`](xref:GeometryHelper.Dxf.Viewer.CadPlotPage) with no window; the PDF is written by the controls'
+`CadPdfWriter`, through SkiaSharp. Every example below was run on a plan of model space: a frame from (120, 60) to
+(7 620, 5 360), 7 500 by 5 300, with ROOM 1 inside it in Arial.
+
+## The page setup
+
+A drawing keeps how each space is plotted in the plot settings of its LAYOUT, model space's in the layout Model: the part
+AcDbPlotSettings that AutoCAD writes. [`CadPlotSettings.Read`](xref:GeometryHelper.Dxf.Viewer.CadPlotSettings) takes them
+from there, and [`ApplyTo`](xref:GeometryHelper.Dxf.Viewer.CadPlotSettings) writes them back as one undo step named PLOT,
+as Apply to Layout does:
+
+```csharp
+CadPlotSettings settings = CadPlotSettings.Read(document, document.ModelSpace);
+settings.Area = CadPlotArea.Window;
+settings.Window = new DisplayBox(120, 60, 7620, 5360);
+settings.FitToPaper = false;
+settings.PaperUnits = 1;
+settings.DrawingUnits = 20;                                     // 1:20
+settings.StyleTable = CadPlotStyleTable.Monochrome;
+CadEditResult result = settings.ApplyTo(document, document.ModelSpace);
+// the layout Model: 74 of 4 (a window), 48 49 140 141 the window, 142 143 of 1 and 20, 75 of 23 (1:20), 7 monochrome.ctb
+```
+
+| Setting | Groups of AcDbPlotSettings |
+|---|---|
+| the plotter, `GeometryHelper PDF` | 2 |
+| the sheet, `ISO_A3_(420.00_x_297.00_MM)`, its size and margins in millimetres | 4, 44, 45, 40 to 43, 72 of 1 |
+| the turn: landscape or portrait as AutoCAD reckons it from the sheet as named, plus 180 upside down | 73 |
+| the offset from the printable area's corner | 46, 47 |
+| what is plotted: Display, Extents, Limits, Window or Layout | 74, the window 48, 49, 140, 141 |
+| the scale: paper millimetres to drawing units; 75 with 147 and flag 16 where it is one of AutoCAD's standard scales, 75 of 0 for Fit | 142, 143, 75, 147 |
+| the plot style table: `monochrome.ctb`, `grayscale.ctb`, or none | 7 |
+| centred (4), plot with plot styles (32), scale lineweights (64), plot lineweights (128) | 70 |
+
+Read back after the drawing is saved and opened again, every one of them is as it was written. A DXF of AC1027 and one of
+AC1032 saved after a page setup applied to Model and to a layout pass AutoCAD 2021's AUDIT with 0 errors. Plot transparency
+is not written: a DXF keeps it in no group of the plot settings, and the display lists hold no transparency, so a plot is
+the same with it on or off.
+
+A sheet the layout names is the standard one of its name and margins, else one made of the layout's size and margins,
+so a layout of `LAYOUT New`, A3 with margins of 7.5 at the sides and 20 above and below, plots on the sheet its tab shows.
+The page setups of the drawing's ACAD_PLOTSETTINGS are listed by
+[`PageSetupNames`](xref:GeometryHelper.Dxf.Viewer.CadPlotSettings) and read by
+[`ReadPageSetup`](xref:GeometryHelper.Dxf.Viewer.CadPlotSettings); a new one is not added yet.
+
+## The sheet
+
+[`CadPaper.Standard`](xref:GeometryHelper.Dxf.Viewer.CadPaper) lists the sheets of GeometryHelper PDF: ISO A0 to A4 and
+ANSI A to E, each on its side, with margins of 5 all round. [`CadPlotPage.Compute`](xref:GeometryHelper.Dxf.Viewer.CadPlotPage)
+lays a plot on its sheet:
+
+```csharp
+CadPlotPage page = CadPlotPage.Compute(document, document.ModelSpace, settings, view.VisibleBox);
+// page.SheetWidth 420, SheetHeight 297; Printable (5, 5) to (415, 292)
+// page.Scale 0.05; OffsetX 17.5, OffsetY 11: the plot 375 by 265, centred
+// page.DrawingToSheet: (120, 60) at (22.5, 16), (7 620, 5 360) at (397.5, 281)
+// page.SheetWidthPoints 1 190.55, SheetHeightPoints 841.89
+```
+
+| Case | What it gives |
+|---|---|
+| Fit to paper | the larger scale that keeps the area in the printable area: 1 mm to 18.4669 units for the window above, 406.13 by 287, moved (1.93, 0) |
+| Portrait | the sheet upright, 297 by 420, its margins turning with it |
+| Upside down | the sheet turned half round about its middle after the plot is laid: (120, 60) at (397.5, 281) |
+| Not centred | the area's lower left corner at the printable corner plus the offset: (3, 4) puts (120, 60) at (8, 9) |
+| Layout | a layout's sheet, its origin at the printable corner plus the offset, at 1:1 unless fitted: the paper (-7.5, -20) to (412.5, 277) of an A3 layout lies on the whole sheet |
+| Limits | LIMMIN to LIMMAX in model space, a layout's own limits in a layout |
+| Display | what the view shows, the extents where no view is given |
+
+[`CadPlotScale.ListFor`](xref:GeometryHelper.Dxf.Viewer.CadPlotScale) gives the Scale list: 1:1, 1:2, 1:5, 1:10, 1:20,
+1:50, 1:100, 1:200, 1:500 and 1:1000, then the scales of the drawing's own list that are none of those.
+
+## Plot style tables
+
+The three tables are made in code; no `.ctb` file is read. [`CadPlotStyles.Map`](xref:GeometryHelper.Dxf.Viewer.CadPlotStyles)
+gives the colour an object plots in:
+
+| Table | Red | Green | Blue | White (colour 7) |
+|---|---|---|---|---|
+| Monochrome | black | black | black | black |
+| Grayscale, 0.299 red + 0.587 green + 0.114 blue | #4C4C4C | #969696 | #1D1D1D | black |
+| None | red | green | blue | black |
+
+With Plot with plot styles off, the colours plot as with None.
+
+## The PDF
+
+`CadPdfWriter.Write(path, document, space, settings, display)` writes one page through SkiaSharp's `SKDocument.CreatePdf`,
+in vectors, from the display list the canvas draws, as a plotter draws rather than as the screen does: every item whatever
+its size, every text however small, every line of a hatch, arcs flattened to a twentieth of a point, colours through the
+table, and each line at its lineweight on the sheet, 0.5 mm as 1.417 points (scaled with the plot where Scale lineweights
+is ticked), the thinnest line the reader draws where Plot object lineweights is off. The plot is clipped to the printable
+area and to the area plotted. Solids and hatches are filled.
+
+The page is the sheet's exact size: ISO A3 on its side is 1 190.5512 by 841.8898 points, where SkiaSharp alone writes 1 191
+by 842. The text of a TrueType font is written as text with its font embedded and a map from its glyphs to its letters, so
+a reader finds and copies ROOM 1; the text of an SHX font is its strokes, as the canvas draws it, and is not found. The
+font is embedded whole, so a PDF with Arial in it is 543 KB at least.
+
+PDFs are written one at a time: SkiaSharp's PDF writer shares the typefaces its font manager caches, and two pages written
+at once lost the map of their text in 3 to 6 of 64.
+
+| Plot of the extents on ISO A3, best of 5 | .NET Framework 4.8 | .NET 8 | File |
+|---|---|---|---|
+| 100 lines and 1 text | 24.0 ms | 22.3 ms | 543 KB |
+| 10 000 lines and 100 texts | 42.1 ms | 41.3 ms | 744 KB |
+| 100 000 lines and 1 000 texts | 200.1 ms | 180.7 ms | 2 563 KB |
+
+## The commands
+
+| Command | What it does |
+|---|---|
+| PLOT, Ctrl+P | the Plot dialog, expanded, on the space's page setup; OK asks for the file and writes the PDF; with no window, -PLOT's prompts |
+| PAGESETUP | the same dialog titled Page Setup; OK writes the page setup to the layout |
+| PREVIEW | the plot preview of the space's page setup over the whole window; its Plot asks for the file and writes the PDF |
+| -PLOT | AutoCAD's plot on the command line |
+
+The dialog follows AutoCAD's: the page setup's name; the plotter, GeometryHelper PDF, with the printers of Windows listed
+greyed, since printing to them is not built; the paper size and its small picture; what to plot, and for a window the
+Window&lt; button, which hides the dialog while "Specify first corner:" and "Specify opposite corner:" are answered on the
+drawing and shows it again with the window set; the offset, or Center the plot; Fit to paper, or the scale and its two
+units; the plot style table; the plot options; and the orientation. Apply to Layout writes the page setup at once, Save
+changes to layout writes it when OK plots. Preview… shows the preview, whose Plot plots.
+
+The preview shows the sheet on grey with its printable area dashed. A drag pans, zooms in real time (100 pixels up zoom
+twice in) or frames a window, as the toolbar or the right button's menu chooses; the wheel zooms about the cursor; Zoom
+Original shows the whole sheet; ESC or ENTER leaves it.
+
+-PLOT asks AutoCAD 2021's prompts:
+
+```text
+Detailed plot configuration? [Yes/No] <No>: Y
+Enter a layout name or [?] <Model>:
+Enter an output device name or [?] <GeometryHelper PDF>:
+Enter paper size or [?] <ISO A3 (420.00 x 297.00 MM)>:
+Enter paper units [Inches/Millimeters] <Millimeters>:
+Enter drawing orientation [Portrait/Landscape] <Landscape>:
+Plot upside down? [Yes/No] <No>:
+Enter plot area [Display/Extents/Limits/Window] <Display>: W
+Enter lower left corner of window <0.000000,0.000000>: 120,60
+Enter upper right corner of window <0.000000,0.000000>: 7620,5360
+Enter plot scale (Plotted Millimeters=Drawing Units) or [Fit] <Fit>: 1=20
+Enter plot offset (x,y) or [Center] <Center>:
+Plot with plot styles? [Yes/No] <Yes>:
+Enter plot style table name (enter . for none) or [?] <monochrome.ctb>:
+Plot with lineweights? [Yes/No] <Yes>:
+Enter shade plot setting [As displayed/legacy Wireframe/legacy Hidden/Visual styles/Rendered] <As displayed>:
+Enter file name <C:\Plans\plan-level2-Model.pdf>:
+Save changes to page setup [Yes/No] <No>: Y
+Proceed with plot [Yes/No] <Yes>:
+Effective plotting area:  375.00 wide by 265.00 high
+```
+
+Without the detailed configuration it asks the layout, a page setup's name, the device and the file. In a layout the
+area offers Layout in place of Limits, and the last prompts are Scale lineweights, Plot paper space first and Hide
+paperspace objects; the last two, like the shade plot, change nothing in a 2D plot. View is not offered: the presenter has
+no named views. The file is written by the window, which holds the PDF writer.
+
+## See also
+
+- [Editing as AutoCAD does](editing.md): the command line and the undo steps.
+- [The sheet of a layout](../dxf/drawing.md#the-sheet-of-a-layout): the LAYOUT the page setup is kept in, and its sheet.

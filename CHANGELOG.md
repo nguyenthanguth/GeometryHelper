@@ -93,6 +93,20 @@ another file of the folder was opened, or once it was saved with Save and shown 
 now says, for example, "Test bodies (from file)" until the drawing is made again. The out-of-date dot now shows on such a
 drawing too, checked in the source its file names without changing it.
 
+**NEW.** The presenter plots to PDF as AutoCAD 2021 does: PLOT (Ctrl+P) shows the Plot dialog, expanded, PAGESETUP the same
+dialog as Page Setup, PREVIEW the plot preview over the whole window (pan, zoom in real time, zoom window, zoom original, a
+shortcut menu, ESC or ENTER to leave), and -PLOT asks AutoCAD's prompts on the command line. Its plotter, GeometryHelper
+PDF, writes one page of the sheet's exact size through SkiaSharp, in vectors: ISO A3 on its side is 1 190.55 by 841.89
+points, lines keep their lineweights, solids and hatches are filled, and the text of a TrueType font stays text a reader
+finds. The window from (120, 60) to (7 620, 5 360) at 1:20, centred on A3, is 375 by 265, moved 17.5 right and 11 up of the
+printable area's corner. ISO A0 to A4 and ANSI A to E, Display, Extents, Limits, Window and Layout, Fit to paper or a scale
+of the list (1:1 to 1:1000 and the drawing's own), the offset or centring, landscape, portrait and upside down, and the
+tables Monochrome, Grayscale and None made in code. Apply to Layout and Save changes to layout write the page setup into
+the LAYOUT's plot settings as AutoCAD does, one undo step, and it reads back after saving; AutoCAD 2021's AUDIT finds
+nothing in a drawing saved after it. The printers of Windows are listed but greyed: printing to them is not built yet.
+`DxfPlotSettings` sets, as AutoCAD's `PlotSettingsValidator` does, the plotter's name, the plot style table, the plot type
+and window, the custom and standard scales, and the flags of centring, plot styles and lineweights.
+
 **NEW.** The presenter edits dimensions as AutoCAD 2021 does: DIMCONTINUE (DCO) and DIMBASELINE (DBA) go on from the last
 linear or angular dimension, or one selected, on the same line or DIMDLI further out, with Undo inside; QDIM dimensions the
 ends of lines and polylines and the centres of circles in a row, staggered, from a base or as radii and diameters; DIMEDIT

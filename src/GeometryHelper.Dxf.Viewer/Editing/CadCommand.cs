@@ -168,6 +168,7 @@ namespace GeometryHelper.Dxf.Viewer
                 ["Ctrl+S"] = "QSAVE",
                 ["Ctrl+1"] = "PROPERTIES",
                 ["Ctrl+A"] = "SELECTALL",
+                ["Ctrl+P"] = "PLOT",
             });
 
         private static IReadOnlyDictionary<string, string> Copy(IEnumerable<KeyValuePair<string, string>> pairs)

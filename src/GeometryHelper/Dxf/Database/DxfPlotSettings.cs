@@ -17,7 +17,10 @@ namespace GeometryHelper.Dxf
     /// sheet needs is set as AutoCAD's <c>PlotSettingsValidator</c> sets it: its name and with it its size
     /// (<see cref="CanonicalMediaName"/>), its <see cref="PlotPaperUnits"/>, <see cref="PlotRotation"/>,
     /// <see cref="PlotPaperMargins"/> and <see cref="PlotOrigin"/>; a layout set to <c>ISO_A2_(594.00_x_420.00_MM)</c> lies on
-    /// a sheet 594 by 420. The rest is read and not written: a change to it is AutoCAD's plotting to see to.
+    /// a sheet 594 by 420. What is plotted and how is set as the validator and AutoCAD's <c>PlotSettings</c> set it too: the
+    /// plotter's name (<see cref="PlotConfigurationName"/>), the plot style table, <see cref="PlotType"/> and the window, the
+    /// scale standard or custom, and the flags of centring, plot styles and lineweights; a page setup of A3 at 1:20 with
+    /// monochrome.ctb is read back as written. The rest is read and not written: a change to it is AutoCAD's plotting to see to.
     /// </remarks>
     public class DxfPlotSettings : DxfDBObject
     {
@@ -45,8 +48,20 @@ namespace GeometryHelper.Dxf
         /// <summary>Gets the name of the page setup (group 1), as AutoCAD's <c>PlotSettingsName</c>; empty where it has none.</summary>
         public string PlotSettingsName => Text(Marker, 1);
 
-        /// <summary>Gets the name of the plotter's configuration (group 2), as AutoCAD's <c>PlotConfigurationName</c>, such as <c>DWG To PDF.pc3</c>; empty where it has none.</summary>
-        public string PlotConfigurationName => Text(Marker, 2);
+        /// <summary>Gets or sets the name of the plotter's configuration (group 2), as AutoCAD's <c>PlotConfigurationName</c>, such as <c>DWG To PDF.pc3</c>; empty where it has none.</summary>
+        /// <value>
+        /// Set, as AutoCAD's <c>PlotSettingsValidator.SetPlotConfigurationName</c> sets the device, to any name, written as group
+        /// 2: <c>none_device</c> for no plotter, as AutoCAD writes it. The sheet is set apart, by
+        /// <see cref="CanonicalMediaName"/>. The name it has changes nothing.
+        /// </value>
+        /// <exception cref="ArgumentNullException">Thrown when the name set is null.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the settings are in no drawing, as a layout made in code before
+        /// it is added, or are erased.</exception>
+        public string PlotConfigurationName
+        {
+            get => Text(Marker, 2);
+            set => SetText(2, value, "be given a plotter");
+        }
 
         /// <summary>
         /// Gets or sets the name of the sheet as the plotter calls it (group 4), as AutoCAD's <c>CanonicalMediaName</c>, such as
@@ -103,8 +118,20 @@ namespace GeometryHelper.Dxf
         /// <summary>Gets the name of the view plotted where <see cref="PlotType"/> is a view (group 6), as AutoCAD's <c>PlotViewName</c>; empty where it has none.</summary>
         public string PlotViewName => Text(Marker, 6);
 
-        /// <summary>Gets the name of the plot style table (group 7), as AutoCAD's <c>CurrentStyleSheet</c>, such as <c>monochrome.ctb</c>; empty where it has none.</summary>
-        public string CurrentStyleSheet => Text(Marker, 7);
+        /// <summary>Gets or sets the name of the plot style table (group 7), as AutoCAD's <c>CurrentStyleSheet</c>, such as <c>monochrome.ctb</c>; empty where it has none.</summary>
+        /// <value>
+        /// Set, as AutoCAD's <c>PlotSettingsValidator.SetCurrentStyleSheet</c> sets it, to a name written as group 7, or empty for
+        /// none: <c>monochrome.ctb</c> plots every colour black where AutoCAD opens the drawing. Only the name is written; the
+        /// table is the plotter's to find. The name it has changes nothing.
+        /// </value>
+        /// <exception cref="ArgumentNullException">Thrown when the name set is null.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the settings are in no drawing, as a layout made in code before
+        /// it is added, or are erased.</exception>
+        public string CurrentStyleSheet
+        {
+            get => Text(Marker, 7);
+            set => SetText(7, value, "be given a plot style table");
+        }
 
         /// <summary>
         /// Gets or sets the margins of the sheet, as AutoCAD's <c>PlotPaperMargins</c>: its <see cref="DxfExtents2d.MinPoint"/> the
@@ -187,11 +214,63 @@ namespace GeometryHelper.Dxf
             }
         }
 
-        /// <summary>Gets the window plotted where <see cref="PlotType"/> is a window (groups 48 and 49, 140 and 141), as AutoCAD's <c>PlotWindowArea</c>.</summary>
-        public DxfExtents2d PlotWindowArea => new DxfExtents2d(new GeoPoint2(Real(Marker, 48, 0.0), Real(Marker, 49, 0.0)), new GeoPoint2(Real(Marker, 140, 0.0), Real(Marker, 141, 0.0)));
+        /// <summary>Gets or sets the window plotted where <see cref="PlotType"/> is a window (groups 48 and 49, 140 and 141), as AutoCAD's <c>PlotWindowArea</c>.</summary>
+        /// <value>
+        /// Set, as AutoCAD's <c>PlotSettingsValidator.SetPlotWindowArea</c> sets it, in the units of the drawing: the window from
+        /// (120, 60) to (7 620, 5 360) is written 48 and 49 of 120 and 60, 140 and 141 of 7 620 and 5 360. What is plotted is
+        /// set apart, by <see cref="PlotType"/>. The window it has changes nothing.
+        /// </value>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when a corner set is not of finite numbers.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the settings are in no drawing, as a layout made in code before
+        /// it is added, or are erased.</exception>
+        public DxfExtents2d PlotWindowArea
+        {
+            get => new DxfExtents2d(new GeoPoint2(Real(Marker, 48, 0.0), Real(Marker, 49, 0.0)), new GeoPoint2(Real(Marker, 140, 0.0), Real(Marker, 141, 0.0)));
 
-        /// <summary>Gets the scale of the plot as a ratio (groups 142 and 143), as AutoCAD's <c>CustomPrintScale</c>; 1:1 where it gives none.</summary>
-        public DxfCustomScale CustomPrintScale => new DxfCustomScale(Real(Marker, 142, 1.0), Real(Marker, 143, 1.0));
+            set
+            {
+                const string Message = "The corners of a window plotted are of finite numbers.";
+                Guard.Finite(value.MinPoint.X, nameof(value), Message);
+                Guard.Finite(value.MinPoint.Y, nameof(value), Message);
+                Guard.Finite(value.MaxPoint.X, nameof(value), Message);
+                Guard.Finite(value.MaxPoint.Y, nameof(value), Message);
+                DxfFile file = InFile("be given a window to plot");
+                DxfExtents2d was = PlotWindowArea;
+                var values = new List<KeyValuePair<int, string>>();
+                Changed(values, 48, value.MinPoint.X, was.MinPoint.X);
+                Changed(values, 49, value.MinPoint.Y, was.MinPoint.Y);
+                Changed(values, 140, value.MaxPoint.X, was.MaxPoint.X);
+                Changed(values, 141, value.MaxPoint.Y, was.MaxPoint.Y);
+                Write(file, values);
+            }
+        }
+
+        /// <summary>Gets or sets the scale of the plot as a ratio (groups 142 and 143), as AutoCAD's <c>CustomPrintScale</c>; 1:1 where it gives none.</summary>
+        /// <value>
+        /// Set, as AutoCAD's <c>PlotSettingsValidator.SetCustomPrintScale</c> sets it: the units of the paper over the units of
+        /// the drawing they stand for, 1 and 20 for a plot at 1:20 on a sheet of millimetres. It is the scale plotted where
+        /// <see cref="UseStandardScale"/> is off. The scale it has changes nothing.
+        /// </value>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when either number set is not a finite number above nought.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the settings are in no drawing, as a layout made in code before
+        /// it is added, or are erased.</exception>
+        public DxfCustomScale CustomPrintScale
+        {
+            get => new DxfCustomScale(Real(Marker, 142, 1.0), Real(Marker, 143, 1.0));
+
+            set
+            {
+                const string Message = "A scale is of finite numbers above nought.";
+                Guard.Positive(value.Numerator, nameof(value), Message);
+                Guard.Positive(value.Denominator, nameof(value), Message);
+                DxfFile file = InFile("be given a scale");
+                DxfCustomScale was = CustomPrintScale;
+                var values = new List<KeyValuePair<int, string>>();
+                Changed(values, 142, value.Numerator, was.Numerator);
+                Changed(values, 143, value.Denominator, was.Denominator);
+                Write(file, values);
+            }
+        }
 
         /// <summary>Gets or sets the units the sheet is set out in (group 72), as AutoCAD's <c>PlotPaperUnits</c>; inches where it gives none.</summary>
         /// <value>
@@ -245,11 +324,63 @@ namespace GeometryHelper.Dxf
             }
         }
 
-        /// <summary>Gets what is plotted (group 74), as AutoCAD's <c>PlotType</c>; what is shown where it gives none.</summary>
-        public DxfPlotType PlotType => (DxfPlotType)Whole(Marker, 74, 0);
+        /// <summary>Gets or sets what is plotted (group 74), as AutoCAD's <c>PlotType</c>; what is shown where it gives none.</summary>
+        /// <value>
+        /// Set, as AutoCAD's <c>PlotSettingsValidator.SetPlotType</c> sets it: <see cref="DxfPlotType.Window"/> plots the
+        /// <see cref="PlotWindowArea"/>, <see cref="DxfPlotType.Layout"/> the sheet of a layout. The type it has changes nothing.
+        /// </value>
+        /// <exception cref="ArgumentException">Thrown when the type set is none of <see cref="DxfPlotType"/>.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the settings are in no drawing, as a layout made in code before
+        /// it is added, or are erased.</exception>
+        public DxfPlotType PlotType
+        {
+            get => (DxfPlotType)Whole(Marker, 74, 0);
 
-        /// <summary>Gets the standard scale of the plot (group 75), as AutoCAD's <c>StdScaleType</c>; scaled to fit where it gives none.</summary>
-        public DxfStdScaleType StdScaleType => (DxfStdScaleType)Whole(Marker, 75, 0);
+            set
+            {
+                Guard.Argument(Enum.IsDefined(typeof(DxfPlotType), value), nameof(value), "What is plotted is the display (0), the extents (1), the limits (2), a view (3), a window (4) or the layout (5).");
+                DxfFile file = InFile("be given what to plot");
+
+                if (value != PlotType)
+                {
+                    Write(file, new List<KeyValuePair<int, string>> { Pair(74, ((int)value).ToString(CultureInfo.InvariantCulture)) });
+                }
+            }
+        }
+
+        /// <summary>Gets or sets the standard scale of the plot (group 75), as AutoCAD's <c>StdScaleType</c>; scaled to fit where it gives none.</summary>
+        /// <value>
+        /// Set, as AutoCAD's <c>PlotSettingsValidator.SetStdScaleType</c> sets it, with <see cref="StdScale"/> (group 147) the
+        /// scale as a number: <see cref="DxfStdScaleType.StdScale1To20"/> writes 75 of 23 and 147 of 0.05. Scaled to fit leaves
+        /// 147 as it was, the scale being the sheet's to give. It is the scale plotted where <see cref="UseStandardScale"/> is on.
+        /// The scale it has changes nothing.
+        /// </value>
+        /// <exception cref="ArgumentException">Thrown when the scale set is none of <see cref="DxfStdScaleType"/>.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the settings are in no drawing, as a layout made in code before
+        /// it is added, or are erased.</exception>
+        public DxfStdScaleType StdScaleType
+        {
+            get => (DxfStdScaleType)Whole(Marker, 75, 0);
+
+            set
+            {
+                Guard.Argument(Enum.IsDefined(typeof(DxfStdScaleType), value), nameof(value), "A standard scale is one of DxfStdScaleType, 0 to 33.");
+                DxfFile file = InFile("be given a standard scale");
+                var values = new List<KeyValuePair<int, string>>();
+
+                if (value != StdScaleType)
+                {
+                    values.Add(Pair(75, ((int)value).ToString(CultureInfo.InvariantCulture)));
+                }
+
+                if (value != DxfStdScaleType.ScaleToFit)
+                {
+                    Changed(values, 147, StandardRatio(value), StdScale);
+                }
+
+                Write(file, values);
+            }
+        }
 
         /// <summary>Gets the standard scale of the plot as a number (group 147), as AutoCAD's <c>StdScale</c>; 1 where it gives none.</summary>
         public double StdScale => Real(Marker, 147, 1.0);
@@ -269,23 +400,62 @@ namespace GeometryHelper.Dxf
         /// <summary>Gets whether the plot styles are shown on the sheet (flag 2), as AutoCAD's <c>ShowPlotStyles</c>.</summary>
         public bool ShowPlotStyles => (Flags() & 2) != 0;
 
-        /// <summary>Gets whether the plot is centred on the sheet (flag 4), as AutoCAD's <c>PlotCentered</c>.</summary>
-        public bool PlotCentered => (Flags() & 4) != 0;
+        /// <summary>Gets or sets whether the plot is centred on the sheet (flag 4), as AutoCAD's <c>PlotCentered</c>.</summary>
+        /// <value>Set, as AutoCAD's <c>PlotSettingsValidator.SetPlotCentered</c> sets it, the flag alone written, the other flags of group 70 kept. The flag it has changes nothing.</value>
+        /// <exception cref="InvalidOperationException">Thrown when the settings are in no drawing, as a layout made in code before
+        /// it is added, or are erased.</exception>
+        public bool PlotCentered
+        {
+            get => (Flags() & 4) != 0;
+            set => SetFlag(4, value, "be centred");
+        }
 
         /// <summary>Gets whether the lines behind are hidden in the plot (flag 8), as AutoCAD's <c>PlotHidden</c>.</summary>
         public bool PlotHidden => (Flags() & 8) != 0;
 
-        /// <summary>Gets whether the plot is at its standard scale (flag 16), as AutoCAD's <c>UseStandardScale</c>.</summary>
-        public bool UseStandardScale => (Flags() & 16) != 0;
+        /// <summary>Gets or sets whether the plot is at its standard scale (flag 16), as AutoCAD's <c>UseStandardScale</c>.</summary>
+        /// <value>
+        /// Set, as AutoCAD's <c>PlotSettingsValidator.SetUseStandardScale</c> sets it, the flag alone written: on, the plot is at
+        /// <see cref="StdScaleType"/>, scaled to fit where that is <see cref="DxfStdScaleType.ScaleToFit"/>; off, at
+        /// <see cref="CustomPrintScale"/>. The flag it has changes nothing.
+        /// </value>
+        /// <exception cref="InvalidOperationException">Thrown when the settings are in no drawing, as a layout made in code before
+        /// it is added, or are erased.</exception>
+        public bool UseStandardScale
+        {
+            get => (Flags() & 16) != 0;
+            set => SetFlag(16, value, "be given a standard scale");
+        }
 
-        /// <summary>Gets whether the plot styles are plotted (flag 32), as AutoCAD's <c>PlotPlotStyles</c>.</summary>
-        public bool PlotPlotStyles => (Flags() & 32) != 0;
+        /// <summary>Gets or sets whether the plot styles are plotted (flag 32), as AutoCAD's <c>PlotPlotStyles</c>.</summary>
+        /// <value>Set as AutoCAD's <c>PlotPlotStyles</c> is, the flag alone written. The flag it has changes nothing.</value>
+        /// <exception cref="InvalidOperationException">Thrown when the settings are in no drawing, as a layout made in code before
+        /// it is added, or are erased.</exception>
+        public bool PlotPlotStyles
+        {
+            get => (Flags() & 32) != 0;
+            set => SetFlag(32, value, "plot its plot styles");
+        }
 
-        /// <summary>Gets whether the lineweights are scaled with the plot (flag 64), as AutoCAD's <c>ScaleLineweights</c>.</summary>
-        public bool ScaleLineweights => (Flags() & 64) != 0;
+        /// <summary>Gets or sets whether the lineweights are scaled with the plot (flag 64), as AutoCAD's <c>ScaleLineweights</c>.</summary>
+        /// <value>Set as AutoCAD's <c>ScaleLineweights</c> is, the flag alone written. The flag it has changes nothing.</value>
+        /// <exception cref="InvalidOperationException">Thrown when the settings are in no drawing, as a layout made in code before
+        /// it is added, or are erased.</exception>
+        public bool ScaleLineweights
+        {
+            get => (Flags() & 64) != 0;
+            set => SetFlag(64, value, "scale its lineweights");
+        }
 
-        /// <summary>Gets whether the lineweights of the entities are plotted (flag 128), as AutoCAD's <c>PrintLineweights</c>.</summary>
-        public bool PrintLineweights => (Flags() & 128) != 0;
+        /// <summary>Gets or sets whether the lineweights of the entities are plotted (flag 128), as AutoCAD's <c>PrintLineweights</c>.</summary>
+        /// <value>Set as AutoCAD's <c>PrintLineweights</c> is, the flag alone written. The flag it has changes nothing.</value>
+        /// <exception cref="InvalidOperationException">Thrown when the settings are in no drawing, as a layout made in code before
+        /// it is added, or are erased.</exception>
+        public bool PrintLineweights
+        {
+            get => (Flags() & 128) != 0;
+            set => SetFlag(128, value, "plot its lineweights");
+        }
 
         /// <summary>Gets whether the viewports are plotted before the rest of paper space (flag 512), as AutoCAD's <c>DrawViewportsFirst</c>.</summary>
         public bool DrawViewportsFirst => (Flags() & 512) != 0;
@@ -299,6 +469,87 @@ namespace GeometryHelper.Dxf
 
         /// <summary>The flags of the plot settings (group 70 of AcDbPlotSettings).</summary>
         private int Flags() => Whole(Marker, 70, 0);
+
+        /// <summary>One flag of group 70 set or cleared, the others kept; nothing written where it is as asked.</summary>
+        private void SetFlag(int bit, bool on, string doing)
+        {
+            DxfFile file = InFile(doing);
+            int was = Flags();
+            int now = on ? was | bit : was & ~bit;
+
+            if (now != was)
+            {
+                Write(file, new List<KeyValuePair<int, string>> { Pair(70, now.ToString(CultureInfo.InvariantCulture)) });
+            }
+        }
+
+        /// <summary>A text group set; nothing written where it is as it was.</summary>
+        private void SetText(int code, string value, string doing)
+        {
+            if (value == null)
+            {
+                throw new ArgumentNullException(nameof(value));
+            }
+
+            DxfFile file = InFile(doing);
+
+            if (!string.Equals(value, Text(Marker, code), StringComparison.Ordinal))
+            {
+                Write(file, new List<KeyValuePair<int, string>> { Pair(code, value) });
+            }
+        }
+
+        /// <summary>Groups of the plot written that are not those of the sheet: the record once, the limits left as they are.</summary>
+        private void Write(DxfFile file, List<KeyValuePair<int, string>> values)
+        {
+            if (values.Count > 0)
+            {
+                file.SetValues(Item, values, GroupOrder, false);
+            }
+        }
+
+        /// <summary>
+        /// The scale a standard scale stands for, as a number, as AutoCAD writes it in group 147: 0.05 for 1:20, 1/96 for 1/8"
+        /// to the foot; 1 for scaled to fit, which has none of its own.
+        /// </summary>
+        private static double StandardRatio(DxfStdScaleType type)
+        {
+            switch (type)
+            {
+                case DxfStdScaleType.StdScale1To128InchIs1ft: return 1.0 / 1536.0;
+                case DxfStdScaleType.StdScale1To64InchIs1ft: return 1.0 / 768.0;
+                case DxfStdScaleType.StdScale1To32InchIs1ft: return 1.0 / 384.0;
+                case DxfStdScaleType.StdScale1To16InchIs1ft: return 1.0 / 192.0;
+                case DxfStdScaleType.StdScale3To32InchIs1ft: return 1.0 / 128.0;
+                case DxfStdScaleType.StdScale1To8InchIs1ft: return 1.0 / 96.0;
+                case DxfStdScaleType.StdScale3To16InchIs1ft: return 1.0 / 64.0;
+                case DxfStdScaleType.StdScale1To4InchIs1ft: return 1.0 / 48.0;
+                case DxfStdScaleType.StdScale3To8InchIs1ft: return 1.0 / 32.0;
+                case DxfStdScaleType.StdScale1To2InchIs1ft: return 1.0 / 24.0;
+                case DxfStdScaleType.StdScale3To4InchIs1ft: return 1.0 / 16.0;
+                case DxfStdScaleType.StdScale1InchIs1ft: return 1.0 / 12.0;
+                case DxfStdScaleType.StdScale3InchIs1ft: return 1.0 / 4.0;
+                case DxfStdScaleType.StdScale6InchIs1ft: return 1.0 / 2.0;
+                case DxfStdScaleType.StdScale1To2: return 1.0 / 2.0;
+                case DxfStdScaleType.StdScale1To4: return 1.0 / 4.0;
+                case DxfStdScaleType.StdScale1To5: return 1.0 / 5.0;
+                case DxfStdScaleType.StdScale1To8: return 1.0 / 8.0;
+                case DxfStdScaleType.StdScale1To10: return 1.0 / 10.0;
+                case DxfStdScaleType.StdScale1To16: return 1.0 / 16.0;
+                case DxfStdScaleType.StdScale1To20: return 1.0 / 20.0;
+                case DxfStdScaleType.StdScale1To30: return 1.0 / 30.0;
+                case DxfStdScaleType.StdScale1To40: return 1.0 / 40.0;
+                case DxfStdScaleType.StdScale1To50: return 1.0 / 50.0;
+                case DxfStdScaleType.StdScale1To100: return 1.0 / 100.0;
+                case DxfStdScaleType.StdScale2To1: return 2.0;
+                case DxfStdScaleType.StdScale4To1: return 4.0;
+                case DxfStdScaleType.StdScale8To1: return 8.0;
+                case DxfStdScaleType.StdScale10To1: return 10.0;
+                case DxfStdScaleType.StdScale100To1: return 100.0;
+                case DxfStdScaleType.StdScale1000To1: return 1000.0;
+                default: return 1.0;
+            }
+        }
 
         /// <summary>The codes of the record's own groups in the order AutoCAD writes them, a 100 where each marker stands: those of AcDbPlotSettings.</summary>
         private protected virtual IReadOnlyList<int> GroupOrder => PlotOrder;

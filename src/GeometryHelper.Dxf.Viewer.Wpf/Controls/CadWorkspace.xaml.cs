@@ -425,12 +425,48 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 _model.ShowHatchSettings = settings => HatchSettingsWindow.Show(Window.GetWindow(this), settings);
                 _model.ShowMissingShx = dialog => MissingShxWindow.Show(Window.GetWindow(this), dialog);
                 _model.ShowPointStyle = dialog => PointStyleWindow.Show(Window.GetWindow(this), dialog);
+                _model.ShowPlot = dialog => PlotWindow.Show(Window.GetWindow(this), dialog);
+                _model.ShowPlotPreview = preview => PlotPreviewWindow.Show(Window.GetWindow(this), preview);
+                _model.AskPlotFile = AskPlotFile;
+                _model.WindowsPrinters = WindowsPrinters;
 
                 if (CanvasView.PixelWidth > 0 && CanvasView.PixelHeight > 0)
                 {
                     _model.SetCanvasSize(CanvasView.PixelWidth, CanvasView.PixelHeight);
                 }
             }
+        }
+
+        /// <summary>Browse for Plot File: where a plot is written, a PDF, the folder and name offered; null where it is cancelled.</summary>
+        private string AskPlotFile(string folder, string name)
+        {
+            var dialog = new SaveFileDialog { Filter = "PDF files (*.pdf)|*.pdf", Title = "Browse for Plot File", FileName = name, DefaultExt = ".pdf" };
+
+            if (folder != null && Directory.Exists(folder))
+            {
+                dialog.InitialDirectory = folder;
+            }
+
+            return dialog.ShowDialog(Window.GetWindow(this)) == true ? dialog.FileName : null;
+        }
+
+        /// <summary>The printers of Windows by name, each with whether it is on the network, as the print spooler lists them.</summary>
+        private static System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string, bool>> WindowsPrinters()
+        {
+            var printers = new System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, bool>>();
+
+            using (var server = new System.Printing.LocalPrintServer())
+            {
+                foreach (System.Printing.PrintQueue queue in server.GetPrintQueues(new[] { System.Printing.EnumeratedPrintQueueTypes.Local, System.Printing.EnumeratedPrintQueueTypes.Connections }))
+                {
+                    using (queue)
+                    {
+                        printers.Add(new System.Collections.Generic.KeyValuePair<string, bool>(queue.FullName, queue.FullName.StartsWith(@"\\", StringComparison.Ordinal)));
+                    }
+                }
+            }
+
+            return printers;
         }
 
         private void OnOpenRequested(object sender, EventArgs e) => ShowOpenDialog();

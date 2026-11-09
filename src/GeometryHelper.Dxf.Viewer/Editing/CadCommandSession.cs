@@ -21,13 +21,17 @@ namespace GeometryHelper.Dxf.Viewer
     /// <summary>A request of a command to the window: open Properties, the Layer manager, Global settings, save, or show a drawing RECOVER opened.</summary>
     public sealed class CadUiRequestEventArgs : EventArgs
     {
-        internal CadUiRequestEventArgs(string name, CadDocument document = null)
+        internal CadUiRequestEventArgs(string name, CadDocument document = null, CadPlotJob plot = null)
         {
             Name = name;
             Document = document;
+            Plot = plot;
         }
 
-        /// <summary>Gets what is asked: PROPERTIES, LAYER, OPTIONS, QSAVE, RECOVER.</summary>
+        /// <summary>Gets the plot -PLOT asks the window to write to a file; null for every other request.</summary>
+        public CadPlotJob Plot { get; }
+
+        /// <summary>Gets what is asked: PROPERTIES, LAYER, OPTIONS, QSAVE, RECOVER, PLOT, PREVIEW, PAGESETUP, or -PLOT to write a plot to a file.</summary>
         public string Name { get; }
 
         /// <summary>Gets the document to show, for RECOVER the drawing recovered; null for the other requests.</summary>
@@ -509,9 +513,9 @@ namespace GeometryHelper.Dxf.Viewer
             return result;
         }
 
-        internal bool Request(string name, CadDocument document = null)
+        internal bool Request(string name, CadDocument document = null, CadPlotJob plot = null)
         {
-            var args = new CadUiRequestEventArgs(name, document);
+            var args = new CadUiRequestEventArgs(name, document, plot);
             UiRequested?.Invoke(this, args);
             return args.Handled;
         }
