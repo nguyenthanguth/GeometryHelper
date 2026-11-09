@@ -42,7 +42,7 @@ which aims to work like AutoCAD 2021 and replace it, and Part B, model drawings 
 
 ### To do
 
-- [ ] GeometryHelper.Dxf.App: a DXF-only app for Part A (the presenter alone, no Drawing); the screenshot and dialog modes
+- [ ] GeometryHelper.Dxf.App (running): a DXF-only app for Part A (the presenter alone, no Drawing); the screenshot and dialog modes
       move into Dxf.Viewer.Wpf, shared with Drawing.App (after ribbon round 3)
 - [ ] Images of the view: PNGOUT, JPGOUT, BMPOUT as AutoCAD's: the drawing area as shown, at the window's pixel size,
       all objects or those selected; asks the file name
