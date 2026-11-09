@@ -93,6 +93,15 @@ another file of the folder was opened, or once it was saved with Save and shown 
 now says, for example, "Test bodies (from file)" until the drawing is made again. The out-of-date dot now shows on such a
 drawing too, checked in the source its file names without changing it.
 
+**NEW.** The presenter's clipboard as AutoCAD's: COPYCLIP (Ctrl+C), CUTCLIP (Ctrl+X), COPYBASE (Ctrl+Shift+C), PASTECLIP
+(Ctrl+V), PASTEBLOCK (Ctrl+Shift+V), PASTEORIG and PASTESPEC, between drawings and between copies of the app, text from other
+programs pasted as MTEXT; a line on layer Steel pasted into a drawing whose Steel is blue is drawn blue. TEXTEDIT (ED, or a
+double click) edits a TEXT in a box over it, each text one undo step; MTEXT and MTEDIT open the MTEXT editor with its Text
+Editor tab, writing AutoCAD's codes: "AB CD" with CD made bold in Arial writes `AB {\fArial|b1|i0|c0|p34;CD}`. An MTEXT of
+several looks is drawn run by run, with bold, italic, colours, heights, underline, overline and strikethrough. Word wrap at
+the MTEXT width, stacks, columns, fields, bullets and spell check are not built yet. AutoCAD 2021's AUDIT finds nothing in a
+drawing changed by all of them.
+
 **NEW.** The presenter makes and places blocks as AutoCAD 2021 does: BLOCK (B) with the Block Definition dialog and -BLOCK,
 INSERT (I) with the Blocks palette (Current drawing, Recent, Other drawing) and -INSERT with its attribute prompts, WBLOCK (W)
 writing a new metric DXF and -WBLOCK, ATTDEF (ATT) and -ATTDEF, the Enhanced Attribute Editor (EATTEDIT, ATTEDIT, or a double
