@@ -56,13 +56,13 @@ The list of work on the drawing stack: Part A, the 2D presenter (`GeometryHelper
 The Medium and Low items are in [73-autocad-parity.md](src/GeometryHelper.Drawing/plan/73-autocad-parity.md); copy here
 the ones wanted.
 
-- [ ] MIRRTEXT: check that MIRROR keeps text readable (MIRRTEXT 0, AutoCAD's default); nothing reads it now (S)
-- [ ] Selection: "Select objects:" options P, L, F, WP, CP, R, A, U, SI, G, BOX, AU and Shift+click to remove (M)
-- [ ] Drafting aids: FROM, M2P/MTP, TT and point filters .X .Y .XY at any point prompt (S)
-- [ ] Draw: ARC every AutoCAD way (Center, End, Angle, Direction, Radius, Length) and Enter to continue tangent (M)
-- [ ] Text: TEXT Justify and Style; MTEXT Justify, Line spacing, Rotation, Style, Width, Columns at the corner prompt (S)
-- [ ] Draw: CIRCLE Ttr and Tan, Tan, Tan (S)
-- [ ] Draw: PLINE Width, Halfwidth, Length and the arc options Angle, CEnter, Direction, Radius, Second pt (M)
+- [ ] MIRRTEXT: check that MIRROR keeps text readable (MIRRTEXT 0, AutoCAD's default); nothing reads it now (S) (running)
+- [ ] Selection: "Select objects:" options P, L, F, WP, CP, R, A, U, SI, G, BOX, AU and Shift+click to remove (M) (running)
+- [ ] Drafting aids: FROM, M2P/MTP, TT and point filters .X .Y .XY at any point prompt (S) (running)
+- [ ] Draw: ARC every AutoCAD way (Center, End, Angle, Direction, Radius, Length) and Enter to continue tangent (M) (running)
+- [ ] Text: TEXT Justify and Style; MTEXT Justify, Line spacing, Rotation, Style, Width, Columns at the corner prompt (S) (running)
+- [ ] Draw: CIRCLE Ttr and Tan, Tan, Tan (S) (running)
+- [ ] Draw: PLINE Width, Halfwidth, Length and the arc options Angle, CEnter, Direction, Radius, Second pt (M) (running)
 - [ ] Grips: grip modes (Space cycles Stretch, Move, Rotate, Scale, Mirror; Base point, Copy; Ctrl copies; several hot
       grips with Shift) (M)
 - [ ] Properties: editable rows for polylines, hatches, dimensions, MTEXT, INSERTs (attributes), viewports, multileaders (L)
