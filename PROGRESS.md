@@ -42,6 +42,8 @@ The list of work on the drawing stack: Part A, the 2D presenter (`GeometryHelper
       screenshot mode shared with Drawing.App through `CadAppHost`
 - [x] Blocks round 2: EATTEDIT live with Apply kept open, INSERT drags the block, -ATTEDIT picks one attribute, ATTSYNC,
       Block Definition previews the selection, redefine a block brought from another drawing
+- [x] MIRRTEXT: mirrored TEXT, MTEXT and attributes stay readable as AutoCAD keeps them (rule measured on 105 cases)
+- [x] Selection: "Select objects:" takes W, C, BOX, F, WP, CP, ALL, L, P, G, R, A, U, M, SI, AU; Shift removes in a command
 - [x] Draw options: ARC every AutoCAD way and tangent continue, CIRCLE Ttr and Tan Tan Tan, PLINE widths and arc options,
       TEXT Justify and Style, MTEXT Justify, Line spacing, Rotation, Style, Width, Columns
 - [x] Drafting aids: FROM, M2P/MTP, TT and point filters .X .Y .Z .XY .XZ .YZ, typed or from the Shift+right-click menu
@@ -59,8 +61,8 @@ The list of work on the drawing stack: Part A, the 2D presenter (`GeometryHelper
 The Medium and Low items are in [73-autocad-parity.md](src/GeometryHelper.Drawing/plan/73-autocad-parity.md); copy here
 the ones wanted.
 
-- [ ] MIRRTEXT: check that MIRROR keeps text readable (MIRRTEXT 0, AutoCAD's default); nothing reads it now (S) (running)
-- [ ] Selection: "Select objects:" options P, L, F, WP, CP, R, A, U, SI, G, BOX, AU and Shift+click to remove (M) (running)
+- [ ] MIRRTEXT for multileaders, tables and dimension text overrides; text box measured with real fonts (S)
+- [ ] -GROUP on an R2000 drawing with no ACAD_GROUP dictionary: "Object reference not set" (check on main) (S)
 - [ ] Drafting aids: TK (TRACKING); check TT with OTRACK off, "(need YZ):" input and Enter at a modifier prompt
       against AutoCAD (S)
 - [ ] Draw: AUDIT a drawing made with every ARC, CIRCLE, PLINE, TEXT and MTEXT option, and compare ARC and PLINE entity
