@@ -388,7 +388,7 @@ namespace GeometryHelper.Dxf
         /// The object of a record of the OBJECTS section, made once: a <see cref="DxfDBDictionary"/> for a DICTIONARY, a
         /// <see cref="DxfXrecord"/> for an XRECORD, a <see cref="DxfGroup"/> for a GROUP, a <see cref="DxfLayout"/> for a LAYOUT,
         /// a <see cref="DxfPlotSettings"/> for a PLOTSETTINGS, a <see cref="DxfMLeaderStyle"/> for an MLEADERSTYLE, a
-        /// <see cref="DxfField"/> for a FIELD, a <see cref="DxfMlineStyle"/> for an MLINESTYLE, a <see cref="DxfSun"/> for a SUN,
+        /// <see cref="DxfTableStyle"/> for a TABLESTYLE, a <see cref="DxfField"/> for a FIELD, a <see cref="DxfMlineStyle"/> for an MLINESTYLE, a <see cref="DxfSun"/> for a SUN,
         /// a <see cref="DxfGeoData"/> for a GEODATA, a <see cref="DxfDataLink"/> for a DATALINK, a <see cref="DxfRasterImageDef"/>
         /// for an IMAGEDEF, a <see cref="DxfRasterVariables"/> for a RASTERVARIABLES, a <see cref="DxfDrawOrderTable"/> for a
         /// SORTENTSTABLE; else one of no class of its own.
@@ -422,6 +422,9 @@ namespace GeometryHelper.Dxf
                     break;
                 case "MLEADERSTYLE":
                     made = new DxfMLeaderStyle(item);
+                    break;
+                case "TABLESTYLE":
+                    made = new DxfTableStyle(item);
                     break;
                 case "FIELD":
                     made = new DxfField(item);

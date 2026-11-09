@@ -1,0 +1,247 @@
+<Window x:Class="GeometryHelper.Dxf.Viewer.Wpf.TableStyleModifyWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:GeometryHelper.Dxf.Viewer.Wpf"
+        Title="Modify Table Style" Width="840" Height="640" WindowStyle="None" ResizeMode="NoResize" ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner" Background="#262B33">
+
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/StyleDialogs.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+            <!-- A colour of a box: its swatch, then its name. -->
+            <DataTemplate x:Key="ColorItem">
+                <StackPanel Orientation="Horizontal">
+                    <Border Width="10" Height="10" BorderBrush="#5B6573" BorderThickness="1" Margin="0,0,6,0" VerticalAlignment="Center"
+                            Background="{Binding Rgb, Converter={StaticResource RgbBrush}}" />
+                    <TextBlock Text="{Binding Name}" />
+                </StackPanel>
+            </DataTemplate>
+            <!-- A border button: the dashed grid, the lines it gives drawn over it. -->
+            <Style x:Key="BorderButton" TargetType="Button" BasedOn="{StaticResource GhDialogButton}">
+                <Setter Property="Width" Value="30" />
+                <Setter Property="Height" Value="28" />
+                <Setter Property="Padding" Value="0" />
+                <Setter Property="Margin" Value="0,0,4,0" />
+            </Style>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <Border x:Name="Root" Background="{StaticResource GhPanel}" BorderBrush="{StaticResource GhBorder}" BorderThickness="1"
+            TextElement.FontFamily="{StaticResource GhFont}" TextElement.FontSize="12" TextElement.Foreground="{StaticResource GhText}"
+            UseLayoutRounding="True" SnapsToDevicePixels="True" TextOptions.TextFormattingMode="Display">
+        <DockPanel>
+            <Border DockPanel.Dock="Top" Background="{StaticResource GhHeader}" Padding="16,10" MouseLeftButtonDown="OnHeaderDown">
+                <DockPanel>
+                    <Button DockPanel.Dock="Right" Style="{StaticResource GhTitleCloseButton}" Command="{Binding CancelCommand}" ToolTip="Close" />
+                    <TextBlock Text="{Binding Title}" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" />
+                </DockPanel>
+            </Border>
+
+            <Border DockPanel.Dock="Bottom" Background="{StaticResource GhHeader}" Padding="16,10">
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                        <Button Style="{StaticResource GhDialogButton}" Content="Cancel" Padding="14,5" Margin="0,0,8,0" Command="{Binding CancelCommand}" IsCancel="True" />
+                        <Button Style="{StaticResource StylePrimaryButton}" Content="OK" Padding="14,5" Click="OnOk" />
+                    </StackPanel>
+                    <TextBlock Text="{Binding Message}" Foreground="{StaticResource GhWarn}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                </DockPanel>
+            </Border>
+
+            <Grid Margin="16,14">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="330" />
+                    <ColumnDefinition Width="16" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <!-- Left: the starting table (greyed), the table direction and the preview of the whole style. -->
+                <DockPanel Grid.Column="0">
+                    <StackPanel DockPanel.Dock="Top">
+                        <TextBlock Style="{StaticResource StyleGroup}" Text="Starting table" />
+                        <DockPanel Margin="0,0,0,12">
+                            <Button DockPanel.Dock="Right" Style="{StaticResource StyleSideButton}" Width="30" IsEnabled="False" Margin="6,0,0,0"
+                                    ToolTip="Removing a starting table: not offered" ToolTipService.ShowOnDisabled="True">
+                                <Path Data="M3 5h18v14H3zM8 9l8 6M16 9l-8 6" Stroke="#5B6573" StrokeThickness="1.8" Width="14" Height="14" Stretch="Uniform" />
+                            </Button>
+                            <Button DockPanel.Dock="Right" Style="{StaticResource StyleSideButton}" Width="30" IsEnabled="False" Margin="6,0,0,0"
+                                    ToolTip="Selecting a table to start from: not built yet" ToolTipService.ShowOnDisabled="True">
+                                <Path Data="M3 5h18v14H3zM3 10h18M9 5v14M16 16l5 5" Stroke="#5B6573" StrokeThickness="1.8" Width="14" Height="14" Stretch="Uniform" />
+                            </Button>
+                            <TextBlock Style="{StaticResource StyleLabel}" Text="Select table to start from:" />
+                        </DockPanel>
+                        <TextBlock Style="{StaticResource StyleGroup}" Text="General" />
+                        <DockPanel Margin="0,0,0,12">
+                            <TextBlock Style="{StaticResource StyleLabel}" Text="Table direction:" Width="100" />
+                            <ComboBox Style="{StaticResource GhComboBox}" ItemsSource="{Binding Directions}" SelectedItem="{Binding Direction, Mode=TwoWay}" />
+                        </DockPanel>
+                    </StackPanel>
+                    <Border BorderBrush="{StaticResource GhBorder}" BorderThickness="1" CornerRadius="4" ClipToBounds="True">
+                        <local:TableStylePreview Settings="{Binding Settings}" Version="{Binding Version}" />
+                    </Border>
+                </DockPanel>
+
+                <!-- Right: the cell style chosen, its tabs, and its preview. -->
+                <DockPanel Grid.Column="2">
+                    <StackPanel DockPanel.Dock="Top">
+                        <TextBlock Style="{StaticResource StyleGroup}" Text="Cell styles" />
+                        <DockPanel Margin="0,0,0,8">
+                            <Button DockPanel.Dock="Right" Style="{StaticResource StyleSideButton}" Width="30" IsEnabled="False" Margin="6,0,0,0"
+                                    ToolTip="Manage cell styles: a DXF of R2000 to R2018 holds the title, the header and the data alone" ToolTipService.ShowOnDisabled="True">
+                                <Path Data="M4 6h16M4 12h16M4 18h10" Stroke="#5B6573" StrokeThickness="1.8" Width="14" Height="14" Stretch="Uniform" />
+                            </Button>
+                            <Button DockPanel.Dock="Right" Style="{StaticResource StyleSideButton}" Width="30" IsEnabled="False" Margin="6,0,0,0"
+                                    ToolTip="Create a new cell style: a DXF of R2000 to R2018 holds the title, the header and the data alone" ToolTipService.ShowOnDisabled="True">
+                                <Path Data="M4 4h16v16H4zM12 8v8M8 12h8" Stroke="#5B6573" StrokeThickness="1.8" Width="14" Height="14" Stretch="Uniform" />
+                            </Button>
+                            <ComboBox Style="{StaticResource GhComboBox}" ItemsSource="{Binding CellStyles}" SelectedItem="{Binding CellStyle, Mode=TwoWay}" />
+                        </DockPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                            <RadioButton Style="{StaticResource StyleTab}" GroupName="CellTabs" Content="General" IsChecked="{Binding IsGeneral, Mode=OneWay}" Checked="OnTab" />
+                            <RadioButton Style="{StaticResource StyleTab}" GroupName="CellTabs" Content="Text" IsChecked="{Binding IsText, Mode=OneWay}" Checked="OnTab" />
+                            <RadioButton Style="{StaticResource StyleTab}" GroupName="CellTabs" Content="Borders" IsChecked="{Binding IsBorders, Mode=OneWay}" Checked="OnTab" />
+                        </StackPanel>
+
+                        <!-- General: fill, alignment, format and type (greyed), the margins, and merging (greyed). -->
+                        <Grid Visibility="{Binding IsGeneral, Converter={StaticResource Shown}}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="100" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <TextBlock Grid.Row="0" Style="{StaticResource StyleLabel}" Text="Fill color:" />
+                            <ComboBox Grid.Row="0" Grid.Column="1" Style="{StaticResource GhComboBox}" ItemsSource="{Binding Fills}" SelectedItem="{Binding Fill, Mode=TwoWay}"
+                                      ItemTemplate="{StaticResource ColorItem}" Margin="0,0,0,6" />
+                            <TextBlock Grid.Row="1" Style="{StaticResource StyleLabel}" Text="Alignment:" />
+                            <ComboBox Grid.Row="1" Grid.Column="1" Style="{StaticResource GhComboBox}" ItemsSource="{Binding Alignments}" SelectedItem="{Binding Alignment, Mode=TwoWay}" Margin="0,0,0,6" />
+                            <TextBlock Grid.Row="2" Style="{StaticResource StyleLabel}" Text="Format:" />
+                            <DockPanel Grid.Row="2" Grid.Column="1" Margin="0,0,0,6">
+                                <Button DockPanel.Dock="Right" Style="{StaticResource StyleSideButton}" Content="…" Width="30" Margin="6,0,0,0" IsEnabled="False"
+                                        ToolTip="Table Cell Format: not built yet" ToolTipService.ShowOnDisabled="True" />
+                                <TextBox Style="{StaticResource StyleBox}" Text="General" IsEnabled="False" />
+                            </DockPanel>
+                            <TextBlock Grid.Row="3" Style="{StaticResource StyleLabel}" Text="Type:" />
+                            <ComboBox Grid.Row="3" Grid.Column="1" Style="{StaticResource GhComboBox}" SelectedIndex="0" IsEnabled="False" Margin="0,0,0,10"
+                                      ToolTip="A cell style's type: a DXF of R2000 to R2018 has no place for it" ToolTipService.ShowOnDisabled="True">
+                                <ComboBoxItem Content="Data" />
+                                <ComboBoxItem Content="Label" />
+                            </ComboBox>
+                            <TextBlock Grid.Row="4" Grid.ColumnSpan="2" Text="Margins" FontWeight="SemiBold" Margin="0,0,0,6" />
+                            <TextBlock Grid.Row="5" Style="{StaticResource StyleLabel}" Text="Horizontal:" />
+                            <TextBox Grid.Row="5" Grid.Column="1" Style="{StaticResource StyleBox}" Width="90" HorizontalAlignment="Left" Text="{Binding HorizontalMargin, UpdateSourceTrigger=LostFocus}" Margin="0,0,0,6" />
+                            <TextBlock Grid.Row="6" Style="{StaticResource StyleLabel}" Text="Vertical:" />
+                            <TextBox Grid.Row="6" Grid.Column="1" Style="{StaticResource StyleBox}" Width="90" HorizontalAlignment="Left" Text="{Binding VerticalMargin, UpdateSourceTrigger=LostFocus}" Margin="0,0,0,6" />
+                            <CheckBox Grid.Row="7" Grid.ColumnSpan="2" Style="{StaticResource StyleCheck}" Content="Merge cells on row/column creation" IsEnabled="False" Margin="0,0,0,6"
+                                      ToolTip="A DXF of R2000 to R2018 has no place for it" ToolTipService.ShowOnDisabled="True" />
+                            <TextBlock Grid.Row="8" Grid.ColumnSpan="2" Text="The margins are the style's own, alike for its three cell styles, as a DXF of R2000 to R2018 holds them."
+                                       Foreground="{StaticResource GhTextMuted}" TextWrapping="Wrap" />
+                        </Grid>
+
+                        <!-- Text: the text style and its dialog, the height, the colour, and the angle (greyed). -->
+                        <Grid Visibility="{Binding IsText, Converter={StaticResource Shown}}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="100" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <TextBlock Grid.Row="0" Style="{StaticResource StyleLabel}" Text="Text style:" />
+                            <DockPanel Grid.Row="0" Grid.Column="1" Margin="0,0,0,6">
+                                <Button DockPanel.Dock="Right" Style="{StaticResource StyleSideButton}" Content="…" Width="30" Margin="6,0,0,0" IsEnabled="False"
+                                        ToolTip="The Text Style dialog: open it from the ribbon (STYLE)" ToolTipService.ShowOnDisabled="True" />
+                                <ComboBox Style="{StaticResource GhComboBox}" ItemsSource="{Binding TextStyles}" SelectedItem="{Binding TextStyle, Mode=TwoWay}" />
+                            </DockPanel>
+                            <TextBlock Grid.Row="1" Style="{StaticResource StyleLabel}" Text="Text height:" />
+                            <TextBox Grid.Row="1" Grid.Column="1" Style="{StaticResource StyleBox}" Width="90" HorizontalAlignment="Left" Text="{Binding TextHeight, UpdateSourceTrigger=LostFocus}" Margin="0,0,0,6" />
+                            <TextBlock Grid.Row="2" Style="{StaticResource StyleLabel}" Text="Text color:" />
+                            <ComboBox Grid.Row="2" Grid.Column="1" Style="{StaticResource GhComboBox}" ItemsSource="{Binding ColorChoices}" SelectedItem="{Binding TextColor, Mode=TwoWay}"
+                                      ItemTemplate="{StaticResource ColorItem}" Margin="0,0,0,6" />
+                            <TextBlock Grid.Row="3" Style="{StaticResource StyleLabel}" Text="Text angle:" />
+                            <TextBox Grid.Row="3" Grid.Column="1" Style="{StaticResource StyleBox}" Width="90" HorizontalAlignment="Left" Text="0" IsEnabled="False"
+                                     ToolTip="A cell style's text angle: a DXF of R2000 to R2018 has no place for it" ToolTipService.ShowOnDisabled="True" />
+                        </Grid>
+
+                        <!-- Borders: the lineweight and colour the buttons give, linetype and double lines greyed, then the buttons. -->
+                        <StackPanel Visibility="{Binding IsBorders, Converter={StaticResource Shown}}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="100" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <TextBlock Grid.Row="0" Style="{StaticResource StyleLabel}" Text="Lineweight:" />
+                                <ComboBox Grid.Row="0" Grid.Column="1" Style="{StaticResource GhComboBox}" ItemsSource="{Binding LineWeightChoices}" SelectedItem="{Binding BorderWeight, Mode=TwoWay}" Margin="0,0,0,6" />
+                                <TextBlock Grid.Row="1" Style="{StaticResource StyleLabel}" Text="Linetype:" />
+                                <ComboBox Grid.Row="1" Grid.Column="1" Style="{StaticResource GhComboBox}" SelectedIndex="0" IsEnabled="False" Margin="0,0,0,6"
+                                          ToolTip="A grid line's linetype: a DXF of R2000 to R2018 has no place for it" ToolTipService.ShowOnDisabled="True">
+                                    <ComboBoxItem Content="ByBlock" />
+                                </ComboBox>
+                                <TextBlock Grid.Row="2" Style="{StaticResource StyleLabel}" Text="Color:" />
+                                <ComboBox Grid.Row="2" Grid.Column="1" Style="{StaticResource GhComboBox}" ItemsSource="{Binding ColorChoices}" SelectedItem="{Binding BorderColor, Mode=TwoWay}"
+                                          ItemTemplate="{StaticResource ColorItem}" Margin="0,0,0,6" />
+                                <CheckBox Grid.Row="3" Grid.Column="1" Style="{StaticResource StyleCheck}" Content="Double line" IsEnabled="False" Margin="0,0,0,6"
+                                          ToolTip="Double lines: a DXF of R2000 to R2018 has no place for them" ToolTipService.ShowOnDisabled="True" />
+                                <TextBlock Grid.Row="4" Style="{StaticResource StyleLabel}" Text="Spacing:" />
+                                <TextBox Grid.Row="4" Grid.Column="1" Style="{StaticResource StyleBox}" Width="90" HorizontalAlignment="Left" Text="1.125" IsEnabled="False" Margin="0,0,0,10" />
+                            </Grid>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                <Button Style="{StaticResource BorderButton}" Command="{Binding BorderCommand}" CommandParameter="All" ToolTip="All borders">
+                                    <Grid Width="18" Height="18"><Path Data="M4 4h16v16H4zM12 4v16M4 12h16" Stroke="#E6E9ED" StrokeThickness="2" Stretch="Fill" /></Grid>
+                                </Button>
+                                <Button Style="{StaticResource BorderButton}" Command="{Binding BorderCommand}" CommandParameter="Outside" ToolTip="Outside borders">
+                                    <Grid Width="18" Height="18"><Path Data="M4 4h16v16H4z" Stroke="#E6E9ED" StrokeThickness="2" Stretch="Fill" /></Grid>
+                                </Button>
+                                <Button Style="{StaticResource BorderButton}" Command="{Binding BorderCommand}" CommandParameter="Inside" ToolTip="Inside borders">
+                                    <Canvas Width="18" Height="18"><Path Data="M9 0v18M0 9h18" Stroke="#E6E9ED" StrokeThickness="2" /></Canvas>
+                                </Button>
+                                <Button Style="{StaticResource BorderButton}" Command="{Binding BorderCommand}" CommandParameter="Bottom" ToolTip="Bottom border">
+                                    <Canvas Width="18" Height="18"><Path Data="M0 17h18" Stroke="#E6E9ED" StrokeThickness="2" /></Canvas>
+                                </Button>
+                                <Button Style="{StaticResource BorderButton}" Command="{Binding BorderCommand}" CommandParameter="Left" ToolTip="Left border">
+                                    <Canvas Width="18" Height="18"><Path Data="M1 0v18" Stroke="#E6E9ED" StrokeThickness="2" /></Canvas>
+                                </Button>
+                                <Button Style="{StaticResource BorderButton}" Command="{Binding BorderCommand}" CommandParameter="Top" ToolTip="Top border">
+                                    <Canvas Width="18" Height="18"><Path Data="M0 1h18" Stroke="#E6E9ED" StrokeThickness="2" /></Canvas>
+                                </Button>
+                                <Button Style="{StaticResource BorderButton}" Command="{Binding BorderCommand}" CommandParameter="Right" ToolTip="Right border">
+                                    <Canvas Width="18" Height="18"><Path Data="M17 0v18" Stroke="#E6E9ED" StrokeThickness="2" /></Canvas>
+                                </Button>
+                                <Button Style="{StaticResource BorderButton}" Command="{Binding BorderCommand}" CommandParameter="None" ToolTip="No borders">
+                                    <Canvas Width="18" Height="18"><Path Data="M1 1l16 16" Stroke="#E6E9ED" StrokeThickness="2" /></Canvas>
+                                </Button>
+                            </StackPanel>
+                            <TextBlock Text="Pick the properties, then a border button to apply them to those edges of every cell of this cell style."
+                                       Foreground="{StaticResource GhTextMuted}" TextWrapping="Wrap" />
+                        </StackPanel>
+                    </StackPanel>
+
+                    <TextBlock DockPanel.Dock="Top" Style="{StaticResource StyleLabel}" Text="Cell style preview" Margin="0,10,0,4" />
+                    <Border BorderBrush="{StaticResource GhBorder}" BorderThickness="1" CornerRadius="4" MinHeight="60" ClipToBounds="True">
+                        <local:TableStylePreview Settings="{Binding Settings}" Version="{Binding Version}" CellStyle="{Binding CellStyle}" />
+                    </Border>
+                </DockPanel>
+            </Grid>
+        </DockPanel>
+    </Border>
+</Window>

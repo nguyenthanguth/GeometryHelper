@@ -1290,6 +1290,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             SyncInPlace();
+            SyncTableCell();
             Revision++;
         }
 
@@ -1340,7 +1341,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     break;
                 case "STYLE":
                 case "DIMSTYLE":
+                case "TABLESTYLE":
                     OnStyleRequest(e);
+                    break;
+                case "TABLE":
+                    OnInsertTableRequested(e);
                     break;
                 case "PTYPE":
                     OnPointStyleRequested(e);
@@ -1411,6 +1416,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             RaiseStyles();
             UpdateProperties();
             RaiseModified();
+            SyncTableCell();
 
             if (e.Kind != CadChangeKind.Saved)
             {

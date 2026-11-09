@@ -2072,6 +2072,9 @@ namespace GeometryHelper.Dxf
         internal static DxfMText OfEmbedded(IEnumerable<DxfTypedValue> groups)
             => new DxfMText(new[] { new DxfTypedValue(100, "AcDbMText") }.Concat(groups));
 
+        /// <summary>A new MTEXT in no file written in one go: the groups of its entity after its layer (its colour), then <c>100 AcDbMText</c> and its own; for the many a table's block is drawn with.</summary>
+        internal static DxfMText OfGroups(IEnumerable<DxfTypedValue> groups) => new DxfMText(groups);
+
         /// <summary>
         /// The handles of the column MTEXTs the MTEXT links to, the 1005s of its <c>ACAD_MTEXT_COLUMNS</c>, as a file before
         /// R2018 writes the columns after its first; empty where it links to none.

@@ -8,7 +8,7 @@ their links to data.
 An ACAD_TABLE is a [`DxfTable`](xref:GeometryHelper.Dxf.DxfTable): its `NumRows`, `NumColumns`, `RowHeight(row)`, `ColumnWidth(col)`, and each cell's
 `TextString`, `Value`, `CellType`, merging (`IsMergedCell`, `GetMergeRange`), corners (`GetCellExtents`), block and
 attribute values, and the look it holds of its own, `Alignment`, `TextHeight`, `TextStyle` and the colours, null where it
-has none and takes its table style's, which the library does not read. Its record is read once while it stands, every cell
+has none and takes its table style's, which `DxfTableStyle` reads. Its record is read once while it stands, every cell
 of 1 000 rows in milliseconds. Its cells are written in the form of R2000 (text in 3 and 1) or of R2007 on (between
 `301 CELL_VALUE` and `304 ACVALUE_END`, the value in 2 and 1 and its text in 303 and 302), a text longer than 250 letters
 cut into pieces of 250 letters as AutoCAD 2021 cuts it, an escape given counted as its one letter: AutoCAD reads a cell of
@@ -30,6 +30,29 @@ table names, else the drawing's Standard, else AutoCAD's own Standard, the title
 drawing of millimetres (`$MEASUREMENT` 1), 0.25 and 0.18 in one of inches. The table of point 54 scaled by 2 has the two
 cells of its title 12 high and the others 9, its cell of its own 3.5 now 7. AutoCAD read the heights written as the table's
 own instead as 0.18 in every cell, so none is written there. Its rows are still not measured by AutoCAD's font.
+
+## Table styles, new tables and their block
+
+A TABLESTYLE of ACAD_TABLESTYLE is a [`DxfTableStyle`](xref:GeometryHelper.Dxf.DxfTableStyle) (a table's `TableStyle`, which
+it also sets): its `Description`, `FlowDirection`, `HorizontalCellMargin` and `VerticalCellMargin`, `IsTitleSuppressed` and
+`IsHeaderSuppressed`, and for the title, the header and the data `TextStyleName`, `TextHeight`, `Alignment`, `Color`,
+`BackgroundColor`, `IsBackgroundColorNone` and the lineweight, colour and showing of each of the six grid lines, read and
+set as AutoCAD's `TableStyle` names them. A group the record leaves out reads as AutoCAD's Standard has it, of the
+drawing's units: the title 6 and the header and data 4.5 high, margins of 1.5, in millimetres. `new DxfTableStyle()` is
+that Standard, added by `db.TableStyleDictionary.SetAt("GH_SCHEDULE", style)` with every group AutoCAD writes of a style
+(the data's cell, then the title's and the header's, each its text, fill and six lines); no map of cell styles is
+written, and AutoCAD 2021 audited drawings of R2000, R2013 and R2018 holding them with no error.
+
+`new DxfTable(position, rows, columns, rowHeight, columnWidth)` makes a table in no file; appended, it names the drawing's
+current table style, its first row is merged across as AutoCAD's title, and it is drawn in a new anonymous block, `*T1`
+and on (`new DxfBlockTableRecord { Name = "*T" }` names one so too); in a drawing before R2007 its cells take the form of
+R2000. `RecomputeTableBlock()` draws a table anew in its block from its cells, as AutoCAD's does: a SOLID for each filled
+cell, a LINE for each run of a grid line of one look, none inside merged cells, an MTEXT for each cell's text at its
+alignment, as wide as the cell less its margins, and an INSERT for each block cell, each look the cell's own, else the
+table's of its row's kind, else its style's. A table of rows 9 high and columns 30 wide, its title merged across three
+columns, is drawn with 9 lines; one of 100 rows of 20 columns, every cell written, in about 40 ms on .NET 8. Rows keep
+their heights: a text taller than its row is not made room for. The block of a table is placed at the table's point,
+its entities turned along the table's direction, as `TransformBy` carries them.
 
 ## Values and their kinds
 

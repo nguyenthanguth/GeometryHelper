@@ -1,0 +1,159 @@
+<UserControl x:Class="GeometryHelper.Dxf.Viewer.Wpf.TableCellRibbon"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:GeometryHelper.Dxf.Viewer.Wpf">
+
+    <!--
+    The contextual Table Cell tab, as the design draws it: Rows, Columns, Merge, Cell Styles, Cell Format, Insert and Data. Its
+    logic is TableCellViewModel. The ribbon's styles are the workspace's, found at run time (DynamicResource); what is not built
+    is greyed with its reason, as BigButton and SmallButton grey a button by default.
+    -->
+    <UserControl.Resources>
+        <local:RgbBrushConverter x:Key="FillBrush" />
+        <Geometry x:Key="IconInsertAbove">M3 12h18v8H3zM12 3v6M9 6h6</Geometry>
+        <Geometry x:Key="IconInsertBelow">M3 4h18v8H3zM12 15v6M9 18h6</Geometry>
+        <Geometry x:Key="IconDeleteRows">M3 8h18v8H3zM8 10l8 4M16 10l-8 4</Geometry>
+        <Geometry x:Key="IconInsertLeft">M12 3h8v18h-8zM3 12h6M6 9v6</Geometry>
+        <Geometry x:Key="IconInsertRight">M4 3h8v18H4zM15 12h6M18 9v6</Geometry>
+        <Geometry x:Key="IconDeleteColumns">M8 3h8v18H8zM10 8l4 8M14 8l-4 8</Geometry>
+        <Geometry x:Key="IconMerge">M3 5h18v14H3zM8 12h8M10 10l-2 2 2 2M14 10l2 2-2 2</Geometry>
+        <Geometry x:Key="IconUnmerge">M3 5h18v14H3zM3 12h18M12 5v14</Geometry>
+        <Geometry x:Key="IconMatch">M5 3h10v6H5zM9 9v4M9 13h8v8H9z</Geometry>
+        <Geometry x:Key="IconAlign">M4 6h16M7 12h10M4 18h16</Geometry>
+        <Geometry x:Key="IconBorders">M4 4h16v16H4z</Geometry>
+        <Geometry x:Key="IconLock">M6 11h12v9H6zM9 11V8a3 3 0 0 1 6 0v3</Geometry>
+        <Geometry x:Key="IconFormat">M4 6h4M4 12h8M4 18h6M15 5l5 14</Geometry>
+        <Geometry x:Key="IconBlock">M4 4h16v16H4zM4 4l16 16</Geometry>
+        <Geometry x:Key="IconField">M4 6h16v12H4zM8 10h3M8 14h8M14 10h2</Geometry>
+        <Geometry x:Key="IconFormula">M7 4h10M7 4l6 8-6 8h10</Geometry>
+        <Geometry x:Key="IconContents">M4 6h16M4 12h16M4 18h10</Geometry>
+        <Geometry x:Key="IconLink">M10 14a4 4 0 0 0 6 0l3-3a4 4 0 0 0-6-6l-1 1M14 10a4 4 0 0 0-6 0l-3 3a4 4 0 0 0 6 6l1-1</Geometry>
+        <Geometry x:Key="IconDownload">M12 3v12M7 10l5 5 5-5M4 21h16</Geometry>
+    </UserControl.Resources>
+
+    <StackPanel Orientation="Horizontal">
+        <Border Style="{DynamicResource GroupBorder}">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Bottom" Style="{DynamicResource GroupTitle}" Text="Rows" />
+                <StackPanel Orientation="Horizontal">
+                    <Button Style="{DynamicResource BigButton}" Tag="{StaticResource IconInsertAbove}" Content="Insert Above" IsEnabled="True" Command="{Binding InsertAboveCommand}" ToolTip="Insert a row above" />
+                    <Button Style="{DynamicResource BigButton}" Tag="{StaticResource IconInsertBelow}" Content="Insert Below" IsEnabled="True" Command="{Binding InsertBelowCommand}" ToolTip="Insert a row below" />
+                    <Button Style="{DynamicResource BigButton}" Tag="{StaticResource IconDeleteRows}" Content="Delete Row(s)" IsEnabled="True" Command="{Binding DeleteRowsCommand}" ToolTip="Delete the rows selected" Margin="0" />
+                </StackPanel>
+            </DockPanel>
+        </Border>
+        <Border Style="{DynamicResource GroupBorder}">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Bottom" Style="{DynamicResource GroupTitle}" Text="Columns" />
+                <StackPanel Orientation="Horizontal">
+                    <Button Style="{DynamicResource BigButton}" Tag="{StaticResource IconInsertLeft}" Content="Insert Left" IsEnabled="True" Command="{Binding InsertLeftCommand}" ToolTip="Insert a column left" />
+                    <Button Style="{DynamicResource BigButton}" Tag="{StaticResource IconInsertRight}" Content="Insert Right" IsEnabled="True" Command="{Binding InsertRightCommand}" ToolTip="Insert a column right" />
+                    <Button Style="{DynamicResource BigButton}" Tag="{StaticResource IconDeleteColumns}" Content="Delete Column(s)" IsEnabled="True" Command="{Binding DeleteColumnsCommand}" ToolTip="Delete the columns selected" Margin="0" />
+                </StackPanel>
+            </DockPanel>
+        </Border>
+        <Border Style="{DynamicResource GroupBorder}">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Bottom" Style="{DynamicResource GroupTitle}" Text="Merge" />
+                <StackPanel Orientation="Horizontal">
+                    <Button Style="{DynamicResource BigButton}" Tag="{StaticResource IconMerge}" Content="Merge Cells ▾" IsEnabled="{Binding CanMerge}" Click="OnMenu" ToolTip="Merge All, Merge By Row, Merge By Column">
+                        <Button.ContextMenu>
+                            <ContextMenu Style="{DynamicResource GhContextMenu}" DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
+                                <MenuItem Style="{DynamicResource GhMenuItem}" Header="Merge All" Command="{Binding MergeAllCommand}" />
+                                <MenuItem Style="{DynamicResource GhMenuItem}" Header="Merge By Row" Command="{Binding MergeByRowCommand}" />
+                                <MenuItem Style="{DynamicResource GhMenuItem}" Header="Merge By Column" Command="{Binding MergeByColumnCommand}" />
+                            </ContextMenu>
+                        </Button.ContextMenu>
+                    </Button>
+                    <Button Style="{DynamicResource BigButton}" Tag="{StaticResource IconUnmerge}" Content="Unmerge Cells" IsEnabled="True" Command="{Binding UnmergeCommand}" ToolTip="Unmerge the cells selected" Margin="0" />
+                </StackPanel>
+            </DockPanel>
+        </Border>
+        <Border Style="{DynamicResource GroupBorder}">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Bottom" Style="{DynamicResource GroupTitle}" Text="Cell Styles" />
+                <StackPanel Orientation="Horizontal">
+                    <WrapPanel Style="{DynamicResource SmallColumn}">
+                        <Button Style="{DynamicResource SmallButton}" Tag="{StaticResource IconMatch}" Content="Match Cell" ToolTip="Match Cell: not built yet" />
+                        <Button Style="{DynamicResource SmallButton}" Tag="{StaticResource IconAlign}" Content="{Binding AlignmentName}" IsEnabled="True" Click="OnMenu" ToolTip="Alignment of the cells selected">
+                            <Button.ContextMenu>
+                                <ContextMenu Style="{DynamicResource GhContextMenu}" DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
+                                    <MenuItem Style="{DynamicResource GhMenuItem}" Header="Top Left" Command="{Binding AlignCommand}" CommandParameter="Top Left" />
+                                    <MenuItem Style="{DynamicResource GhMenuItem}" Header="Top Center" Command="{Binding AlignCommand}" CommandParameter="Top Center" />
+                                    <MenuItem Style="{DynamicResource GhMenuItem}" Header="Top Right" Command="{Binding AlignCommand}" CommandParameter="Top Right" />
+                                    <MenuItem Style="{DynamicResource GhMenuItem}" Header="Middle Left" Command="{Binding AlignCommand}" CommandParameter="Middle Left" />
+                                    <MenuItem Style="{DynamicResource GhMenuItem}" Header="Middle Center" Command="{Binding AlignCommand}" CommandParameter="Middle Center" />
+                                    <MenuItem Style="{DynamicResource GhMenuItem}" Header="Middle Right" Command="{Binding AlignCommand}" CommandParameter="Middle Right" />
+                                    <MenuItem Style="{DynamicResource GhMenuItem}" Header="Bottom Left" Command="{Binding AlignCommand}" CommandParameter="Bottom Left" />
+                                    <MenuItem Style="{DynamicResource GhMenuItem}" Header="Bottom Center" Command="{Binding AlignCommand}" CommandParameter="Bottom Center" />
+                                    <MenuItem Style="{DynamicResource GhMenuItem}" Header="Bottom Right" Command="{Binding AlignCommand}" CommandParameter="Bottom Right" />
+                                </ContextMenu>
+                            </Button.ContextMenu>
+                        </Button>
+                        <Button Style="{DynamicResource SmallButton}" Tag="{StaticResource IconBorders}" Content="Cell Borders ▾" IsEnabled="True" Click="OnMenu" ToolTip="Show or hide lines of the cells selected">
+                            <Button.ContextMenu>
+                                <ContextMenu Style="{DynamicResource GhContextMenu}" DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
+                                    <MenuItem Style="{DynamicResource GhMenuItem}" Header="All Borders" Command="{Binding BordersCommand}" CommandParameter="All" />
+                                    <MenuItem Style="{DynamicResource GhMenuItem}" Header="Outside Borders" Command="{Binding BordersCommand}" CommandParameter="Outside" />
+                                    <MenuItem Style="{DynamicResource GhMenuItem}" Header="Inside Borders" Command="{Binding BordersCommand}" CommandParameter="Inside" />
+                                    <MenuItem Style="{DynamicResource GhMenuItem}" Header="Bottom Border" Command="{Binding BordersCommand}" CommandParameter="Bottom" />
+                                    <MenuItem Style="{DynamicResource GhMenuItem}" Header="Left Border" Command="{Binding BordersCommand}" CommandParameter="Left" />
+                                    <MenuItem Style="{DynamicResource GhMenuItem}" Header="Top Border" Command="{Binding BordersCommand}" CommandParameter="Top" />
+                                    <MenuItem Style="{DynamicResource GhMenuItem}" Header="Right Border" Command="{Binding BordersCommand}" CommandParameter="Right" />
+                                    <MenuItem Style="{DynamicResource GhMenuItem}" Header="No Borders" Command="{Binding BordersCommand}" CommandParameter="None" />
+                                </ContextMenu>
+                            </Button.ContextMenu>
+                        </Button>
+                    </WrapPanel>
+                    <StackPanel Width="120" Margin="0,2,0,0">
+                        <!-- The cell style is the row's kind: the title, the header or the data, as a DXF of R2000 to R2018 holds it. -->
+                        <ComboBox Style="{DynamicResource GhComboBox}" SelectedIndex="0" IsEnabled="False" Margin="0,0,0,4"
+                                  ToolTip="The cell style of the row: a table of a DXF file gives each row the title's, the header's or the data's" ToolTipService.ShowOnDisabled="True">
+                            <ComboBoxItem Content="{Binding CellStyleName}" />
+                        </ComboBox>
+                        <ComboBox Style="{DynamicResource GhComboBox}" ItemsSource="{Binding FillChoices}" SelectedItem="{Binding Fill, Mode=TwoWay}" ToolTip="Background fill of the cells selected">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal">
+                                        <Border Width="10" Height="10" BorderBrush="#5B6573" BorderThickness="1" Margin="0,0,6,0" VerticalAlignment="Center"
+                                                Background="{Binding Rgb, Converter={StaticResource FillBrush}}" />
+                                        <TextBlock Text="{Binding Name}" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                    </StackPanel>
+                </StackPanel>
+            </DockPanel>
+        </Border>
+        <Border Style="{DynamicResource GroupBorder}">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Bottom" Style="{DynamicResource GroupTitle}" Text="Cell Format" />
+                <WrapPanel Style="{DynamicResource SmallColumn}">
+                    <Button Style="{DynamicResource SmallButton}" Tag="{StaticResource IconLock}" Content="Cell Locking ▾" ToolTip="Cell locking: not offered" />
+                    <Button Style="{DynamicResource SmallButton}" Tag="{StaticResource IconFormat}" Content="Data Format ▾" ToolTip="Data Format: not built yet" />
+                </WrapPanel>
+            </DockPanel>
+        </Border>
+        <Border Style="{DynamicResource GroupBorder}">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Bottom" Style="{DynamicResource GroupTitle}" Text="Insert" />
+                <StackPanel Orientation="Horizontal">
+                    <Button Style="{DynamicResource BigButton}" Tag="{StaticResource IconBlock}" Content="Block" ToolTip="A block in a cell: not offered" />
+                    <Button Style="{DynamicResource BigButton}" Tag="{StaticResource IconField}" Content="Field" ToolTip="Fields: not offered" />
+                    <Button Style="{DynamicResource BigButton}" Tag="{StaticResource IconFormula}" Content="Formula ▾" ToolTip="Formulas: not offered" />
+                    <Button Style="{DynamicResource BigButton}" Tag="{StaticResource IconContents}" Content="Manage Cell Contents" ToolTip="Several contents in a cell: not offered" Margin="0" />
+                </StackPanel>
+            </DockPanel>
+        </Border>
+        <Border Style="{DynamicResource GroupBorder}" BorderThickness="0">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Bottom" Style="{DynamicResource GroupTitle}" Text="Data" />
+                <StackPanel Orientation="Horizontal">
+                    <Button Style="{DynamicResource BigButton}" Tag="{StaticResource IconLink}" Content="Link Cell" ToolTip="Data links: not offered" />
+                    <Button Style="{DynamicResource BigButton}" Tag="{StaticResource IconDownload}" Content="Download from Source" ToolTip="Data links: not offered" Margin="0" />
+                </StackPanel>
+            </DockPanel>
+        </Border>
+    </StackPanel>
+</UserControl>

@@ -164,7 +164,9 @@ namespace GeometryHelper.Dxf
         /// A <see cref="DxfDBDictionary"/>, a <see cref="DxfXrecord"/> with its data and a <see cref="DxfGroup"/> with its
         /// description are added: <c>db.GroupDictionary.SetAt("BEAMS", new DxfGroup("Beams of grid A", true))</c> adds the group
         /// BEAMS, empty until entities are appended to it. A group added under the name <c>*</c> is anonymous, as AutoCAD names
-        /// one: it is given the first name <c>*A1</c>, <c>*A2</c> and on the dictionary has not.
+        /// one: it is given the first name <c>*A1</c>, <c>*A2</c> and on the dictionary has not. A <see cref="DxfTableStyle"/> is
+        /// written with every group AutoCAD writes of one: <c>db.TableStyleDictionary.SetAt("GH_SCHEDULE", new DxfTableStyle())</c>
+        /// adds a style of AutoCAD's Standard in millimetres.
         /// </para>
         /// <para>
         /// The entries are found by name without reading the record again, and the new one is put into the record's bytes as
@@ -261,8 +263,21 @@ namespace GeometryHelper.Dxf
                     }));
                     file.ImageDefWritten();
                     break;
+                case DxfTableStyle style:
+                    DxfFile styled = Resident();
+                    List<KeyValuePair<int, string>> written = style.MadeGroups(styled.Supports(1021));
+                    newValue.Bind(Add(searchKey, "TABLESTYLE", b =>
+                    {
+                        b.Group(100, "AcDbTableStyle");
+
+                        foreach (KeyValuePair<int, string> pair in written)
+                        {
+                            b.Group(pair.Key, pair.Value);
+                        }
+                    }));
+                    break;
                 default:
-                    throw new ArgumentException("A dictionary takes a DxfDBDictionary, a DxfXrecord, a DxfGroup or a DxfRasterImageDef made in code: a " + newValue.GetType().Name + " is not added.", nameof(newValue));
+                    throw new ArgumentException("A dictionary takes a DxfDBDictionary, a DxfXrecord, a DxfGroup, a DxfRasterImageDef or a DxfTableStyle made in code: a " + newValue.GetType().Name + " is not added.", nameof(newValue));
             }
         }
 

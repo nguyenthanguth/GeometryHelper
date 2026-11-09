@@ -102,6 +102,7 @@ namespace GeometryHelper.Dxf.Viewer
             registry.Add(new CadCommand("STYLE", StyleDialog));
             registry.Add(new CadCommand("-STYLE", StyleTyped));
             registry.Add(new CadCommand("DIMSTYLE", DimStyleDialog));
+            AddTablesTo(registry);
             registry.Add(new CadCommand("PTYPE", PointStyle));
             registry.Add(new CadCommand("PDMODE", PointMode));
             registry.Add(new CadCommand("PDSIZE", PointSize));

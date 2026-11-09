@@ -20,7 +20,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>The last item of the dimension style box, which opens the Dimension Style Manager.</summary>
         public const string ManageDimensionStyles = "Dimension style…";
 
-        /// <summary>Raised by STYLE (ST) and DIMSTYLE (D, DST, DDIM), and by the boxes' last items: the window shows the dialog named, "STYLE" or "DIMSTYLE".</summary>
+        /// <summary>Raised by STYLE (ST), DIMSTYLE (D, DST, DDIM) and TABLESTYLE (TS), and by the boxes' last items: the window shows the dialog named, "STYLE", "DIMSTYLE" or "TABLESTYLE".</summary>
         public event EventHandler<string> StyleDialogRequested;
 
         /// <summary>Gets the text styles of the drawing for the text style box, then <see cref="ManageTextStyles"/>; empty with no drawing.</summary>
@@ -179,7 +179,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             if (StyleDialogRequested == null)
             {
-                Say((name == "STYLE" ? "The Text Style dialog" : "The Dimension Style Manager") + " is shown by the window.");
+                Say((name == "STYLE" ? "The Text Style dialog" : name == "TABLESTYLE" ? "The Table Style dialog" : "The Dimension Style Manager") + " is shown by the window.");
                 return false;
             }
 

@@ -19,7 +19,7 @@ namespace GeometryHelper.Dxf
     /// among them where the file has them as blocks and first where it does not.
     /// </para>
     /// <para>
-    /// A block named <c>*D</c> or <c>*U</c> is added as AutoCAD's <c>BlockTable.Add</c> adds one so named: an anonymous block
+    /// A block named <c>*D</c>, <c>*U</c> or <c>*T</c> is added as AutoCAD's <c>BlockTable.Add</c> adds one so named: an anonymous block
     /// (<see cref="DxfBlockTableRecord.IsAnonymous"/>, flag 1 of its BLOCK's group 70), named by the table with the first
     /// number from 1 up that no block of the drawing and no INSERT, dimension or table names. A drawing with no dimension
     /// given <c>var picture = new DxfBlockTableRecord { Name = "*D" }</c> names it <c>*D1</c>, the next <c>*D2</c>; one whose
@@ -196,9 +196,9 @@ namespace GeometryHelper.Dxf
             _byHandle = null;
         }
 
-        /// <summary>Whether a name is <c>*U</c> or <c>*D</c>, letters of either case, which AutoCAD takes for an anonymous block it names itself.</summary>
+        /// <summary>Whether a name is <c>*U</c>, <c>*D</c> or <c>*T</c>, letters of either case, which AutoCAD takes for an anonymous block it names itself.</summary>
         private protected override bool IsAnonymousName(string name)
-            => name != null && name.Length == 2 && name[0] == '*' && (name[1] == 'U' || name[1] == 'u' || name[1] == 'D' || name[1] == 'd');
+            => name != null && name.Length == 2 && name[0] == '*' && "UuDdTt".IndexOf(name[1]) >= 0;
 
         /// <summary>Reads the table as the drawing is opened, so that model space and paper space stand for their records from the first.</summary>
         internal void Load() => Read();
@@ -3460,8 +3460,8 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Gets whether the block is one AutoCAD names itself, as a dimension's <c>*D1</c> (flag 1 of its BLOCK's group 70), as
-        /// AutoCAD's <c>IsAnonymous</c>: true of a block added named <c>*D</c> or <c>*U</c>, which the table names <c>*D1</c> or
-        /// <c>*U1</c> and on.
+        /// AutoCAD's <c>IsAnonymous</c>: true of a block added named <c>*D</c>, <c>*U</c> or <c>*T</c>, which the table names
+        /// <c>*D1</c>, <c>*U1</c> or <c>*T1</c> and on.
         /// </summary>
         public bool IsAnonymous => (Flags & 1) != 0;
 
