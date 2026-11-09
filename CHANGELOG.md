@@ -44,6 +44,17 @@ the one DRAWORDER put in front, where the handle decided before. Objects within 
 count as as near: with a pickbox of 3, a line under the cursor still comes before one on top of it 0.6 away. The Selection
 list of SELECTIONCYCLING and Shift+Space cycling run in the same order, the one on top first.
 
+**NEW.** The presenter's ribbon is laid out and shrinks as AutoCAD 2021's. Home has Draw, Modify, Annotation, Layers,
+Properties, Groups, Utilities, Clipboard and View; as the window narrows, the steps of each tab's `RibbonStrip` are taken
+in turn until its panels fit, and given back as it widens: at 1 600 pixels View, Clipboard, Utilities and Groups are each
+one button that drops the full panel below it, with a pin, and Properties, Layers and Draw drop the labels of their small
+buttons; Modify never shrinks. Modify gains the Draw Order split (Bring to Front, Send to Back, Bring Above Objects, Send
+Under Objects, Bring Text to Front), which gives DRAWORDER its option once the objects are picked
+(`MainViewModel.StartCommandWithOptionCommand`); Groups has Group, Ungroup and Group Selection, pressed while PICKSTYLE is
+1 (`MainViewModel.IsGroupSelectionOn`); Clipboard the Paste split, Cut, Copy and Copy with Base Point; Utilities Quick
+Select. Annotate's Dimensions panel has the Linear and Continue splits, Quick, Adjust Space, Break and a slide-out with
+Oblique and Text Angle. The Text Editor tab fits 1 600 pixels, Spell Check and Tools collapsed and Close the last panel.
+
 **NEW.** `GeometryHelper.Drawing` makes a model drawing, in the manner of Tekla's, from a `DrawingSource` of
 `DrawingObject` bodies: views along the axes and an isometric view with exact hidden-line projection (2 000 objects in
 the front view take 0.3 s), sections with ANSI31 hatches, details, dimensions by rule, marks that keep clear of the

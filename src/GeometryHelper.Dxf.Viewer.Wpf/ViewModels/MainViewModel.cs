@@ -1291,6 +1291,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             SyncInPlace();
             Revision++;
+
+            // PICKSTYLE typed or switched by its key: Group Selection follows. A split button's option answers its prompt.
+            Raise(nameof(IsGroupSelectionOn));
+            AnswerPendingOption();
         }
 
         private void OnUiRequested(object sender, CadUiRequestEventArgs e)
@@ -1576,6 +1580,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             RaiseModified();
             RaiseSpace();
             ((DelegateCommand)StartCommandCommand).RaiseCanExecuteChanged();
+            _startCommandWithOptionCommand?.RaiseCanExecuteChanged();
+            Raise(nameof(IsGroupSelectionOn));
             SyncHistory();
             SyncInPlace();
         }

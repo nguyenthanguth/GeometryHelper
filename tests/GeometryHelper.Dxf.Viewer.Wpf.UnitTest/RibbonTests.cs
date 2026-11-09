@@ -259,8 +259,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 // Annotate: each button starts its command as Home's do.
                 model.SelectedTab = model.AnnotateTab;
                 Layout(workspace);
-                List<ButtonBase> annotate = ButtonsOf(workspace, model.AnnotateTab.TabContent);
-                Assert.Equal(new[] { "MTEXT", "TEXT", "DIMLINEAR", "DIMALIGNED", "DIMANGULAR", "DIMRADIUS", "DIMDIAMETER", "MLEADER" }, annotate.Select(b => b.CommandParameter as string));
+                List<ButtonBase> annotate = ButtonsOf(workspace, model.AnnotateTab.TabContent).Where(b => b.CommandParameter is string).ToList();
+                Assert.Equal(new[] { "MTEXT", "TEXT", "DIMLINEAR", "QDIM", "DIMCONTINUE", "DIMSPACE", "DIMBREAK", "MLEADER" }, annotate.Select(b => b.CommandParameter as string));
 
                 foreach (ButtonBase button in annotate)
                 {
