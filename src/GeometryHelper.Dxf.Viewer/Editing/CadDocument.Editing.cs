@@ -368,6 +368,20 @@ namespace GeometryHelper.Dxf.Viewer
             return Write(name, planned, apply, handled);
         }
 
+        /// <summary>
+        /// Keeps the drawing as it stands in the open group, for <see cref="RollBack"/>, as TRIM's Undo goes back one pick: the
+        /// drawing before the group where the group has made nothing yet, so the first pick of a command costs no saving.
+        /// </summary>
+        internal KeyValuePair<byte[], int> Savepoint()
+        {
+            EnsureStart();
+            int kept = _groupRecords?.Count ?? 0;
+            return new KeyValuePair<byte[], int>(kept == 0 ? _states[_position] : Snapshot(), kept);
+        }
+
+        /// <summary>Reads the drawing back from a savepoint <see cref="Savepoint"/> took in the open group.</summary>
+        internal void RollBack(KeyValuePair<byte[], int> savepoint) => Restore(savepoint.Key, savepoint.Value);
+
         /// <summary>Reads the drawing back from a savepoint taken in the open group, the group's records made since dropped.</summary>
         private void Restore(byte[] savepoint, int kept)
         {

@@ -281,6 +281,12 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Gets the handles of a selection, in ordinal order, or of the one object picked.</summary>
         public IReadOnlyList<string> Handles { get; }
 
+        /// <summary>
+        /// Gets whether Shift was held as the one object was picked on the canvas, as TRIM takes a Shift-pick to extend; false
+        /// for every other answer.
+        /// </summary>
+        public bool Shift { get; internal set; }
+
         /// <summary>Gets whether the answer is Enter with nothing typed.</summary>
         public bool IsNone => Kind == CadInputKind.None;
 
