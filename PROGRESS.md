@@ -42,6 +42,8 @@ The list of work on the drawing stack: Part A, the 2D presenter (`GeometryHelper
       screenshot mode shared with Drawing.App through `CadAppHost`
 - [x] Blocks round 2: EATTEDIT live with Apply kept open, INSERT drags the block, -ATTEDIT picks one attribute, ATTSYNC,
       Block Definition previews the selection, redefine a block brought from another drawing
+- [x] Images of the view: PNGOUT, JPGOUT, BMPOUT as AutoCAD's (the drawing area as shown, all objects or those selected;
+      1920 x 1080 of 100 000 entities written as PNG in 0.25 s)
 - [x] AutoCAD parity check: 101 gaps and 19 partial items, listed in full in
       [73-autocad-parity.md](src/GeometryHelper.Drawing/plan/73-autocad-parity.md)
 
@@ -84,8 +86,6 @@ the ones wanted.
 - [ ] Dxf.App: the start screen and welcome line still offer "New drawing from a model" and Ctrl+N; hide what belongs to
       Drawing when no host handles it (design first)
 - [ ] Dxf.App: an app icon, file association for .dxf (installer or registry), `--tab Home` in screenshot mode
-- [ ] Images of the view (running): PNGOUT, JPGOUT, BMPOUT as AutoCAD's: the drawing area as shown, at the window's pixel size,
-      all objects or those selected; asks the file name
 - [ ] Images of an area: PNG and JPG devices in PLOT and -PLOT ("GeometryHelper PNG", "GeometryHelper JPG", as AutoCAD's
       PublishToWeb PNG/JPG), plot area Window, Extents, Display or Layout, size in pixels (1920 x 1080, 3840 x 2160 or
       typed) in place of a paper (design first)
