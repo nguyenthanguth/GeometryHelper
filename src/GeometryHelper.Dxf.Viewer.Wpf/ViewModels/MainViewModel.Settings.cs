@@ -113,6 +113,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             foreach (KnownFile file in _files.Values.Where(f => f.Session != null))
             {
                 ApplyTextDefaults(file.Session);
+                file.Document.Fonts = _settings.ToFonts(SkiaCanvasRenderer.HasFamily);
             }
 
             SetCursor(0.0, 0.0);

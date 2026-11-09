@@ -78,7 +78,7 @@ The tab is left out: nothing in it is real yet.
 | Panel | AutoCAD 2021 | Presenter | Mark |
 |---|---|---|---|
 | Navigate (the navigation bar in 2021) | Zoom Extents, Window, Previous, In, Out; Pan; Regen | ZOOM E, W, P, 2X, 0.5X; PAN; REGEN | built; tab (r1). The buttons start ZOOM, ending a command running: AutoCAD's are transparent ('ZOOM) |
-| Viewport Tools | UCS Icon, View Cube, Navigation Bar | none | out (2D, no UCS) |
+| Viewport Tools | UCS Icon, View Cube, Navigation Bar | the UCS icon on the canvas (UCSICON typed; no ribbon button) | UCS icon built (C7, see [75-ucs.md](75-ucs.md)); View Cube and Navigation Bar out (2D) |
 | Views | Model and layout switch | the tabs under the canvas; Model and Layout buttons | built (r1); Layout goes to the first layout, AutoCAD to the last shown |
 | Model Viewports | Viewport Configuration, Named, Join, Restore | none | big (tiled viewports) |
 | Palettes | Properties, Layer Properties, Tool Palettes, Sheet Set Manager, Design Center, External References | Properties panel, Layer manager | built; Interface toggles (r1); the rest out |

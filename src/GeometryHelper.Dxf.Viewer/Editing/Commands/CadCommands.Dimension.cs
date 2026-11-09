@@ -109,7 +109,11 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             GeoPoint2 location = c.Input.Point;
-            double angle = aligned ? Math.Atan2(p2.Y - p1.Y, p2.X - p1.X) : fixedAngle ?? LinearAngle(p1, p2, location);
+
+            // A linear dimension measures along the X or Y axis of the UCS, as AutoCAD's: in a UCS turned 30 degrees it is a
+            // rotated dimension of 30 or 120 degrees.
+            CadUcs ucs = c.Session.Ucs;
+            double angle = aligned ? Math.Atan2(p2.Y - p1.Y, p2.X - p1.X) : ucs.AngleToWorld(fixedAngle ?? LinearAngle(ucs.ToUcs(p1), ucs.ToUcs(p2), ucs.ToUcs(location)));
             var along = new GeoVector2(Math.Cos(angle), Math.Sin(angle));
             double measured = Math.Abs((p2 - p1).X * along.X + (p2 - p1).Y * along.Y);
 

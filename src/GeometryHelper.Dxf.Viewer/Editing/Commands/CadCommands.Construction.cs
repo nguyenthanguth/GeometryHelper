@@ -80,6 +80,9 @@ namespace GeometryHelper.Dxf.Viewer
                 yield break;
             }
 
+            // Hor, Ver and Ang are along the axes of the UCS and from its X axis.
+            way = c.Session.Ucs.ToWorld(way);
+
             while (true)
             {
                 yield return CadPrompt.ForPoint("Specify through point", from);

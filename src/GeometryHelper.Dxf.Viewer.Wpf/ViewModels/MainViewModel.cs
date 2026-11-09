@@ -1089,13 +1089,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Copies into <see cref="History"/> what the session has written since, as after a grip drag the canvas made.</summary>
         public void RefreshHistory() => SyncHistory();
 
-        /// <summary>Sets the coordinates the status bar shows.</summary>
-        /// <param name="x">The X of the drawing point under the cursor.</param>
+        /// <summary>Sets the coordinates the status bar shows, in the current UCS, as AutoCAD's: the world point (100, 50) in a UCS of origin (100, 0) shows "X 0.00   Y 50.00".</summary>
+        /// <param name="x">The X of the drawing point under the cursor, in world coordinates.</param>
         /// <param name="y">The Y.</param>
         public void SetCursor(double x, double y)
         {
             _cursorAt = new GeoPoint2(x, y);
-            CursorText = "X " + _settings.FormatNumber(x, _settings.CoordinateDecimals) + "   Y " + _settings.FormatNumber(y, _settings.CoordinateDecimals);
+            GeoPoint2 shown = Ucs.ToUcs(_cursorAt);
+            CursorText = "X " + _settings.FormatNumber(shown.X, _settings.CoordinateDecimals) + "   Y " + _settings.FormatNumber(shown.Y, _settings.CoordinateDecimals);
         }
 
         /// <summary>Formats a whole number as the design writes it, thousands set apart by a space: 2 418.</summary>
@@ -1200,6 +1201,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             file.Session.PromptChanged += OnPromptChanged;
             file.Session.UiRequested += OnUiRequested;
             ApplyTextDefaults(file.Session);
+            document.Fonts = _settings.ToFonts(SkiaCanvasRenderer.HasFamily);
+            document.FontMissing += (s, e) => Say(e.Message);
             document.Changed += OnDocumentChanged;
         }
 
@@ -1258,6 +1261,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             if (!_current.Session.IsRunning && (_current.Session.LastCommandName == "ZOOM" || _current.Session.LastCommandName == "PAN"))
             {
                 NotifyViewChangedByUser();
+            }
+
+            // A UCS changed is a change of the drawing, as in AutoCAD, though not a step of undo: the title and the list show it.
+            if (!_current.Session.IsRunning && _current.Session.LastCommandName == "UCS")
+            {
+                RaiseModified();
             }
 
             // LAYOUT Set shows another space from the command line: the tabs follow, as a tab clicked.

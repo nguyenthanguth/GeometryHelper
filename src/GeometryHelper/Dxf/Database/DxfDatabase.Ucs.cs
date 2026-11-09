@@ -8,10 +8,15 @@ namespace GeometryHelper.Dxf
     /// The user coordinate systems of model space and paper space the header keeps, as AutoCAD's <c>Database</c> has them: the
     /// current one's origin and axes (<c>$UCSORG</c>, <c>$UCSXDIR</c>, <c>$UCSYDIR</c>, and <c>$PUCS</c> of paper space), its
     /// name, the UCS the orthographic ones are taken from, and the origins of those six. A UCS is given by the name of its
-    /// record of the UCS table, which the library has no class for.
+    /// record of the UCS table, <see cref="UcsTable"/>.
     /// </summary>
     public sealed partial class DxfDatabase
     {
+        private DxfUcsTable _ucsTable;
+
+        /// <summary>Gets the UCS table of the drawing, as AutoCAD's <c>UcsTableId</c> gives its id: the named user coordinate systems, as <see cref="DxfUcsTable"/> says.</summary>
+        public DxfUcsTable UcsTable => _ucsTable ?? (_ucsTable = new DxfUcsTable(File, File.TableItem("UCS")));
+
         /// <summary>Gets the origin of the current UCS of model space (<c>$UCSORG</c>), as AutoCAD's <c>Ucsorg</c>, in world coordinates; the origin where the header gives none.</summary>
         public GeoPoint3 Ucsorg => Point("$UCSORG");
 

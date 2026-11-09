@@ -56,7 +56,7 @@ namespace GeometryHelper.Dxf.Viewer
                 var once = new Ref<GeoVector2?>();
                 GeoVector2 last = new GeoVector2(c.Remembered("displacement.x", 0.0), c.Remembered("displacement.y", 0.0));
                 yield return CadPrompt.ForPoint("Specify displacement", null, null, Length(last.X) + ", " + Length(last.Y) + ", " + Length(0.0));
-                once.Value = c.Input.IsPoint ? new GeoVector2(c.Input.Point.X, c.Input.Point.Y) : last;
+                once.Value = c.Input.IsPoint ? AsDisplacement(c, c.Input.Point) : last;
                 Remember(c, once.Value.Value);
                 Transform(c, c.Selected, GeoTransform3.Translation(new GeoVector3(once.Value.Value.X, once.Value.Value.Y, 0.0)), true);
                 yield break;
@@ -68,7 +68,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (c.Input.IsNone)
             {
-                placed.Add(Transform(c, c.Selected, GeoTransform3.Translation(new GeoVector3(from.X, from.Y, 0.0)), true));
+                placed.Add(Transform(c, c.Selected, GeoTransform3.Translation(new GeoVector3(AsDisplacement(c, from).X, AsDisplacement(c, from).Y, 0.0)), true));
                 yield break;
             }
 
@@ -647,7 +647,7 @@ namespace GeometryHelper.Dxf.Viewer
                 if (c.Input.IsPoint)
                 {
                     GeoVector2 between = c.Input.Point - first;
-                    result.Value = angle ? Math.Atan2(between.Y, between.X) : between.Length;
+                    result.Value = angle ? c.Session.Ucs.AngleToUcs(Math.Atan2(between.Y, between.X)) : between.Length;
                 }
             }
         }
@@ -668,8 +668,18 @@ namespace GeometryHelper.Dxf.Viewer
             if (c.Input.IsPoint)
             {
                 GeoVector2 between = c.Input.Point - first;
-                result.Value = angle ? Math.Atan2(between.Y, between.X) : between.Length;
+                result.Value = angle ? c.Session.Ucs.AngleToUcs(Math.Atan2(between.Y, between.X)) : between.Length;
             }
+        }
+
+        /// <summary>
+        /// A point given as a displacement, as "use first point as displacement" takes one: its coordinates in the UCS, turned
+        /// into the world's. In a UCS turned a quarter at (100, 0), 10,0 typed moves objects 10 up the world's Y.
+        /// </summary>
+        private static GeoVector2 AsDisplacement(CadCommandContext c, GeoPoint2 point)
+        {
+            CadUcs ucs = c.Session.Ucs;
+            return ucs.IsWorld ? new GeoVector2(point.X, point.Y) : point - new GeoPoint2(ucs.Origin.X, ucs.Origin.Y);
         }
 
         /// <summary>Asks the base point and the second point, or a displacement, as MOVE asks them.</summary>
@@ -681,7 +691,7 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 GeoPoint2 from = c.Input.Point;
                 yield return CadPrompt.ForPoint("Specify second point or", from, null, "use first point as displacement");
-                result.Value = c.Input.IsPoint ? c.Input.Point - from : new GeoVector2(from.X, from.Y);
+                result.Value = c.Input.IsPoint ? c.Input.Point - from : AsDisplacement(c, from);
                 yield break;
             }
 
@@ -692,7 +702,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             var last = new GeoVector2(c.Remembered("displacement.x", 0.0), c.Remembered("displacement.y", 0.0));
             yield return CadPrompt.ForPoint("Specify displacement", null, null, Length(last.X) + ", " + Length(last.Y) + ", " + Length(0.0));
-            result.Value = c.Input.IsPoint ? new GeoVector2(c.Input.Point.X, c.Input.Point.Y) : last;
+            result.Value = c.Input.IsPoint ? AsDisplacement(c, c.Input.Point) : last;
             Remember(c, result.Value.Value);
         }
 

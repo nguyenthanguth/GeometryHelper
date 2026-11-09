@@ -49,6 +49,9 @@ namespace GeometryHelper.Drawing.App
         {
             args = args ?? Array.Empty<string>();
 
+            // The code pages of the big fonts (932, 936, 949, 950) and of old DXF files, which .NET (Core) reads only once registered.
+            System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
+
             if (args.Length > 0 && string.Equals(args[0], "--screenshot", StringComparison.OrdinalIgnoreCase))
             {
                 return Screenshot(args);
@@ -629,7 +632,7 @@ namespace GeometryHelper.Drawing.App
         /// <summary>Whether a --dialog names Global settings: options, or settings: and one of its categories, given back.</summary>
         private static bool GlobalCategory(string dialogName, out string category)
         {
-            string[] categories = { "Appearance", "Canvas and cursor", "Drawing defaults", "Units and rounding", "Layers, colours and lines", "Text and fonts", "Data sources", "Shortcuts", "Save and export" };
+            string[] categories = { "Appearance", "Canvas and cursor", "Drawing defaults", "Units and rounding", "Layers, colours and lines", "Text and fonts", "Fonts", "Data sources", "Shortcuts", "Save and export" };
             category = null;
 
             if (string.Equals(dialogName, "options", StringComparison.OrdinalIgnoreCase))

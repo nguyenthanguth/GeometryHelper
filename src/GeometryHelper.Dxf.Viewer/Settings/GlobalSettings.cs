@@ -109,6 +109,9 @@ namespace GeometryHelper.Dxf.Viewer
         private double _textHeight = 2.5;
         private double _titleTextHeight = 5.0;
         private double _widthFactor = 0.8;
+        private List<string> _fontFolders = new List<string>(CadFonts.DefaultFolders);
+        private string _replacementFont = "simplex.shx";
+        private SortedDictionary<string, string> _fontSubstitutions = new SortedDictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         private int _checkEverySeconds = 30;
         private string _saveFolder = string.Empty;
         private int _autosaveMinutes = 10;
@@ -277,7 +280,7 @@ namespace GeometryHelper.Dxf.Viewer
         /// <exception cref="ArgumentException">Thrown when the value is empty.</exception>
         public string UiFont { get => _uiFont; set => _uiFont = Name(value, nameof(UiFont)); }
 
-        /// <summary>Gets or sets the font text is drawn in where its style's font is missing: Arial by default.</summary>
+        /// <summary>Gets or sets the font text is drawn in where its style's font is missing and <see cref="ReplacementFont"/> is not found either: Arial by default.</summary>
         /// <exception cref="ArgumentException">Thrown when the value is empty.</exception>
         public string DrawingFont { get => _drawingFont; set => _drawingFont = Name(value, nameof(DrawingFont)); }
 
@@ -295,6 +298,48 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Gets or sets the width factor of the drawing text, which TEXT and MTEXT write, 0.1 to 10: 0.8 by default.</summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the value is out of range.</exception>
         public double WidthFactor { get => _widthFactor; set => _widthFactor = Range(value, 0.1, 10.0, nameof(WidthFactor)); }
+
+        // ---- Fonts
+
+        /// <summary>
+        /// Gets or sets the folders the fonts of text styles are looked for in, in order, after the folder of the drawing: by
+        /// default AutoCAD's Fonts folder found on this machine and the Fonts folder of Windows
+        /// (<see cref="CadFonts.DefaultFolders"/>). Blank entries are left out and a folder given twice is kept once.
+        /// </summary>
+        /// <exception cref="ArgumentNullException">Thrown when the value is null.</exception>
+        public IReadOnlyList<string> FontSearchFolders
+        {
+            get => _fontFolders.AsReadOnly();
+            set => _fontFolders = (value ?? throw new ArgumentNullException(nameof(value))).Where(f => !string.IsNullOrWhiteSpace(f)).Select(f => f.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        }
+
+        /// <summary>
+        /// Gets or sets the font text is drawn in where its style's font is not found, as AutoCAD's FONTALT: an SHX file, a
+        /// TrueType file or a typeface; simplex.shx by default, as in AutoCAD. Empty, or a font not found either, draws it in
+        /// <see cref="DrawingFont"/>.
+        /// </summary>
+        public string ReplacementFont { get => _replacementFont; set => _replacementFont = (value ?? string.Empty).Trim(); }
+
+        /// <summary>Gets the fonts drawn in others, as AutoCAD's font mapping file gives them: each name to the name it is drawn in (romans.shx to isocp.shx); none by default.</summary>
+        public IReadOnlyDictionary<string, string> FontSubstitutions => _fontSubstitutions;
+
+        /// <summary>Sets the fonts drawn in others, each name to the name it is drawn in; a pair of a blank name is left out, a name given twice the last kept.</summary>
+        /// <param name="substitutions">The pairs.</param>
+        /// <exception cref="ArgumentNullException">Thrown when the pairs are null.</exception>
+        public void SetFontSubstitutions(IEnumerable<KeyValuePair<string, string>> substitutions)
+        {
+            var table = new SortedDictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (KeyValuePair<string, string> pair in substitutions ?? throw new ArgumentNullException(nameof(substitutions)))
+            {
+                if (!string.IsNullOrWhiteSpace(pair.Key) && !string.IsNullOrWhiteSpace(pair.Value))
+                {
+                    table[pair.Key.Trim()] = pair.Value.Trim();
+                }
+            }
+
+            _fontSubstitutions = table;
+        }
 
         // ---- Data sources (model drawings)
 
@@ -352,6 +397,11 @@ namespace GeometryHelper.Dxf.Viewer
         /// <returns>The shortcuts.</returns>
         public CadShortcuts ToShortcuts() => new CadShortcuts(_aliases, _keys);
 
+        /// <summary>Gets the fonts a document's text is drawn in, as the font settings give them.</summary>
+        /// <param name="familyExists">Whether the canvas has a TrueType typeface of a name; null to take every typeface as there.</param>
+        /// <returns>The fonts.</returns>
+        public CadFonts ToFonts(Func<string, bool> familyExists = null) => new CadFonts(_fontFolders, _replacementFont, _fontSubstitutions, familyExists);
+
         /// <summary>
         /// Says the shortcuts that clash: an alias that is a command's own name of another command, written "DU is the name of
         /// the command DU"; none where nothing clashes. Keys cannot clash here, a key reaching one command; the dialog says where
@@ -372,6 +422,8 @@ namespace GeometryHelper.Dxf.Viewer
         {
             var copy = (GlobalSettings)MemberwiseClone();
             copy._layers = new List<GlobalLayer>(_layers);
+            copy._fontFolders = new List<string>(_fontFolders);
+            copy._fontSubstitutions = Copy(_fontSubstitutions);
             copy._aliases = Copy(_aliases);
             copy._keys = Copy(_keys);
             return copy;
@@ -507,6 +559,25 @@ namespace GeometryHelper.Dxf.Viewer
             w.Value("textHeight", _textHeight);
             w.Value("titleTextHeight", _titleTextHeight);
             w.Value("widthFactor", _widthFactor);
+            w.Close();
+            w.Open("fonts");
+            w.OpenList("searchFolders");
+
+            foreach (string folder in _fontFolders)
+            {
+                w.Value(null, folder);
+            }
+
+            w.CloseList();
+            w.Value("replacement", _replacementFont);
+            w.Open("substitutions");
+
+            foreach (KeyValuePair<string, string> pair in _fontSubstitutions)
+            {
+                w.Value(pair.Key, pair.Value);
+            }
+
+            w.Close();
             w.Close();
             w.Open("dataSources");
             w.Value("checkForModelChanges", CheckForModelChanges);
@@ -645,6 +716,9 @@ namespace GeometryHelper.Dxf.Viewer
                 Number("text", "textHeight", v => _s.TextHeight = v);
                 Number("text", "titleTextHeight", v => _s.TitleTextHeight = v);
                 Number("text", "widthFactor", v => _s.WidthFactor = v);
+                Text("fonts", "replacement", v => _s.ReplacementFont = v);
+                Take("fonts", "searchFolders", e => _s.FontSearchFolders = e.Elements().Select(f => f.Value).ToList());
+                Take("fonts", "substitutions", e => _s.SetFontSubstitutions(Pairs(e)));
                 Flag("dataSources", "checkForModelChanges", v => _s.CheckForModelChanges = v);
                 Number("dataSources", "checkEverySeconds", v => _s.CheckEverySeconds = Whole(v));
                 Text("saveAndExport", "saveFolder", v => _s.SaveFolder = v);

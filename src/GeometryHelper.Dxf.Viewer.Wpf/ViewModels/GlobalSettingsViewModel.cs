@@ -396,9 +396,48 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public override string ToString() => Command;
     }
 
+    /// <summary>A folder fonts are looked for in, as the Fonts page lists it: D:\Autodesk\AutoCAD\AutoCAD 2021\Fonts.</summary>
+    public sealed class FontFolderRow : ObservableObject
+    {
+        private string _folder;
+
+        internal FontFolderRow(string folder)
+        {
+            _folder = folder ?? string.Empty;
+        }
+
+        /// <summary>Gets or sets the folder.</summary>
+        public string Folder { get => _folder; set => Set(ref _folder, value ?? string.Empty); }
+
+        /// <inheritdoc/>
+        public override string ToString() => _folder;
+    }
+
+    /// <summary>A font drawn in another, as the Fonts page's table lists it: romans.shx drawn in isocp.shx.</summary>
+    public sealed class FontSubstitutionRow : ObservableObject
+    {
+        private string _font;
+        private string _drawnIn;
+
+        internal FontSubstitutionRow(string font, string drawnIn)
+        {
+            _font = font ?? string.Empty;
+            _drawnIn = drawnIn ?? string.Empty;
+        }
+
+        /// <summary>Gets or sets the font a style names: romans.shx, Arial.</summary>
+        public string Font { get => _font; set => Set(ref _font, value ?? string.Empty); }
+
+        /// <summary>Gets or sets the font it is drawn in.</summary>
+        public string DrawnIn { get => _drawnIn; set => Set(ref _drawnIn, value ?? string.Empty); }
+
+        /// <inheritdoc/>
+        public override string ToString() => _font + " -> " + _drawnIn;
+    }
+
     /// <summary>
-    /// Global settings, as the design draws it: nine categories at the left, the rows of the one chosen at the right, the
-    /// layer table, the model sources and the shortcuts on their own pages; Reset to defaults, Cancel, Apply and OK. It edits a
+    /// Global settings, as the design draws it: ten categories at the left, the rows of the one chosen at the right, the
+    /// layer table, the font folders and substitutions, the model sources and the shortcuts on their own pages; Reset to defaults, Cancel, Apply and OK. It edits a
     /// copy of the window's settings: Apply gives them to the window at once, OK applies and saves them to its file, Cancel
     /// drops them.
     /// </summary>
@@ -486,6 +525,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 new GlobalSettingCategory("Units and rounding", false, "Units are millimetres throughout; these settings change how values are shown."),
                 new GlobalSettingCategory("Layers, colours and lines", false, "The layers written to new drawings, with their colour, linetype and lineweight."),
                 new GlobalSettingCategory("Text and fonts", false, "Fonts of the app and of the drawings."),
+                new GlobalSettingCategory("Fonts", false, "Where the fonts of text styles are found, as AutoCAD's support path, and what draws a font not found, as FONTALT and the font mapping file. No font is shipped: the fonts are those of this machine; the folder of the drawing is looked in first."),
                 new GlobalSettingCategory("Data sources", true, "For drawings made from a model (the MODEL categories). Where drawings get their objects."),
                 new GlobalSettingCategory("Shortcuts", false, "Commands, aliases and keys default to AutoCAD's. Type a command's aliases and keys parted by commas; a key or an alias used twice is shown in red."),
                 new GlobalSettingCategory("Save and export", false, "Where drawings are saved and how they are exported."),
@@ -495,6 +535,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             ResetShortcutsCommand = new DelegateCommand(_ => FillShortcuts(true));
             AddLayerCommand = new DelegateCommand(_ => AddLayer());
             RemoveLayerCommand = new DelegateCommand(p => RemoveLayer(p as GlobalLayerRow));
+            AddFontFolderCommand = new DelegateCommand(p => FontFolders.Add(new FontFolderRow(p as string)));
+            RemoveFontFolderCommand = new DelegateCommand(p => FontFolders.Remove(p as FontFolderRow));
+            AddFontSubstitutionCommand = new DelegateCommand(_ => FontSubstitutions.Add(new FontSubstitutionRow(string.Empty, string.Empty)));
+            RemoveFontSubstitutionCommand = new DelegateCommand(p => FontSubstitutions.Remove(p as FontSubstitutionRow));
             ApplyCommand = new DelegateCommand(_ => Apply(), _ => !HasErrors);
             OkCommand = new DelegateCommand(_ => Ok(), _ => !HasErrors);
             CancelCommand = new DelegateCommand(_ => CloseRequested?.Invoke(this, false));
@@ -539,8 +583,29 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Gets whether the shortcuts are shown.</summary>
         public bool IsShortcutsPage => _category.Name == "Shortcuts";
 
+        /// <summary>Gets whether the font folders and the substitution table are shown.</summary>
+        public bool IsFontsPage => _category.Name == "Fonts";
+
         /// <summary>Gets the layers of the default table, edited in place.</summary>
         public ObservableCollection<GlobalLayerRow> Layers { get; } = new ObservableCollection<GlobalLayerRow>();
+
+        /// <summary>Gets the folders fonts are looked for in, in order, edited in place; a blank one is left out.</summary>
+        public ObservableCollection<FontFolderRow> FontFolders { get; } = new ObservableCollection<FontFolderRow>();
+
+        /// <summary>Gets the fonts drawn in others, edited in place; a row of a blank name is left out.</summary>
+        public ObservableCollection<FontSubstitutionRow> FontSubstitutions { get; } = new ObservableCollection<FontSubstitutionRow>();
+
+        /// <summary>Gets the command of Add folder: the folder given, else a blank row to type it in.</summary>
+        public ICommand AddFontFolderCommand { get; }
+
+        /// <summary>Gets the command that takes a folder out of the list, given its row.</summary>
+        public ICommand RemoveFontFolderCommand { get; }
+
+        /// <summary>Gets the command of Add substitution: a blank row to type it in.</summary>
+        public ICommand AddFontSubstitutionCommand { get; }
+
+        /// <summary>Gets the command that takes a substitution out of the table, given its row.</summary>
+        public ICommand RemoveFontSubstitutionCommand { get; }
 
         /// <summary>Gets the model sources the host gives, with their state.</summary>
         public IReadOnlyList<CadSourceInfo> Sources => _model.SettingsSources;
@@ -657,6 +722,19 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 Layers.Add(new GlobalLayerRow(layer));
             }
 
+            FontFolders.Clear();
+            FontSubstitutions.Clear();
+
+            foreach (string folder in settings.FontSearchFolders)
+            {
+                FontFolders.Add(new FontFolderRow(folder));
+            }
+
+            foreach (KeyValuePair<string, string> pair in settings.FontSubstitutions)
+            {
+                FontSubstitutions.Add(new FontSubstitutionRow(pair.Key, pair.Value));
+            }
+
             FillShortcuts(false);
             RaisePage();
         }
@@ -688,6 +766,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             try
             {
                 _working.Layers = layers;
+                _working.FontSearchFolders = FontFolders.Select(r => r.Folder).ToList();
+                _working.SetFontSubstitutions(FontSubstitutions.Select(r => new KeyValuePair<string, string>(r.Font, r.DrawnIn)));
                 _working.SetShortcuts(
                     _allShortcuts.SelectMany(r => r.AliasList.Select(a => new KeyValuePair<string, string>(a, r.Command))),
                     _allShortcuts.SelectMany(r => r.KeyList.Select(k => new KeyValuePair<string, string>(k, r.Command))));
@@ -807,6 +887,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     Number("Text height", "mm", () => s.TextHeight, v => s.TextHeight = v),
                     Number("Title text height", "mm", () => s.TitleTextHeight, v => s.TitleTextHeight = v),
                     Number("Width factor", null, () => s.WidthFactor, v => s.WidthFactor = v),
+                }),
+            };
+
+            _pages["Fonts"] = new[]
+            {
+                new GlobalSettingSection("Font not found", new[]
+                {
+                    Text("Replacement font (FONTALT)", () => s.ReplacementFont, v => s.ReplacementFont = v),
+                    Info("Where it is not found either", "Font where a style's is missing (Text and fonts)"),
                 }),
             };
 
@@ -974,6 +1063,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             Raise(nameof(IsLayersPage));
             Raise(nameof(IsSourcesPage));
             Raise(nameof(IsShortcutsPage));
+            Raise(nameof(IsFontsPage));
             Raise(nameof(Sources));
             RaiseErrors();
         }

@@ -350,19 +350,22 @@ namespace GeometryHelper.Dxf.Viewer
                 yield break;
             }
 
-            GeoPoint2 a = c.Input.Point;
+            // The sides run along the axes of the UCS, as AutoCAD draws them.
+            CadUcs ucs = c.Session.Ucs;
+            GeoPoint2 first = c.Input.Point;
+            GeoPoint2 a = ucs.ToUcs(first);
             GeoPoint2 b;
 
             while (true)
             {
-                yield return CadPrompt.ForPoint("Specify other corner point", a);
+                yield return CadPrompt.ForPoint("Specify other corner point", first);
 
                 if (!c.Input.IsPoint)
                 {
                     yield break;
                 }
 
-                b = c.Input.Point;
+                b = ucs.ToUcs(c.Input.Point);
 
                 if (Math.Abs(b.X - a.X) > c.Session.Tolerance.EqualPoint && Math.Abs(b.Y - a.Y) > c.Session.Tolerance.EqualPoint)
                 {
@@ -375,10 +378,10 @@ namespace GeometryHelper.Dxf.Viewer
             c.Apply(null, s =>
             {
                 var rectangle = new DxfPolyline();
-                rectangle.AddVertexAt(0, a, 0.0, 0.0, 0.0);
-                rectangle.AddVertexAt(1, new GeoPoint2(b.X, a.Y), 0.0, 0.0, 0.0);
-                rectangle.AddVertexAt(2, b, 0.0, 0.0, 0.0);
-                rectangle.AddVertexAt(3, new GeoPoint2(a.X, b.Y), 0.0, 0.0, 0.0);
+                rectangle.AddVertexAt(0, ucs.ToWorld(a), 0.0, 0.0, 0.0);
+                rectangle.AddVertexAt(1, ucs.ToWorld(new GeoPoint2(b.X, a.Y)), 0.0, 0.0, 0.0);
+                rectangle.AddVertexAt(2, ucs.ToWorld(b), 0.0, 0.0, 0.0);
+                rectangle.AddVertexAt(3, ucs.ToWorld(new GeoPoint2(a.X, b.Y)), 0.0, 0.0, 0.0);
                 rectangle.Closed = true;
                 s.Append(c.Space, Current(c, rectangle));
             });
@@ -487,6 +490,7 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 // An angle typed is from the first axis end; one picked is the way to the point, made from that end too.
                 double from = Math.Atan2(axis.Y, axis.X);
+                double fromUcs = c.Session.Ucs.AngleToUcs(from);
                 yield return CadPrompt.ForAngle("Specify start angle", center);
 
                 if (c.Input.Kind != CadInputKind.Number)
@@ -494,17 +498,17 @@ namespace GeometryHelper.Dxf.Viewer
                     yield break;
                 }
 
-                start = Typed(c.Input) ? c.Input.Number : c.Input.Number - from;
+                start = Typed(c.Input) ? c.Input.Number : c.Input.Number - fromUcs;
                 yield return CadPrompt.ForAngle("Specify end angle", center, new[] { "Included angle" });
 
                 if (c.Input.Is("Included angle"))
                 {
                     yield return CadPrompt.ForAngle("Specify included angle for arc", center, null, "180");
-                    end = c.Input.IsNone ? start + Math.PI : c.Input.Kind != CadInputKind.Number ? double.NaN : Typed(c.Input) ? start + c.Input.Number : c.Input.Number - from;
+                    end = c.Input.IsNone ? start + Math.PI : c.Input.Kind != CadInputKind.Number ? double.NaN : Typed(c.Input) ? start + c.Input.Number : c.Input.Number - fromUcs;
                 }
                 else
                 {
-                    end = c.Input.Kind == CadInputKind.Number ? (Typed(c.Input) ? c.Input.Number : c.Input.Number - from) : double.NaN;
+                    end = c.Input.Kind == CadInputKind.Number ? (Typed(c.Input) ? c.Input.Number : c.Input.Number - fromUcs) : double.NaN;
                 }
 
                 if (double.IsNaN(end))
@@ -571,9 +575,12 @@ namespace GeometryHelper.Dxf.Viewer
             c.Remember("text.rotation", rotation);
             double widthFactor = c.Remembered("text.widthFactor", 1.0);
 
+            // The angle typed is from the X axis of the UCS, as AutoCAD's: the text keeps it from the world's.
+            double angle = c.Session.Ucs.AngleToWorld(rotation);
+
             // Line after line until an empty one, each a TEXT of its own five thirds of the height below the one before, as DTEXT
             // goes on; the lines of one run are one undo step.
-            var down = new GeoVector2(Math.Sin(rotation), -Math.Cos(rotation)) * (height * 5.0 / 3.0);
+            var down = new GeoVector2(Math.Sin(angle), -Math.Cos(angle)) * (height * 5.0 / 3.0);
 
             while (true)
             {
@@ -588,7 +595,7 @@ namespace GeometryHelper.Dxf.Viewer
                 GeoPoint2 line = at;
                 c.Apply(null, s =>
                 {
-                    var text = new DxfDBText { Position = P3(line), Height = height, Rotation = rotation, TextString = words, WidthFactor = widthFactor };
+                    var text = new DxfDBText { Position = P3(line), Height = height, Rotation = angle, TextString = words, WidthFactor = widthFactor };
 
                     if (style != null)
                     {
@@ -656,12 +663,21 @@ namespace GeometryHelper.Dxf.Viewer
                 words = DxfMText.WidthChange + widthFactor.ToString("0.0000", CultureInfo.InvariantCulture) + ";" + words;
             }
 
-            double width = Math.Abs(b.X - a.X);
-            var corner = new GeoPoint2(Math.Min(a.X, b.X), Math.Max(a.Y, b.Y));
+            // The box lies along the axes of the UCS, the text turned with it, as AutoCAD's.
+            CadUcs ucs = c.Session.Ucs;
+            GeoPoint2 ua = ucs.ToUcs(a);
+            GeoPoint2 ub = ucs.ToUcs(b);
+            double width = Math.Abs(ub.X - ua.X);
+            GeoPoint2 corner = ucs.ToWorld(new GeoPoint2(Math.Min(ua.X, ub.X), Math.Max(ua.Y, ub.Y)));
             c.Remember("text.height", height);
             c.Apply(null, s =>
             {
                 var text = new DxfMText { Location = P3(corner), TextHeight = height, Width = width, Attachment = DxfAttachmentPoint.TopLeft, Contents = words };
+
+                if (!ucs.IsWorld)
+                {
+                    text.Rotation = ucs.AngleToWorld(0.0);
+                }
 
                 if (style != null)
                 {

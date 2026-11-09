@@ -80,6 +80,10 @@ namespace GeometryHelper.Dxf.Viewer
             registry.Add(new CadCommand("CECOLOR", CurrentColor));
             registry.Add(new CadCommand("RECOVER", Recover));
             registry.Add(new CadCommand("AUDIT", Audit));
+            registry.Add(new CadCommand("UCS", Ucs));
+            registry.Add(new CadCommand("UCSICON", UcsIcon));
+            registry.Add(new CadCommand("PLAN", Plan));
+            registry.Add(new CadCommand("UCSMAN", UcsManager));
         }
 
         /// <summary>A point of the plan in space, at nought height.</summary>

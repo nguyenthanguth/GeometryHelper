@@ -89,8 +89,8 @@ namespace GeometryHelper.Dxf.Viewer
             }
         }
 
-        /// <summary>Gets whether the drawing differs from the one opened or last saved, as the title's * shows.</summary>
-        public bool IsModified => _position != _savedPosition || (_groupRecords != null && _groupRecords.Count > 0);
+        /// <summary>Gets whether the drawing differs from the one opened or last saved, as the title's * shows; a user coordinate system changed counts, as in AutoCAD.</summary>
+        public bool IsModified => _position != _savedPosition || (_groupRecords != null && _groupRecords.Count > 0) || (_ucs != null && _ucs.IsModified);
 
         /// <summary>Gets whether there is a step to undo; false while a command's group of edits is open.</summary>
         public bool CanUndo => _position > 0 && _groupDepth == 0;
@@ -586,7 +586,9 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             string full = Path.GetFullPath(path);
+            _ucs?.WriteTo(Database);
             Database.Save(full);
+            _ucs?.Saved();
             FileName = full;
             _hasPath = true;
             _savedPosition = _position;
@@ -597,7 +599,7 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Drops every display list and pick index, so that each space is drawn again from the drawing, as REGEN does.</summary>
         public void Regen()
         {
-            _builder = new DisplayBuilder(Database);
+            _builder = new DisplayBuilder(Database, this);
             _displays.Clear();
             _indexes.Clear();
             _byHandle = null;
@@ -687,7 +689,7 @@ namespace GeometryHelper.Dxf.Viewer
             DxfDatabase database = DxfDatabase.Open(bytes);
             HashSet<CadSpace> drop = records == null ? new HashSet<CadSpace>(_spaces) : Touched(records, out _);
             Database = database;
-            _builder = new DisplayBuilder(database);
+            _builder = new DisplayBuilder(database, this);
             _byHandle = null;
             _entityCount = null;
             ModelSpace.Rebind(database.ModelSpace, null);
@@ -825,7 +827,7 @@ namespace GeometryHelper.Dxf.Viewer
             if (tables && kind == CadChangeKind.Edit)
             {
                 // The builder reads the layers once; a layer switched off or given a colour needs a new one.
-                _builder = new DisplayBuilder(Database);
+                _builder = new DisplayBuilder(Database, this);
             }
 
             foreach (CadSpace space in touched)

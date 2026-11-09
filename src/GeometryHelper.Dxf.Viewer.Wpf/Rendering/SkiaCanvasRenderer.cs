@@ -384,7 +384,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     DrawFill(canvas, area, m, fill, options, background, item.Style.Rgb, isSelected || isHover, color);
                     break;
                 case DisplayText2 text:
-                    DrawText(canvas, text, m, zoom, fill, color, options);
+                    DrawText(canvas, text, m, zoom, stroke, fill, color, options);
                     break;
                 case DisplayViewport2 viewport:
                     DrawViewport(canvas, document, viewport, m, options, stroke, background, isSelected);
@@ -660,9 +660,21 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>
-        /// The typeface of a text: the family a TrueType style names; the file a style names, from the Fonts folder of Windows,
-        /// or the family of its name where it is not there; the canvas's own for an SHX font, which SkiaSharp cannot draw, and
-        /// for none.
+        /// Gets whether the canvas has a TrueType typeface of a name, as <see cref="CadFonts"/> asks before it replaces a
+        /// style's typeface: Arial on Windows, no typeface of a name no font gives.
+        /// </summary>
+        /// <param name="family">The typeface.</param>
+        /// <returns>True where the font manager matches it.</returns>
+        public static bool HasFamily(string family)
+        {
+            // The typeface matched is not disposed: SkiaSharp may hand back the one the canvas keeps for that family.
+            return !string.IsNullOrWhiteSpace(family) && SKFontManager.Default.MatchFamily(family.Trim()) != null;
+        }
+
+        /// <summary>
+        /// The typeface of a text: the family a TrueType style names; the file a style names, at the full path the fonts found
+        /// it at, else from the Fonts folder of Windows, else the family of its name; the canvas's own for an SHX font not
+        /// drawn by its strokes, and for none.
         /// </summary>
         private SKTypeface Face(string name, string fallback)
         {
@@ -678,7 +690,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 }
                 else if (extension.Length > 0)
                 {
-                    string path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Fonts), Path.GetFileName(name));
+                    string path = Path.IsPathRooted(name) ? name : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Fonts), Path.GetFileName(name));
                     face = (File.Exists(path) ? SKTypeface.FromFile(path) : null) ?? SKFontManager.Default.MatchFamily(Path.GetFileNameWithoutExtension(name)) ?? SKTypeface.FromFamilyName(fallback);
                 }
                 else
@@ -693,12 +705,42 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             return face;
         }
 
-        private void DrawText(SKCanvas canvas, DisplayText2 text, Affine2 m, double zoom, SKPaint fill, SKColor color, CanvasOptions options)
+        private void DrawText(SKCanvas canvas, DisplayText2 text, Affine2 m, double zoom, SKPaint stroke, SKPaint fill, SKColor color, CanvasOptions options)
         {
             double heightPx = text.Height * zoom;
 
             if (heightPx < LeastTextPixels)
             {
+                return;
+            }
+
+            if (text.Strokes != null)
+            {
+                // The letters of an SHX font as their strokes, of the text's line weight, never dashed, as AutoCAD draws them;
+                // their ends and corners rounded where the line is wide enough to show it.
+                bool wide = stroke.StrokeWidth > 1.5f;
+                stroke.PathEffect?.Dispose();
+                stroke.PathEffect = null;
+                stroke.StrokeCap = wide ? SKStrokeCap.Round : SKStrokeCap.Butt;
+                stroke.StrokeJoin = wide ? SKStrokeJoin.Round : SKStrokeJoin.Miter;
+
+                using (var builder = new SKPathBuilder())
+                {
+                    foreach (double[] xy in text.Strokes)
+                    {
+                        builder.MoveTo((float)m.X(xy[0], xy[1]), (float)m.Y(xy[0], xy[1]));
+
+                        for (int i = 2; i + 1 < xy.Length; i += 2)
+                        {
+                            builder.LineTo((float)m.X(xy[i], xy[i + 1]), (float)m.Y(xy[i], xy[i + 1]));
+                        }
+                    }
+
+                    using (SKPath path = builder.Detach()) canvas.DrawPath(path, stroke);
+                }
+
+                stroke.StrokeCap = SKStrokeCap.Butt;
+                stroke.StrokeJoin = SKStrokeJoin.Miter;
                 return;
             }
 

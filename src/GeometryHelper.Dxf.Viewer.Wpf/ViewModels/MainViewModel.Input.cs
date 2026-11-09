@@ -80,13 +80,16 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     return string.Empty;
                 }
 
+                // In the current UCS: its coordinates, and the angle from its X axis.
                 if (!prompt.BasePoint.HasValue)
                 {
-                    return _settings.FormatNumber(_cursorAt.X, _settings.CoordinateDecimals) + ", " + _settings.FormatNumber(_cursorAt.Y, _settings.CoordinateDecimals);
+                    GeoPoint2 shown = Ucs.ToUcs(_cursorAt);
+                    return _settings.FormatNumber(shown.X, _settings.CoordinateDecimals) + ", " + _settings.FormatNumber(shown.Y, _settings.CoordinateDecimals);
                 }
 
-                double dx = _cursorAt.X - prompt.BasePoint.Value.X;
-                double dy = _cursorAt.Y - prompt.BasePoint.Value.Y;
+                GeoVector2 way = Ucs.ToUcs(_cursorAt - prompt.BasePoint.Value);
+                double dx = way.X;
+                double dy = way.Y;
                 double degrees = Math.Atan2(dy, dx) * 180.0 / Math.PI;
                 degrees = degrees < 0.0 ? degrees + 360.0 : degrees;
                 return _settings.FormatNumber(Math.Sqrt(dx * dx + dy * dy), _settings.CoordinateDecimals) + " < " + _settings.FormatNumber(degrees, _settings.AngleDecimals) + "°";
@@ -348,18 +351,21 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return true;
             }
 
+            // The fields are in the current UCS, the point fed in the world's.
             GeoPoint2 point;
+            CadUcs ucs = Ucs;
 
             if (polar)
             {
                 GeoPoint2 from = Session.Prompt.BasePoint.Value;
                 double length = first != null ? Number(first) : (_cursorAt - from).Length;
                 double angle = Number(second) * Math.PI / 180.0;
-                point = from + new GeoVector2(length * Math.Cos(angle), length * Math.Sin(angle));
+                point = from + ucs.ToWorld(new GeoVector2(length * Math.Cos(angle), length * Math.Sin(angle)));
             }
             else
             {
-                point = new GeoPoint2(first != null ? Number(first) : _cursorAt.X, second != null ? Number(second) : _cursorAt.Y);
+                GeoPoint2 cursor = ucs.ToUcs(_cursorAt);
+                point = ucs.ToWorld(new GeoPoint2(first != null ? Number(first) : cursor.X, second != null ? Number(second) : cursor.Y));
             }
 
             Session.Feed(point);
@@ -432,11 +438,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             if (!from.HasValue)
             {
-                return _settings.FormatNumber(second ? _cursorAt.Y : _cursorAt.X, _settings.CoordinateDecimals);
+                GeoPoint2 shown = Ucs.ToUcs(_cursorAt);
+                return _settings.FormatNumber(second ? shown.Y : shown.X, _settings.CoordinateDecimals);
             }
 
-            double dx = _cursorAt.X - from.Value.X;
-            double dy = _cursorAt.Y - from.Value.Y;
+            GeoVector2 way = Ucs.ToUcs(_cursorAt - from.Value);
+            double dx = way.X;
+            double dy = way.Y;
 
             if (!second)
             {

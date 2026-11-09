@@ -119,6 +119,7 @@ namespace GeometryHelper.Dxf.Viewer
                 ["UN"] = "UNITS",
                 ["-UN"] = "-UNITS",
                 ["SCR"] = "SCRIPT",
+                ["UC"] = "UCSMAN",
             },
             new Dictionary<string, string>
             {

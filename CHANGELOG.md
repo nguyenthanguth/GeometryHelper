@@ -93,6 +93,25 @@ another file of the folder was opened, or once it was saved with Save and shown 
 now says, for example, "Test bodies (from file)" until the drawing is made again. The out-of-date dot now shows on such a
 drawing too, checked in the source its file names without changing it.
 
+**NEW.** The presenter draws text in its style's SHX font, read from the user's AutoCAD Fonts folder and never shipped:
+shapes, unifont and big fonts, every pen code, single-stroke letters as AutoCAD draws them; a TEXT of romans.shx `ABC123` 10
+high right-aligned on x 100 is inked from 44.762 to 100, as AutoCAD puts it (the ink boxes of 14 fonts of AutoCAD 2021 agree
+with its own to 0.001 where the strokes are straight). A font not found is drawn in the replacement font (simplex.shx by
+default, as FONTALT) and said once on the command line; Global settings > Fonts lists the search folders, the replacement and
+a substitution table. A drawing of 10 000 SHX texts builds in 171 ms where it took 47, and draws whole in 135 ms where it took
+38.
+
+**NEW.** `DxfDatabase.UcsTable`, with `DxfUcsTable` and `DxfUcsTableRecord`: the named user coordinate systems of a drawing,
+added, changed, renamed and erased as AutoCAD writes them. A system turned 30 degrees about Z at (100, 50, 0) is written with
+its origin (100, 50, 0) and X axis (0.866, 0.5, 0); renaming or erasing it updates `$UCSNAME` and `$UCSBASE` where they named
+it.
+
+**NEW.** The presenter's user coordinate systems as AutoCAD's, in the plane of the drawing: UCS (origin, X and Y points, Z,
+View, World, Previous, OBject, NAmed Save/Restore/Delete/?), UCSICON, PLAN, UCSMAN (a list on the command line), and the named
+systems kept in the file. Points typed are in the UCS (`*` gives world ones). The grid, snap, ortho, polar, crosshair, icon,
+readout and dynamic input follow it. In a UCS turned a quarter turn, `@100<0` draws a line 100 long up the world's Y. The 3D
+options (X, Y, Face) and a dialog for UCSMAN are not built.
+
 **NEW.** `ArrangeItem.Rectangle`, a nullable `GeoRectangle2`, sets labels along the long side of the rectangle of a part in
 place of a `Leader`. The rows stand on either side of the long side and slide along it, with the gaps `Offset`, `OffsetTop`
 and `OffsetBottom` measured from the long edges: a rectangle 2 000 by 300, a label 100 by 40 and the default gap of 50 put the

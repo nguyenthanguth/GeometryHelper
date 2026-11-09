@@ -161,7 +161,7 @@ namespace GeometryHelper.Dxf.Viewer
             Database = database;
             FileName = fileName;
             Selection = new CadSelection();
-            _builder = new DisplayBuilder(database);
+            _builder = new DisplayBuilder(database, this);
             var model = new CadSpace(this, "Model", true, database.ModelSpace, null);
             _spaces.Add(model);
 

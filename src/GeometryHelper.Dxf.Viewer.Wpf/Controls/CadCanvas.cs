@@ -98,6 +98,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private const int SettleMilliseconds = 80;
         private const double GripSize = 8.0;
         private const int GripLimit = 100;
+        private const double UcsIconArm = 44.0;
+        private const double UcsIconLetter = 12.0;
+        private const double UcsIconMargin = 12.0;
 
         private static readonly Brush WindowFill = Frozen(new SolidColorBrush(Color.FromArgb(26, 0x3D, 0x9B, 0xFF)));
         private static readonly Brush CrossingFill = Frozen(new SolidColorBrush(Color.FromArgb(26, 0x3F, 0xB9, 0x50)));
@@ -276,7 +279,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     return kind == CadSnapKind.None || kind == CadSnapKind.Grid || kind == CadSnapKind.Ortho || kind == CadSnapKind.Polar ? string.Empty : CadSnapMarker.NameOf(kind);
                 }
 
-                return TipText(_snapped, Session.Prompt.BasePoint, _snapped?.Point ?? _cursor.Value);
+                return TipText(_snapped, Session.Prompt.BasePoint, _snapped?.Point ?? _cursor.Value, Session.Ucs);
             }
         }
 
@@ -527,11 +530,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             var o = Options;
             DisplayBox paper = space.PaperBounds;
+            CadUcs ucs = document.Ucs.WorkingOf(space);
             string numbers = string.Join("|", new object[]
             {
                 view.CenterX, view.CenterY, view.PixelsPerUnit, view.Width, view.Height, info.Width, info.Height, scale,
                 o.Background, o.Paper, o.ShowLineWeights, o.FontName, o.VisibleLineColor, o.HiddenLineColor, o.HiddenLayerName,
-                ShowGrid, GridSpacing, paper.MinX, paper.MinY, paper.MaxX, paper.MaxY,
+                ShowGrid, GridSpacing, paper.MinX, paper.MinY, paper.MaxX, paper.MaxY, ucs.Origin.X, ucs.Origin.Y, ucs.Angle,
             }.Select(v => Convert.ToString(v, CultureInfo.InvariantCulture)));
             var key = new SceneKey(document.GetDisplay(space), numbers);
 
@@ -550,7 +554,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             if (ShowGrid && space.IsModel)
             {
-                DrawGrid(_scene, view, scale);
+                DrawGrid(_scene, view, scale, ucs);
             }
 
             _sceneKey = key;
@@ -746,6 +750,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             if (view != null)
             {
+                DrawUcsIcon(drawingContext, view, scale);
                 DrawTags(drawingContext, view, scale);
                 DrawGrips(drawingContext, view, scale);
                 DrawPrompt(drawingContext, view, scale);
@@ -1103,7 +1108,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// they lie under the drawing: one pixel wide, 8 per cent lighter than the background, every fifth from the origin 18
         /// per cent lighter, as AutoCAD draws its major lines.
         /// </summary>
-        private void DrawGrid(SKBitmap picture, CadView view, double scale)
+        private void DrawGrid(SKBitmap picture, CadView view, double scale, CadUcs ucs)
         {
             double step = GridStep(view.PixelsPerUnit, GridSpacing, GridPixels * scale);
 
@@ -1123,6 +1128,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             var pixels = new int[stride * height];
             Marshal.Copy(picture.GetPixels(), pixels, 0, pixels.Length);
             DisplayBox visible = view.VisibleBox;
+
+            if (!ucs.IsWorld)
+            {
+                DrawUcsGrid(pixels, width, height, stride, view, step, ucs, background, minor, major);
+                Marshal.Copy(pixels, 0, picture.GetPixels(), pixels.Length);
+                return;
+            }
 
             for (long k = (long)Math.Ceiling(visible.MinX / step); k * step <= visible.MaxX; k++)
             {
@@ -1155,6 +1167,49 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             Marshal.Copy(pixels, 0, picture.GetPixels(), pixels.Length);
+        }
+
+        /// <summary>
+        /// The grid of a UCS other than the world's, as AutoCAD draws it: its lines along the axes of the UCS and through its
+        /// origin, each pixel of the background within half a pixel of one taken, every fifth from the origin the stronger.
+        /// </summary>
+        private static void DrawUcsGrid(int[] pixels, int width, int height, int stride, CadView view, double step, CadUcs ucs, int background, int minor, int major)
+        {
+            // The UCS coordinates of a pixel are linear in its column and row: those of the corner and the steps across and down.
+            view.ScreenToDrawing(0.0, 0.0, out double x0, out double y0);
+            view.ScreenToDrawing(1.0, 0.0, out double x1, out double y1);
+            view.ScreenToDrawing(0.0, 1.0, out double x2, out double y2);
+            GeoPoint2 corner = ucs.ToUcs(new GeoPoint2(x0, y0));
+            GeoVector2 across = ucs.ToUcs(new GeoVector2(x1 - x0, y1 - y0)) / step;
+            GeoVector2 down = ucs.ToUcs(new GeoVector2(x2 - x0, y2 - y0)) / step;
+            double half = 0.5 / (view.PixelsPerUnit * step);
+
+            for (int iy = 0; iy < height; iy++)
+            {
+                double u = corner.X / step + iy * down.X;
+                double v = corner.Y / step + iy * down.Y;
+
+                for (int ix = 0; ix < width; ix++, u += across.X, v += across.Y)
+                {
+                    int at = iy * stride + ix;
+
+                    if (pixels[at] != background)
+                    {
+                        continue;
+                    }
+
+                    double ku = Math.Round(u);
+                    double kv = Math.Round(v);
+                    bool onU = Math.Abs(u - ku) <= half;
+                    bool onV = Math.Abs(v - kv) <= half;
+
+                    if (onU || onV)
+                    {
+                        bool strong = (onU && Math.Abs(Math.IEEERemainder(ku, 5.0)) < 0.5) || (onV && Math.Abs(Math.IEEERemainder(kv, 5.0)) < 0.5);
+                        pixels[at] = strong ? major : minor;
+                    }
+                }
+            }
         }
 
         /// <summary>A channel of a colour taken a share of the way to white.</summary>
@@ -1562,14 +1617,139 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             double box = PickboxPixels;
             bool picking = !CadPicking.WantsPoint(Session);
             double gap = picking ? box : 0.0;
-            dc.DrawLine(pen, new Point(at.X - half, at.Y), new Point(at.X - gap, at.Y));
-            dc.DrawLine(pen, new Point(at.X + gap, at.Y), new Point(at.X + half, at.Y));
-            dc.DrawLine(pen, new Point(at.X, at.Y - half), new Point(at.X, at.Y - gap));
-            dc.DrawLine(pen, new Point(at.X, at.Y + gap), new Point(at.X, at.Y + half));
+
+            // The lines run along the axes of the UCS, as AutoCAD's crosshair does; across and up in the world's.
+            Vector along = CrosshairAxis();
+            var up = new Vector(along.Y, -along.X);
+            dc.DrawLine(pen, at - half * along, at - gap * along);
+            dc.DrawLine(pen, at + gap * along, at + half * along);
+            dc.DrawLine(pen, at + half * up, at + gap * up);
+            dc.DrawLine(pen, at - gap * up, at - half * up);
 
             if (picking)
             {
                 dc.DrawRectangle(null, pen, new Rect(at.X - box, at.Y - box, 2.0 * box, 2.0 * box));
+            }
+        }
+
+        /// <summary>The way the X axis of the UCS runs on the canvas, of unit length: to the right for the world's, Y being down on the screen.</summary>
+        private Vector CrosshairAxis()
+        {
+            CadDocument document = Document;
+            CadUcs ucs = document == null || Space == null ? CadUcs.World : document.Ucs.WorkingOf(Space);
+            return ucs.IsWorld ? new Vector(1.0, 0.0) : new Vector(Math.Cos(ucs.Angle), -Math.Sin(ucs.Angle));
+        }
+
+        /// <summary>
+        /// Where the UCS icon is drawn, in device-independent pixels: the corner its arms leave and the way of its X arm, at the
+        /// origin of the UCS where UCSICON ORigin is on and the whole icon fits there, else at the lower left corner, as
+        /// AutoCAD places it. False where UCSICON is off. A test reads it.
+        /// </summary>
+        internal bool TryPlaceUcsIcon(out Point corner, out Vector xArm, out bool atOrigin)
+        {
+            corner = default;
+            atOrigin = false;
+            xArm = CrosshairAxis();
+            CadDocument document = Document;
+            CadView view = View;
+
+            if (document == null || Space == null || view == null || !document.Ucs.IconOn)
+            {
+                return false;
+            }
+
+            // The box the arms and their letters take about the corner.
+            var yArm = new Vector(xArm.Y, -xArm.X);
+            Vector[] reach = { new Vector(0.0, 0.0), xArm * (UcsIconArm + UcsIconLetter), yArm * (UcsIconArm + UcsIconLetter), (xArm + yArm) * UcsIconArm };
+            double minX = reach.Min(v => v.X) - UcsIconLetter / 2.0;
+            double maxX = reach.Max(v => v.X) + UcsIconLetter / 2.0;
+            double minY = reach.Min(v => v.Y) - UcsIconLetter / 2.0;
+            double maxY = reach.Max(v => v.Y) + UcsIconLetter / 2.0;
+            CadUcs ucs = document.Ucs.WorkingOf(Space);
+
+            if (document.Ucs.IconAtOrigin)
+            {
+                Point origin = ToScreen(view, new GeoPoint2(ucs.Origin.X, ucs.Origin.Y), PixelScale);
+
+                if (origin.X + minX >= UcsIconMargin && origin.X + maxX <= ActualWidth - UcsIconMargin && origin.Y + minY >= UcsIconMargin && origin.Y + maxY <= ActualHeight - UcsIconMargin)
+                {
+                    corner = origin;
+                    atOrigin = true;
+                    return true;
+                }
+            }
+
+            corner = new Point(UcsIconMargin - minX, ActualHeight - UcsIconMargin - maxY);
+            return true;
+        }
+
+        /// <summary>
+        /// The UCS icon, as AutoCAD's 2D icon: the X and Y arms with their arrows and letters along the axes of the UCS, a small
+        /// box at their corner with a + in it where the icon is at the origin, and a W by the Y arm while the UCS is the world;
+        /// white on a dark background, dark on a light one.
+        /// </summary>
+        private void DrawUcsIcon(DrawingContext dc, CadView view, double scale)
+        {
+            if (!TryPlaceUcsIcon(out Point corner, out Vector xArm, out bool atOrigin))
+            {
+                return;
+            }
+
+            int rgb = Space.IsModel ? Options.Background : Options.Paper;
+            double luminance = (0.2126 * ((rgb >> 16) & 0xFF) + 0.7152 * ((rgb >> 8) & 0xFF) + 0.0722 * (rgb & 0xFF)) / 255.0;
+            Brush ink = luminance < 0.5 ? Brushes.White : Brushes.Black;
+            var pen = new Pen(ink, 1.5);
+            pen.Freeze();
+            var yArm = new Vector(xArm.Y, -xArm.X);
+            double dip = VisualTreeHelper.GetDpi(this).PixelsPerDip;
+
+            foreach (Vector arm in new[] { xArm, yArm })
+            {
+                var side = new Vector(-arm.Y, arm.X);
+                Point tip = corner + arm * UcsIconArm;
+                dc.DrawLine(pen, corner, tip - arm * 8.0);
+                var head = new StreamGeometry();
+
+                using (StreamGeometryContext context = head.Open())
+                {
+                    context.BeginFigure(tip, true, true);
+                    context.LineTo(tip - arm * 9.0 + side * 3.5, true, false);
+                    context.LineTo(tip - arm * 9.0 - side * 3.5, true, false);
+                }
+
+                head.Freeze();
+                dc.DrawGeometry(ink, null, head);
+                var letter = new FormattedText(arm == xArm ? "X" : "Y", CultureInfo.InvariantCulture, FlowDirection.LeftToRight, TagFace, 11.0, ink, dip);
+                Point at = corner + arm * (UcsIconArm + UcsIconLetter / 2.0 + 2.0);
+                dc.DrawText(letter, new Point(at.X - letter.Width / 2.0, at.Y - letter.Height / 2.0));
+            }
+
+            // The box at the corner, along the arms.
+            var box = new StreamGeometry();
+
+            using (StreamGeometryContext context = box.Open())
+            {
+                context.BeginFigure(corner, false, true);
+                context.LineTo(corner + xArm * 8.0, true, false);
+                context.LineTo(corner + (xArm + yArm) * 8.0, true, false);
+                context.LineTo(corner + yArm * 8.0, true, false);
+            }
+
+            box.Freeze();
+            dc.DrawGeometry(null, pen, box);
+
+            if (atOrigin)
+            {
+                Point middle = corner + (xArm + yArm) * 4.0;
+                dc.DrawLine(pen, middle - xArm * 2.5, middle + xArm * 2.5);
+                dc.DrawLine(pen, middle - yArm * 2.5, middle + yArm * 2.5);
+            }
+
+            if (Document.Ucs.WorkingOf(Space).IsWorld)
+            {
+                var w = new FormattedText("W", CultureInfo.InvariantCulture, FlowDirection.LeftToRight, TagFace, 10.0, ink, dip);
+                Point at = corner + yArm * 20.0 + xArm * 10.0;
+                dc.DrawText(w, new Point(at.X - w.Width / 2.0, at.Y - w.Height / 2.0));
             }
         }
 
@@ -1648,8 +1828,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
         }
 
-        /// <summary>The tip by the cursor, as AutoCAD's dynamic input: the snap's name, the distance and the angle from the base point.</summary>
-        private static string TipText(CadSnapResult snapped, GeoPoint2? basePoint, GeoPoint2 target)
+        /// <summary>The tip by the cursor, as AutoCAD's dynamic input: the snap's name, the distance and the angle from the base point, the angle from the X axis of the UCS.</summary>
+        private static string TipText(CadSnapResult snapped, GeoPoint2? basePoint, GeoPoint2 target, CadUcs ucs)
         {
             string kind = snapped == null ? string.Empty : CadSnapMarker.NameOf(snapped.Kind);
 
@@ -1658,7 +1838,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return kind;
             }
 
-            GeoVector2 way = target - basePoint.Value;
+            GeoVector2 way = ucs.ToUcs(target - basePoint.Value);
             double degrees = Math.Atan2(way.Y, way.X) * 180.0 / Math.PI;
             degrees = degrees < 0.0 ? degrees + 360.0 : degrees;
             string measured = way.Length.ToString("0.0", CultureInfo.InvariantCulture) + " < " + degrees.ToString("0", CultureInfo.InvariantCulture) + "°";

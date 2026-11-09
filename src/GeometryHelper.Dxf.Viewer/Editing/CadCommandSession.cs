@@ -124,6 +124,14 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Gets the last point given to a prompt, which a typed @dx,dy is measured from (AutoCAD's LASTPOINT).</summary>
         public GeoPoint2 LastPoint { get; internal set; } = GeoPoint2.Origin;
 
+        /// <summary>
+        /// Gets the user coordinate system the prompts work in, the document's <see cref="CadUcsManager.Working"/>: a point typed
+        /// as <c>x,y</c>, <c>@dx,dy</c> or <c>@distance&lt;angle</c> is in it, one typed after a <c>*</c> in the world's, and an
+        /// angle given is measured from its X axis. Points given to the commands are world points all the same: in a system
+        /// turned a quarter turn, <c>@100&lt;0</c> from (0, 0) is the world point (0, 100).
+        /// </summary>
+        public CadUcs Ucs => Document.Ucs.Working;
+
         /// <summary>Starts a command by its name or alias, ending any command running first as Esc would.</summary>
         /// <param name="typed">The name or alias: MOVE, M.</param>
         /// <returns>False, with "Unknown command" in the history, where the registry knows no such command.</returns>
@@ -213,7 +221,7 @@ namespace GeometryHelper.Dxf.Viewer
                     }
 
                     GeoVector2 way = point - Prompt.BasePoint.Value;
-                    return Answer(new CadInput(CadInputKind.Number, point, Math.Atan2(way.Y, way.X), null, null), Prompt.Text, point);
+                    return Answer(new CadInput(CadInputKind.Number, point, Ucs.AngleToUcs(Math.Atan2(way.Y, way.X)), null, null), Prompt.Text, point);
                 case CadPromptKind.Selection:
                 case CadPromptKind.Entity:
                     IReadOnlyList<string> picked = Document.GetPickIndex(Document.CurrentSpace).Pick(point.X, point.Y, PickAperture);
@@ -224,6 +232,12 @@ namespace GeometryHelper.Dxf.Viewer
                         Write(Prompt.Kind == CadPromptKind.Entity ? "Nothing selected." : "0 found");
                         Changed();
                         return false;
+                    }
+
+                    if (Prompt.Kind == CadPromptKind.Entity && Document.FindEntity(picked[0]) != null)
+                    {
+                        // The point the object was picked at goes with it, as UCS OBject takes the end of a line nearer the pick.
+                        return Answer(new CadInput(CadInputKind.Selection, point, 0.0, null, new[] { picked[0] }), Prompt.Text, null);
                     }
 
                     return FeedSelection(new[] { picked[0] });
@@ -352,7 +366,7 @@ namespace GeometryHelper.Dxf.Viewer
                     if (Prompt.BasePoint != null && TryPoint(typed, out GeoPoint2 toward2))
                     {
                         GeoVector2 way = toward2 - Prompt.BasePoint.Value;
-                        return Answer(new CadInput(CadInputKind.Number, toward2, Math.Atan2(way.Y, way.X), typed, null), echo, toward2);
+                        return Answer(new CadInput(CadInputKind.Number, toward2, Ucs.AngleToUcs(Math.Atan2(way.Y, way.X)), typed, null), echo, toward2);
                     }
 
                     return Invalid("Requires valid numeric angle or second point.", echo);
@@ -669,6 +683,10 @@ namespace GeometryHelper.Dxf.Viewer
                 }
             }
 
+            // A * before the numbers gives them in world coordinates, as AutoCAD's *10,20 and @*5,0; else they are the current UCS's.
+            bool world = text.StartsWith("*", StringComparison.Ordinal);
+            text = world ? text.Substring(1).Trim() : text;
+            CadUcs ucs = world ? CadUcs.World : Ucs;
             int polar = text.IndexOf('<');
             GeoVector2 offset;
 
@@ -695,8 +713,7 @@ namespace GeometryHelper.Dxf.Viewer
                 offset = new GeoVector2(x, y);
             }
 
-            GeoPoint2 from = relative ? LastPoint : GeoPoint2.Origin;
-            point = from + offset;
+            point = relative ? LastPoint + ucs.ToWorld(offset) : ucs.ToWorld(GeoPoint2.Origin + offset);
             return true;
         }
 

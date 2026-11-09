@@ -27,10 +27,16 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             return prompt != null && (prompt.Kind == CadPromptKind.Selection || prompt.Kind == CadPromptKind.Entity);
         }
 
-        /// <summary>Gets the point a click at the cursor takes, snapped from the prompt's base point; null where no snap is given.</summary>
+        /// <summary>Gets the point a click at the cursor takes, snapped from the prompt's base point, the grid, ortho and polar along the space's UCS; null where no snap is given.</summary>
         public static CadSnapResult Snap(CadDocument document, CadSpace space, ObjectSnap snap, GeoPoint2 cursor, double aperture, GeoPoint2? basePoint)
         {
-            return snap == null ? null : snap.Snap(document.GetPickIndex(space), cursor, aperture, basePoint);
+            if (snap == null)
+            {
+                return null;
+            }
+
+            snap.Ucs = document.Ucs.WorkingOf(space);
+            return snap.Snap(document.GetPickIndex(space), cursor, aperture, basePoint);
         }
 
         /// <summary>A left click at a point of the drawing.</summary>

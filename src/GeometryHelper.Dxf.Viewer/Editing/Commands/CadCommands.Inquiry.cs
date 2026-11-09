@@ -31,7 +31,8 @@ namespace GeometryHelper.Dxf.Viewer
                 yield break;
             }
 
-            GeoVector2 d = c.Input.Point - a;
+            // The angle and the deltas are along the axes of the UCS, as AutoCAD reports them.
+            GeoVector2 d = c.Session.Ucs.ToUcs(c.Input.Point - a);
             c.Write("Distance = " + Length(d.Length) + ",  Angle in XY Plane = " + Degrees(c, Math.Atan2(d.Y, d.X)) + ",  Angle from XY Plane = " + Degrees(c, 0.0));
             c.Write("Delta X = " + Length(d.X) + ",  Delta Y = " + Length(d.Y) + ",  Delta Z = " + Length(0.0));
         }
@@ -42,7 +43,9 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (c.Input.IsPoint)
             {
-                c.Write("X = " + Length(c.Input.Point.X) + "     Y = " + Length(c.Input.Point.Y) + "     Z = " + Length(0.0));
+                // In the coordinates of the UCS, as AutoCAD's ID.
+                GeoPoint2 at = c.Session.Ucs.ToUcs(c.Input.Point);
+                c.Write("X = " + Length(at.X) + "     Y = " + Length(at.Y) + "     Z = " + Length(0.0));
             }
         }
 
@@ -213,23 +216,25 @@ namespace GeometryHelper.Dxf.Viewer
             switch (entity)
             {
                 case DxfLine line:
-                    GeoVector3 d = line.Delta;
-                    yield return "              from point, " + At(line.StartPoint);
-                    yield return "                to point, " + At(line.EndPoint);
+                    GeoVector3 delta = line.Delta;
+                    GeoVector2 flat = c.Session.Ucs.ToUcs(new GeoVector2(delta.X, delta.Y));
+                    var d = new GeoVector3(flat.X, flat.Y, delta.Z);
+                    yield return "              from point, " + At(c, line.StartPoint);
+                    yield return "                to point, " + At(c, line.EndPoint);
                     yield return "          Length = " + Length(line.Length) + ",  Angle in XY Plane = " + Degrees(c, Math.Atan2(d.Y, d.X)).PadLeft(6);
                     yield return "                  Delta X = " + Length(d.X) + ", Delta Y = " + Length(d.Y) + ", Delta Z = " + Length(d.Z);
                     yield break;
                 case DxfCircle circle:
-                    yield return "            center point, " + At(circle.Center);
+                    yield return "            center point, " + At(c, circle.Center);
                     yield return "            radius " + Length(circle.Radius).PadLeft(9);
                     yield return "     circumference " + Length(circle.Circumference).PadLeft(9);
                     yield return "              area " + Length(circle.Area).PadLeft(9);
                     yield break;
                 case DxfArc arc:
-                    yield return "            center point, " + At(arc.Center);
+                    yield return "            center point, " + At(c, arc.Center);
                     yield return "            radius " + Length(arc.Radius).PadLeft(9);
-                    yield return "             start angle " + Degrees(c, arc.StartAngle).PadLeft(6);
-                    yield return "               end angle " + Degrees(c, arc.EndAngle).PadLeft(6);
+                    yield return "             start angle " + Degrees(c, c.Session.Ucs.AngleToUcs(arc.StartAngle)).PadLeft(6);
+                    yield return "               end angle " + Degrees(c, c.Session.Ucs.AngleToUcs(arc.EndAngle)).PadLeft(6);
                     yield return "                  length " + Length(arc.Length).PadLeft(9);
                     yield break;
                 case DxfPolyline polyline:
@@ -239,12 +244,12 @@ namespace GeometryHelper.Dxf.Viewer
 
                     for (int i = 0; i < polyline.NumberOfVertices; i++)
                     {
-                        yield return "                at point  " + At(polyline.GetPoint3dAt(i));
+                        yield return "                at point  " + At(c, polyline.GetPoint3dAt(i));
                     }
 
                     yield break;
                 case DxfDBPoint point:
-                    yield return "                at point, " + At(point.Position);
+                    yield return "                at point, " + At(c, point.Position);
                     yield break;
             }
 
@@ -263,7 +268,11 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>A point as LIST writes one: "X= 100.0000  Y=   0.0000  Z=   0.0000".</summary>
-        private static string At(GeoPoint3 p) => "X=" + Length(p.X).PadLeft(9) + "  Y=" + Length(p.Y).PadLeft(9) + "  Z=" + Length(p.Z).PadLeft(9);
+        private static string At(CadCommandContext c, GeoPoint3 world)
+        {
+            GeoPoint3 p = c.Session.Ucs.IsWorld ? world : c.Session.Ucs.ToUcs(world);
+            return "X=" + Length(p.X).PadLeft(9) + "  Y=" + Length(p.Y).PadLeft(9) + "  Z=" + Length(p.Z).PadLeft(9);
+        }
 
         /// <summary>An angle in degrees from 0 to 360, to the places of the drawing's $AUPREC: 45 at 0, as AutoCAD's template has it, 45.00 at 2.</summary>
         private static string Degrees(CadCommandContext c, double radians)

@@ -121,6 +121,10 @@ Ctrl+Z U, Ctrl+Y REDO, Ctrl+S QSAVE, Ctrl+1 PROPERTIES, Ctrl+A SELECTALL). A reg
 [global settings](app.md#global-settings), by another set; letters of either case are the same, and a name wins over an
 alias of the same letters.
 
+## User coordinate systems
+
+UCS sets the system points are typed in: give an origin, then a point on the X axis, or type Z and an angle to turn it. A point typed as `10,20` is then measured from that origin along its axes, and `*10,20` is the world point. The grid, ortho and polar tracking run along its axes, the crosshair and the icon turn with it, and the status bar and dynamic input show its coordinates. In a UCS turned a quarter turn, `@100<0` draws a line 100 long up the world's Y. Objects are still saved in world coordinates. UCS NAmed Save keeps a system under a name in the drawing's UCS table, and Restore makes it current again; UCS Previous goes back through the last ten, and a UCS change is not undone by U. UCSICON turns the icon on or off and puts it at the origin or at the lower left, PLAN zooms to extents, and UCSMAN lists the named systems on the command line. A UCS read from a file that is not in the plane of the drawing is listed but not made current: the presenter shows the drawing from above. The 3D options (X, Y, Face) say they are not available in a 2D view.
+
 ## Object snaps
 
 [`ObjectSnap`](xref:GeometryHelper.Dxf.Viewer.ObjectSnap) turns the cursor into the point a click takes: an object snap, or the

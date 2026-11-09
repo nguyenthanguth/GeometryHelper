@@ -19,7 +19,11 @@ namespace GeometryHelper.Dxf.Viewer
         private const int MaxHatchLines = 20000;
         private const double SplineSegments = 128.0;
 
+        /// <summary>The fonts of a builder made with no document: off, every style drawn as the canvas draws it.</summary>
+        private static readonly CadFonts FontsOff = new CadFonts(null, null, null);
+
         private readonly DxfDatabase _database;
+        private readonly CadDocument _document;
         private readonly Dictionary<string, LayerState> _layers = new Dictionary<string, LayerState>(StringComparer.OrdinalIgnoreCase);
         private readonly Dictionary<string, double[]> _dashes = new Dictionary<string, double[]>(StringComparer.OrdinalIgnoreCase);
         private readonly Dictionary<string, TextFont> _fonts = new Dictionary<string, TextFont>(StringComparer.OrdinalIgnoreCase);
@@ -30,9 +34,10 @@ namespace GeometryHelper.Dxf.Viewer
         private readonly Dictionary<DxfHatch, HatchPattern> _patterns = new Dictionary<DxfHatch, HatchPattern>();
         private DisplayList2 _modelCache;
 
-        public DisplayBuilder(DxfDatabase database)
+        public DisplayBuilder(DxfDatabase database, CadDocument document = null)
         {
             _database = database;
+            _document = document;
             double scale = 1.0;
 
             try
@@ -265,8 +270,8 @@ namespace GeometryHelper.Dxf.Viewer
             return result;
         }
 
-        /// <summary>The font of a text style: the typeface it names, else the file of its font; null where it has neither.</summary>
-        private string FontOf(string styleName) => Style(styleName).Name;
+        /// <summary>What a text style is drawn in: its SHX font found, else the name of its typeface or file the canvas takes; with the document's fonts off, the typeface it names, else the file of its font, the name null where it has neither.</summary>
+        private CadFontFace FaceOf(string styleName) => Style(styleName).Face;
 
         /// <summary>The slant of a text style's letters in radians.</summary>
         private double ObliqueOf(string styleName) => Style(styleName).Oblique;
@@ -288,8 +293,7 @@ namespace GeometryHelper.Dxf.Viewer
 
                     if (record != null)
                     {
-                        string typeFace = record.Font.TypeFace;
-                        font = new TextFont(string.IsNullOrEmpty(typeFace) ? record.FileName : typeFace, record.ObliquingAngle, record.XScale);
+                        font = new TextFont(Resolve(record.FileName, record.BigFontFileName, record.Font.TypeFace), record.ObliquingAngle, record.XScale);
                     }
                 }
                 catch (Exception)
@@ -303,16 +307,58 @@ namespace GeometryHelper.Dxf.Viewer
             return font;
         }
 
+        /// <summary>
+        /// The face of an MTEXT's font code before its words (<see cref="FontCodeOf"/>), found as a style's font is; null where it
+        /// has none or the document's fonts are off, its style's face then drawn.
+        /// </summary>
+        private CadFontFace FaceOfCode(string contents)
+        {
+            if (_document == null || _document.Fonts.IsOff)
+            {
+                return null;
+            }
+
+            string name = FontCodeOf(contents, out bool shx);
+
+            if (name == null)
+            {
+                return null;
+            }
+
+            string key = "\\" + (shx ? "F" : "f") + name;
+
+            if (!_fonts.TryGetValue(key, out TextFont font))
+            {
+                font = new TextFont(shx ? Resolve(name, null, null) : Resolve(null, null, name), 0.0, 1.0);
+                _fonts[key] = font;
+            }
+
+            return font.Face;
+        }
+
+        /// <summary>The face of a font as the document's fonts find it, a font not found said once on its <see cref="CadDocument.FontMissing"/>.</summary>
+        private CadFontFace Resolve(string fileName, string bigFontFileName, string typeface)
+        {
+            CadFontFace face = (_document?.Fonts ?? FontsOff).Resolve(fileName, bigFontFileName, typeface, _document?.FontFolder, out string report);
+
+            if (report != null)
+            {
+                _document?.SayFontMissing(report);
+            }
+
+            return face;
+        }
+
         private sealed class TextFont
         {
-            public TextFont(string name, double oblique, double widthFactor)
+            public TextFont(CadFontFace face, double oblique, double widthFactor)
             {
-                Name = string.IsNullOrEmpty(name) ? null : name;
+                Face = face ?? new CadFontFace(null, null, null, null);
                 Oblique = oblique;
                 WidthFactor = widthFactor > 0.0 && !double.IsInfinity(widthFactor) ? widthFactor : 1.0;
             }
 
-            public string Name { get; }
+            public CadFontFace Face { get; }
 
             public double Oblique { get; }
 
@@ -576,7 +622,25 @@ namespace GeometryHelper.Dxf.Viewer
 
             Affine2 m = frame.Matrix;
             double turn = Orient(m, text.Rotation, text.IsMirroredInX, text.IsMirroredInY, out bool backward);
-            list.Add(new DisplayText2(value, m.X(at.X, at.Y), m.Y(at.X, at.Y), text.Height * m.Scale, turn, text.WidthFactor, horizontal, vertical, style, handle, layerName, FontOf(text.TextStyleName), text.Oblique, backward));
+            list.Add(Text(FaceOf(text.TextStyleName), value, m.X(at.X, at.Y), m.Y(at.X, at.Y), text.Height * m.Scale, turn, text.WidthFactor, horizontal, vertical, style, handle, layerName, text.Oblique, backward));
+        }
+
+        /// <summary>
+        /// A text drawn in a face: by the canvas in the face's name where it is no SHX font; else as the strokes of its letters
+        /// (<see cref="ShxText"/>), its width that of their advances and its frame reaching down to the font's depth below the
+        /// baseline, by which a text aligned at its bottom stands, as AutoCAD stands one.
+        /// </summary>
+        private static DisplayText2 Text(CadFontFace face, string value, double x, double y, double height, double rotation, double widthFactor, int horizontal, int vertical, DisplayStyle style, string handle, string layerName, double oblique, bool backward)
+        {
+            if (face.Shx == null)
+            {
+                return new DisplayText2(value, x, y, height, rotation, widthFactor, horizontal, vertical, style, handle, layerName, face.Name, oblique, backward);
+            }
+
+            double factor = widthFactor <= 0.0 ? 1.0 : widthFactor;
+            double descent = height * face.Shx.Below / face.Shx.Above;
+            List<double[]> strokes = ShxText.Strokes(face, value, x, y, height, rotation, factor, horizontal, vertical, oblique, backward, descent, out double width);
+            return new DisplayText2(value, x, y, height, rotation, factor, horizontal, vertical, style, handle, layerName, face.Name, oblique, backward, strokes, width, descent);
         }
 
         private void DrawMText(DxfMText text, Frame frame, DisplayList2 list, DisplayStyle style, string handle, string layerName)
@@ -596,7 +660,60 @@ namespace GeometryHelper.Dxf.Viewer
             double rotation = Math.Atan2(direction.Y, direction.X);
             Affine2 m = frame.Matrix;
             double turn = Orient(m, rotation, false, false, out bool backward);
-            list.Add(new DisplayText2(value, m.X(at.X, at.Y), m.Y(at.X, at.Y), text.TextHeight * m.Scale, turn, WidthOf(text.Contents, WidthFactorOf(text.TextStyleName)), horizontal, vertical, style, handle, layerName, FontOf(text.TextStyleName), ObliqueOf(text.TextStyleName), backward));
+            CadFontFace face = FaceOfCode(text.Contents) ?? FaceOf(text.TextStyleName);
+            list.Add(Text(face, value, m.X(at.X, at.Y), m.Y(at.X, at.Y), text.TextHeight * m.Scale, turn, WidthOf(text.Contents, WidthFactorOf(text.TextStyleName)), horizontal, vertical, style, handle, layerName, ObliqueOf(text.TextStyleName), backward));
+        }
+
+        /// <summary>
+        /// The font an MTEXT's codes switch to before the first of its words, as AutoCAD writes them: <c>\fArial|b0|i0|c0|p34;</c>
+        /// a typeface, <c>\Fromans|c0;</c> or <c>\Fromans.shx;</c> an SHX file; the last of them where there are several; null
+        /// where they switch to none. A switch later in the words is not read, as the words are drawn in one font.
+        /// </summary>
+        private static string FontCodeOf(string contents, out bool shx)
+        {
+            string name = null;
+            shx = false;
+            int i = 0;
+
+            while (i < contents.Length)
+            {
+                if (contents[i] == '{')
+                {
+                    i++;
+                    continue;
+                }
+
+                if (contents[i] != '\\' || i + 1 >= contents.Length)
+                {
+                    break;
+                }
+
+                char code = contents[i + 1];
+
+                if ("LlOoKk".IndexOf(code) >= 0)
+                {
+                    i += 2;
+                    continue;
+                }
+
+                int end = contents.IndexOf(';', i + 2);
+
+                if ("ACcFfHQTWp".IndexOf(code) < 0 || end < 0)
+                {
+                    break;
+                }
+
+                if (code == 'f' || code == 'F')
+                {
+                    string font = contents.Substring(i + 2, end - i - 2).Split('|')[0].Trim();
+                    name = font.Length > 0 ? font : name;
+                    shx = font.Length > 0 ? code == 'F' : shx;
+                }
+
+                i = end + 1;
+            }
+
+            return name;
         }
 
         /// <summary>

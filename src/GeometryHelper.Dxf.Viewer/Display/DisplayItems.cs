@@ -568,6 +568,8 @@ namespace GeometryHelper.Dxf.Viewer
     public sealed class DisplayText2 : DisplayItem2
     {
         private readonly DisplayBox _bounds;
+        private readonly double _width = double.NaN;
+        private readonly double _descent;
 
         /// <summary>Makes a piece of text.</summary>
         /// <param name="text">The text, one or more lines separated by line feeds, with the format codes of an MTEXT already taken out.</param>
@@ -621,6 +623,33 @@ namespace GeometryHelper.Dxf.Viewer
             Vertical = vertical;
             _bounds = ComputeBounds();
         }
+
+        /// <summary>A text drawn as the strokes of its SHX font's letters, its width measured from their advances and its depth below the baseline the font's.</summary>
+        internal DisplayText2(string text, double x, double y, double height, double rotation, double widthFactor, int horizontal, int vertical, DisplayStyle style, string handle, string layer, string fontName, double oblique, bool backward, IReadOnlyList<double[]> strokes, double width, double descent)
+            : this(text, x, y, height, rotation, widthFactor, horizontal, vertical, style, handle, layer, fontName, oblique, backward)
+        {
+            Strokes = strokes;
+            _width = width;
+            _descent = descent;
+            DisplayBox box = ComputeBounds();
+
+            foreach (double[] stroke in strokes)
+            {
+                for (int i = 0; i + 1 < stroke.Length; i += 2)
+                {
+                    box = box.Add(stroke[i], stroke[i + 1]);
+                }
+            }
+
+            _bounds = box;
+        }
+
+        /// <summary>
+        /// Gets the strokes of the letters where the text is drawn in an SHX font, each a polyline of x, y pairs in the
+        /// drawing's coordinates, the text's height, width factor, slant, alignment, angle and turning over already taken;
+        /// null where the canvas draws the text in <see cref="FontName"/>.
+        /// </summary>
+        public IReadOnlyList<double[]> Strokes { get; }
 
         /// <summary>Gets the text.</summary>
         public string Text { get; }
@@ -679,11 +708,20 @@ namespace GeometryHelper.Dxf.Viewer
             }
         }
 
-        /// <summary>Gets the width the text is taken to have, from its height and the number of its letters: 0.6 of the height a letter, as a monospace font would, for picking and extents; the canvas measures the real width.</summary>
+        /// <summary>
+        /// Gets the width the text is taken to have for picking and extents: of its widest line, by the advances of its letters
+        /// where it is drawn in an SHX font (<see cref="Strokes"/>); else from its height and the number of its letters, 0.6 of
+        /// the height a letter, as a monospace font would, the canvas measuring the real width.
+        /// </summary>
         public double EstimatedWidth
         {
             get
             {
+                if (!double.IsNaN(_width))
+                {
+                    return _width;
+                }
+
                 int longest = 0;
 
                 foreach (string line in Text.Split('\n'))
@@ -726,11 +764,12 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             // The block of lines in its own frame: the first line's capitals reach up to Height, the last baseline is
-            // (lines - 1) line steps below the first; the vertical mode then says which of its levels is at nought.
+            // (lines - 1) line steps below the first, and an SHX font's letters down to its depth below that; the vertical mode
+            // then says which of its levels is at nought, the bottom that depth.
             double top = Height;
             double bottom = -(LineCount - 1) * 1.25 * Height;
-            double shift = Vertical == 0 ? 0.0 : Vertical == 1 ? -bottom : Vertical == 2 ? -(top + bottom) / 2.0 : -top;
-            y0 = bottom + shift;
+            double shift = Vertical == 0 ? 0.0 : Vertical == 1 ? -(bottom - _descent) : Vertical == 2 ? -(top + bottom) / 2.0 : -top;
+            y0 = bottom - _descent + shift;
             y1 = top + shift;
         }
 

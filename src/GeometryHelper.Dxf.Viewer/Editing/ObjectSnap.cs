@@ -193,8 +193,21 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Gets or sets the spacing of the snap grid along Y; 10 until set.</summary>
         public double GridY { get; set; }
 
-        /// <summary>Gets or sets the point the snap grid runs through; the origin until set.</summary>
+        /// <summary>Gets or sets the point the snap grid runs through, in the coordinates of <see cref="Ucs"/>, as AutoCAD's SNAPBASE; the origin until set.</summary>
         public GeoPoint2 GridOrigin { get; set; } = GeoPoint2.Origin;
+
+        /// <summary>
+        /// Gets or sets the user coordinate system the grid, ortho and polar tracking follow, as AutoCAD's do: the grid runs
+        /// along its axes, ortho holds the cursor along them, and polar angles are measured from its X axis. Object snaps give
+        /// world points whatever it is. The world until set; null sets the world.
+        /// </summary>
+        public CadUcs Ucs
+        {
+            get => _ucs;
+            set => _ucs = value ?? CadUcs.World;
+        }
+
+        private CadUcs _ucs = CadUcs.World;
 
         /// <summary>Gets the point a click at the cursor takes.</summary>
         /// <param name="index">The index of the space under the cursor.</param>
@@ -222,7 +235,10 @@ namespace GeometryHelper.Dxf.Viewer
                 }
             }
 
-            GeoPoint2 point = cursor;
+            // The grid, ortho and polar work in the user coordinate system, the point taken back to the world's at the end.
+            CadUcs ucs = _ucs;
+            GeoPoint2 point = ucs.ToUcs(cursor);
+            basePoint = basePoint.HasValue ? ucs.ToUcs(basePoint.Value) : basePoint;
             CadSnapKind kind = CadSnapKind.None;
 
             if (GridSnap && GridX > 0.0 && GridY > 0.0)
@@ -261,7 +277,7 @@ namespace GeometryHelper.Dxf.Viewer
                 }
             }
 
-            return new CadSnapResult(kind, point, null);
+            return new CadSnapResult(kind, ucs.ToWorld(point), null);
         }
 
         private CadSnapResult ObjectSnapAt(PickIndex index, GeoPoint2 cursor, double aperture, GeoPoint2? basePoint)

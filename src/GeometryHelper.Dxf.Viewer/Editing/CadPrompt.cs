@@ -269,7 +269,7 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Gets what kind of answer it is.</summary>
         public CadInputKind Kind { get; }
 
-        /// <summary>Gets the point of a point answer, and the point picked for a distance or an angle.</summary>
+        /// <summary>Gets the point of a point answer, the point picked for a distance or an angle, and the point one object was picked at on the canvas.</summary>
         public GeoPoint2 Point { get; }
 
         /// <summary>Gets the number of a distance, an angle (in radians) or a whole number.</summary>

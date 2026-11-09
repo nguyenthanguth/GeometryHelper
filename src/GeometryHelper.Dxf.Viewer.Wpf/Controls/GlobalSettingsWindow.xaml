@@ -273,6 +273,80 @@
                             </StackPanel>
                         </StackPanel>
 
+                        <!-- Fonts: the folders fonts are looked for in, in order, and the fonts drawn in others. -->
+                        <StackPanel Visibility="{Binding IsFontsPage, Converter={StaticResource Shown}}" Margin="0,8,0,0">
+                            <Border BorderBrush="{StaticResource GhBorder}" BorderThickness="1" CornerRadius="4">
+                                <StackPanel>
+                                    <Grid Background="{StaticResource GhHeader}">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="28" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Style="{StaticResource Head}" Text="Font search folders, in order" />
+                                    </Grid>
+                                    <ItemsControl ItemsSource="{Binding FontFolders}" Focusable="False">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate DataType="{x:Type local:FontFolderRow}">
+                                                <Border BorderBrush="{StaticResource GhHeader}" BorderThickness="0,1,0,0">
+                                                    <Grid Margin="0,2">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="*" />
+                                                            <ColumnDefinition Width="28" />
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBox Style="{StaticResource GhTextBox}" Text="{Binding Folder, UpdateSourceTrigger=LostFocus}" FontFamily="{StaticResource GhMonoFont}" Margin="8,0" />
+                                                        <Button Grid.Column="1" Style="{StaticResource GhFlatButton}" Width="20" Height="20" ToolTip="Take the folder out"
+                                                                Command="{Binding DataContext.RemoveFontFolderCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}">
+                                                            <local:IconView Size="12" StrokeThickness="2" Stroke="{StaticResource GhTextMuted}" Data="{StaticResource GhIconClose}" />
+                                                        </Button>
+                                                    </Grid>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </Border>
+                            <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                                <Button Style="{StaticResource Secondary}" Margin="0" Content="Add folder" Command="{Binding AddFontFolderCommand}" />
+                            </StackPanel>
+                            <Border BorderBrush="{StaticResource GhBorder}" BorderThickness="1" CornerRadius="4" Margin="0,12,0,0">
+                                <StackPanel>
+                                    <Grid Background="{StaticResource GhHeader}">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="28" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Style="{StaticResource Head}" Text="Font" />
+                                        <TextBlock Grid.Column="1" Style="{StaticResource Head}" Text="Drawn in" />
+                                    </Grid>
+                                    <ItemsControl ItemsSource="{Binding FontSubstitutions}" Focusable="False">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate DataType="{x:Type local:FontSubstitutionRow}">
+                                                <Border BorderBrush="{StaticResource GhHeader}" BorderThickness="0,1,0,0">
+                                                    <Grid Margin="0,2">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="*" />
+                                                            <ColumnDefinition Width="*" />
+                                                            <ColumnDefinition Width="28" />
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBox Style="{StaticResource GhTextBox}" Text="{Binding Font, UpdateSourceTrigger=LostFocus}" FontFamily="{StaticResource GhMonoFont}" Margin="8,0" />
+                                                        <TextBox Grid.Column="1" Style="{StaticResource GhTextBox}" Text="{Binding DrawnIn, UpdateSourceTrigger=LostFocus}" FontFamily="{StaticResource GhMonoFont}" Margin="8,0" />
+                                                        <Button Grid.Column="2" Style="{StaticResource GhFlatButton}" Width="20" Height="20" ToolTip="Take the substitution out"
+                                                                Command="{Binding DataContext.RemoveFontSubstitutionCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}">
+                                                            <local:IconView Size="12" StrokeThickness="2" Stroke="{StaticResource GhTextMuted}" Data="{StaticResource GhIconClose}" />
+                                                        </Button>
+                                                    </Grid>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </Border>
+                            <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                                <Button Style="{StaticResource Secondary}" Margin="0" Content="Add substitution" Command="{Binding AddFontSubstitutionCommand}" />
+                            </StackPanel>
+                        </StackPanel>
+
                         <!-- Data sources: the model sources the host gives. -->
                         <ItemsControl ItemsSource="{Binding Sources}" Focusable="False" Margin="0,10,0,0" Visibility="{Binding IsSourcesPage, Converter={StaticResource Shown}}">
                             <ItemsControl.ItemTemplate>
