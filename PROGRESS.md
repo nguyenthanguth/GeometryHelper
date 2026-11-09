@@ -46,7 +46,7 @@ The list of work on the drawing stack: Part A, the 2D presenter (`GeometryHelper
 
 ### To do
 
-- [ ] AutoCAD parity check: compare the presenter's commands, system variables, options, prompts and dialogs with
+- [ ] AutoCAD parity check (running): compare the presenter's commands, system variables, options, prompts and dialogs with
       AutoCAD 2021's 2D set, list every gap here by area, ranked by how often a drafter uses it
 - [ ] Dxf.App: the start screen and welcome line still offer "New drawing from a model" and Ctrl+N; hide what belongs to
       Drawing when no host handles it (design first)
