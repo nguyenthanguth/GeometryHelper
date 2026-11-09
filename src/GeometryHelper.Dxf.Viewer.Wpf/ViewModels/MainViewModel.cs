@@ -1337,6 +1337,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 case "PTYPE":
                     OnPointStyleRequested(e);
                     break;
+                case "BLOCK":
+                case "INSERT":
+                case "WBLOCK":
+                case "ATTDEF":
+                case "EATTEDIT":
+                    OnBlockRequested(e);
+                    break;
             }
         }
 

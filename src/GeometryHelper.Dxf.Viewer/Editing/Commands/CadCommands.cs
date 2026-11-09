@@ -120,6 +120,7 @@ namespace GeometryHelper.Dxf.Viewer
             registry.Add(new CadCommand("BREAKATPOINT", BreakAtPoint));
             registry.Add(new CadCommand("JOIN", Join));
             registry.Add(new CadCommand("LENGTHEN", Lengthen));
+            AddBlocksTo(registry);
         }
 
         /// <summary>A point of the plan in space, at nought height.</summary>

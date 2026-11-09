@@ -21,10 +21,11 @@ namespace GeometryHelper.Dxf.Viewer
     /// <summary>A request of a command to the window: open Properties, the Layer manager, Global settings, save, or show a drawing RECOVER opened.</summary>
     public sealed class CadUiRequestEventArgs : EventArgs
     {
-        internal CadUiRequestEventArgs(string name, CadDocument document = null)
+        internal CadUiRequestEventArgs(string name, CadDocument document = null, object payload = null)
         {
             Name = name;
             Document = document;
+            Payload = payload;
         }
 
         /// <summary>Gets what is asked: PROPERTIES, LAYER, OPTIONS, QSAVE, RECOVER.</summary>
@@ -32,6 +33,14 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>Gets the document to show, for RECOVER the drawing recovered; null for the other requests.</summary>
         public CadDocument Document { get; }
+
+        /// <summary>
+        /// Gets what the command hands its dialog, which the window fills and closes with an action: a
+        /// <see cref="CadBlockDefinitionRequest"/> for BLOCK, <see cref="CadInsertRequest"/> for INSERT,
+        /// <see cref="CadWriteBlockRequest"/> for WBLOCK, <see cref="CadAttributeDefinitionRequest"/> for ATTDEF and
+        /// <see cref="CadAttributeEditRequest"/> for EATTEDIT; null for the other requests.
+        /// </summary>
+        public object Payload { get; }
 
         /// <summary>Gets or sets whether the window did what was asked; a LAYER not handled runs its prompts on the command line.</summary>
         public bool Handled { get; set; }
@@ -479,6 +488,9 @@ namespace GeometryHelper.Dxf.Viewer
 
         internal List<DisplayBox> Views { get; } = new List<DisplayBox>();
 
+        /// <summary>The block INSERT placed last, which -INSERT offers next, as AutoCAD's INSNAME.</summary>
+        internal string LastBlock { get; set; }
+
         /// <summary>
         /// Gets the values the commands remember from one run to the next, by name, as TEXT the height last typed
         /// ("text.height"); a host sets a default here, as Global settings sets the text height of TEXT and MTEXT, their width
@@ -509,9 +521,9 @@ namespace GeometryHelper.Dxf.Viewer
             return result;
         }
 
-        internal bool Request(string name, CadDocument document = null)
+        internal bool Request(string name, CadDocument document = null, object payload = null)
         {
-            var args = new CadUiRequestEventArgs(name, document);
+            var args = new CadUiRequestEventArgs(name, document, payload);
             UiRequested?.Invoke(this, args);
             return args.Handled;
         }

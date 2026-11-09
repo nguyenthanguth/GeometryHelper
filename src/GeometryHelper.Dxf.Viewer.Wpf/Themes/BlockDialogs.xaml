@@ -1,0 +1,110 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!-- The parts the block dialogs share (Block Definition, Blocks palette, Write Block, Attribute Definition, the Enhanced
+         Attribute Editor), on top of Dark.xaml and StyleDialogs.xaml. -->
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/Dark.xaml" />
+        <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/StyleDialogs.xaml" />
+    </ResourceDictionary.MergedDictionaries>
+
+    <!-- A group of the board's: a frame with its legend set in its top edge. -->
+    <Style x:Key="BlockGroup" TargetType="HeaderedContentControl">
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="HeaderedContentControl">
+                    <Grid>
+                        <Border Margin="0,8,0,0" BorderBrush="{StaticResource GhBorder}" BorderThickness="1" CornerRadius="4" Padding="10,12,10,10">
+                            <ContentPresenter />
+                        </Border>
+                        <TextBlock Text="{TemplateBinding Header}" FontWeight="SemiBold" Background="{StaticResource GhPanel}" Padding="4,0"
+                                   Margin="8,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" />
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- A round button with its words: a ring, the accent dot inside when chosen. -->
+    <Style x:Key="BlockRadio" TargetType="RadioButton">
+        <Setter Property="Foreground" Value="{StaticResource GhText}" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="Margin" Value="0,0,0,6" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="RadioButton">
+                    <StackPanel Orientation="Horizontal" Background="Transparent">
+                        <Grid Width="13" Height="13" Margin="0,0,6,0" VerticalAlignment="Center">
+                            <Ellipse x:Name="Ring" Stroke="{StaticResource GhTextMuted}" StrokeThickness="1" Fill="{StaticResource GhInput}" />
+                            <Ellipse x:Name="Dot" Width="7" Height="7" Fill="{StaticResource GhAccent}" Visibility="Collapsed" />
+                        </Grid>
+                        <ContentPresenter VerticalAlignment="Center" />
+                    </StackPanel>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Ring" Property="Stroke" Value="{StaticResource GhAccent}" />
+                            <Setter TargetName="Dot" Property="Visibility" Value="Visible" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.5" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- A check box of the block dialogs, with a little room below it. -->
+    <Style x:Key="BlockCheck" TargetType="CheckBox" BasedOn="{StaticResource StyleCheck}">
+        <Setter Property="Margin" Value="0,0,0,6" />
+    </Style>
+
+    <!-- A box of a number or a name, in the mono font where it is a number. -->
+    <Style x:Key="BlockBox" TargetType="TextBox" BasedOn="{StaticResource StyleBox}">
+        <Setter Property="FontFamily" Value="{StaticResource GhFont}" />
+        <Setter Property="Padding" Value="6,3" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="BorderBrush" Value="{StaticResource GhBorder}" />
+    </Style>
+
+    <Style x:Key="BlockNumber" TargetType="TextBox" BasedOn="{StaticResource BlockBox}">
+        <Setter Property="FontFamily" Value="{StaticResource GhMonoFont}" />
+    </Style>
+
+    <!-- A button with an icon and words: Pick point, Select objects. -->
+    <Style x:Key="BlockPickButton" TargetType="Button" BasedOn="{StaticResource GhDialogButton}">
+        <Setter Property="Padding" Value="8,4" />
+        <Setter Property="HorizontalContentAlignment" Value="Left" />
+        <Setter Property="Margin" Value="0,0,0,6" />
+    </Style>
+
+    <!-- The crosshair of Pick point and the box of Select objects, as the board draws them. -->
+    <Geometry x:Key="BlockPickIcon">M12 3v6M12 15v6M3 12h6M15 12h6</Geometry>
+    <Geometry x:Key="BlockSelectIcon">M4 4h10v10H4zM14 14l6 6M14 20h6v-6</Geometry>
+
+    <!-- A tile of the Blocks palette: its picture over its name, framed in the accent when chosen. -->
+    <Style x:Key="BlockTile" TargetType="Button">
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="Margin" Value="0,0,8,8" />
+        <Setter Property="Foreground" Value="{StaticResource GhText}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Tile" Background="{StaticResource GhCommandInput}" BorderBrush="{StaticResource GhBorder}" BorderThickness="1"
+                            CornerRadius="4" Padding="4,6">
+                        <ContentPresenter HorizontalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Tile" Property="BorderBrush" Value="{StaticResource GhTextMuted}" />
+                        </Trigger>
+                        <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                            <Setter TargetName="Tile" Property="Background" Value="{StaticResource GhSelected}" />
+                            <Setter TargetName="Tile" Property="BorderBrush" Value="{StaticResource GhAccent}" />
+                        </DataTrigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+</ResourceDictionary>

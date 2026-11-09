@@ -363,6 +363,13 @@ namespace GeometryHelper.Dxf.Viewer
                     continue;
                 }
 
+                // A block kept from exploding (Allow exploding cleared) is refused, as AutoCAD's EXPLODE refuses it.
+                if (entity is DxfBlockReference insert && insert.BlockTableRecord != null && !insert.BlockTableRecord.Explodable)
+                {
+                    refused++;
+                    continue;
+                }
+
                 try
                 {
                     pieces = entity.Explode();

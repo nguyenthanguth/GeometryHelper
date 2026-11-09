@@ -1,0 +1,112 @@
+<Window x:Class="GeometryHelper.Dxf.Viewer.Wpf.WriteBlockWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Write Block" Width="620" Height="580" WindowStyle="None" ResizeMode="NoResize" ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner" Background="#262B33">
+
+    <Window.Resources>
+        <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/BlockDialogs.xaml" />
+    </Window.Resources>
+
+    <Border x:Name="Root" Background="{StaticResource GhPanel}" BorderBrush="{StaticResource GhBorder}" BorderThickness="1"
+            TextElement.FontFamily="{StaticResource GhFont}" TextElement.FontSize="12" TextElement.Foreground="{StaticResource GhText}"
+            UseLayoutRounding="True" SnapsToDevicePixels="True" TextOptions.TextFormattingMode="Display">
+        <DockPanel>
+            <Border DockPanel.Dock="Top" Background="{StaticResource GhHeader}" Padding="16,10" MouseLeftButtonDown="OnHeaderDown">
+                <DockPanel>
+                    <Button DockPanel.Dock="Right" Style="{StaticResource GhTitleCloseButton}" Click="OnCancel" ToolTip="Close" />
+                    <TextBlock Text="Write Block" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" />
+                </DockPanel>
+            </Border>
+
+            <Border DockPanel.Dock="Bottom" Background="{StaticResource GhHeader}" Padding="16,10">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button Style="{StaticResource GhDialogButton}" Content="Cancel" Padding="14,5" Margin="0,0,8,0" Click="OnCancel" IsCancel="True" />
+                    <Button Style="{StaticResource StylePrimaryButton}" Content="OK" Padding="14,5" Click="OnOk" IsDefault="True" IsEnabled="{Binding CanOk}" />
+                </StackPanel>
+            </Border>
+
+            <StackPanel Margin="16,6,16,0">
+                <HeaderedContentControl Style="{StaticResource BlockGroup}" Header="Source" Margin="0,0,0,4">
+                    <StackPanel Orientation="Horizontal">
+                        <RadioButton Style="{StaticResource BlockRadio}" GroupName="Source" Content="Block:" IsChecked="{Binding IsBlock, Mode=TwoWay}" Margin="0,0,8,0" />
+                        <ComboBox Style="{StaticResource GhComboBox}" Width="150" Margin="0,0,16,0" ItemsSource="{Binding Blocks}" SelectedItem="{Binding BlockName, Mode=TwoWay}"
+                                  IsEnabled="{Binding IsBlock}" AutomationProperties.Name="Block" />
+                        <RadioButton Style="{StaticResource BlockRadio}" GroupName="Source" Content="Entire drawing" IsChecked="{Binding IsEntireDrawing, Mode=TwoWay}" Margin="0,0,16,0" />
+                        <RadioButton Style="{StaticResource BlockRadio}" GroupName="Source" Content="Objects" IsChecked="{Binding IsObjects, Mode=TwoWay}" Margin="0" />
+                    </StackPanel>
+                </HeaderedContentControl>
+
+                <UniformGrid Columns="2" Margin="0,0,0,4" IsEnabled="{Binding IsObjects}">
+                    <HeaderedContentControl Style="{StaticResource BlockGroup}" Header="Base point" Margin="0,0,5,0">
+                        <StackPanel>
+                            <Button Style="{StaticResource BlockPickButton}" Click="OnPickPoint">
+                                <StackPanel Orientation="Horizontal">
+                                    <Path Data="{StaticResource BlockPickIcon}" Stroke="#C9D1DB" StrokeThickness="1.8" Width="14" Height="14" Stretch="Uniform" Margin="0,0,6,0" />
+                                    <TextBlock Text="Pick point" />
+                                </StackPanel>
+                            </Button>
+                            <DockPanel Margin="0,0,0,6">
+                                <TextBlock Text="X:" Width="20" Foreground="{StaticResource GhTextMuted}" VerticalAlignment="Center" />
+                                <TextBox Style="{StaticResource BlockNumber}" Text="{Binding BaseX, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                            </DockPanel>
+                            <DockPanel Margin="0,0,0,6">
+                                <TextBlock Text="Y:" Width="20" Foreground="{StaticResource GhTextMuted}" VerticalAlignment="Center" />
+                                <TextBox Style="{StaticResource BlockNumber}" Text="{Binding BaseY, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                            </DockPanel>
+                            <DockPanel>
+                                <TextBlock Text="Z:" Width="20" Foreground="{StaticResource GhTextMuted}" VerticalAlignment="Center" />
+                                <TextBox Style="{StaticResource BlockNumber}" Text="{Binding BaseZ, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                            </DockPanel>
+                        </StackPanel>
+                    </HeaderedContentControl>
+                    <HeaderedContentControl Style="{StaticResource BlockGroup}" Header="Objects" Margin="5,0,0,0">
+                        <StackPanel>
+                            <Button Style="{StaticResource BlockPickButton}" Click="OnSelectObjects">
+                                <StackPanel Orientation="Horizontal">
+                                    <Path Data="{StaticResource BlockSelectIcon}" Stroke="#C9D1DB" StrokeThickness="1.8" Width="14" Height="14" Stretch="Uniform" Margin="0,0,6,0" />
+                                    <TextBlock Text="Select objects" />
+                                </StackPanel>
+                            </Button>
+                            <RadioButton Style="{StaticResource BlockRadio}" GroupName="Keep" Content="Retain" IsChecked="{Binding IsRetain, Mode=TwoWay}" />
+                            <RadioButton Style="{StaticResource BlockRadio}" GroupName="Keep" Content="Convert to block" IsChecked="{Binding IsConvert, Mode=TwoWay}" />
+                            <RadioButton Style="{StaticResource BlockRadio}" GroupName="Keep" Content="Delete from drawing" IsChecked="{Binding IsDelete, Mode=TwoWay}" />
+                            <StackPanel Orientation="Horizontal">
+                                <Ellipse x:Name="ObjectsDot" Width="8" Height="8" Margin="0,0,6,0" VerticalAlignment="Center">
+                                    <Ellipse.Style>
+                                        <Style TargetType="Ellipse">
+                                            <Setter Property="Fill" Value="{StaticResource GhWarn}" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding HasObjects}" Value="True">
+                                                    <Setter Property="Fill" Value="{StaticResource GhOk}" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Ellipse.Style>
+                                </Ellipse>
+                                <TextBlock Text="{Binding ObjectsText}" Foreground="{Binding Fill, ElementName=ObjectsDot}" />
+                            </StackPanel>
+                        </StackPanel>
+                    </HeaderedContentControl>
+                </UniformGrid>
+
+                <HeaderedContentControl Style="{StaticResource BlockGroup}" Header="Destination" Margin="0,0,0,10">
+                    <StackPanel>
+                        <TextBlock Text="File name and path:" Foreground="{StaticResource GhTextMuted}" Margin="0,0,0,3" />
+                        <DockPanel Margin="0,0,0,8">
+                            <Button DockPanel.Dock="Right" Style="{StaticResource GhDialogButton}" Content="…" Width="30" Padding="0" Margin="6,0,0,0" Click="OnBrowse" ToolTip="Browse for a file" />
+                            <TextBox Style="{StaticResource BlockNumber}" Text="{Binding FileName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="File name and path" />
+                        </DockPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="Insert units:" Width="88" Foreground="{StaticResource GhTextMuted}" VerticalAlignment="Center" />
+                            <ComboBox Style="{StaticResource GhComboBox}" Width="160" ItemsSource="{Binding Units}" SelectedItem="{Binding Unit, Mode=TwoWay}" AutomationProperties.Name="Insert units" />
+                        </StackPanel>
+                    </StackPanel>
+                </HeaderedContentControl>
+
+                <TextBlock Foreground="{StaticResource GhTextMuted}" TextWrapping="Wrap"
+                           Text="Writes a new DXF holding the objects, with the base point at its origin; the Blocks palette's Other drawing tab can insert it." />
+            </StackPanel>
+        </DockPanel>
+    </Border>
+</Window>

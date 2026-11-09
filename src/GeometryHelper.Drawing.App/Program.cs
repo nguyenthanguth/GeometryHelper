@@ -41,7 +41,8 @@ namespace GeometryHelper.Drawing.App
     /// draws the Linetype Manager, Load or Reload Linetypes, Select Linetype or the Hatch dialog, the lines of --run typed first;
     /// <c>--dialog missing-shx|missing-shx-replace</c> draws Missing SHX files for the drawing opened, or for a drawing of
     /// styles whose SHX files are missing where it has none; <c>--dialog ptype</c> draws Point Style, the lines of --run typed
-    /// first (<c>--run "PDMODE;34"</c>).
+    /// first (<c>--run "PDMODE;34"</c>); <c>--dialog block|insert|wblock|attdef|eattedit[:Tab]</c> draws Block Definition, the
+    /// Blocks palette, Write Block, Attribute Definition or the Enhanced Attribute Editor, the lines of --run typed first.
     /// </summary>
     public static class Program
     {
@@ -220,7 +221,7 @@ namespace GeometryHelper.Drawing.App
 
             if (output == null || width < 100 || height < 100 || (cursor != null && cursor.Length != 2))
             {
-                Console.Error.WriteLine("Usage: GeometryHelper.Drawing.App --screenshot out.png [file.dxf] [--size 1600 960] [--space \"Layout1\"] [--select H1,H2] [--run \"MOVE;0,0\"] [--cursor x,y] [--toggle GRID,SNAP] [--layers] [--new-drawing \"Test bodies\" Assembly] [--tab Drawing] [--pick view|dimension|mark|line] [--hand-edit] [--dialog new|new-source|new-settings|update|settings[:Tab]|export|message|run-plugin|plugins|plugin-settings|plugin-untrusted|color|truecolor|dsettings[:Tab]|osnap-menu|snap-menu|drawings-menu|missing-shx|missing-shx-replace|ptype] [--plugin path.dll]");
+                Console.Error.WriteLine("Usage: GeometryHelper.Drawing.App --screenshot out.png [file.dxf] [--size 1600 960] [--space \"Layout1\"] [--select H1,H2] [--run \"MOVE;0,0\"] [--cursor x,y] [--toggle GRID,SNAP] [--layers] [--new-drawing \"Test bodies\" Assembly] [--tab Drawing] [--pick view|dimension|mark|line] [--hand-edit] [--dialog new|new-source|new-settings|update|settings[:Tab]|export|message|run-plugin|plugins|plugin-settings|plugin-untrusted|color|truecolor|dsettings[:Tab]|osnap-menu|snap-menu|drawings-menu|missing-shx|missing-shx-replace|ptype|block|insert|wblock|attdef|eattedit[:Tab]] [--plugin path.dll]");
                 return 2;
             }
 
@@ -420,6 +421,12 @@ namespace GeometryHelper.Drawing.App
             else if (model.Document != null && LinetypeOrHatchDialog(model, dialogName, ref run, out window, out root))
             {
                 // The Linetype Manager, its Load dialog, Select Linetype or the Hatch dialog, after the lines of --run.
+                width = (int)window.Width;
+                height = (int)window.Height;
+            }
+            else if (model.Document != null && BlockDialog(model, dialogName, ref run, out window, out root))
+            {
+                // The block dialogs, after the lines of --run.
                 width = (int)window.Width;
                 height = (int)window.Height;
             }
@@ -791,6 +798,85 @@ namespace GeometryHelper.Drawing.App
 
             category = categories.FirstOrDefault(c => string.Equals(c, dialogName.Substring("settings:".Length), StringComparison.OrdinalIgnoreCase));
             return category != null;
+        }
+
+        /// <summary>
+        /// The block dialogs (C13), after the lines of --run: <c>block</c> (Block Definition, the objects selected given and the
+        /// name GRID_BUBBLE), <c>insert</c> (the Blocks palette), <c>wblock</c> (Write Block), <c>attdef</c> (Attribute
+        /// Definition, the attribute GRID) and <c>eattedit[:Tab]</c> (the Enhanced Attribute Editor of the first INSERT with
+        /// attributes, on a tab).
+        /// </summary>
+        private static bool BlockDialog(MainViewModel model, string dialogName, ref string run, out Window window, out FrameworkElement root)
+        {
+            window = null;
+            root = null;
+            string[] parts = (dialogName ?? string.Empty).Split(':');
+            string kind = parts[0].ToLowerInvariant();
+
+            if (kind != "block" && kind != "insert" && kind != "wblock" && kind != "attdef" && kind != "eattedit")
+            {
+                return false;
+            }
+
+            foreach (string line in run == null ? Array.Empty<string>() : run.Split(';'))
+            {
+                model.Execute(line);
+            }
+
+            run = null;
+            CadDocument document = model.Document;
+            var selected = new List<string>(document.Selection.Handles);
+
+            switch (kind)
+            {
+                case "block":
+                    var block = new BlockDefinitionWindow(new BlockDefinitionViewModel(new CadBlockDefinitionRequest(document)
+                    {
+                        Objects = selected,
+                        BasePoint = new GeometryHelper.Geometry.GeoPoint3(1200, 800, 0),
+                        Description = "Grid bubble, 10 mm circle, letter as attribute GRID.",
+                    }) { Name = "GRID_BUBBLE" });
+                    (window, root) = (block, block.Body);
+                    return true;
+                case "insert":
+                    var palette = new BlocksPaletteWindow(new BlocksPaletteViewModel(new CadInsertRequest(document) { Repeat = true }, model.RecentBlocks));
+
+                    if (palette.Model.Tiles.Count > 0)
+                    {
+                        palette.Model.Tiles[0].IsSelected = true;
+                    }
+
+                    (window, root) = (palette, palette.Body);
+                    return true;
+                case "wblock":
+                    var write = new WriteBlockWindow(new WriteBlockViewModel(new CadWriteBlockRequest(document) { FileName = @"D:\Plans\Workshop A\blocks\new block.dxf" }));
+                    (window, root) = (write, write.Body);
+                    return true;
+                case "attdef":
+                    var attdef = new AttributeDefinitionWindow(new AttributeDefinitionViewModel(new CadAttributeDefinitionRequest(document, null, 3.5)
+                    {
+                        Tag = "GRID",
+                        Prompt = "Grid letter",
+                        Default = "A",
+                        Justification = DxfAttachmentPoint.MiddleCenter,
+                    }));
+                    (window, root) = (attdef, attdef.Body);
+                    return true;
+                default:
+                    string insert = document.ModelSpace.Block.OfType<DxfBlockReference>().Where(r => r.AttributeCollection.Count > 0).Select(r => r.Handle).FirstOrDefault();
+                    CadAttributeEditRequest request = insert == null ? null : CadAttributeEditRequest.Of(document, insert);
+
+                    if (request == null)
+                    {
+                        Console.Error.WriteLine("--dialog eattedit: the drawing has no INSERT with attributes (--run \"-INSERT;...\").");
+                        return false;
+                    }
+
+                    var editor = new AttributeEditorWindow(new AttributeEditorViewModel(request));
+                    editor.ShowTab(parts.Length > 1 ? parts[1] : "Attribute");
+                    (window, root) = (editor, editor.Body);
+                    return true;
+            }
         }
 
         /// <summary>

@@ -1,0 +1,145 @@
+<Window x:Class="GeometryHelper.Dxf.Viewer.Wpf.BlockDefinitionWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Block Definition" Width="760" Height="620" WindowStyle="None" ResizeMode="NoResize" ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner" Background="#262B33">
+
+    <Window.Resources>
+        <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/BlockDialogs.xaml" />
+    </Window.Resources>
+
+    <Border x:Name="Root" Background="{StaticResource GhPanel}" BorderBrush="{StaticResource GhBorder}" BorderThickness="1"
+            TextElement.FontFamily="{StaticResource GhFont}" TextElement.FontSize="12" TextElement.Foreground="{StaticResource GhText}"
+            UseLayoutRounding="True" SnapsToDevicePixels="True" TextOptions.TextFormattingMode="Display">
+        <DockPanel>
+            <Border DockPanel.Dock="Top" Background="{StaticResource GhHeader}" Padding="16,10" MouseLeftButtonDown="OnHeaderDown">
+                <DockPanel>
+                    <Button DockPanel.Dock="Right" Style="{StaticResource GhTitleCloseButton}" Click="OnCancel" ToolTip="Close" />
+                    <TextBlock Text="Block Definition" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" />
+                </DockPanel>
+            </Border>
+
+            <Border DockPanel.Dock="Bottom" Background="{StaticResource GhHeader}" Padding="16,10">
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                        <Button Style="{StaticResource GhDialogButton}" Content="Cancel" Padding="14,5" Margin="0,0,8,0" Click="OnCancel" IsCancel="True" />
+                        <Button Style="{StaticResource StylePrimaryButton}" Content="OK" Padding="14,5" Click="OnOk" IsDefault="True" IsEnabled="{Binding CanOk}" />
+                    </StackPanel>
+                    <CheckBox Style="{StaticResource StyleCheck}" IsEnabled="False" Foreground="{StaticResource GhTextMuted}"
+                              Content="Open in block editor (the light block editor is not built yet)" />
+                </DockPanel>
+            </Border>
+
+            <StackPanel Margin="16,12,16,0">
+                <DockPanel Margin="0,0,0,4">
+                    <Border DockPanel.Dock="Right" Width="44" Height="44" Margin="10,0,0,0" Background="Black" BorderBrush="{StaticResource GhBorder}"
+                            BorderThickness="1" CornerRadius="4" VerticalAlignment="Bottom" AutomationProperties.Name="Block preview">
+                        <Image Source="{Binding Preview}" Stretch="Uniform" />
+                    </Border>
+                    <StackPanel>
+                        <TextBlock Text="Name:" Foreground="{StaticResource GhTextMuted}" Margin="0,0,0,3" />
+                        <!-- The name typed, or a block of the drawing chosen from the list beside it to define it again. -->
+                        <Grid>
+                            <TextBox Style="{StaticResource BlockNumber}" BorderBrush="{StaticResource GhAccent}" Padding="6,3,28,3"
+                                     Text="{Binding Name, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Block name" />
+                            <ComboBox Style="{StaticResource GhComboBox}" Width="26" HorizontalAlignment="Right" Background="Transparent" BorderThickness="0"
+                                      ItemsSource="{Binding Names}" SelectionChanged="OnNameChosen" ToolTip="Blocks of the drawing" />
+                        </Grid>
+                    </StackPanel>
+                </DockPanel>
+
+                <UniformGrid Columns="3" Margin="0,0,0,4">
+                    <HeaderedContentControl Style="{StaticResource BlockGroup}" Header="Base point" Margin="0,0,5,0">
+                        <StackPanel>
+                            <CheckBox Style="{StaticResource BlockCheck}" Content="Specify On-screen" IsChecked="{Binding SpecifyBasePointOnScreen, Mode=TwoWay}" />
+                            <Button Style="{StaticResource BlockPickButton}" Click="OnPickPoint" IsEnabled="{Binding IsBasePointTyped}">
+                                <StackPanel Orientation="Horizontal">
+                                    <Path Data="{StaticResource BlockPickIcon}" Stroke="#C9D1DB" StrokeThickness="1.8" Width="14" Height="14" Stretch="Uniform" Margin="0,0,6,0" />
+                                    <TextBlock Text="Pick point" />
+                                </StackPanel>
+                            </Button>
+                            <DockPanel Margin="0,0,0,6">
+                                <TextBlock Text="X:" Width="20" Foreground="{StaticResource GhTextMuted}" VerticalAlignment="Center" />
+                                <TextBox Style="{StaticResource BlockNumber}" Text="{Binding BaseX, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding IsBasePointTyped}" />
+                            </DockPanel>
+                            <DockPanel Margin="0,0,0,6">
+                                <TextBlock Text="Y:" Width="20" Foreground="{StaticResource GhTextMuted}" VerticalAlignment="Center" />
+                                <TextBox Style="{StaticResource BlockNumber}" Text="{Binding BaseY, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding IsBasePointTyped}" />
+                            </DockPanel>
+                            <DockPanel>
+                                <TextBlock Text="Z:" Width="20" Foreground="{StaticResource GhTextMuted}" VerticalAlignment="Center" />
+                                <TextBox Style="{StaticResource BlockNumber}" Text="{Binding BaseZ, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding IsBasePointTyped}" />
+                            </DockPanel>
+                        </StackPanel>
+                    </HeaderedContentControl>
+
+                    <HeaderedContentControl Style="{StaticResource BlockGroup}" Header="Objects" Margin="5,0,5,0">
+                        <StackPanel>
+                            <CheckBox Style="{StaticResource BlockCheck}" Content="Specify On-screen" IsChecked="{Binding SpecifyObjectsOnScreen, Mode=TwoWay}" />
+                            <Button Style="{StaticResource BlockPickButton}" Click="OnSelectObjects">
+                                <StackPanel Orientation="Horizontal">
+                                    <Path Data="{StaticResource BlockSelectIcon}" Stroke="#C9D1DB" StrokeThickness="1.8" Width="14" Height="14" Stretch="Uniform" Margin="0,0,6,0" />
+                                    <TextBlock Text="Select objects" />
+                                </StackPanel>
+                            </Button>
+                            <RadioButton Style="{StaticResource BlockRadio}" GroupName="Keep" Content="Retain" IsChecked="{Binding IsRetain, Mode=TwoWay}" />
+                            <RadioButton Style="{StaticResource BlockRadio}" GroupName="Keep" Content="Convert to block" IsChecked="{Binding IsConvert, Mode=TwoWay}" />
+                            <RadioButton Style="{StaticResource BlockRadio}" GroupName="Keep" Content="Delete" IsChecked="{Binding IsDelete, Mode=TwoWay}" />
+                            <StackPanel Orientation="Horizontal">
+                                <Ellipse x:Name="ObjectsDot" Width="8" Height="8" Margin="0,0,6,0" VerticalAlignment="Center">
+                                    <Ellipse.Style>
+                                        <Style TargetType="Ellipse">
+                                            <Setter Property="Fill" Value="{StaticResource GhWarn}" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding HasObjects}" Value="True">
+                                                    <Setter Property="Fill" Value="{StaticResource GhOk}" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Ellipse.Style>
+                                </Ellipse>
+                                <TextBlock Text="{Binding ObjectsText}" Foreground="{Binding Fill, ElementName=ObjectsDot}" />
+                            </StackPanel>
+                        </StackPanel>
+                    </HeaderedContentControl>
+
+                    <HeaderedContentControl Style="{StaticResource BlockGroup}" Header="Behaviour" Margin="5,0,0,0">
+                        <StackPanel>
+                            <CheckBox Style="{StaticResource BlockCheck}" Content="Annotative" IsEnabled="False" />
+                            <CheckBox Style="{StaticResource BlockCheck}" Content="Match block orientation to layout" IsEnabled="False" Margin="18,0,0,6" />
+                            <CheckBox Style="{StaticResource BlockCheck}" Content="Scale uniformly" IsChecked="{Binding ScaleUniformly, Mode=TwoWay}" />
+                            <CheckBox Style="{StaticResource BlockCheck}" Content="Allow exploding" IsChecked="{Binding AllowExploding, Mode=TwoWay}" />
+                        </StackPanel>
+                    </HeaderedContentControl>
+                </UniformGrid>
+
+                <Grid Margin="0,0,0,10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="1*" />
+                        <ColumnDefinition Width="2*" />
+                    </Grid.ColumnDefinitions>
+                    <HeaderedContentControl Style="{StaticResource BlockGroup}" Header="Settings" Margin="0,0,5,0">
+                        <StackPanel>
+                            <TextBlock Text="Block unit:" Foreground="{StaticResource GhTextMuted}" Margin="0,0,0,3" />
+                            <ComboBox Style="{StaticResource GhComboBox}" ItemsSource="{Binding Units}" SelectedItem="{Binding Unit, Mode=TwoWay}" AutomationProperties.Name="Block unit" />
+                            <TextBlock Text="INSUNITS of the block: scaled to the drawing's units on insert." Foreground="{StaticResource GhTextMuted}" FontSize="11"
+                                       TextWrapping="Wrap" Margin="0,6,0,0" />
+                        </StackPanel>
+                    </HeaderedContentControl>
+                    <HeaderedContentControl Grid.Column="1" Style="{StaticResource BlockGroup}" Header="Description" Margin="5,0,0,0">
+                        <TextBox Style="{StaticResource BlockBox}" FontFamily="{StaticResource GhFont}" Height="56" TextWrapping="Wrap" VerticalContentAlignment="Top"
+                                 Text="{Binding Description, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Description" />
+                    </HeaderedContentControl>
+                </Grid>
+
+                <Border Style="{StaticResource StyleFrame}">
+                    <DockPanel>
+                        <Ellipse Width="8" Height="8" Fill="{StaticResource GhAccent}" VerticalAlignment="Top" Margin="0,4,8,0" />
+                        <TextBlock Foreground="{StaticResource GhTextMuted}" TextWrapping="Wrap"
+                                   Text="Base point and objects are picked on the canvas: the dialog hides, the command line asks, then it comes back. A name already used asks whether to redefine it, and every reference then shows the new definition." />
+                    </DockPanel>
+                </Border>
+            </StackPanel>
+        </DockPanel>
+    </Border>
+</Window>

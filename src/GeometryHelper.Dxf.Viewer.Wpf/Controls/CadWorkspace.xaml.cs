@@ -425,6 +425,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 _model.ShowHatchSettings = settings => HatchSettingsWindow.Show(Window.GetWindow(this), settings);
                 _model.ShowMissingShx = dialog => MissingShxWindow.Show(Window.GetWindow(this), dialog);
                 _model.ShowPointStyle = dialog => PointStyleWindow.Show(Window.GetWindow(this), dialog);
+                _model.ShowBlockDefinition = dialog => BlockDefinitionWindow.Show(Window.GetWindow(this), dialog);
+                _model.ShowBlocksPalette = dialog => BlocksPaletteWindow.Show(Window.GetWindow(this), dialog);
+                _model.ShowWriteBlock = dialog => WriteBlockWindow.Show(Window.GetWindow(this), dialog);
+                _model.ShowAttributeDefinition = dialog => AttributeDefinitionWindow.Show(Window.GetWindow(this), dialog);
+                _model.ShowAttributeEditor = dialog => AttributeEditorWindow.Show(Window.GetWindow(this), dialog);
 
                 if (CanvasView.PixelWidth > 0 && CanvasView.PixelHeight > 0)
                 {
