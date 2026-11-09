@@ -107,6 +107,12 @@ namespace GeometryHelper.Dxf.Viewer
             registry.Add(new CadCommand("ARRAYPOLAR", ArrayPolar, true));
             registry.Add(new CadCommand("-ARRAY", ArrayTyped, true));
             registry.Add(new CadCommand("ALIGN", Align, true));
+            registry.Add(new CadCommand("TRIM", Trim));
+            registry.Add(new CadCommand("EXTEND", ExtendCommand));
+            registry.Add(new CadCommand("BREAK", Break));
+            registry.Add(new CadCommand("BREAKATPOINT", BreakAtPoint));
+            registry.Add(new CadCommand("JOIN", Join));
+            registry.Add(new CadCommand("LENGTHEN", Lengthen));
         }
 
         /// <summary>A point of the plan in space, at nought height.</summary>

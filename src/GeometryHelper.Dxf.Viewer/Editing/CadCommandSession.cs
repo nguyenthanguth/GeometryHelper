@@ -196,7 +196,17 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         /// <param name="point">The point, in drawing units.</param>
         /// <returns>Whether the prompt took it.</returns>
-        public bool Feed(GeoPoint2 point)
+        public bool Feed(GeoPoint2 point) => Feed(point, false);
+
+        /// <summary>
+        /// Answers the prompt with a point picked on the canvas, as <see cref="Feed(GeoPoint2)"/> does, saying whether Shift was
+        /// held: at a prompt for one object the answer carries it (<see cref="CadInput.Shift"/>), as TRIM extends an object
+        /// picked with Shift held, and EXTEND trims one. At any other prompt Shift changes nothing.
+        /// </summary>
+        /// <param name="point">The point, in drawing units.</param>
+        /// <param name="shift">Whether Shift was held as the point was picked.</param>
+        /// <returns>Whether the prompt took it.</returns>
+        public bool Feed(GeoPoint2 point, bool shift)
         {
             if (Prompt == null)
             {
@@ -237,7 +247,7 @@ namespace GeometryHelper.Dxf.Viewer
                     if (Prompt.Kind == CadPromptKind.Entity && Document.FindEntity(picked[0]) != null)
                     {
                         // The point the object was picked at goes with it, as UCS OBject takes the end of a line nearer the pick.
-                        return Answer(new CadInput(CadInputKind.Selection, point, 0.0, null, new[] { picked[0] }), Prompt.Text, null);
+                        return Answer(new CadInput(CadInputKind.Selection, point, 0.0, null, new[] { picked[0] }) { Shift = shift }, Prompt.Text, null);
                     }
 
                     return FeedSelection(new[] { picked[0] });

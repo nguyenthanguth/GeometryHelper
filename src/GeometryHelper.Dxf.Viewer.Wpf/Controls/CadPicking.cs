@@ -53,7 +53,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     return session.Feed(snapped?.Point ?? cursor);
                 }
 
-                return WantsObjects(session) && session.Feed(cursor);
+                return WantsObjects(session) && session.Feed(cursor, shift);
             }
 
             int before = document.Selection.Count;

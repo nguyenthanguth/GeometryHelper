@@ -142,6 +142,11 @@ namespace GeometryHelper.Dxf.Viewer
                 ["AR"] = "ARRAY",
                 ["-AR"] = "-ARRAY",
                 ["AL"] = "ALIGN",
+                ["TR"] = "TRIM",
+                ["EX"] = "EXTEND",
+                ["BR"] = "BREAK",
+                ["J"] = "JOIN",
+                ["LEN"] = "LENGTHEN",
             },
             new Dictionary<string, string>
             {
