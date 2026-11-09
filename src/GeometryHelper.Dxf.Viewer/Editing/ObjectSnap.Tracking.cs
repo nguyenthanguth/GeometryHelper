@@ -104,7 +104,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             foreach (Curve curve in found.Curves)
             {
-                if (curve.Radius < 0.0 && !curve.Sampled && (curve.B - curve.A).Length > Tolerance.EqualPoint && (line == null || CompareLines(curve, line) < 0))
+                if (curve.Radius < 0.0 && !curve.Sampled && curve.Run.Length > Tolerance.EqualPoint && (line == null || CompareLines(curve, line) < 0))
                 {
                     line = curve;
                 }
@@ -115,7 +115,7 @@ namespace GeometryHelper.Dxf.Viewer
                 return false;
             }
 
-            GeoVector2 along = line.B - line.A;
+            GeoVector2 along = line.Run;
             Add(new CadAcquiredPoint(CadSnapKind.Parallel, line.Foot, line.Handle) { Direction = along / along.Length });
             return true;
         }

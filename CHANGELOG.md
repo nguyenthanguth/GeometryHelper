@@ -31,6 +31,19 @@ never what AutoCAD keeps: layer 0, Defpoints, Standard, ByLayer, ByBlock, Contin
 more objects lie under a click, the list of them is shown near the cursor (SELECTIONCYCLING 2, as AutoCAD's default), and
 Ctrl+W switches it off and on as AutoCAD's does; Ctrl+W no longer closes the drawing, which CLOSE and the x on its row do.
 
+**NEW.** The presenter snaps to XLINE and RAY as AutoCAD 2021 does, which it did not at all: Nearest, Perpendicular and
+Intersection along their whole length, with lines, arcs, circles and each other, and none behind the base point of a ray;
+the base point of a RAY is its endpoint and the root point of an XLINE its midpoint; Extension runs back from a ray's base
+point, and Parallel and Apparent Intersection take them as lines. An xline along (1, 1) through the origin and the line
+from (100, 0) to (100, 500) give the intersection (100, 100). The ghost MOVE, COPY, ROTATE, SCALE and MIRROR drag draws
+them too, across the view as the canvas does. Over 100 000 objects and 200 xlines and rays, a snap takes 0.012 ms.
+
+**CHANGED.** A pick in the presenter takes the object drawn on top among those about as near the cursor, as AutoCAD's does
+while SORTENTS holds its bit 1 (its default 127 does): two lines crossing under the cursor give the one drawn later, or
+the one DRAWORDER put in front, where the handle decided before. Objects within a tenth of the pickbox of the nearest
+count as as near: with a pickbox of 3, a line under the cursor still comes before one on top of it 0.6 away. The Selection
+list of SELECTIONCYCLING and Shift+Space cycling run in the same order, the one on top first.
+
 **NEW.** `GeometryHelper.Drawing` makes a model drawing, in the manner of Tekla's, from a `DrawingSource` of
 `DrawingObject` bodies: views along the axes and an isometric view with exact hidden-line projection (2 000 objects in
 the front view take 0.3 s), sections with ANSI31 hatches, details, dimensions by rule, marks that keep clear of the

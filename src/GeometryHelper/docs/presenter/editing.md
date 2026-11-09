@@ -129,9 +129,12 @@ takes the whole of a selectable group, and Ctrl+Shift+A switches that off and on
 what AutoCAD keeps: layer 0 and Defpoints, the linetypes ByLayer, ByBlock and Continuous, the styles Standard and the
 current ones, the blocks of the spaces, the plot style Normal and every visual style; with "Verify each name to be
 purged?" Yes it asks `Purge layer "EMPTY1"? [Yes/No] <No>:` of each. With SELECTIONCYCLING 2, AutoCAD's default, a
-click where two lines cross shows the list of both near the cursor, `Line · WALLS` and `Line · 0`, and the row chosen is
-taken as a click on that line alone; with 1 or 2, Shift+Space arms cycling, and each click at the crossing then takes the
-other line in place of the one before. Ctrl+W switches cycling between 0 and 2, as in AutoCAD.
+click where two lines cross shows the list of both near the cursor, the one drawn on top first, `Line · 0` and
+`Line · WALLS`, and the row chosen is taken as a click on that line alone; with 1 or 2, Shift+Space arms cycling, and each
+click at the crossing then takes the other line in place of the one before. A plain click there takes the line on top, as
+AutoCAD's does while SORTENTS holds its bit 1 (its default 127 does): of the objects within a tenth of the pickbox of the
+nearest, the one last in the draw order wins, so a line sent to the back with DRAWORDER is no longer the one picked. Ctrl+W
+switches cycling between 0 and 2, as in AutoCAD.
 
 PROPERTIES, OPTIONS, LAYER and QSAVE ask the window for its panel or dialog (`UiRequested`), and say "is shown by the window"
 where none is listening. The window adds CLOSE, NEW, SAVEAS, PROPERTIESCLOSE, GRID, SNAP, ORTHO, POLAR, OSNAP, LAYMCUR and LAYMCH, and the plugin commands. The inquiry commands print in AutoCAD's words: DIST from (0, 0) to (100, 100) says `Distance = 141.4214,  Angle in XY Plane = 45,  Angle from XY Plane = 0`; AREA by points or by an object says `Area = 5000.0000, Perimeter = 300.0000`. Each command is a
@@ -192,6 +195,13 @@ gives where two objects under the cursor would cross run on, lines as endless li
 an Extended Apparent Intersection; a click picks it (`TakeFirstObject`) and takes no point, and the object under the
 cursor after gives where the two would cross. Insertion gives the insertion point of an INSERT from anywhere on its lines,
 and the point a TEXT, an MTEXT or an attribute is placed by.
+
+An XLINE and a RAY snap along their whole length, as AutoCAD's do: Nearest, Perpendicular and Intersection (with lines,
+arcs, circles and other xlines and rays) however far from their base points, and none behind the base point of a ray. The
+base point of a RAY is its endpoint, and the root point of an XLINE its midpoint, as AutoCAD gives MID for an xline.
+Extension runs on back from the base point of a ray, Parallel follows either, and Apparent Intersection runs both on as
+lines. An xline along (1, 1) through the origin and the line from (100, 0) to (100, 500) give the intersection (100, 100);
+a ray along +X from (100, -500) gives the perpendicular from (500, 80) at (500, -500), and none from (0, 80).
 
 ## Grips
 

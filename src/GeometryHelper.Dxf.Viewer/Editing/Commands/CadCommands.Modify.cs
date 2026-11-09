@@ -35,7 +35,7 @@ namespace GeometryHelper.Dxf.Viewer
                 + ", Mode=" + (c.Remembered(ModeKey, 1.0) != 0.0 ? "Quick" : "Standard"));
             c.OpenUndoStep();
             var edges = new Ref<IReadOnlyList<string>>();
-            var undo = new List<KeyValuePair<byte[], int>>();
+            var undo = new List<CadGroupMark>();
 
             if (c.Remembered(ModeKey, 1.0) == 0.0)
             {
@@ -76,7 +76,7 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (c.Input.Kind == CadInputKind.Selection)
                 {
-                    KeyValuePair<byte[], int> mark = c.Document.Savepoint();
+                    CadGroupMark mark = c.Document.MarkGroup();
 
                     if (Cut(c, c.Input.Handles[0], c.Input.Point, extend != c.Input.Shift, edges.Value))
                     {
@@ -85,7 +85,7 @@ namespace GeometryHelper.Dxf.Viewer
                 }
                 else if (c.Input.Is("Undo"))
                 {
-                    c.Document.RollBack(undo[undo.Count - 1]);
+                    c.Document.BackTo(undo[undo.Count - 1]);
                     undo.RemoveAt(undo.Count - 1);
                 }
                 else if (c.Input.Is("Fence") || c.Input.Is("Crossing"))
@@ -97,7 +97,7 @@ namespace GeometryHelper.Dxf.Viewer
                         yield return prompt;
                     }
 
-                    KeyValuePair<byte[], int> mark = c.Document.Savepoint();
+                    CadGroupMark mark = c.Document.MarkGroup();
                     bool any = false;
 
                     foreach (KeyValuePair<string, GeoPoint2> pick in picks)
@@ -170,7 +170,7 @@ namespace GeometryHelper.Dxf.Viewer
 
                     if (erased.Count > 0)
                     {
-                        KeyValuePair<byte[], int> mark = c.Document.Savepoint();
+                        CadGroupMark mark = c.Document.MarkGroup();
                         EraseAll(c, erased);
                         undo.Add(mark);
                     }
@@ -1103,7 +1103,7 @@ namespace GeometryHelper.Dxf.Viewer
                     }
                 }
 
-                var undo = new List<KeyValuePair<byte[], int>>();
+                var undo = new List<CadGroupMark>();
 
                 while (true)
                 {
@@ -1111,7 +1111,7 @@ namespace GeometryHelper.Dxf.Viewer
 
                     if (c.Input.Is("Undo"))
                     {
-                        c.Document.RollBack(undo[undo.Count - 1]);
+                        c.Document.BackTo(undo[undo.Count - 1]);
                         undo.RemoveAt(undo.Count - 1);
                         continue;
                     }
@@ -1139,7 +1139,7 @@ namespace GeometryHelper.Dxf.Viewer
 
                     Span(curve, out _, out double length);
                     bool atStart = (DistanceOf(curve, curve.GetClosestPointTo(P3(at), false)) ?? length) < length / 2.0;
-                    KeyValuePair<byte[], int> mark = c.Document.Savepoint();
+                    CadGroupMark mark = c.Document.MarkGroup();
                     bool done;
 
                     if (mode == 3)

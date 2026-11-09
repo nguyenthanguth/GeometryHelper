@@ -1335,7 +1335,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             Affine2 m = moved.Value;
             IReadOnlyList<double[]> paths = _ghost.Paths(Document, Space, 0.5 * scale / view.PixelsPerUnit);
 
-            if (paths.Count == 0)
+            // An XLINE or a RAY is cut, once transformed, to the view grown by a few pixels, so that its ends lie off the canvas.
+            IReadOnlyList<double[]> rays = _ghost.Rays(m, view.VisibleBox.Inflate(4.0 * scale / view.PixelsPerUnit));
+
+            if (paths.Count == 0 && rays.Count == 0)
             {
                 return;
             }
@@ -1359,6 +1362,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                             context.LineTo(p, true, false);
                         }
                     }
+                }
+
+                foreach (double[] part in rays)
+                {
+                    context.BeginFigure(ToScreen(view, new GeoPoint2(part[0], part[1]), scale), false, false);
+                    context.LineTo(ToScreen(view, new GeoPoint2(part[2], part[3]), scale), true, false);
                 }
             }
 

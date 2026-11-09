@@ -314,7 +314,11 @@ namespace GeometryHelper.Dxf.Viewer
             return list;
         }
 
-        /// <summary>Gets the index that picks in a space, made on the first call and kept.</summary>
+        /// <summary>
+        /// Gets the index that picks in a space, made on the first call and kept. Its picks put the entity drawn on top first
+        /// among those at about the same distance while the drawing's SORTENTS holds its bit 1, read at each call
+        /// (<see cref="PickIndex.Pick"/>).
+        /// </summary>
         /// <param name="space">The space.</param>
         /// <returns>The index.</returns>
         public PickIndex GetPickIndex(CadSpace space)
@@ -325,6 +329,7 @@ namespace GeometryHelper.Dxf.Viewer
                 _indexes[space] = index;
             }
 
+            index.ByDrawOrder = (Database.SortEnts & 1) != 0;
             return index;
         }
 
