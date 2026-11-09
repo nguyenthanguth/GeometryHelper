@@ -101,6 +101,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>A left click at a point of the drawing.</summary>
         /// <returns>Whether the selection or the command changed.</returns>
         public static bool Click(CadDocument document, CadSpace space, CadCommandSession session, ObjectSnap snap, GeoPoint2 cursor, double aperture, bool shift)
+            => Click(document, space, session, snap, cursor, aperture, shift, false);
+
+        /// <summary>A left click at a point of the drawing, Ctrl held or not, as a grip edit takes a first point picked with Ctrl as Copy.</summary>
+        /// <returns>Whether the selection or the command changed.</returns>
+        internal static bool Click(CadDocument document, CadSpace space, CadCommandSession session, ObjectSnap snap, GeoPoint2 cursor, double aperture, bool shift, bool control)
         {
             if (session != null && session.IsRunning)
             {
@@ -116,7 +121,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                         return false;
                     }
 
-                    return session.Feed(snapped?.Point ?? cursor);
+                    return session.Feed(snapped?.Point ?? cursor, false, control);
                 }
 
                 return WantsObjects(session) && session.Feed(cursor, shift);

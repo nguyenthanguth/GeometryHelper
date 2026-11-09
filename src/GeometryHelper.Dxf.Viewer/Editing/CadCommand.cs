@@ -237,6 +237,7 @@ namespace GeometryHelper.Dxf.Viewer
     public sealed class CadCommandRegistry
     {
         private readonly SortedDictionary<string, CadCommand> _commands = new SortedDictionary<string, CadCommand>(StringComparer.OrdinalIgnoreCase);
+        private readonly SortedDictionary<string, CadSystemVariable> _variables = new SortedDictionary<string, CadSystemVariable>(StringComparer.OrdinalIgnoreCase);
 
         /// <summary>Makes a registry with no command and AutoCAD's aliases.</summary>
         public CadCommandRegistry()
@@ -294,7 +295,49 @@ namespace GeometryHelper.Dxf.Viewer
             return Shortcuts.Aliases.TryGetValue(key, out string name) && _commands.TryGetValue(name, out command) ? command : null;
         }
 
-        /// <summary>Makes a registry of the commands of C2, under AutoCAD's names: the view, edit and draw commands.</summary>
+        /// <summary>
+        /// Gets the system variables SETVAR knows, and a name typed alone reaches where no command has it, in ordinal order of
+        /// their names: those of <see cref="CreateDefault"/>, kept in the drawing or by the session, and those a window adds.
+        /// </summary>
+        public IReadOnlyCollection<CadSystemVariable> Variables => _variables.Values;
+
+        /// <summary>Adds a system variable, or replaces the one of its name, as the window replaces ORTHOMODE with its status bar's ORTHO.</summary>
+        /// <param name="variable">The variable.</param>
+        /// <exception cref="ArgumentNullException">Thrown when the variable is null.</exception>
+        public void AddVariable(CadSystemVariable variable)
+        {
+            if (variable == null)
+            {
+                throw new ArgumentNullException(nameof(variable));
+            }
+
+            _variables[variable.Name] = variable;
+        }
+
+        /// <summary>Finds the system variable a typed name or alias names, letters of either case the same: LTS names LTSCALE.</summary>
+        /// <param name="typed">The name or alias typed.</param>
+        /// <returns>The variable, or null.</returns>
+        public CadSystemVariable FindVariable(string typed)
+        {
+            if (string.IsNullOrWhiteSpace(typed))
+            {
+                return null;
+            }
+
+            string key = typed.Trim();
+
+            if (_variables.TryGetValue(key, out CadSystemVariable variable))
+            {
+                return variable;
+            }
+
+            return Shortcuts.Aliases.TryGetValue(key, out string name) && _variables.TryGetValue(name, out variable) ? variable : null;
+        }
+
+        /// <summary>
+        /// Makes a registry of the commands of C2, under AutoCAD's names: the view, edit and draw commands, SETVAR and the
+        /// system variables the drawing and the session keep.
+        /// </summary>
         /// <returns>The registry.</returns>
         public static CadCommandRegistry CreateDefault()
         {

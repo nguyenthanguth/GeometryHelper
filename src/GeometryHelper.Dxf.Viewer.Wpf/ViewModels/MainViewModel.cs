@@ -1111,7 +1111,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         private static string Coordinates(double x, double y) => "X " + x.ToString("#,0.00", Spaced) + "   Y " + y.ToString("#,0.00", Spaced);
 
-        /// <summary>The commands of the session: AutoCAD's of C2, Make Current and Match Layer of the Layers panel, and the extensions'.</summary>
+        /// <summary>The commands of the session: AutoCAD's of C2, Make Current and Match Layer of the Layers panel, the window's commands and variables, and the extensions'.</summary>
         private CadCommandRegistry Commands()
         {
             CadCommandRegistry registry = CadCommandRegistry.CreateDefault();
@@ -1119,6 +1119,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             registry.Add(new CadCommand("LAYMCH", MatchLayer, true));
             registry.Add(new CadCommand("CLOSE", CloseCommandBody));
             AddWindowCommands(registry);
+            AddWindowVariables(registry);
             AttachPlugins(registry);
 
             foreach (CadWorkspaceExtension extension in _extensions)

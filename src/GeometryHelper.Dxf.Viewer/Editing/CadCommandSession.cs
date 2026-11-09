@@ -88,6 +88,7 @@ namespace GeometryHelper.Dxf.Viewer
         private readonly SortedSet<string> _whole = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
         private IEnumerator<CadPrompt> _body;
         private CadCommandContext _context;
+        private CadCommand _gripCommand;
         private bool _grouped;
         private List<string> _script;
 
@@ -184,6 +185,12 @@ namespace GeometryHelper.Dxf.Viewer
             Write("Command: " + name);
             CadCommand command = Registry.Find(name);
 
+            // A system variable's name typed alone asks its new value, as SETVAR does, where no command has the name.
+            if (command == null && Registry.FindVariable(name) is CadSystemVariable variable)
+            {
+                command = new CadCommand(variable.Name, c => CadCommands.TypedVariable(c, variable));
+            }
+
             if (command == null)
             {
                 Write(string.Format(CultureInfo.InvariantCulture, Unknown, name));
@@ -209,8 +216,65 @@ namespace GeometryHelper.Dxf.Viewer
                 }
             }
 
-            Current = command;
             LastCommandName = command.Name;
+            Run(command, preSelected);
+            return true;
+        }
+
+        /// <summary>
+        /// Starts a grip edit, as a click on a grip starts AutoCAD's with no command running: the grips given are hot, the first
+        /// the one clicked, and the command line asks "** STRETCH **" and "Specify stretch point or [Base point/Copy/Undo/eXit]:".
+        /// Enter or Space goes on to MOVE, ROTATE, SCALE and MIRROR and back to STRETCH; STRETCH, MOVE, ROTATE, SCALE and MIRROR,
+        /// or ST, MO, RO, SC and MI, typed go to that mode. STRETCH moves the hot grips together by the way from the base point,
+        /// the first hot grip until Base point gives another; the other modes move, turn, scale or mirror the objects selected.
+        /// Copy leaves the originals and asks again until eXit, Enter or Esc, as does a first point picked with Ctrl held
+        /// (<see cref="Feed(GeoPoint2, bool, bool)"/>). The whole grip edit is one undo step; the command run last stays the one
+        /// Enter runs again.
+        /// </summary>
+        /// <param name="hotGrips">The hot grips, each the handle of an entity and the index of its grip as <see cref="CadGrips.Of"/> gives it.</param>
+        /// <returns>False, starting nothing, where a command is running or no grip given is one of an entity of the drawing.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the grips are null.</exception>
+        public bool StartGripEdit(IEnumerable<KeyValuePair<string, int>> hotGrips)
+        {
+            if (hotGrips == null)
+            {
+                throw new ArgumentNullException(nameof(hotGrips));
+            }
+
+            if (IsRunning)
+            {
+                return false;
+            }
+
+            var hot = new List<KeyValuePair<string, int>>();
+
+            foreach (KeyValuePair<string, int> grip in hotGrips)
+            {
+                DxfEntity entity = Document.FindEntity(grip.Key);
+
+                if (entity != null && grip.Value >= 0 && grip.Value < CadGrips.Of(entity).Count && !hot.Contains(grip))
+                {
+                    hot.Add(grip);
+                }
+            }
+
+            if (hot.Count == 0)
+            {
+                return false;
+            }
+
+            _gripCommand = new CadCommand("GRIP", c => CadCommands.GripEdit(c, hot));
+            Run(_gripCommand, Array.Empty<string>());
+            return true;
+        }
+
+        /// <summary>Gets whether the command running is a grip edit (<see cref="StartGripEdit"/>), whose hot grips the canvas keeps showing.</summary>
+        public bool IsGripEditing => Current != null && ReferenceEquals(Current, _gripCommand);
+
+        /// <summary>Runs a command's body from its first prompt.</summary>
+        private void Run(CadCommand command, IReadOnlyList<string> preSelected)
+        {
+            Current = command;
             _context = new CadCommandContext(this, command, preSelected);
             ClearGathering();
 
@@ -221,11 +285,10 @@ namespace GeometryHelper.Dxf.Viewer
             catch (Exception exception)
             {
                 Fail(exception);
-                return true;
+                return;
             }
 
             Advance();
-            return true;
         }
 
         /// <summary>
@@ -244,7 +307,18 @@ namespace GeometryHelper.Dxf.Viewer
         /// <param name="point">The point, in drawing units.</param>
         /// <param name="shift">Whether Shift was held as the point was picked.</param>
         /// <returns>Whether the prompt took it.</returns>
-        public bool Feed(GeoPoint2 point, bool shift)
+        public bool Feed(GeoPoint2 point, bool shift) => Feed(point, shift, false);
+
+        /// <summary>
+        /// Answers the prompt with a point picked on the canvas, as <see cref="Feed(GeoPoint2, bool)"/> does, saying whether Ctrl
+        /// was held as well: at a prompt for a point the answer carries it (<see cref="CadInput.Control"/>), as a grip edit takes
+        /// its first point picked with Ctrl held as Copy. At any other prompt Ctrl changes nothing.
+        /// </summary>
+        /// <param name="point">The point, in drawing units.</param>
+        /// <param name="shift">Whether Shift was held as the point was picked.</param>
+        /// <param name="control">Whether Ctrl was held as the point was picked.</param>
+        /// <returns>Whether the prompt took it.</returns>
+        public bool Feed(GeoPoint2 point, bool shift, bool control)
         {
             if (Prompt == null)
             {
@@ -256,7 +330,7 @@ namespace GeometryHelper.Dxf.Viewer
                 case CadPromptKind.Point:
                 case CadPromptKind.Distance:
                 case CadPromptKind.Angle:
-                    return AnswerPoint(point, Prompt.Text);
+                    return AnswerPoint(point, Prompt.Text, control);
                 case CadPromptKind.Selection:
                 case CadPromptKind.Entity:
                     IReadOnlyList<string> picked = Document.GetPickIndex(Document.CurrentSpace).Pick(point.X, point.Y, PickAperture);
@@ -560,6 +634,9 @@ namespace GeometryHelper.Dxf.Viewer
 
         internal List<DisplayBox> Views { get; } = new List<DisplayBox>();
 
+        /// <summary>The system variable SETVAR was given last, which it offers next.</summary>
+        internal string LastVariable { get; set; }
+
         /// <summary>The block INSERT placed last, which -INSERT offers next, as AutoCAD's INSNAME.</summary>
         internal string LastBlock { get; set; }
 
@@ -659,19 +736,19 @@ namespace GeometryHelper.Dxf.Viewer
         /// Answers a prompt for a point, a distance or an angle with a point: a distance or an angle measured from the prompt's
         /// base point. With no echo the history is left as it is, as for the point a modifier (FROM, M2P) gives.
         /// </summary>
-        private bool AnswerPoint(GeoPoint2 point, string echo)
+        private bool AnswerPoint(GeoPoint2 point, string echo, bool control = false)
         {
             switch (Prompt.Kind)
             {
                 case CadPromptKind.Point:
-                    return Answer(new CadInput(CadInputKind.Point, point, 0.0, null, null), echo, point);
+                    return Answer(new CadInput(CadInputKind.Point, point, 0.0, null, null) { Control = control }, echo, point);
                 case CadPromptKind.Distance:
                     if (Prompt.BasePoint == null)
                     {
                         return Invalid("Requires numeric distance or option keyword.");
                     }
 
-                    return Answer(new CadInput(CadInputKind.Number, point, (point - Prompt.BasePoint.Value).Length, null, null), echo, point);
+                    return Answer(new CadInput(CadInputKind.Number, point, (point - Prompt.BasePoint.Value).Length, null, null) { Control = control }, echo, point);
                 default:
                     if (Prompt.BasePoint == null)
                     {
@@ -679,7 +756,7 @@ namespace GeometryHelper.Dxf.Viewer
                     }
 
                     GeoVector2 way = point - Prompt.BasePoint.Value;
-                    return Answer(new CadInput(CadInputKind.Number, point, Ucs.AngleToUcs(Math.Atan2(way.Y, way.X)), null, null), echo, point);
+                    return Answer(new CadInput(CadInputKind.Number, point, Ucs.AngleToUcs(Math.Atan2(way.Y, way.X)), null, null) { Control = control }, echo, point);
             }
         }
 

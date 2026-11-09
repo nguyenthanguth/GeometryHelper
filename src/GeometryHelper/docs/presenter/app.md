@@ -126,7 +126,7 @@ The function keys, Delete and the Ctrl keys of [the defaults](editing.md#aliases
 | Shift+right-click, a point asked | the object snap menu; the snap chosen is taken for that point alone |
 | left button dragged, no command running | with Select by dragging on, a box as above; off, the box waits for a click at its other corner (left to right a window in solid blue, right to left a crossing in dashed green) |
 | cursor over an entity | drawn 2 pixels wide in its colour taken halfway to the selection colour |
-| a grip dragged | drags that grip |
+| a grip clicked | makes it hot and starts the grip modes, `** STRETCH **` first (see [Grip modes](editing.md#grip-modes)); Shift+click makes several hot; dragged, stretches it where it is let go |
 | left click, a command running | answers its prompt: a point taken through the snaps, with a rubber band from the base point; or objects, by a click or a box |
 | right click, a command running | Enter |
 

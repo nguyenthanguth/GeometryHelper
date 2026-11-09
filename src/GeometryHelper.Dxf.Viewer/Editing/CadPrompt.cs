@@ -103,6 +103,16 @@ namespace GeometryHelper.Dxf.Viewer
             return this;
         }
 
+        // Keywords taken but not shown, as a grip edit takes MOVE or MO at its STRETCH prompt.
+        private IReadOnlyList<string> _hidden = Array.Empty<string>();
+
+        /// <summary>Gives the prompt keywords it takes without showing them in its brackets, as AutoCAD's grip modes take MOVE or MO.</summary>
+        internal CadPrompt Hiding(params string[] keywords)
+        {
+            _hidden = keywords;
+            return this;
+        }
+
         /// <summary>Gets the whole text the command line shows: <c>Specify base point or [Displacement] &lt;Displacement&gt;:</c>.</summary>
         public string Text
         {
@@ -226,9 +236,20 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             string answer = typed.Trim();
+            string found = Match(Keywords, answer);
 
-            // The capital letters first, as AutoCAD reads them, then the whole word, then a longer start of one.
-            foreach (string keyword in Keywords)
+            if (found != null || _hidden.Count == 0)
+            {
+                return found;
+            }
+
+            return Match(_hidden, answer);
+        }
+
+        /// <summary>The keyword of a list an answer names: its capital letters first, as AutoCAD reads them, then the whole word, then a longer start of one.</summary>
+        private static string Match(IReadOnlyList<string> keywords, string answer)
+        {
+            foreach (string keyword in keywords)
             {
                 if (string.Equals(Shortcut(keyword), answer, StringComparison.OrdinalIgnoreCase))
                 {
@@ -236,7 +257,7 @@ namespace GeometryHelper.Dxf.Viewer
                 }
             }
 
-            foreach (string keyword in Keywords)
+            foreach (string keyword in keywords)
             {
                 if (string.Equals(keyword, answer, StringComparison.OrdinalIgnoreCase))
                 {
@@ -244,7 +265,7 @@ namespace GeometryHelper.Dxf.Viewer
                 }
             }
 
-            foreach (string keyword in Keywords)
+            foreach (string keyword in keywords)
             {
                 string shortcut = Shortcut(keyword);
 
@@ -341,6 +362,12 @@ namespace GeometryHelper.Dxf.Viewer
         /// for every other answer.
         /// </summary>
         public bool Shift { get; internal set; }
+
+        /// <summary>
+        /// Gets whether Ctrl was held as the point was picked on the canvas, as a grip edit takes a first point picked with Ctrl
+        /// as Copy; false for every other answer.
+        /// </summary>
+        public bool Control { get; internal set; }
 
         /// <summary>
         /// The objects of a selection that clicks alone picked, each with the point it was clicked at, in the order clicked; an
