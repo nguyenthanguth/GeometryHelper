@@ -98,6 +98,15 @@ namespace GeometryHelper.Dxf.Viewer
             registry.Add(new CadCommand("PTYPE", PointStyle));
             registry.Add(new CadCommand("PDMODE", PointMode));
             registry.Add(new CadCommand("PDSIZE", PointSize));
+            registry.Add(new CadCommand("OFFSET", Offset));
+            registry.Add(new CadCommand("FILLET", Fillet));
+            registry.Add(new CadCommand("CHAMFER", Chamfer));
+            registry.Add(new CadCommand("STRETCH", Stretch));
+            registry.Add(new CadCommand("ARRAY", ArrayAny, true));
+            registry.Add(new CadCommand("ARRAYRECT", ArrayRectangular, true));
+            registry.Add(new CadCommand("ARRAYPOLAR", ArrayPolar, true));
+            registry.Add(new CadCommand("-ARRAY", ArrayTyped, true));
+            registry.Add(new CadCommand("ALIGN", Align, true));
         }
 
         /// <summary>A point of the plan in space, at nought height.</summary>

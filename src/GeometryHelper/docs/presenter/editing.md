@@ -94,7 +94,7 @@ A command that fails part way has its edits taken back. Its outcome is `session.
 
 ### The commands
 
-[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 56 commands, named as AutoCAD names them:
+[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 86 commands, named as AutoCAD names them:
 
 | Group | Commands |
 |---|---|
@@ -104,6 +104,7 @@ A command that fails part way has its edits taken back. Its outcome is `session.
 | inquiry | DIST, AREA (Add area, Subtract area), ID, LIST, MEASUREGEOM (Distance, Radius, Angle, ARea) |
 | layers | LAYOFF, LAYON, LAYFRZ, LAYTHW, LAYLCK, LAYULK, LAYISO, LAYUNISO |
 | utilities | SELECTALL, UNITS, -UNITS, SCRIPT, CECOLOR |
+| modify | OFFSET, FILLET, CHAMFER, STRETCH, ARRAY, ARRAYRECT, ARRAYPOLAR, -ARRAY, ALIGN |
 | dimension | DIMLINEAR, DIMALIGNED, DIMRADIUS, DIMDIAMETER, DIMANGULAR |
 
 PROPERTIES, OPTIONS, LAYER and QSAVE ask the window for its panel or dialog (`UiRequested`), and say "is shown by the window"

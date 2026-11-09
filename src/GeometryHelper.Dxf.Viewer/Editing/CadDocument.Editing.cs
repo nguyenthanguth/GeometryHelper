@@ -517,6 +517,33 @@ namespace GeometryHelper.Dxf.Viewer
             }
         }
 
+        /// <summary>
+        /// Takes a savepoint inside the open group, which <see cref="BackTo"/> reads the drawing back to: the Undo option inside
+        /// OFFSET, FILLET and CHAMFER takes back the last pick so, the rest of the command's edits kept in its one step.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">Thrown when no group is open.</exception>
+        internal CadGroupMark MarkGroup()
+        {
+            if (_groupDepth == 0)
+            {
+                throw new InvalidOperationException("No group of edits is open.");
+            }
+
+            EnsureStart();
+            return new CadGroupMark(Snapshot(), _groupRecords.Count);
+        }
+
+        /// <summary>Reads the drawing back to a savepoint <see cref="MarkGroup"/> took in the group still open, the records made since dropped.</summary>
+        internal void BackTo(CadGroupMark mark)
+        {
+            if (_groupDepth == 0 || _groupFailed)
+            {
+                return;
+            }
+
+            Restore(mark.State, mark.Kept);
+        }
+
         /// <summary>Drags a grip of an entity to a point, one undo step, as <see cref="CadGrips.Drag"/> says.</summary>
         /// <param name="handle">The handle of the entity.</param>
         /// <param name="gripIndex">The index of the grip, as <see cref="CadGrips.Of"/> gives it.</param>
@@ -855,6 +882,20 @@ namespace GeometryHelper.Dxf.Viewer
             var spaces = _spaces.FindAll(touched.Contains);
             Changed?.Invoke(this, new CadDocumentChangedEventArgs(kind, name, new List<string>(handles), spaces, tables));
         }
+    }
+
+    /// <summary>A savepoint inside a group of edits: the drawing as it stood, and how many of the group's records were made by then.</summary>
+    internal sealed class CadGroupMark
+    {
+        internal CadGroupMark(byte[] state, int kept)
+        {
+            State = state;
+            Kept = kept;
+        }
+
+        internal byte[] State { get; }
+
+        internal int Kept { get; }
     }
 
     /// <summary>

@@ -93,6 +93,12 @@ another file of the folder was opened, or once it was saved with Save and shown 
 now says, for example, "Test bodies (from file)" until the drawing is made again. The out-of-date dot now shows on such a
 drawing too, checked in the source its file names without changing it.
 
+**NEW.** The presenter's modify commands as AutoCAD 2021's: OFFSET (O), FILLET (F), CHAMFER (CHA), STRETCH (S), ARRAY (AR),
+ARRAYRECT, ARRAYPOLAR, -ARRAY (-AR) and ALIGN (AL), each one undo step, with their options and their Undo inside (a line from
+(0, 0) to (100, 0) offset by 10 to the side of (50, -3) gives the line from (0, -10) to (100, -10)); entities of a model
+drawing are refused in words, and copies of them are the presenter's own. Path and associative arrays are not built.
+AutoCAD 2021's AUDIT finds nothing in a drawing edited by all of them.
+
 **NEW.** PTYPE (DDPTYPE) shows AutoCAD's Point Style dialog: twenty tiles of PDMODE, each drawn as the canvas draws a point of
 that mode, the point size, and whether it is a share of the screen (PDSIZE below nought) or a size in drawing units; choosing
 the plus with a circle at 2.5 units writes PDMODE 34 and PDSIZE 2.5 as one undo step.
