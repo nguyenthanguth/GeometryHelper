@@ -241,34 +241,42 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (ByDrawOrder && handles.Count > 1)
             {
-                // Each class runs from its nearest to the last within a tenth of the tolerance of it; the entity drawn on top
-                // (its items last in the list, an entity's items lying together) leads it, the handle deciding a tie.
-                double slack = tolerance / 10.0;
-                IComparer<string> topFirst = Comparer<string>.Create((a, b) =>
-                {
-                    int byOrder = Top(b).CompareTo(Top(a));
-                    return byOrder != 0 ? byOrder : string.CompareOrdinal(a, b);
-                });
-
-                for (int start = 0; start < handles.Count;)
-                {
-                    int end = start + 1;
-
-                    while (end < handles.Count && best[handles[end]] - best[handles[start]] <= slack)
-                    {
-                        end++;
-                    }
-
-                    if (end - start > 1)
-                    {
-                        handles.Sort(start, end - start, topFirst);
-                    }
-
-                    start = end;
-                }
+                TopFirst(handles, best, tolerance / 10.0);
             }
 
             return handles;
+        }
+
+        /// <summary>
+        /// Puts the entity drawn on top first in each distance class of handles sorted nearest first: a class runs from its
+        /// nearest to the last within <paramref name="slack"/> of it; on top is last in the list, an entity's items lying
+        /// together; the handle decides a tie.
+        /// </summary>
+        private void TopFirst(List<string> handles, Dictionary<string, double> distances, double slack)
+        {
+            IComparer<string> topFirst = null;
+
+            for (int start = 0; start < handles.Count;)
+            {
+                int end = start + 1;
+
+                while (end < handles.Count && distances[handles[end]] - distances[handles[start]] <= slack)
+                {
+                    end++;
+                }
+
+                if (end - start > 1)
+                {
+                    topFirst = topFirst ?? Comparer<string>.Create((a, b) =>
+                    {
+                        int byOrder = Top(b).CompareTo(Top(a));
+                        return byOrder != 0 ? byOrder : string.CompareOrdinal(a, b);
+                    });
+                    handles.Sort(start, end - start, topFirst);
+                }
+
+                start = end;
+            }
         }
 
         /// <summary>The place in the list of the last item an entity is drawn as: the higher, the nearer the top.</summary>
