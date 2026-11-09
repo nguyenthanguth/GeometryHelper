@@ -396,7 +396,7 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>Whether another dimension of model space or a layout draws with the same picture.</summary>
-        private static bool SharesPicture(DxfDatabase db, DxfDimension dimension, DxfBlockTableRecord picture)
+        internal static bool SharesPicture(DxfDatabase db, DxfDimension dimension, DxfBlockTableRecord picture)
         {
             foreach (DxfLayout layout in db.Layouts)
             {

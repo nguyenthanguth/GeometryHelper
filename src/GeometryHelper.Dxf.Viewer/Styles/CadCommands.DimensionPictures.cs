@@ -59,6 +59,31 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         private static List<DxfEntity> Picture(DxfDimension dimension, DxfDimStyleTableRecord style, double textHeight)
         {
+            List<DxfEntity> picture = KindPicture(dimension, style, textHeight);
+
+            if (picture == null)
+            {
+                return null;
+            }
+
+            // Words moved by DIMTEDIT stand where they were put, and words turned by DIMEDIT or DIMTEDIT read at their angle.
+            DxfMText words = picture.OfType<DxfMText>().FirstOrDefault();
+
+            if (words != null && !dimension.UsingDefaultTextPosition)
+            {
+                words.Location = dimension.TextPosition;
+            }
+
+            if (words != null && dimension.TextRotation != 0.0)
+            {
+                words.Rotation = Turned(dimension.TextRotation);
+            }
+
+            return picture;
+        }
+
+        private static List<DxfEntity> KindPicture(DxfDimension dimension, DxfDimStyleTableRecord style, double textHeight)
+        {
             switch (dimension)
             {
                 case DxfRotatedDimension rotated:
@@ -96,14 +121,111 @@ namespace GeometryHelper.Dxf.Viewer
                 return null;
             }
 
-            GeoPoint2 q1 = onLine + along * ((p1 - onLine).X * along.X + (p1 - onLine).Y * along.Y);
-            GeoPoint2 q2 = onLine + along * ((p2 - onLine).X * along.X + (p2 - onLine).Y * along.Y);
-            return Linear(style, textHeight, p1, p2, q1, q2, Formatted(dimension, measured, string.Empty));
+            double oblique = ObliqueOf(dimension);
+            GeoPoint2 q1 = Foot(p1, onLine, along, oblique);
+            GeoPoint2 q2 = Foot(p2, onLine, along, oblique);
+            string words = Formatted(dimension, measured, string.Empty);
+            List<DxfEntity> picture = Linear(style, textHeight, p1, p2, q1, q2, words);
+
+            if (dimension.UsingDefaultTextPosition)
+            {
+                return picture;
+            }
+
+            // Words moved off the middle: where the line moves with them (DIMTMOVE 0) it runs on under words put past an end;
+            // where a leader is drawn (DIMTMOVE 1), a line from the middle of the dimension line to the words.
+            Sizes(style, textHeight, out _, out _, out double height, out double gap, out _, out _);
+            GeoPoint2 at = P2(dimension.TextPosition);
+            var middle = new GeoPoint2((q1.X + q2.X) / 2.0, (q1.Y + q2.Y) / 2.0);
+            int move = dimension.Dimtmove;
+
+            if (move == 0)
+            {
+                double half = WordsWidth(picture, words, height) / 2.0;
+                double t = (at - q1).X * along.X + (at - q1).Y * along.Y;
+                double length = (q2 - q1).Length;
+                double sign = (q2 - q1).X * along.X + (q2 - q1).Y * along.Y >= 0.0 ? 1.0 : -1.0;
+                double from = Math.Min(0.0, sign * t - half);
+                double to = Math.Max(length, sign * t + half);
+
+                if (from < 0.0)
+                {
+                    picture.Add(Lined(new DxfLine(P3(q1 + along * (sign * from)), P3(q1)), style.Dimclrd, style.Dimlwd));
+                }
+
+                if (to > length)
+                {
+                    picture.Add(Lined(new DxfLine(P3(q2), P3(q1 + along * (sign * to))), style.Dimclrd, style.Dimlwd));
+                }
+            }
+            else if (move == 1 && (at - middle).Length > gap + height / 2.0)
+            {
+                GeoVector2 down = (middle - at) / (middle - at).Length;
+                picture.Add(Lined(new DxfLine(P3(middle), P3(at + down * (gap + height / 2.0))), style.Dimclrd, style.Dimlwd));
+            }
+
+            return picture;
+        }
+
+        /// <summary>
+        /// The oblique angle of a linear dimension's extension lines (group 52), as DIMEDIT Oblique sets it: the direction they
+        /// run in, in radians from the x axis; nought for none, where they stand square to the dimension line.
+        /// </summary>
+        internal static double ObliqueOf(DxfDimension dimension)
+        {
+            switch (dimension)
+            {
+                case DxfRotatedDimension rotated:
+                    return rotated.Oblique;
+                case DxfAlignedDimension aligned:
+                    return aligned.Oblique;
+                default:
+                    return 0.0;
+            }
+        }
+
+        /// <summary>
+        /// Where the extension line from a point meets the dimension line through <paramref name="onLine"/> along
+        /// <paramref name="along"/>: square to it, or along the oblique angle where one is set that is not along the line itself.
+        /// </summary>
+        internal static GeoPoint2 Foot(GeoPoint2 point, GeoPoint2 onLine, GeoVector2 along, double oblique)
+        {
+            if (oblique != 0.0)
+            {
+                var slant = new GeoVector2(Math.Cos(oblique), Math.Sin(oblique));
+                double across = Cross(slant, along);
+
+                if (Math.Abs(across) > 1E-9)
+                {
+                    return point + slant * (Cross(onLine - point, along) / across);
+                }
+            }
+
+            return onLine + along * ((point - onLine).X * along.X + (point - onLine).Y * along.Y);
+        }
+
+        /// <summary>How wide the words of a picture are: as its MTEXT measures them, else 0.7 of the height a letter.</summary>
+        internal static double WordsWidth(List<DxfEntity> picture, string words, double height)
+        {
+            DxfMText text = picture.OfType<DxfMText>().FirstOrDefault();
+            double width = 0.0;
+
+            try
+            {
+                width = text?.ActualWidth ?? 0.0;
+            }
+            catch (Exception)
+            {
+                width = 0.0;
+            }
+
+            return width > 0.0 && !double.IsInfinity(width) ? width : 0.7 * height * (words ?? string.Empty).Length;
         }
 
         /// <summary>
         /// The picture of a radius or a diameter. Where the words stand along the line is read from the block as it was (its
-        /// MTEXT's place along the chord), as the record keeps no point of them; on the rim where the block has none.
+        /// MTEXT's place along the chord), as the record keeps no point of them, or from the text's place where it was moved
+        /// (flag 128); on the rim where the block has none.
         /// </summary>
         private static List<DxfEntity> RadialPicture(DxfDimension dimension, DxfDimStyleTableRecord style, double textHeight, GeoPoint2 center, GeoPoint2 chord, bool diameter)
         {
@@ -116,7 +238,8 @@ namespace GeometryHelper.Dxf.Viewer
 
             GeoVector2 outward = (chord - center) / radius;
             DxfMText words = dimension.DimBlock.OfType<DxfMText>().FirstOrDefault();
-            double reach = words == null ? radius : (P2(words.Location) - center).X * outward.X + (P2(words.Location) - center).Y * outward.Y;
+            GeoPoint2? placed = !dimension.UsingDefaultTextPosition ? P2(dimension.TextPosition) : words == null ? (GeoPoint2?)null : P2(words.Location);
+            double reach = placed == null ? radius : (placed.Value - center).X * outward.X + (placed.Value - center).Y * outward.Y;
             GeoPoint2 location = center + outward * reach;
             GeoPoint2 far = center - outward * radius;
             return Radial(style, textHeight, center, radius, chord, far, location, diameter, Formatted(dimension, diameter ? 2.0 * radius : radius, diameter ? "%%c" : "R"));

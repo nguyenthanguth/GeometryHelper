@@ -843,10 +843,10 @@ namespace GeometryHelper.Dxf.Viewer
         /// table names as AutoCAD names its own (*D1, *D2), and given to the dimension as its block, its text height an
         /// override where it is not the style's.
         /// </summary>
-        private static void Place(CadCommandContext c, DxfDimStyleTableRecord style, double textHeight, DxfDimension dimension, List<DxfEntity> picture)
+        private static CadEditResult Place(CadCommandContext c, DxfDimStyleTableRecord style, double textHeight, DxfDimension dimension, List<DxfEntity> picture)
         {
             CadSpace space = c.Space;
-            c.Apply(null, s =>
+            return c.Apply(null, s =>
             {
                 var block = new DxfBlockTableRecord { Name = "*D" };
                 s.Database.BlockTable.Add(block);

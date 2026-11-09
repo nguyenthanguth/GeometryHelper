@@ -51,6 +51,13 @@ namespace GeometryHelper.Dxf.Viewer
             registry.Add(new CadCommand("DIMRADIUS", c => DimRadial(c, false)));
             registry.Add(new CadCommand("DIMDIAMETER", c => DimRadial(c, true)));
             registry.Add(new CadCommand("DIMANGULAR", DimAngular));
+            registry.Add(new CadCommand("DIMCONTINUE", DimContinue));
+            registry.Add(new CadCommand("DIMBASELINE", DimBaseline));
+            registry.Add(new CadCommand("QDIM", QuickDimension));
+            registry.Add(new CadCommand("DIMEDIT", DimEdit));
+            registry.Add(new CadCommand("DIMTEDIT", DimTextEdit));
+            registry.Add(new CadCommand("DIMSPACE", DimSpace));
+            registry.Add(new CadCommand("DIMBREAK", DimBreak));
 
             registry.Add(new CadCommand("ELLIPSE", Ellipse));
             registry.Add(new CadCommand("POINT", Point));
