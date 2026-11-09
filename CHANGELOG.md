@@ -93,6 +93,10 @@ another file of the folder was opened, or once it was saved with Save and shown 
 now says, for example, "Test bodies (from file)" until the drawing is made again. The out-of-date dot now shows on such a
 drawing too, checked in the source its file names without changing it.
 
+**NEW.** PTYPE (DDPTYPE) shows AutoCAD's Point Style dialog: twenty tiles of PDMODE, each drawn as the canvas draws a point of
+that mode, the point size, and whether it is a share of the screen (PDSIZE below nought) or a size in drawing units; choosing
+the plus with a circle at 2.5 units writes PDMODE 34 and PDSIZE 2.5 as one undo step.
+
 **NEW.** The presenter's NEW starts from its own metric template, `CadTemplate.CreateMetric()`: the settings of acadiso.dwt
 written into the header, so that AutoCAD opens the drawing as metric too, with ISO-25 current (arrowheads and text 2.5, a
 decimal comma) and the text styles Standard and Annotative in Arial, as AutoCAD 2021's has them.
