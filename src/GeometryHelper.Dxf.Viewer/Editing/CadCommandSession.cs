@@ -436,7 +436,7 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             Write(Prompt.Text);
-            return Gather(found);
+            return Gather(new List<string>(Document.WithGroups(found)));
         }
 
         /// <summary>
@@ -484,6 +484,30 @@ namespace GeometryHelper.Dxf.Viewer
         public void Write(string line)
         {
             _history.Add(line ?? string.Empty);
+        }
+
+        /// <summary>
+        /// Ctrl+Shift+A: switches the picking of groups whole (<see cref="CadDocument.PickStyle"/>) off where it is on and on
+        /// where it is off, writing "&lt;Group off&gt;" or "&lt;Group on&gt;" as AutoCAD does; a command running goes on.
+        /// </summary>
+        public void TogglePickStyle()
+        {
+            bool on = (Document.PickStyle & 1) == 0;
+            Document.PickStyle = on ? Document.PickStyle | 1 : Document.PickStyle & ~1;
+            Write(on ? "<Group on>" : "<Group off>");
+            Changed();
+        }
+
+        /// <summary>
+        /// Ctrl+W: switches selection cycling (<see cref="CadDocument.SelectionCycling"/>) off, or on again as 2, writing
+        /// "&lt;Selection Cycling off&gt;" or "&lt;Selection Cycling on&gt;" as AutoCAD does.
+        /// </summary>
+        public void ToggleSelectionCycling()
+        {
+            bool on = Document.SelectionCycling == 0;
+            Document.SelectionCycling = on ? 2 : 0;
+            Write(on ? "<Selection Cycling on>" : "<Selection Cycling off>");
+            Changed();
         }
 
         internal List<DisplayBox> Views { get; } = new List<DisplayBox>();

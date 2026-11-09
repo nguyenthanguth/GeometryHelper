@@ -37,6 +37,9 @@ namespace GeometryHelper.Dxf.Viewer
         private readonly Dictionary<DxfHatch, HatchPattern> _patterns = new Dictionary<DxfHatch, HatchPattern>();
         private DisplayList2 _modelCache;
 
+        /// <summary>The draw order of each block met in the <see cref="Build"/> running, by handle, null for one in its own order; looked up only, never listed.</summary>
+        private readonly Dictionary<string, IReadOnlyList<DxfEntity>> _orders = new Dictionary<string, IReadOnlyList<DxfEntity>>(StringComparer.OrdinalIgnoreCase);
+
         public DisplayBuilder(DxfDatabase database, CadDocument document = null)
         {
             _database = database;
@@ -91,7 +94,9 @@ namespace GeometryHelper.Dxf.Viewer
                 _pointViewHeight = ViewHeightOf(_database, _document);
             }
 
-            foreach (DxfEntity entity in space)
+            _orders.Clear();
+
+            foreach (DxfEntity entity in Ordered(space))
             {
                 try
                 {
@@ -111,6 +116,38 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             return list;
+        }
+
+        /// <summary>
+        /// The entities of a block in the order they are drawn: that of its draw order (SORTENTSTABLE, as DRAWORDER writes it),
+        /// the back first, or the order of the block where it has none. Read once a build for each block.
+        /// </summary>
+        private IEnumerable<DxfEntity> Ordered(DxfBlockTableRecord block)
+        {
+            string handle = block.Handle;
+
+            if (handle != null && _orders.TryGetValue(handle, out IReadOnlyList<DxfEntity> known))
+            {
+                return known ?? (IEnumerable<DxfEntity>)block;
+            }
+
+            IReadOnlyList<DxfEntity> ordered = null;
+
+            try
+            {
+                ordered = block.DrawOrderTable?.GetFullDrawOrder();
+            }
+            catch (Exception)
+            {
+                // A draw order that cannot be read leaves the block in its own order.
+            }
+
+            if (handle != null)
+            {
+                _orders[handle] = ordered;
+            }
+
+            return ordered ?? (IEnumerable<DxfEntity>)block;
         }
 
         private sealed class LayerState
@@ -572,7 +609,7 @@ namespace GeometryHelper.Dxf.Viewer
             inner.BlockRgb = style.Rgb;
             inner.BlockLineWeight = style.LineWeight;
 
-            foreach (DxfEntity entity in block)
+            foreach (DxfEntity entity in Ordered(block))
             {
                 try
                 {

@@ -123,6 +123,9 @@ namespace GeometryHelper.Dxf.Viewer
         /// <returns>The prompt.</returns>
         public static CadPrompt ForSelection(string message = null) => new CadPrompt(CadPromptKind.Selection, message ?? "Select objects", null, null, null);
 
+        /// <summary>Asks "Select objects or [Name/Description]:", as GROUP asks: objects until Enter, or a keyword.</summary>
+        internal static CadPrompt ForSelection(string message, IReadOnlyList<string> keywords) => new CadPrompt(CadPromptKind.Selection, message, keywords, null, null);
+
         /// <summary>Asks for one object: "Select arc or circle:".</summary>
         /// <param name="message">The message.</param>
         /// <param name="keywords">The keywords offered; null for none.</param>

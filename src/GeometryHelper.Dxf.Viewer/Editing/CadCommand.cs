@@ -166,6 +166,11 @@ namespace GeometryHelper.Dxf.Viewer
                 ["ATE"] = "ATTEDIT",
                 ["DDATTE"] = "ATTEDIT",
                 ["-ATE"] = "-ATTEDIT",
+                ["DR"] = "DRAWORDER",
+                ["G"] = "GROUP",
+                ["-G"] = "-GROUP",
+                ["PU"] = "PURGE",
+                ["-PU"] = "-PURGE",
             },
             new Dictionary<string, string>
             {
@@ -181,6 +186,8 @@ namespace GeometryHelper.Dxf.Viewer
                 ["Ctrl+S"] = "QSAVE",
                 ["Ctrl+1"] = "PROPERTIES",
                 ["Ctrl+A"] = "SELECTALL",
+                ["Ctrl+Shift+A"] = "PICKSTYLE",
+                ["Ctrl+W"] = "SELECTIONCYCLING",
             });
 
         private static IReadOnlyDictionary<string, string> Copy(IEnumerable<KeyValuePair<string, string>> pairs)

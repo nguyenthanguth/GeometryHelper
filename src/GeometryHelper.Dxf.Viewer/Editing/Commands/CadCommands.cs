@@ -121,6 +121,17 @@ namespace GeometryHelper.Dxf.Viewer
             registry.Add(new CadCommand("JOIN", Join));
             registry.Add(new CadCommand("LENGTHEN", Lengthen));
             AddBlocksTo(registry);
+            registry.Add(new CadCommand("QSELECT", QuickSelect));
+            registry.Add(new CadCommand("FIND", Find, true));
+            registry.Add(new CadCommand("DRAWORDER", DrawOrder, true));
+            registry.Add(new CadCommand("TEXTTOFRONT", TextToFront));
+            registry.Add(new CadCommand("GROUP", Group, true));
+            registry.Add(new CadCommand("-GROUP", GroupTyped));
+            registry.Add(new CadCommand("UNGROUP", Ungroup, true));
+            registry.Add(new CadCommand("PICKSTYLE", PickStyleCommand));
+            registry.Add(new CadCommand("PURGE", PurgeTyped));
+            registry.Add(new CadCommand("-PURGE", PurgeTyped));
+            registry.Add(new CadCommand("SELECTIONCYCLING", SelectionCyclingCommand));
         }
 
         /// <summary>A point of the plan in space, at nought height.</summary>
