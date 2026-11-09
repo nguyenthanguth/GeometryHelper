@@ -9,13 +9,18 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// MOVE and COPY by the displacement from the base point to the cursor, ROTATE by the angle about the base point, SCALE by
     /// the distance from it as the factor, MIRROR across the line from the first point to the cursor. It follows the session's
     /// prompts to know the objects the command took (those selected before it started, or those "Select objects:" gathered),
-    /// and keeps their outlines in drawing units so that a move of the mouse only transforms them.
+    /// and keeps their outlines in drawing units so that a move of the mouse only transforms them. The block INSERT drags while
+    /// it asks where and how to place it (<see cref="CadPrompt.Drag"/>) is outlined the same way, in the block's coordinates.
     /// </summary>
     internal sealed class CadGhost
     {
         private readonly List<string> _handles = new List<string>();
         private readonly List<double[]> _paths = new List<double[]>();
         private readonly List<DisplayRay2> _rays = new List<DisplayRay2>();
+        private readonly List<double[]> _dragPaths = new List<double[]>();
+        private readonly List<DisplayRay2> _dragRays = new List<DisplayRay2>();
+        private IReadOnlyList<DisplayItem2> _dragItems;
+        private double _dragTolerance;
         private CadCommand _command;
         private DisplayList2 _list;
         private double _tolerance;
@@ -139,72 +144,111 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     continue;
                 }
 
-                switch (item)
-                {
-                    case DisplayPolyline2 chain:
-                        var xy = new double[chain.Closed ? chain.Xy.Count + 2 : chain.Xy.Count];
-
-                        for (int i = 0; i < chain.Xy.Count; i++)
-                        {
-                            xy[i] = chain.Xy[i];
-                        }
-
-                        if (chain.Closed && chain.Xy.Count >= 2)
-                        {
-                            xy[xy.Length - 2] = chain.Xy[0];
-                            xy[xy.Length - 1] = chain.Xy[1];
-                        }
-
-                        _paths.Add(xy);
-                        break;
-                    case DisplaySegments2 segments:
-                        for (int i = 0; i + 3 < segments.Xy.Count; i += 4)
-                        {
-                            _paths.Add(new[] { segments.Xy[i], segments.Xy[i + 1], segments.Xy[i + 2], segments.Xy[i + 3] });
-                        }
-
-                        break;
-                    case DisplayArc2 arc:
-                        _paths.Add(arc.Flatten(tolerance));
-                        break;
-                    case DisplayFill2 fill:
-                        foreach (double[] ring in fill.Rings)
-                        {
-                            if (ring.Length >= 4)
-                            {
-                                var closed = new double[ring.Length + 2];
-                                Array.Copy(ring, closed, ring.Length);
-                                closed[ring.Length] = ring[0];
-                                closed[ring.Length + 1] = ring[1];
-                                _paths.Add(closed);
-                            }
-                        }
-
-                        break;
-                    case DisplayText2 text:
-                        DisplayBox box = text.Bounds;
-                        _paths.Add(new[] { box.MinX, box.MinY, box.MaxX, box.MinY, box.MaxX, box.MaxY, box.MinX, box.MaxY, box.MinX, box.MinY });
-                        break;
-                    case DisplayRay2 ray:
-                        _rays.Add(ray);
-                        break;
-                }
+                Outline(item, tolerance, _paths, _rays);
             }
 
             return _paths;
         }
 
         /// <summary>
-        /// Gets the XLINEs and RAYs among the objects the last <see cref="Paths"/> found, each transformed and cut to a view as
-        /// the canvas draws them: X and Y of its two ends in drawing units, the transformation already applied; one that misses
-        /// the view gives none. An XLINE level through the origin, moved by (10, 20), is the run from (-100, 20) to (100, 20) of
+        /// Gets the XLINEs and RAYs among the objects the last <see cref="Paths(CadDocument, CadSpace, double)"/> found, each
+        /// transformed and cut to a view as the canvas draws them: X and Y of its two ends in drawing units, the transformation
+        /// already applied; one that misses the view gives none. An XLINE level through the origin, moved by (10, 20), is the run from (-100, 20) to (100, 20) of
         /// the view from (-100, -100) to (100, 100).
         /// </summary>
-        public IReadOnlyList<double[]> Rays(Affine2 moved, DisplayBox view)
+        public IReadOnlyList<double[]> Rays(Affine2 moved, DisplayBox view) => Clip(_rays, moved, view);
+
+        /// <summary>
+        /// Gets the outlines of the block an INSERT drags (<see cref="CadPrompt.Drag"/>), in the block's own coordinates, as
+        /// <see cref="Paths(CadDocument, CadSpace, double)"/> gives those of objects: kept while the block's items stay and the
+        /// tolerance changes little.
+        /// </summary>
+        public IReadOnlyList<double[]> Paths(CadBlockDrag drag, double tolerance)
+        {
+            IReadOnlyList<DisplayItem2> items = drag.Items;
+
+            if (ReferenceEquals(items, _dragItems) && tolerance <= _dragTolerance * 2.0 && tolerance >= _dragTolerance / 2.0)
+            {
+                return _dragPaths;
+            }
+
+            _dragPaths.Clear();
+            _dragRays.Clear();
+            _dragItems = items;
+            _dragTolerance = tolerance;
+
+            foreach (DisplayItem2 item in items)
+            {
+                Outline(item, tolerance, _dragPaths, _dragRays);
+            }
+
+            return _dragPaths;
+        }
+
+        /// <summary>Gets the XLINEs and RAYs of the block the last <see cref="Paths(CadBlockDrag, double)"/> outlined, transformed and cut to a view as <see cref="Rays"/> cuts those of objects.</summary>
+        public IReadOnlyList<double[]> DragRays(Affine2 moved, DisplayBox view) => Clip(_dragRays, moved, view);
+
+        /// <summary>The outline of one display item, each a run of X and Y, added to the paths; an XLINE or a RAY added to the rays.</summary>
+        private static void Outline(DisplayItem2 item, double tolerance, List<double[]> paths, List<DisplayRay2> rays)
+        {
+            switch (item)
+            {
+                case DisplayPolyline2 chain:
+                    var xy = new double[chain.Closed ? chain.Xy.Count + 2 : chain.Xy.Count];
+
+                    for (int i = 0; i < chain.Xy.Count; i++)
+                    {
+                        xy[i] = chain.Xy[i];
+                    }
+
+                    if (chain.Closed && chain.Xy.Count >= 2)
+                    {
+                        xy[xy.Length - 2] = chain.Xy[0];
+                        xy[xy.Length - 1] = chain.Xy[1];
+                    }
+
+                    paths.Add(xy);
+                    break;
+                case DisplaySegments2 segments:
+                    for (int i = 0; i + 3 < segments.Xy.Count; i += 4)
+                    {
+                        paths.Add(new[] { segments.Xy[i], segments.Xy[i + 1], segments.Xy[i + 2], segments.Xy[i + 3] });
+                    }
+
+                    break;
+                case DisplayArc2 arc:
+                    paths.Add(arc.Flatten(tolerance));
+                    break;
+                case DisplayFill2 fill:
+                    foreach (double[] ring in fill.Rings)
+                    {
+                        if (ring.Length >= 4)
+                        {
+                            var closed = new double[ring.Length + 2];
+                            Array.Copy(ring, closed, ring.Length);
+                            closed[ring.Length] = ring[0];
+                            closed[ring.Length + 1] = ring[1];
+                            paths.Add(closed);
+                        }
+                    }
+
+                    break;
+                case DisplayText2 text:
+                    DisplayBox box = text.Bounds;
+                    paths.Add(new[] { box.MinX, box.MinY, box.MaxX, box.MinY, box.MaxX, box.MaxY, box.MinX, box.MaxY, box.MinX, box.MinY });
+                    break;
+                case DisplayRay2 ray:
+                    rays.Add(ray);
+                    break;
+            }
+        }
+
+        /// <summary>XLINEs and RAYs transformed and cut to a view, each the X and Y of its two ends; one that misses the view gives none.</summary>
+        private static IReadOnlyList<double[]> Clip(IReadOnlyList<DisplayRay2> rays, Affine2 moved, DisplayBox view)
         {
             var parts = new List<double[]>();
 
-            foreach (DisplayRay2 ray in _rays)
+            foreach (DisplayRay2 ray in rays)
             {
                 double dx = moved.A * ray.Dx + moved.C * ray.Dy;
                 double dy = moved.B * ray.Dx + moved.D * ray.Dy;

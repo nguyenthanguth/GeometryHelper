@@ -134,6 +134,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     public sealed class BlockDefinitionViewModel : ObservableObject
     {
         private readonly BlockPictures _pictures;
+        private ImageSource _selection;
+        private bool _selectionDrawn;
         private string _name;
         private string _x;
         private string _y;
@@ -179,8 +181,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Gets whether a block of the name is in the drawing already, which OK asks to define again.</summary>
         public bool Exists => Names.Any(n => string.Equals(n, (_name ?? string.Empty).Trim(), StringComparison.OrdinalIgnoreCase));
 
-        /// <summary>Gets the picture of the block of the name, where the drawing has one; null for a new one.</summary>
-        public ImageSource Preview => Exists ? _pictures.Draw(Names.First(n => string.Equals(n, _name.Trim(), StringComparison.OrdinalIgnoreCase))) : null;
+        /// <summary>
+        /// Gets the picture of the block of the name, where the drawing has one; for a new one, of the objects selected, as the
+        /// block made of them would look; null where there are none, or they are asked after OK.
+        /// </summary>
+        public ImageSource Preview => Exists ? _pictures.Draw(Names.First(n => string.Equals(n, _name.Trim(), StringComparison.OrdinalIgnoreCase))) : Selection();
 
         /// <summary>Gets or sets X of the base point, as typed.</summary>
         public string BaseX
@@ -228,6 +233,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 Raise(nameof(SpecifyObjectsOnScreen));
                 Raise(nameof(ObjectsText));
                 Raise(nameof(HasObjects));
+                Raise(nameof(Preview));
             }
         }
 
@@ -344,6 +350,64 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             Raise(nameof(IsRetain));
             Raise(nameof(IsConvert));
             Raise(nameof(IsDelete));
+        }
+
+        /// <summary>
+        /// The picture of the objects selected, drawn once: in a copy of the drawing, a block of a name it has not made of
+        /// copies of them about the base point, drawn as the Blocks palette draws a block. The drawing itself is not touched.
+        /// </summary>
+        private ImageSource Selection()
+        {
+            if (Request.SpecifyObjectsOnScreen || _selectionDrawn)
+            {
+                return Request.SpecifyObjectsOnScreen ? null : _selection;
+            }
+
+            _selectionDrawn = true;
+            IReadOnlyList<string> objects = Request.Objects ?? Array.Empty<string>();
+
+            if (objects.Count == 0)
+            {
+                return null;
+            }
+
+            try
+            {
+                DxfDatabase copy = DxfDatabase.Parse(Request.Document.Database.ToText());
+                var entities = new List<DxfEntity>();
+
+                foreach (string handle in objects)
+                {
+                    if (copy.TryGetObject(handle, out DxfDBObject found) && found is DxfEntity entity && !entity.IsErased)
+                    {
+                        entities.Add(entity);
+                    }
+                }
+
+                if (entities.Count == 0)
+                {
+                    return null;
+                }
+
+                string name = "PREVIEW";
+
+                for (int i = 1; copy.BlockTable.Has(name); i++)
+                {
+                    name = "PREVIEW" + i.ToString(CultureInfo.InvariantCulture);
+                }
+
+                var record = new DxfBlockTableRecord { Name = name, Origin = Request.BasePoint };
+                copy.BlockTable.Add(record);
+                copy.WblockCloneObjects(entities, record);
+                _selection = CadStylePreview.Block(copy, name, Request.Document.Fonts, 44, 44);
+            }
+            catch (Exception exception) when (exception is ArgumentException || exception is InvalidOperationException || exception is FormatException)
+            {
+                GeometryHelperLog.Debug("BlockDefinitionViewModel: the objects selected were not drawn: " + exception.Message);
+                _selection = null;
+            }
+
+            return _selection;
         }
 
         private void SetNumber(ref string field, string value, [System.Runtime.CompilerServices.CallerMemberName] string name = null)
@@ -1030,7 +1094,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// <summary>
     /// AutoCAD's Enhanced Attribute Editor, which EATTEDIT shows and a double click on an INSERT with attributes opens, over
     /// the request its command hands the window: the block and tag, the tabs Attribute (the list of tag, prompt and value,
-    /// and the value of the one chosen), Text Options and Properties; Apply writes and keeps it open.
+    /// and the value of the one chosen), Text Options and Properties. What is typed shows on the canvas at once; Apply keeps
+    /// it with the editor open, OK keeps it and closes, Cancel takes back what Apply did not keep, as AutoCAD's.
     /// </summary>
     public sealed class AttributeEditorViewModel : ObservableObject
     {
@@ -1046,6 +1111,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             Request = request ?? throw new ArgumentNullException(nameof(request));
             Rows = request.Rows.Select(r => new AttributeRowViewModel(r)).ToList();
             _selected = Rows.FirstOrDefault();
+
+            // Whatever is typed into a row shows on the canvas at once; Cancel takes back what Apply did not keep.
+            foreach (AttributeRowViewModel row in Rows)
+            {
+                row.PropertyChanged += (sender, e) => request.Preview();
+            }
+
             DxfDatabase database = request.Document.Database;
             Styles = database.TextStyleTable.Select(s => s.Name).Where(n => n.Length > 0).OrderBy(n => n, StringComparer.OrdinalIgnoreCase).ThenBy(n => n, StringComparer.Ordinal).ToList();
             Layers = database.LayerTable.Select(l => l.Name).OrderBy(n => n, StringComparer.OrdinalIgnoreCase).ThenBy(n => n, StringComparer.Ordinal).ToList();
@@ -1122,9 +1194,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Gets the lineweights offered: ByLayer, ByBlock, Default and AutoCAD's widths in millimetres.</summary>
         public IReadOnlyList<string> LineWeights { get; } = new[] { "ByLayer", "ByBlock", "Default" }.Concat(new[] { 0, 5, 9, 13, 15, 18, 20, 25, 30, 35, 40, 50, 53, 60, 70, 80, 90, 100, 106, 120, 140, 158, 200, 211 }.Select(w => (w / 100.0).ToString("0.00", CultureInfo.InvariantCulture) + " mm")).ToList();
 
-        /// <summary>Closes the editor with an action, or Apply.</summary>
+        /// <summary>Closes the editor with an action: OK keeps what was typed, Cancel takes back what Apply did not keep.</summary>
         /// <param name="action">OK, Cancel, Apply or Select block.</param>
         public void Close(CadDialogAction action) => Request.Action = action;
+
+        /// <summary>Apply: what was typed is kept, the editor staying open, so that a Cancel after it takes back only what is typed after it.</summary>
+        public void Apply() => Request.Apply();
 
         internal static string ColorName(int index) => index == 256 ? "ByLayer" : index >= 0 && index <= 7 ? ColorNames[index] : "Color " + index.ToString(CultureInfo.InvariantCulture);
 

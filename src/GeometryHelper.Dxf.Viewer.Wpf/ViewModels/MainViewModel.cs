@@ -1359,6 +1359,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 case "WBLOCK":
                 case "ATTDEF":
                 case "EATTEDIT":
+                case "REDEFINE":
                     OnBlockRequested(e);
                     break;
                 case "PASTESPEC":

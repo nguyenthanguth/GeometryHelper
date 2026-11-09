@@ -49,6 +49,7 @@ namespace GeometryHelper.Dxf.Viewer
             registry.Add(new CadCommand("EATTEDIT", c => AttributeEdit(c, "Select a block")));
             registry.Add(new CadCommand("ATTEDIT", c => AttributeEdit(c, "Select block reference")));
             registry.Add(new CadCommand("-ATTEDIT", AttributeEditTyped));
+            registry.Add(new CadCommand("ATTSYNC", AttributeSync));
             registry.Add(new CadCommand("BASE", Base));
         }
 
@@ -464,7 +465,12 @@ namespace GeometryHelper.Dxf.Viewer
                 yield break;
             }
 
-            string name = BringIn(c, request.FileName, request.Name);
+            string name = null;
+
+            foreach (CadPrompt prompt in BringIn(c, request.FileName, request.Name, n => name = n))
+            {
+                yield return prompt;
+            }
 
             if (name == null)
             {
@@ -539,7 +545,17 @@ namespace GeometryHelper.Dxf.Viewer
                 file += ".dxf";
             }
 
-            string name = file != null ? BringInFile(c, file, block) : typed;
+            string name = typed;
+
+            if (file != null)
+            {
+                name = null;
+
+                foreach (CadPrompt prompt in BringInFile(c, file, block, false, n => name = n))
+                {
+                    yield return prompt;
+                }
+            }
 
             if (name == null)
             {
@@ -574,59 +590,95 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// The block a request names, brought into the drawing where it comes from another drawing's file: a block of that
-        /// drawing copied in with what it places, as AutoCAD's DesignCenter brings one, the drawing's own kept where it has one
-        /// of the name; or the whole file made one block of its name. Null, said why, where it cannot be.
+        /// drawing copied in with what it places, as AutoCAD's DesignCenter brings one; or the whole file made one block of its
+        /// name. Where the drawing has a block of the name, the window is asked whether to redefine it, the command line where
+        /// no window answers. The name handed on is null, said why, where it cannot be.
         /// </summary>
-        private static string BringIn(CadCommandContext c, string file, string name)
+        private static IEnumerable<CadPrompt> BringIn(CadCommandContext c, string file, string name, Action<string> brought)
         {
-            if (string.IsNullOrEmpty(file))
+            if (!string.IsNullOrEmpty(file))
             {
-                if (string.IsNullOrEmpty(name) || !c.Database.BlockTable.Has(name))
-                {
-                    c.Write("Block \"" + name + "\" not found.");
-                    return null;
-                }
-
-                return c.Database.BlockTable[name].Name;
+                return BringInFile(c, file, string.IsNullOrEmpty(name) ? null : name, true, brought);
             }
 
-            return BringInFile(c, file, string.IsNullOrEmpty(name) ? null : name);
+            if (string.IsNullOrEmpty(name) || !c.Database.BlockTable.Has(name))
+            {
+                c.Write("Block \"" + name + "\" not found.");
+                brought(null);
+            }
+            else
+            {
+                brought(c.Database.BlockTable[name].Name);
+            }
+
+            return Array.Empty<CadPrompt>();
         }
 
-        private static string BringInFile(CadCommandContext c, string file, string block)
+        /// <summary>
+        /// A block of another drawing's file, or the whole file as one block of the file's name, brought into the drawing. Where
+        /// the drawing has a block of the name, "Block "GB" already exists. Redefine it? [Yes/No] &lt;No&gt;:" is asked, as AutoCAD's
+        /// -INSERT asks it, the window first where <paramref name="window"/> says so (the request REDEFINE, the name its
+        /// payload, Yes its answer): Yes gives the drawing's block the other's entities, base point and unit, as one edit; No
+        /// places the drawing's own.
+        /// </summary>
+        private static IEnumerable<CadPrompt> BringInFile(CadCommandContext c, string file, string block, bool window, Action<string> brought)
         {
-            DxfDatabase other;
+            brought(null);
+            DxfDatabase other = OpenOther(c, file);
 
-            try
+            if (other == null)
             {
-                other = DxfDatabase.Open(file);
-            }
-            catch (Exception exception) when (exception is IOException || exception is UnauthorizedAccessException || exception is ArgumentException || exception is NotSupportedException || exception is FormatException || exception is InvalidDataException)
-            {
-                c.Write("Cannot read " + file + ": " + exception.Message);
-                return null;
+                yield break;
             }
 
-            // The whole file as one block, of the file's name: the drawing's own block of the name kept, as AutoCAD keeps it
-            // where the question of redefining it is answered No.
             string whole = block ?? Path.GetFileNameWithoutExtension(file);
             bool ofFile = block == null || !other.BlockTable.Has(block) || other.BlockTable[block].IsLayout;
+            bool redefine = false;
 
             if (c.Database.BlockTable.Has(whole))
             {
-                c.Write("Block \"" + whole + "\" already exists: the drawing's own is placed.");
-                return c.Database.BlockTable[whole].Name;
-            }
+                DxfBlockTableRecord own = c.Database.BlockTable[whole];
 
-            if (!IsBlockName(whole))
+                if (own.IsLayout || own.IsFromExternalReference)
+                {
+                    c.Write("Block \"" + whole + "\" already exists: the drawing's own is placed.");
+                    brought(own.Name);
+                    yield break;
+                }
+
+                CadUiRequestEventArgs asked = window ? c.Session.Ask("REDEFINE", c.Document, own.Name) : null;
+
+                if (asked != null && asked.Handled)
+                {
+                    redefine = string.Equals(asked.Answer, "Yes", StringComparison.OrdinalIgnoreCase);
+                }
+                else
+                {
+                    yield return CadPrompt.ForKeyword("Block \"" + own.Name + "\" already exists. Redefine it?", new[] { "Yes", "No" }, "No");
+                    redefine = c.Input.Is("Yes");
+                }
+
+                if (!redefine)
+                {
+                    brought(c.Database.BlockTable[whole].Name);
+                    yield break;
+                }
+            }
+            else if (!IsBlockName(whole))
             {
                 c.Write("Invalid block name.");
-                return null;
+                yield break;
             }
 
             CadSpace space = c.Space;
-            CadEditResult result = c.Apply(new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "Insert block", null, whole) }, s =>
+            CadEditResult result = c.Apply(new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, redefine ? "Redefine block" : "Insert block", null, whole) }, s =>
             {
+                if (redefine)
+                {
+                    Redefine(s.Database.BlockTable[whole], other, ofFile ? null : other.BlockTable[block]);
+                    return;
+                }
+
                 if (ofFile)
                 {
                     s.Database.Insert(whole, other, true);
@@ -645,7 +697,44 @@ namespace GeometryHelper.Dxf.Viewer
                 }
             });
 
-            return result.Succeeded && c.Database.BlockTable.Has(whole) ? c.Database.BlockTable[whole].Name : null;
+            brought(result.Succeeded && c.Database.BlockTable.Has(whole) ? c.Database.BlockTable[whole].Name : null);
+        }
+
+        /// <summary>Reads another drawing's file, null, said why, where it cannot be read.</summary>
+        private static DxfDatabase OpenOther(CadCommandContext c, string file)
+        {
+            try
+            {
+                return DxfDatabase.Open(file);
+            }
+            catch (Exception exception) when (exception is IOException || exception is UnauthorizedAccessException || exception is ArgumentException || exception is NotSupportedException || exception is FormatException || exception is InvalidDataException)
+            {
+                c.Write("Cannot read " + file + ": " + exception.Message);
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Defines a block of the drawing again from another drawing's block, or from its model space where none is given: the
+        /// old entities erased, the other's copied in with what they bring, its base point (the other's $INSBASE for a whole
+        /// drawing) and unit taken. A block the copies bring that the drawing has already stays the drawing's own.
+        /// </summary>
+        private static void Redefine(DxfBlockTableRecord record, DxfDatabase other, DxfBlockTableRecord from)
+        {
+            foreach (DxfEntity old in record.ToList())
+            {
+                old.Erase();
+            }
+
+            List<DxfEntity> source = from == null ? other.ModelSpace.ToList() : from.ToList();
+            DxfUnits units = from == null ? other.Insunits : from.Units;
+            record.Origin = from == null ? other.Insbase : from.Origin;
+            Keep(() => record.Units = units, record.Units != units);
+
+            if (source.Count > 0)
+            {
+                other.WblockCloneObjects(source, record);
+            }
         }
 
         /// <summary>
@@ -659,13 +748,21 @@ namespace GeometryHelper.Dxf.Viewer
             GeoVector3 shift = new GeoVector3(0.0, 0.0, 0.0);
             bool scaleGiven = false;
             bool rotationGiven = false;
+            double unitFactor = UnitFactor(c.Database, record);
+            GeoPoint3 origin = record.Origin;
+            var items = new Lazy<IReadOnlyList<DisplayItem2>>(() => CadBlockDrag.ItemsOf(c.Document, name));
+
+            // The block dragged with the cursor as each of the point, scale and rotation is asked, as AutoCAD drags it.
+            CadBlockDrag DragOf(CadBlockDragMode mode)
+                => new CadBlockDrag(name, items, mode, new GeoPoint2(placing.Point.X, placing.Point.Y), placing.Scale, c.Session.Ucs.AngleToWorld(placing.Rotation), shift, origin, unitFactor);
+
             c.Write("Units: " + UnitName(record.Units) + "   Conversion:   " + Length(UnitFactor(c.Database, record)));
 
             if (askPoint)
             {
                 while (true)
                 {
-                    yield return CadPrompt.ForPoint("Specify insertion point", null, InsertKeywords);
+                    yield return CadPrompt.ForPoint("Specify insertion point", null, InsertKeywords).Dragging(DragOf(CadBlockDragMode.Point));
 
                     if (c.Input.IsPoint)
                     {
@@ -723,7 +820,7 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 if (uniform)
                 {
-                    yield return CadPrompt.ForDistance("Specify scale factor for XYZ axes", null, null, Length(1.0));
+                    yield return CadPrompt.ForDistance("Specify scale factor for XYZ axes", null, null, Length(1.0)).Dragging(DragOf(CadBlockDragMode.Scale));
                     double f = c.Input.Kind == CadInputKind.Number && c.Input.Number != 0.0 ? c.Input.Number : 1.0;
                     placing.Scale = new GeoVector3(f, f, f);
                 }
@@ -731,14 +828,14 @@ namespace GeometryHelper.Dxf.Viewer
                 {
                     GeoPoint2 at = new GeoPoint2(placing.Point.X, placing.Point.Y);
                     // No rubber band: a number typed is a scale, not a distance along it; a point picked is the opposite corner all the same.
-                    yield return CadPrompt.ForPoint("Enter X scale factor, specify opposite corner,", null, new[] { "Corner", "XYZ" }, "1", true);
+                    yield return CadPrompt.ForPoint("Enter X scale factor, specify opposite corner,", null, new[] { "Corner", "XYZ" }, "1", true).Dragging(DragOf(CadBlockDragMode.Corner));
                     double? x = null;
                     double? y = null;
                     double? z = null;
 
                     if (c.Input.Is("Corner"))
                     {
-                        yield return CadPrompt.ForPoint("Specify opposite corner", at);
+                        yield return CadPrompt.ForPoint("Specify opposite corner", at).Dragging(DragOf(CadBlockDragMode.Corner));
                     }
                     else if (c.Input.Is("XYZ"))
                     {
@@ -788,7 +885,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (askRotation && !rotationGiven)
             {
-                yield return CadPrompt.ForAngle("Specify rotation angle", new GeoPoint2(placing.Point.X, placing.Point.Y), null, Number(0.0));
+                yield return CadPrompt.ForAngle("Specify rotation angle", new GeoPoint2(placing.Point.X, placing.Point.Y), null, Number(0.0)).Dragging(DragOf(CadBlockDragMode.Rotation));
 
                 if (c.Input.Kind == CadInputKind.Number)
                 {
@@ -1431,7 +1528,9 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// EATTEDIT and ATTEDIT: a block with attributes picked, then the window's Enhanced Attribute Editor over its attributes,
-        /// Apply writing what changed and showing it again, Select block taking another; the values asked in turn with no window.
+        /// what is typed shown on the canvas at once (<see cref="CadAttributeEditRequest.Preview"/>), Apply keeping it with the
+        /// editor open, OK keeping it and ending, Cancel taking back what was not applied, Select block taking it back and taking
+        /// another; the values asked in turn with no window. One undo step for the whole command.
         /// </summary>
         private static IEnumerable<CadPrompt> AttributeEdit(CadCommandContext c, string ask)
         {
@@ -1447,7 +1546,26 @@ namespace GeometryHelper.Dxf.Viewer
                 List<CadAttributeRow> before = request.Rows.Select(r => r.Clone()).ToList();
                 request.Action = CadDialogAction.Cancel;
 
-                if (!c.Session.Request("EATTEDIT", c.Document, request))
+                // The rows as the drawing shows them, written as they are typed, and the savepoint Cancel reads the drawing back
+                // to: as the editor opened, or as Apply last left it, inside the command's one undo step.
+                List<CadAttributeRow> shown = before.Select(r => r.Clone()).ToList();
+                bool unapplied = false;
+                c.OpenUndoStep();
+                CadGroupMark mark = c.Document.MarkGroup();
+                CadAttributeEditRequest editing = request;
+                editing.Previewing = () => unapplied |= Show(c, editing, shown, true);
+                editing.Applying = () =>
+                {
+                    Show(c, editing, shown, false);
+                    mark = c.Document.MarkGroup();
+                    unapplied = false;
+                };
+
+                bool asked = c.Session.Request("EATTEDIT", c.Document, request);
+                editing.Previewing = null;
+                editing.Applying = null;
+
+                if (!asked)
                 {
                     for (int i = 0; i < request.Rows.Count; i++)
                     {
@@ -1466,7 +1584,7 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (request.Action == CadDialogAction.Ok || request.Action == CadDialogAction.Apply)
                 {
-                    WriteAttributes(c, request, before);
+                    Show(c, request, shown, false);
 
                     if (request.Action == CadDialogAction.Ok)
                     {
@@ -1474,8 +1592,16 @@ namespace GeometryHelper.Dxf.Viewer
                     }
 
                     request = Rows(c.Document, request.Insert);
+                    continue;
                 }
-                else if (request.Action == CadDialogAction.SelectBlock)
+
+                // Cancel and Select block take back what was shown as typed and not applied.
+                if (unapplied)
+                {
+                    c.Document.BackTo(mark);
+                }
+
+                if (request.Action == CadDialogAction.SelectBlock)
                 {
                     CadAttributeEditRequest other = null;
 
@@ -1484,7 +1610,7 @@ namespace GeometryHelper.Dxf.Viewer
                         yield return prompt;
                     }
 
-                    request = other ?? request;
+                    request = other ?? Rows(c.Document, request.Insert);
                 }
                 else
                 {
@@ -1558,8 +1684,27 @@ namespace GeometryHelper.Dxf.Viewer
             return new CadAttributeEditRequest(document, insert.Handle, insert.Name, rows);
         }
 
+        /// <summary>
+        /// Writes the rows of the editor that differ from what the drawing shows (<paramref name="shown"/>), which then shows
+        /// them; whether any was written. Quiet, as while a value is typed, a height not above nought is passed over unsaid.
+        /// </summary>
+        private static bool Show(CadCommandContext c, CadAttributeEditRequest request, List<CadAttributeRow> shown, bool quiet)
+        {
+            if (WriteAttributes(c, request, shown, quiet) == 0)
+            {
+                return false;
+            }
+
+            shown.Clear();
+            shown.AddRange(request.Rows.Select(r => r.Clone()));
+            return true;
+        }
+
         /// <summary>Writes what the rows changed into the INSERT's attributes, one edit; nothing where nothing changed.</summary>
-        private static void WriteAttributes(CadCommandContext c, CadAttributeEditRequest request, List<CadAttributeRow> before)
+        private static void WriteAttributes(CadCommandContext c, CadAttributeEditRequest request, List<CadAttributeRow> before) => WriteAttributes(c, request, before, false);
+
+        /// <summary>Writes what the rows changed into the INSERT's attributes, one edit; how many rows it wrote, none where nothing changed or the edit was refused.</summary>
+        private static int WriteAttributes(CadCommandContext c, CadAttributeEditRequest request, List<CadAttributeRow> before, bool quiet)
         {
             var changed = new List<KeyValuePair<CadAttributeRow, CadAttributeRow>>();
 
@@ -1573,17 +1718,28 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (changed.Count == 0)
             {
-                return;
+                return 0;
             }
 
             if (changed.Any(p => !(p.Value.Height > 0.0) || !(p.Value.WidthFactor > 0.0)))
             {
-                c.Write("Value must be positive and nonzero.");
-                return;
+                if (!quiet)
+                {
+                    c.Write("Value must be positive and nonzero.");
+                }
+
+                return 0;
+            }
+
+            // A style typed that the drawing has not would fail the edit, and with it the command's step: while a value is
+            // typed it is passed over, and said only on Apply or OK.
+            if (quiet && changed.Any(p => p.Value.TextStyle != p.Key.TextStyle && p.Value.TextStyle != null && !c.Database.TextStyleTable.Has(p.Value.TextStyle)))
+            {
+                return 0;
             }
 
             string handle = request.Insert;
-            c.Apply(new[] { new CadEditRecord(CadEditRecordKind.PropertyChanged, handle, "Attributes", null, string.Join(",", changed.Select(p => p.Value.Tag))) }, s =>
+            CadEditResult result = c.Apply(new[] { new CadEditRecord(CadEditRecordKind.PropertyChanged, handle, "Attributes", null, string.Join(",", changed.Select(p => p.Value.Tag))) }, s =>
             {
                 var insert = (DxfBlockReference)s.Document.FindEntity(handle);
 
@@ -1593,6 +1749,8 @@ namespace GeometryHelper.Dxf.Viewer
                     Write(attribute, pair.Key, pair.Value, s.Database);
                 }
             });
+
+            return result.Succeeded ? changed.Count : 0;
         }
 
         private static bool Same(CadAttributeRow a, CadAttributeRow b)
@@ -1682,7 +1840,8 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// -ATTEDIT (-ATE): attributes edited one at a time, as AutoCAD's: the block, tag and value specifications (* and ?
-        /// wildcards), the attributes of the INSERTs selected that match them, and for each "Enter an option
+        /// wildcards), the attributes that match them of the INSERTs selected (of one clicked, the attribute clicked alone; of one
+        /// a window took, all), and for each, marked with a cross on the canvas, "Enter an option
         /// [Value/Position/Height/Angle/Style/Layer/Color/Next] &lt;N&gt;:" until Next; each change one edit of the command's step.
         /// </summary>
         private static IEnumerable<CadPrompt> AttributeEditTyped(CadCommandContext c)
@@ -1713,9 +1872,13 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 if (c.Document.FindEntity(handle) is DxfBlockReference insert && blocks.IsMatch(insert.Name))
                 {
+                    // An INSERT a click picked gives the attribute clicked alone, as AutoCAD's; one a window took, all of them.
+                    List<GeoPoint2> clicks = c.Input.Clicks.Where(p => string.Equals(p.Key, handle, StringComparison.OrdinalIgnoreCase)).Select(p => p.Value).ToList();
+                    HashSet<string> clicked = clicks.Count == 0 ? null : ClickedAttributes(c, insert, clicks);
+
                     foreach (DxfAttributeReference attribute in insert.AttributeCollection)
                     {
-                        if (tags.IsMatch(attribute.Tag) && values.IsMatch(attribute.TextString ?? string.Empty))
+                        if ((clicked == null || clicked.Contains(attribute.Handle)) && tags.IsMatch(attribute.Tag) && values.IsMatch(attribute.TextString ?? string.Empty))
                         {
                             found.Add(new KeyValuePair<string, string>(handle, attribute.Handle));
                         }
@@ -1730,7 +1893,8 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 while (true)
                 {
-                    yield return CadPrompt.ForKeyword("Enter an option", options, "Next");
+                    // The attribute edited marked with a cross where it stands, as AutoCAD marks it.
+                    yield return CadPrompt.ForKeyword("Enter an option", options, "Next").Marking(HeldAt(c, pair.Key, pair.Value));
 
                     if (c.Input.IsNone || c.Input.Is("Next"))
                     {
@@ -1866,12 +2030,338 @@ namespace GeometryHelper.Dxf.Viewer
             }
         }
 
+        /// <summary>The point an attribute of an INSERT is held by: its start on the baseline where it is aligned left there, else its alignment point.</summary>
+        private static GeoPoint2 HeldAt(CadCommandContext c, string insert, string attribute)
+        {
+            DxfAttributeReference a = ((DxfBlockReference)c.Document.FindEntity(insert)).AttributeCollection.First(x => string.Equals(x.Handle, attribute, StringComparison.OrdinalIgnoreCase));
+            GeoPoint3 at = a.Justify == DxfAttachmentPoint.BaseLeft ? a.Position : a.AlignmentPoint;
+            return new GeoPoint2(at.X, at.Y);
+        }
+
+        /// <summary>
+        /// The handles of the attributes of an INSERT that clicks picked, as AutoCAD's -ATTEDIT takes the attribute under the
+        /// pick box: each shown attribute is the text of the INSERT drawn nearest the point it is held by, and each click takes
+        /// the one of those it falls nearest within the pick aperture, the first of the INSERT where two are as near; a click on
+        /// the block's own lines takes none.
+        /// </summary>
+        private static HashSet<string> ClickedAttributes(CadCommandContext c, DxfBlockReference insert, IReadOnlyList<GeoPoint2> clicks)
+        {
+            var clicked = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            CadSpace space = c.Document.FindSpace(insert.Handle);
+
+            if (space == null)
+            {
+                return clicked;
+            }
+
+            List<DisplayText2> texts = c.Document.GetDisplay(space).Items.OfType<DisplayText2>().Where(t => string.Equals(t.Handle, insert.Handle, StringComparison.OrdinalIgnoreCase)).ToList();
+            var used = new bool[texts.Count];
+            var shown = new List<KeyValuePair<string, DisplayText2>>();
+
+            foreach (DxfAttributeReference attribute in insert.AttributeCollection)
+            {
+                if (attribute.IsErased || attribute.Invisible)
+                {
+                    continue;
+                }
+
+                GeoPoint3 at = attribute.Justify == DxfAttachmentPoint.BaseLeft ? attribute.Position : attribute.AlignmentPoint;
+                int best = -1;
+                double nearest = double.PositiveInfinity;
+
+                for (int i = 0; i < texts.Count; i++)
+                {
+                    double d = Math.Sqrt(((texts[i].X - at.X) * (texts[i].X - at.X)) + ((texts[i].Y - at.Y) * (texts[i].Y - at.Y)));
+
+                    if (!used[i] && d < nearest)
+                    {
+                        nearest = d;
+                        best = i;
+                    }
+                }
+
+                if (best >= 0)
+                {
+                    used[best] = true;
+                    shown.Add(new KeyValuePair<string, DisplayText2>(attribute.Handle, texts[best]));
+                }
+            }
+
+            foreach (GeoPoint2 click in clicks)
+            {
+                string picked = null;
+                double nearest = double.PositiveInfinity;
+
+                foreach (KeyValuePair<string, DisplayText2> pair in shown)
+                {
+                    double d = pair.Value.DistanceTo(click.X, click.Y);
+
+                    if (d <= c.Session.PickAperture && d < nearest)
+                    {
+                        nearest = d;
+                        picked = pair.Key;
+                    }
+                }
+
+                if (picked != null)
+                {
+                    clicked.Add(picked);
+                }
+            }
+
+            return clicked;
+        }
+
         /// <summary>A pattern of AutoCAD's wildcards, * and ?, matched whole, letters of either case alike; commas separate several.</summary>
         private static Regex Wildcard(string pattern)
         {
             string[] parts = (string.IsNullOrWhiteSpace(pattern) ? "*" : pattern.Trim()).Split(',');
             string joined = string.Join("|", parts.Select(p => Regex.Escape(p.Trim()).Replace("\\*", ".*").Replace("\\?", ".")));
             return new Regex("^(?:" + joined + ")$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+        }
+
+        /// <summary>
+        /// ATTSYNC: "Enter an option [?/Name/Select] &lt;Select&gt;:", a block picked or named, "ATTSYNC block GB? [Yes/No]
+        /// &lt;Yes&gt;:", then every INSERT of it brought in line with its attribute definitions, as AutoCAD's: one attribute for
+        /// each definition not constant, in the block's order, its value kept where the INSERT had the tag; those of tags the
+        /// block no longer defines removed; each placed and styled from its definition as the INSERT places it. "?" lists the
+        /// blocks with attributes. One undo step.
+        /// </summary>
+        private static IEnumerable<CadPrompt> AttributeSync(CadCommandContext c)
+        {
+            string name = null;
+
+            while (name == null)
+            {
+                yield return CadPrompt.ForKeyword("Enter an option", new[] { "?", "Name", "Select" }, "Select");
+
+                if (c.Input.Is("?"))
+                {
+                    WriteAttributedBlocks(c);
+                }
+                else if (c.Input.Is("Name"))
+                {
+                    while (true)
+                    {
+                        yield return CadPrompt.ForKeywordOrText("Enter name of block to sync or", new[] { "?" }, null);
+
+                        if (c.Input.Is("?"))
+                        {
+                            WriteAttributedBlocks(c);
+                            continue;
+                        }
+
+                        if (c.Input.Kind != CadInputKind.Text || c.Input.Text.Trim().Length == 0)
+                        {
+                            yield break;
+                        }
+
+                        string typed = c.Input.Text.Trim();
+
+                        if (!c.Database.BlockTable.Has(typed) || !NamedBlocks(c.Database).Any(b => string.Equals(b.Name, typed, StringComparison.OrdinalIgnoreCase)))
+                        {
+                            c.Write("Block \"" + typed + "\" not found.");
+                            continue;
+                        }
+
+                        name = c.Database.BlockTable[typed].Name;
+                        break;
+                    }
+                }
+                else if (c.Input.Is("Select"))
+                {
+                    while (true)
+                    {
+                        yield return CadPrompt.ForEntity("Select a block");
+
+                        if (c.Input.Kind != CadInputKind.Selection)
+                        {
+                            yield break;
+                        }
+
+                        if (c.Document.FindEntity(c.Input.Handles[0]) is DxfBlockReference picked && picked.BlockTableRecord != null)
+                        {
+                            name = picked.BlockTableRecord.Name;
+                            break;
+                        }
+
+                        c.Write("That object is not a block.");
+                    }
+
+                    yield return CadPrompt.ForKeyword("ATTSYNC block " + name + "?", new[] { "Yes", "No" }, "Yes");
+
+                    if (c.Input.Is("No"))
+                    {
+                        yield break;
+                    }
+                }
+                else
+                {
+                    yield break;
+                }
+            }
+
+            if (!c.Database.BlockTable[name].OfType<DxfAttributeDefinition>().Any())
+            {
+                c.Write("This block has no attribute definitions.");
+                yield break;
+            }
+
+            SyncAttributes(c, name);
+        }
+
+        /// <summary>The names of the blocks with attribute definitions, as ATTSYNC's "?" lists them.</summary>
+        private static void WriteAttributedBlocks(CadCommandContext c)
+        {
+            List<string> names = NamedBlocks(c.Database).Where(b => b.OfType<DxfAttributeDefinition>().Any()).Select(b => b.Name).ToList();
+            c.Write("Blocks with attributes:");
+            names.ForEach(c.Write);
+        }
+
+        /// <summary>
+        /// Brings every INSERT of a block in line with its attribute definitions, one edit: those of the layouts named as
+        /// changed, those nested in other blocks with those blocks; in the order of the block table and of each block.
+        /// </summary>
+        internal static void SyncAttributes(CadCommandContext c, string name)
+        {
+            var planned = new List<CadEditRecord>();
+            int count = 0;
+
+            foreach (KeyValuePair<DxfBlockTableRecord, DxfBlockReference> pair in InsertsOf(c.Database, name))
+            {
+                count++;
+
+                if (pair.Key.IsLayout && c.Document.FindEntity(pair.Value.Handle) != null)
+                {
+                    planned.Add(new CadEditRecord(CadEditRecordKind.PropertyChanged, pair.Value.Handle, "Attributes", null, name));
+                }
+                else if (!planned.Exists(r => r.Kind == CadEditRecordKind.TableChanged && string.Equals(r.NewValue, pair.Key.Name, StringComparison.OrdinalIgnoreCase)))
+                {
+                    planned.Add(new CadEditRecord(CadEditRecordKind.TableChanged, null, "Attributes synchronized", null, pair.Key.Name));
+                }
+            }
+
+            CadEditResult result = c.Apply(planned, s =>
+            {
+                List<DxfAttributeDefinition> definitions = Definitions(s.Database.BlockTable[name]);
+
+                foreach (KeyValuePair<DxfBlockTableRecord, DxfBlockReference> pair in InsertsOf(s.Database, name))
+                {
+                    Sync(pair.Value, definitions);
+                }
+            });
+
+            if (result.Succeeded)
+            {
+                c.Write("ATTSYNC complete.");
+                GeometryHelperLog.Info("CadCommands: ATTSYNC brought " + count.ToString(CultureInfo.InvariantCulture) + " INSERTs of " + name + " in line with the block.");
+            }
+        }
+
+        /// <summary>The INSERTs of a block with the block or layout each stands in, in the order of the block table and of each block; external references left out.</summary>
+        private static List<KeyValuePair<DxfBlockTableRecord, DxfBlockReference>> InsertsOf(DxfDatabase database, string name)
+        {
+            var inserts = new List<KeyValuePair<DxfBlockTableRecord, DxfBlockReference>>();
+
+            foreach (DxfBlockTableRecord owner in database.BlockTable)
+            {
+                if (owner.IsFromExternalReference)
+                {
+                    continue;
+                }
+
+                foreach (DxfEntity entity in owner)
+                {
+                    if (entity is DxfBlockReference insert && !insert.IsErased && string.Equals(insert.Name, name, StringComparison.OrdinalIgnoreCase))
+                    {
+                        inserts.Add(new KeyValuePair<DxfBlockTableRecord, DxfBlockReference>(owner, insert));
+                    }
+                }
+            }
+
+            return inserts;
+        }
+
+        /// <summary>
+        /// Brings the attributes of one INSERT in line with the definitions of its block, in their order: an attribute of a
+        /// tag the INSERT has (the first of it not yet taken) is placed and styled again from its definition, its value kept,
+        /// where it stands in order; one out of order, or of a tag it has not, is made anew after the others, a definition on
+        /// layer 0 giving it the INSERT's layer, as INSERT gives it; one of a tag no longer defined is erased.
+        /// </summary>
+        private static void Sync(DxfBlockReference insert, List<DxfAttributeDefinition> definitions)
+        {
+            List<DxfAttributeReference> old = insert.AttributeCollection.ToList();
+            var taken = new bool[old.Count];
+            GeoTransform3 transform = insert.BlockTransform;
+            int last = -1;
+            bool appending = false;
+
+            foreach (DxfAttributeDefinition definition in definitions)
+            {
+                int at = -1;
+
+                for (int i = 0; i < old.Count; i++)
+                {
+                    if (!taken[i] && string.Equals(old[i].Tag, definition.Tag, StringComparison.OrdinalIgnoreCase))
+                    {
+                        at = i;
+                        break;
+                    }
+                }
+
+                string value = at >= 0 ? old[at].TextString : null;
+
+                if (at >= 0)
+                {
+                    taken[at] = true;
+                }
+
+                DxfAttributeReference attribute;
+                bool made = false;
+
+                if (at >= 0 && !appending && at > last)
+                {
+                    attribute = old[at];
+                    last = at;
+                    attribute.SetAttributeFromBlock(definition, transform);
+                }
+                else
+                {
+                    appending = true;
+
+                    if (at >= 0)
+                    {
+                        old[at].Erase();
+                    }
+
+                    attribute = new DxfAttributeReference();
+                    made = true;
+                    attribute.SetAttributeFromBlock(definition, transform);
+                }
+
+                if (value != null && attribute.TextString != value)
+                {
+                    attribute.TextString = value;
+                }
+
+                if (string.Equals(definition.Layer, "0", StringComparison.Ordinal) && attribute.Layer != insert.Layer)
+                {
+                    attribute.Layer = insert.Layer;
+                }
+
+                if (made)
+                {
+                    insert.AttributeCollection.AppendAttribute(attribute);
+                }
+            }
+
+            for (int i = 0; i < old.Count; i++)
+            {
+                if (!taken[i])
+                {
+                    old[i].Erase();
+                }
+            }
         }
 
         /// <summary>BASE: "Enter base point &lt;0.0000,0.0000,0.0000&gt;:", the point an INSERT of the drawing as a file puts at its insertion point ($INSBASE).</summary>

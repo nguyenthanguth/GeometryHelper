@@ -138,6 +138,34 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             return question.ShowDialog() == true;
         }
 
+        /// <summary>
+        /// Asks whether a block INSERT brings from another drawing redefines the drawing's own of its name, as AutoCAD asks:
+        /// "Block GB already exists. Redefine?".
+        /// </summary>
+        /// <param name="owner">The window it is shown over; null for none.</param>
+        /// <param name="name">The name of the block.</param>
+        /// <returns>Whether to redefine it.</returns>
+        public static bool AskRedefineBlock(Window owner, string name)
+        {
+            var question = new CadQuestionWindow(
+                "Block " + name + " already exists. Redefine?",
+                "Redefine replaces the drawing's block with the one of the other drawing, and every INSERT of it shows the new one. Don't redefine places the drawing's own.",
+                string.Empty,
+                "Redefine",
+                "Don't redefine");
+
+            if (owner != null && owner.IsVisible)
+            {
+                question.Owner = owner;
+            }
+            else
+            {
+                question.WindowStartupLocation = WindowStartupLocation.CenterScreen;
+            }
+
+            return question.ShowDialog() == true;
+        }
+
         private void OnYes(object sender, RoutedEventArgs e)
         {
             Answer = CadSaveChoice.Save;

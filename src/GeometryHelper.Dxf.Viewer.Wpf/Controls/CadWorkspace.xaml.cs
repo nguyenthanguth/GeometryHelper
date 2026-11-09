@@ -461,6 +461,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 _model.ShowWriteBlock = dialog => WriteBlockWindow.Show(Window.GetWindow(this), dialog);
                 _model.ShowAttributeDefinition = dialog => AttributeDefinitionWindow.Show(Window.GetWindow(this), dialog);
                 _model.ShowAttributeEditor = dialog => AttributeEditorWindow.Show(Window.GetWindow(this), dialog);
+                _model.AskRedefineBlock = name => CadQuestionWindow.AskRedefineBlock(Window.GetWindow(this), name);
                 _model.ShowPasteSpecial = dialog => PasteSpecialWindow.Show(Window.GetWindow(this), dialog);
                 _model.AskKeepMTextChanges = () => CadQuestionWindow.AskKeepMTextChanges(Window.GetWindow(this));
                 _model.InPlaceEditChanged += OnInPlaceEditChanged;

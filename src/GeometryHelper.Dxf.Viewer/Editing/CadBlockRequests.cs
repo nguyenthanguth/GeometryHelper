@@ -403,5 +403,25 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>Gets or sets what the window's dialog was closed with, or Apply; Cancel until set.</summary>
         public CadDialogAction Action { get; set; }
+
+        /// <summary>What the command editing the INSERT does on <see cref="Preview"/>; null for a request made by <see cref="Of"/>.</summary>
+        internal Action Previewing { get; set; }
+
+        /// <summary>What the command editing the INSERT does on <see cref="Apply"/>; null for a request made by <see cref="Of"/>.</summary>
+        internal Action Applying { get; set; }
+
+        /// <summary>
+        /// Writes the rows as they stand into the drawing while the editor stays open, so that the canvas shows a value as it is
+        /// typed, as AutoCAD's editor shows it: a value typed D in place of C is drawn D at once. Cancel takes back what was so
+        /// written since the editor opened or Apply was last pressed; OK keeps it. A row of a height or width factor not above
+        /// nought is not written. Nothing happens for a request no command is editing, as one made by <see cref="Of"/>.
+        /// </summary>
+        public void Preview() => Previewing?.Invoke();
+
+        /// <summary>
+        /// Apply, the editor staying open, as AutoCAD's: the rows written and kept, so that a Cancel after it takes back only
+        /// what is changed after it. Nothing happens for a request no command is editing, as one made by <see cref="Of"/>.
+        /// </summary>
+        public void Apply() => Applying?.Invoke();
     }
 }
