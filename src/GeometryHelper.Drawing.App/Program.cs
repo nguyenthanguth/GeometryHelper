@@ -40,7 +40,8 @@ namespace GeometryHelper.Drawing.App
     /// the first row of the DRAWINGS list; <c>--dialog linetype|linetype-load|select-linetype|hatch|hatch-gradient|hatch-user|hatch-solid|hatch-file</c>
     /// draws the Linetype Manager, Load or Reload Linetypes, Select Linetype or the Hatch dialog, the lines of --run typed first;
     /// <c>--dialog missing-shx|missing-shx-replace</c> draws Missing SHX files for the drawing opened, or for a drawing of
-    /// styles whose SHX files are missing where it has none.
+    /// styles whose SHX files are missing where it has none; <c>--dialog ptype</c> draws Point Style, the lines of --run typed
+    /// first (<c>--run "PDMODE;34"</c>).
     /// </summary>
     public static class Program
     {
@@ -219,7 +220,7 @@ namespace GeometryHelper.Drawing.App
 
             if (output == null || width < 100 || height < 100 || (cursor != null && cursor.Length != 2))
             {
-                Console.Error.WriteLine("Usage: GeometryHelper.Drawing.App --screenshot out.png [file.dxf] [--size 1600 960] [--space \"Layout1\"] [--select H1,H2] [--run \"MOVE;0,0\"] [--cursor x,y] [--toggle GRID,SNAP] [--layers] [--new-drawing \"Test bodies\" Assembly] [--tab Drawing] [--pick view|dimension|mark|line] [--hand-edit] [--dialog new|new-source|new-settings|update|settings[:Tab]|export|message|run-plugin|plugins|plugin-settings|plugin-untrusted|color|truecolor|dsettings[:Tab]|osnap-menu|snap-menu|drawings-menu|missing-shx|missing-shx-replace] [--plugin path.dll]");
+                Console.Error.WriteLine("Usage: GeometryHelper.Drawing.App --screenshot out.png [file.dxf] [--size 1600 960] [--space \"Layout1\"] [--select H1,H2] [--run \"MOVE;0,0\"] [--cursor x,y] [--toggle GRID,SNAP] [--layers] [--new-drawing \"Test bodies\" Assembly] [--tab Drawing] [--pick view|dimension|mark|line] [--hand-edit] [--dialog new|new-source|new-settings|update|settings[:Tab]|export|message|run-plugin|plugins|plugin-settings|plugin-untrusted|color|truecolor|dsettings[:Tab]|osnap-menu|snap-menu|drawings-menu|missing-shx|missing-shx-replace|ptype] [--plugin path.dll]");
                 return 2;
             }
 
@@ -396,6 +397,21 @@ namespace GeometryHelper.Drawing.App
 
                 var dialog = new MissingShxWindow(new MissingShxViewModel(document, missing));
                 dialog.Model.Replace = dialogName.EndsWith("-replace", StringComparison.OrdinalIgnoreCase);
+                root = dialog.Body;
+                window = dialog;
+                width = (int)dialog.Width;
+                height = (int)dialog.Height;
+            }
+            else if (string.Equals(dialogName, "ptype", StringComparison.OrdinalIgnoreCase))
+            {
+                // Point Style, as PTYPE shows it, for the drawing opened or a new one, the lines of --run typed first.
+                foreach (string line in run == null ? Array.Empty<string>() : run.Split(';'))
+                {
+                    model.Execute(line);
+                }
+
+                run = null;
+                var dialog = new PointStyleWindow(model.CreatePointStyle() ?? new PointStyleViewModel(CadDocument.From(new DxfDatabase("AC1027"), "plan-level2.dxf")));
                 root = dialog.Body;
                 window = dialog;
                 width = (int)dialog.Width;

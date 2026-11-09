@@ -1334,6 +1334,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 case "DIMSTYLE":
                     OnStyleRequest(e);
                     break;
+                case "PTYPE":
+                    OnPointStyleRequested(e);
+                    break;
             }
         }
 
