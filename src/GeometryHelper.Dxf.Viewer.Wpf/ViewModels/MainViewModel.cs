@@ -1354,6 +1354,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 case "STYLE":
                 case "DIMSTYLE":
                 case "TABLESTYLE":
+                case "MLEADERSTYLE":
                     OnStyleRequest(e);
                     break;
                 case "TABLE":

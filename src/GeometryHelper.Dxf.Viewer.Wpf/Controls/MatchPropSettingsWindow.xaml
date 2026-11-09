@@ -2,21 +2,64 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:GeometryHelper.Dxf.Viewer.Wpf"
-        Title="Property Settings" Width="460" SizeToContent="Height" WindowStyle="None" ResizeMode="NoResize" ShowInTaskbar="False"
+        Title="Property Settings" Width="600" Height="480" WindowStyle="None" ResizeMode="NoResize" ShowInTaskbar="False"
         WindowStartupLocation="CenterOwner" Background="#262B33">
 
-    <!-- Not yet drawn in the Design artifact: plain, after the Paste Special dialog, to be matched to the design. -->
     <Window.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/Dark.xaml" />
                 <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/StyleDialogs.xaml" />
             </ResourceDictionary.MergedDictionaries>
 
-            <!-- A box of the list: checked as the settings have it, greyed where MATCHPROP does not copy it. -->
-            <DataTemplate x:Key="Box" DataType="{x:Type local:MatchPropOptionViewModel}">
-                <CheckBox Content="{Binding Name}" IsChecked="{Binding IsChecked, Mode=TwoWay}" IsEnabled="{Binding IsEnabled}"
-                          Foreground="{StaticResource GhText}" Margin="0,0,0,6" />
+            <!-- A group of boxes: framed, its title set in the frame's top line. -->
+            <Style x:Key="Group" TargetType="GroupBox">
+                <Setter Property="Margin" Value="0" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="GroupBox">
+                            <Grid>
+                                <Border BorderBrush="{StaticResource GhBorder}" BorderThickness="1" CornerRadius="4" Margin="0,9,0,0" Padding="12,10,12,10">
+                                    <ContentPresenter />
+                                </Border>
+                                <Border Background="{StaticResource GhPanel}" Padding="4,0" Margin="8,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Top">
+                                    <ContentPresenter ContentSource="Header" TextElement.FontSize="13" TextElement.FontWeight="SemiBold" />
+                                </Border>
+                            </Grid>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- A basic property: its box, its name 110 wide, the colour's swatch, then the source's value in mono type; greyed where not copied. -->
+            <DataTemplate x:Key="BasicBox" DataType="{x:Type local:MatchPropOptionViewModel}">
+                <DockPanel Margin="0,2" IsEnabled="{Binding IsEnabled}">
+                    <CheckBox x:Name="Box" DockPanel.Dock="Left" Style="{StaticResource StyleCheck}" IsChecked="{Binding IsChecked, Mode=TwoWay}" Margin="0,0,8,0" />
+                    <TextBlock x:Name="Words" DockPanel.Dock="Left" Text="{Binding Name}" Width="110" VerticalAlignment="Center" />
+                    <Border x:Name="Swatch" DockPanel.Dock="Left" Width="12" Height="12" Margin="0,0,8,0" BorderBrush="#5B6573" BorderThickness="1"
+                            Background="{Binding SwatchRgb, Converter={StaticResource RgbBrush}}" />
+                    <TextBlock Text="{Binding Value}" Foreground="{StaticResource GhTextMuted}" FontFamily="{StaticResource GhMonoFont}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                </DockPanel>
+                <DataTemplate.Triggers>
+                    <DataTrigger Binding="{Binding SwatchRgb}" Value="{x:Null}">
+                        <Setter TargetName="Swatch" Property="Visibility" Value="Collapsed" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding IsEnabled}" Value="False">
+                        <Setter TargetName="Words" Property="Foreground" Value="{StaticResource GhTextMuted}" />
+                    </DataTrigger>
+                </DataTemplate.Triggers>
+            </DataTemplate>
+
+            <!-- A special property: its box and its name; greyed where not copied. -->
+            <DataTemplate x:Key="SpecialBox" DataType="{x:Type local:MatchPropOptionViewModel}">
+                <StackPanel Orientation="Horizontal" Margin="0,3" IsEnabled="{Binding IsEnabled}">
+                    <CheckBox Style="{StaticResource StyleCheck}" IsChecked="{Binding IsChecked, Mode=TwoWay}" Margin="0,0,8,0" />
+                    <TextBlock x:Name="Words" Text="{Binding Name}" VerticalAlignment="Center" />
+                </StackPanel>
+                <DataTemplate.Triggers>
+                    <DataTrigger Binding="{Binding IsEnabled}" Value="False">
+                        <Setter TargetName="Words" Property="Foreground" Value="{StaticResource GhTextMuted}" />
+                    </DataTrigger>
+                </DataTemplate.Triggers>
             </DataTemplate>
         </ResourceDictionary>
     </Window.Resources>
@@ -25,6 +68,7 @@
             TextElement.FontFamily="{StaticResource GhFont}" TextElement.FontSize="12" TextElement.Foreground="{StaticResource GhText}"
             UseLayoutRounding="True" SnapsToDevicePixels="True" TextOptions.TextFormattingMode="Display">
         <DockPanel>
+            <!-- Header: the title, dragged to move the dialog, and the close button (Cancel). -->
             <Border DockPanel.Dock="Top" Background="{StaticResource GhHeader}" Padding="16,10" MouseLeftButtonDown="OnHeaderDown">
                 <DockPanel>
                     <Button DockPanel.Dock="Right" Style="{StaticResource GhTitleCloseButton}" Click="OnCancel" ToolTip="Close" />
@@ -32,30 +76,42 @@
                 </DockPanel>
             </Border>
 
+            <!-- Footer: the prompt that asked for the dialog, then Cancel and OK. -->
             <Border DockPanel.Dock="Bottom" Background="{StaticResource GhHeader}" Padding="16,10">
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                    <Button Style="{StaticResource GhDialogButton}" Content="Cancel" Padding="14,5" Margin="0,0,8,0" Click="OnCancel" IsCancel="True" />
-                    <Button Style="{StaticResource StylePrimaryButton}" Content="OK" Padding="14,5" Click="OnOk" IsDefault="True" />
-                </StackPanel>
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                        <Button Style="{StaticResource GhDialogButton}" Content="Cancel" Padding="14,5" Margin="0,0,8,0" Click="OnCancel" IsCancel="True" />
+                        <Button Style="{StaticResource StylePrimaryButton}" Content="OK" Padding="14,5" Click="OnOk" IsDefault="True" />
+                    </StackPanel>
+                    <TextBlock Text="{Binding PromptText}" Foreground="{StaticResource GhTextMuted}" FontFamily="{StaticResource GhMonoFont}" FontSize="11" VerticalAlignment="Center" />
+                </DockPanel>
             </Border>
 
-            <StackPanel Margin="16,14">
-                <TextBlock Text="Basic Properties" Foreground="{StaticResource GhTextMuted}" Margin="0,0,0,6" />
-                <ItemsControl ItemsSource="{Binding Basic}" ItemTemplate="{StaticResource Box}">
-                    <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <UniformGrid Columns="2" />
-                        </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
-                </ItemsControl>
-                <TextBlock Text="Special Properties" Foreground="{StaticResource GhTextMuted}" Margin="0,10,0,6" />
-                <ItemsControl ItemsSource="{Binding Special}" ItemTemplate="{StaticResource Box}">
-                    <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <UniformGrid Columns="3" />
-                        </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
-                </ItemsControl>
+            <StackPanel Margin="16,12">
+                <GroupBox Style="{StaticResource Group}" Header="Basic Properties">
+                    <ItemsControl ItemsSource="{Binding Basic}" ItemTemplate="{StaticResource BasicBox}" Focusable="False">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <UniformGrid Columns="2" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemContainerStyle>
+                            <Style TargetType="ContentPresenter">
+                                <Setter Property="Margin" Value="0,0,24,0" />
+                            </Style>
+                        </ItemsControl.ItemContainerStyle>
+                    </ItemsControl>
+                </GroupBox>
+                <GroupBox Style="{StaticResource Group}" Header="Special Properties" Margin="0,10,0,0">
+                    <ItemsControl ItemsSource="{Binding Special}" ItemTemplate="{StaticResource SpecialBox}" Focusable="False">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <UniformGrid Columns="3" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                    </ItemsControl>
+                </GroupBox>
+                <TextBlock Text="{Binding SourceText}" Foreground="{StaticResource GhTextMuted}" TextWrapping="Wrap" Margin="0,10,0,0" />
             </StackPanel>
         </DockPanel>
     </Border>

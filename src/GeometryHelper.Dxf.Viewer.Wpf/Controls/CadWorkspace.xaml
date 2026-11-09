@@ -1183,11 +1183,11 @@
                     <local:RibbonPanel Title="Leaders" MinFullWidth="240" MinMediumWidth="162" MinCollapsedWidth="64" Icon="{StaticResource GhIconLeader}">
                         <StackPanel Orientation="Horizontal">
                             <Button Style="{StaticResource BigButton}" Width="62" Padding="1,4" Tag="{StaticResource GhIconLeader}" Content="Multileader" IsEnabled="{Binding Model.HasDocument}" Command="{Binding Model.StartCommandCommand}" CommandParameter="MLEADER" ToolTip="MLEADER" Margin="0" />
-                            <!-- The current multileader style (CMLEADERSTYLE), opened where the drawing has multileader styles. -->
-                            <StackPanel Orientation="Horizontal" Margin="2,2,0,0" VerticalAlignment="Top" IsEnabled="{Binding Model.HasMLeaderStyles}">
+                            <!-- The current multileader style (CMLEADERSTYLE), its last item the Multileader Style Manager. -->
+                            <StackPanel Orientation="Horizontal" Margin="2,2,0,0" VerticalAlignment="Top" IsEnabled="{Binding Model.HasDocument}">
                                 <TextBlock Style="{StaticResource StyleBoxLabel}" Text="Style" />
                                 <ComboBox Style="{StaticResource StyleBoxCombo}" ItemsSource="{Binding Model.MLeaderStyleItems}" SelectedValue="{Binding Model.CurrentMLeaderStyle, Mode=TwoWay}"
-                                          ToolTip="Multileader style (CMLEADERSTYLE)" />
+                                          ToolTip="Multileader style (MLEADERSTYLE)" />
                             </StackPanel>
                         </StackPanel>
                     </local:RibbonPanel>

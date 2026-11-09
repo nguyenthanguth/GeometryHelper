@@ -166,7 +166,9 @@ namespace GeometryHelper.Dxf
         /// BEAMS, empty until entities are appended to it. A group added under the name <c>*</c> is anonymous, as AutoCAD names
         /// one: it is given the first name <c>*A1</c>, <c>*A2</c> and on the dictionary has not. A <see cref="DxfTableStyle"/> is
         /// written with every group AutoCAD writes of one: <c>db.TableStyleDictionary.SetAt("GH_SCHEDULE", new DxfTableStyle())</c>
-        /// adds a style of AutoCAD's Standard in millimetres.
+        /// adds a style of AutoCAD's Standard in millimetres. A <see cref="DxfMLeaderStyle"/> is written with every group AutoCAD
+        /// 2021 holds of one, its class listed and counted in CLASSES: <c>db.MLeaderStyleDictionary.SetAt("GH_NOTES", new
+        /// DxfMLeaderStyle { TextHeight = 2.5, ArrowSize = 2.5 })</c> adds a style of words and arrows 2.5 high.
         /// </para>
         /// <para>
         /// The entries are found by name without reading the record again, and the new one is put into the record's bytes as
@@ -276,8 +278,25 @@ namespace GeometryHelper.Dxf
                         }
                     }));
                     break;
+                case DxfMLeaderStyle mleaderStyle:
+                    DxfFile leadered = Resident();
+                    List<KeyValuePair<int, string>> held = mleaderStyle.MadeGroups(leadered.Database);
+                    newValue.Bind(Add(searchKey, "MLEADERSTYLE", b =>
+                    {
+                        b.Group(100, "AcDbMLeaderStyle");
+
+                        foreach (KeyValuePair<int, string> pair in held)
+                        {
+                            b.Group(pair.Key, pair.Value);
+                        }
+                    }));
+
+                    // Listed and counted in CLASSES, as AutoCAD 2021 passes over every object of a class it counts 0.
+                    leadered.AddClass("MLEADERSTYLE", "AcDbMLeaderStyle", 4095, "ACDB_MLEADERSTYLE_CLASS");
+                    leadered.CountClass("MLEADERSTYLE");
+                    break;
                 default:
-                    throw new ArgumentException("A dictionary takes a DxfDBDictionary, a DxfXrecord, a DxfGroup, a DxfRasterImageDef or a DxfTableStyle made in code: a " + newValue.GetType().Name + " is not added.", nameof(newValue));
+                    throw new ArgumentException("A dictionary takes a DxfDBDictionary, a DxfXrecord, a DxfGroup, a DxfRasterImageDef, a DxfTableStyle or a DxfMLeaderStyle made in code: a " + newValue.GetType().Name + " is not added.", nameof(newValue));
             }
         }
 

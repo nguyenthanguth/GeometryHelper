@@ -44,6 +44,7 @@ namespace GeometryHelper.Dxf.Viewer
             registry.Add(new CadCommand("TEXT", Text));
             registry.Add(new CadCommand("MTEXT", MText));
             registry.Add(new CadCommand("MLEADER", MLeader));
+            registry.Add(new CadCommand("MLEADERSTYLE", MLeaderStyleDialog));
             registry.Add(new CadCommand("MVIEW", MView));
 
             registry.Add(new CadCommand("DIMLINEAR", DimLinear));

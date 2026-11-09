@@ -124,7 +124,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             Assert.Equal(new[] { string.Empty, "model", string.Empty }, items.Select(i => i.Hint));
             Assert.True(items.Last().IsDialog);
             Assert.Equal("Text style…", model.TextStyleItems.Last().Name);
-            Assert.DoesNotContain(model.MLeaderStyleItems, i => i.IsDialog);
+            Assert.Equal("Multileader style…", model.MLeaderStyleItems.Last().Name);
         }
 
         [Fact]
