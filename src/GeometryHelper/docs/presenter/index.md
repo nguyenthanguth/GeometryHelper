@@ -73,7 +73,27 @@ On a drawing of 99 856 lines in 10.6 MB, on .NET 8:
 | `ItemsNear` for a box 100 by 100, which meets 121 items | 0.33 ms |
 
 The display list is made once and kept until an edit touches the space, so panning and zooming afterwards cost only the
-drawing of what is on the screen.
+drawing of what is on the screen. An edit, an undo or a redo then draws again only what it changed: the entities its
+records name, those that read a layer it switched off, froze or recoloured, and those that share a dimension's picture
+or a leader's words with them; every other entity keeps its items, and the list is the one a REGEN would make, item for
+item. A change of a table, a block or LTSCALE draws every entity of the spaces it touched, as before.
+
+On a drawing of a million entities (lines, polylines, arcs, circles, TEXT and MTEXT in SHX and TrueType fonts, hatches,
+dimensions, and 1 000 INSERTs of a block of 500 entities: 3.9 million items), on .NET 8:
+
+| Step | Time |
+|---|---|
+| the display list of model space, the first time | 10.3 s |
+| the `PickIndex` over it | 0.26 s |
+| a frame of the whole drawing, 1 600 by 1 000 pixels | 0.76 s |
+| a frame zoomed in 30 times | 6.6 ms |
+| a line moved: the edit, kept for undo | 23 ms |
+| the same, drawn again with its `PickIndex` | 0.46 s |
+| its undo: the drawing read back, then drawn again | 2.3 s, then 0.45 s |
+| a layer of a third of the entities switched off, drawn again | 0.53 s |
+
+A step of the undo list is saved at once and compressed on a worker thread, so an edit does not wait for the 140 MB of
+such a drawing to be packed; an undo reads the whole drawing back, which is the 2.3 s above.
 
 ## See also
 

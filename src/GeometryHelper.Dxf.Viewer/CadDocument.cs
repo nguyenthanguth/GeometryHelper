@@ -154,6 +154,9 @@ namespace GeometryHelper.Dxf.Viewer
     {
         private readonly Dictionary<CadSpace, DisplayList2> _displays = new Dictionary<CadSpace, DisplayList2>();
         private readonly Dictionary<CadSpace, PickIndex> _indexes = new Dictionary<CadSpace, PickIndex>();
+
+        // The display lists edits have changed, kept with what they changed until the space is next drawn; looked up only, never enumerated.
+        private readonly Dictionary<CadSpace, StaleDisplay> _stale = new Dictionary<CadSpace, StaleDisplay>();
         private readonly List<CadSpace> _spaces = new List<CadSpace>();
         private DisplayBuilder _builder;
         private Dictionary<string, DxfEntity> _byHandle;
@@ -288,7 +291,13 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         public double PointViewHeight { get; set; }
 
-        /// <summary>Gets the display list of a space, made on the first call and kept.</summary>
+        /// <summary>
+        /// Gets the display list of a space, made on the first call and kept. After an edit, an undo or a redo the list is made
+        /// again from the one before: the entities the edit's records name, and those that read a layer it switched or
+        /// recoloured, are drawn anew and every other entity keeps its items, so that moving one line of a drawing of a million
+        /// entities draws one line, not a million. The list is the one a REGEN would make, item for item; an edit of a table,
+        /// a block or a setting that redraws everything (LTSCALE, PDMODE) still draws every entity of the spaces it touched.
+        /// </summary>
         /// <param name="space">The space.</param>
         /// <returns>The items to draw.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the space is null.</exception>
@@ -307,7 +316,17 @@ namespace GeometryHelper.Dxf.Viewer
                     _builder.UseModel(GetDisplay(ModelSpace));
                 }
 
-                list = _builder.Build(space.Block, space.IsModel);
+                if (_stale.TryGetValue(space, out StaleDisplay stale))
+                {
+                    // Only what the edits since the list was made changed is drawn again.
+                    _stale.Remove(space);
+                    list = _builder.Patch(space.Block, space.IsModel, stale.List, stale.Handles, stale.List.LayerMask(stale.Layers));
+                }
+                else
+                {
+                    list = _builder.Build(space.Block, space.IsModel);
+                }
+
                 _displays[space] = list;
             }
 

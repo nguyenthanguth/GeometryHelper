@@ -74,6 +74,12 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         public string Space { get; internal set; }
 
+        /// <summary>
+        /// Gets or sets whether the record is of how a layer is drawn and nothing else: switched on or off, frozen or thawed,
+        /// locked, or given a colour, linetype or lineweight, so that only the entities that read that layer are drawn again.
+        /// </summary>
+        internal bool IsLayerLook { get; set; }
+
         /// <inheritdoc/>
         public override string ToString()
             => Kind + (Handle != null ? " " + Handle : string.Empty) + (Property != null ? " " + Property + ": " + OldValue + " -> " + NewValue : string.Empty);

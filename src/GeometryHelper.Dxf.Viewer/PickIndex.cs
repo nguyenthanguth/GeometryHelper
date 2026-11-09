@@ -117,14 +117,20 @@ namespace GeometryHelper.Dxf.Viewer
     public sealed class PickIndex
     {
         private readonly DisplayList2 _list;
-        private readonly List<int>[] _cells;
+
+        // The items of each cell, ascending, one run after another: those of cell c from _cellStart[c] to _cellStart[c + 1].
+        private readonly int[] _cellStart;
+        private readonly int[] _cellItems;
         private readonly List<int> _large = new List<int>();
-        private readonly Dictionary<string, List<int>> _byHandle = new Dictionary<string, List<int>>(StringComparer.OrdinalIgnoreCase);
         private readonly int _n;
         private readonly double _x0;
         private readonly double _y0;
         private readonly double _cellW;
         private readonly double _cellH;
+
+        // The places of the items of each handle, made the first time a window or a highlight asks; looked up only, never enumerated.
+        private Dictionary<string, List<int>> _byHandle;
+        private RunsByHandle _runs;
 
         /// <summary>Indexes a display list.</summary>
         /// <param name="list">The list.</param>
@@ -138,54 +144,147 @@ namespace GeometryHelper.Dxf.Viewer
             _y0 = bounds.IsEmpty ? 0.0 : bounds.MinY;
             _cellW = Math.Max(bounds.Width / _n, 1E-9);
             _cellH = Math.Max(bounds.Height / _n, 1E-9);
-            _cells = new List<int>[_n * _n];
+            _cellStart = new int[_n * _n + 1];
 
-            for (int i = 0; i < list.Count; i++)
+            // Counted first and then filled, so that the cells take one array between them and none grows as it fills.
+            IReadOnlyList<DisplayItem2> items = list.Items;
+
+            for (int pass = 0; pass < 2; pass++)
             {
-                DisplayItem2 item = list.Items[i];
-
-                if (item.Handle != null && item.Handle.Length > 0)
+                for (int i = 0; i < items.Count; i++)
                 {
-                    if (!_byHandle.TryGetValue(item.Handle, out List<int> group))
+                    if (!Cells(items[i].Bounds, out int ix0, out int iy0, out int ix1, out int iy1))
+                    {
+                        if (pass == 0 && ix0 < 0)
+                        {
+                            _large.Add(i);
+                        }
+
+                        continue;
+                    }
+
+                    for (int iy = iy0; iy <= iy1; iy++)
+                    {
+                        for (int ix = ix0; ix <= ix1; ix++)
+                        {
+                            int c = iy * _n + ix;
+
+                            if (pass == 0)
+                            {
+                                _cellStart[c + 1]++;
+                            }
+                            else
+                            {
+                                _cellItems[_cellStart[c]++] = i;
+                            }
+                        }
+                    }
+                }
+
+                if (pass == 0)
+                {
+                    for (int c = 0; c < _n * _n; c++)
+                    {
+                        _cellStart[c + 1] += _cellStart[c];
+                    }
+
+                    _cellItems = new int[_cellStart[_n * _n]];
+                }
+                else
+                {
+                    // Each start was moved on to the next cell's while filling: put back.
+                    for (int c = _n * _n; c > 0; c--)
+                    {
+                        _cellStart[c] = _cellStart[c - 1];
+                    }
+
+                    _cellStart[0] = 0;
+                }
+            }
+        }
+
+        /// <summary>
+        /// The cells an item's box takes; false for one in no cell, with <paramref name="ix0"/> below nought for one looked at
+        /// for every point and box: a line without end, which reaches past the grid, and an item over more than a quarter of it.
+        /// </summary>
+        private bool Cells(DisplayBox box, out int ix0, out int iy0, out int ix1, out int iy1)
+        {
+            ix0 = iy0 = ix1 = iy1 = 0;
+
+            if (box.IsEmpty)
+            {
+                return false;
+            }
+
+            if (double.IsInfinity(box.MinX) || double.IsInfinity(box.MinY) || double.IsInfinity(box.MaxX) || double.IsInfinity(box.MaxY))
+            {
+                ix0 = -1;
+                return false;
+            }
+
+            CellRange(box, out ix0, out iy0, out ix1, out iy1);
+
+            if ((ix1 - ix0 + 1) * (iy1 - iy0 + 1) > _n * _n / 4 + 4)
+            {
+                ix0 = -1;
+                return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// The places of the items of an entity, ascending: from the runs of the list where it was made by a document, each
+        /// entity's items standing together; else from the items one by one, the places of each handle made once.
+        /// </summary>
+        private IReadOnlyList<int> PlacesOf(string handle)
+        {
+            if (string.IsNullOrEmpty(handle))
+            {
+                return Array.Empty<int>();
+            }
+
+            RunsByHandle runs = _runs ?? (_runs = new RunsByHandle(_list));
+
+            if (runs.IsWhole)
+            {
+                return runs.PlacesOf(handle);
+            }
+
+            return ByHandle().TryGetValue(handle, out List<int> group) ? group : (IReadOnlyList<int>)Array.Empty<int>();
+        }
+
+        /// <summary>The places of the items of each handle, made once.</summary>
+        private Dictionary<string, List<int>> ByHandle()
+        {
+            Dictionary<string, List<int>> byHandle = _byHandle;
+
+            if (byHandle != null)
+            {
+                return byHandle;
+            }
+
+            byHandle = new Dictionary<string, List<int>>(StringComparer.OrdinalIgnoreCase);
+            IReadOnlyList<DisplayItem2> items = _list.Items;
+
+            for (int i = 0; i < items.Count; i++)
+            {
+                string handle = items[i].Handle;
+
+                if (handle != null && handle.Length > 0)
+                {
+                    if (!byHandle.TryGetValue(handle, out List<int> group))
                     {
                         group = new List<int>();
-                        _byHandle[item.Handle] = group;
+                        byHandle[handle] = group;
                     }
 
                     group.Add(i);
                 }
-
-                DisplayBox box = item.Bounds;
-
-                if (box.IsEmpty)
-                {
-                    continue;
-                }
-
-                // A line without end reaches past the grid: it is looked at for every point and box, as a large item is.
-                if (double.IsInfinity(box.MinX) || double.IsInfinity(box.MinY) || double.IsInfinity(box.MaxX) || double.IsInfinity(box.MaxY))
-                {
-                    _large.Add(i);
-                    continue;
-                }
-
-                CellRange(box, out int ix0, out int iy0, out int ix1, out int iy1);
-
-                if ((ix1 - ix0 + 1) * (iy1 - iy0 + 1) > _n * _n / 4 + 4)
-                {
-                    _large.Add(i);
-                    continue;
-                }
-
-                for (int iy = iy0; iy <= iy1; iy++)
-                {
-                    for (int ix = ix0; ix <= ix1; ix++)
-                    {
-                        int c = iy * _n + ix;
-                        (_cells[c] ?? (_cells[c] = new List<int>())).Add(i);
-                    }
-                }
             }
+
+            _byHandle = byHandle;
+            return byHandle;
         }
 
         /// <summary>Gets the display list this index was made from.</summary>
@@ -253,7 +352,7 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 bool all = true;
 
-                foreach (int i in _byHandle[handle])
+                foreach (int i in PlacesOf(handle))
                 {
                     if (!_list.Items[i].IsInside(box))
                     {
@@ -338,7 +437,7 @@ namespace GeometryHelper.Dxf.Viewer
         /// <returns>The places, ascending; empty where the entity draws nothing.</returns>
         public IReadOnlyList<int> IndicesOf(string handle)
         {
-            return handle != null && _byHandle.TryGetValue(handle, out List<int> group) ? group : (IReadOnlyList<int>)Array.Empty<int>();
+            return PlacesOf(handle);
         }
 
         /// <summary>
@@ -372,6 +471,51 @@ namespace GeometryHelper.Dxf.Viewer
                 return found;
             }
 
+            CellRange(box, out int ix0, out int iy0, out int ix1, out int iy1);
+
+            if ((ix1 - ix0 + 1) * (iy1 - iy0 + 1) * 16 <= _n * _n)
+            {
+                // A view of a sixteenth of the grid or less: the items met, sorted and each kept once, rather than a flag for
+                // every item of the list, which on a drawing of a million entities would be megabytes a frame.
+                foreach (int i in _large)
+                {
+                    if (items[i].Bounds.Intersects(box))
+                    {
+                        found.Add(i);
+                    }
+                }
+
+                for (int iy = iy0; iy <= iy1; iy++)
+                {
+                    for (int ix = ix0; ix <= ix1; ix++)
+                    {
+                        int c = iy * _n + ix;
+
+                        for (int k = _cellStart[c]; k < _cellStart[c + 1]; k++)
+                        {
+                            if (items[_cellItems[k]].Bounds.Intersects(box))
+                            {
+                                found.Add(_cellItems[k]);
+                            }
+                        }
+                    }
+                }
+
+                found.Sort();
+                int kept = 0;
+
+                for (int k = 0; k < found.Count; k++)
+                {
+                    if (kept == 0 || found[k] != found[kept - 1])
+                    {
+                        found[kept++] = found[k];
+                    }
+                }
+
+                found.RemoveRange(kept, found.Count - kept);
+                return found;
+            }
+
             var seen = new bool[items.Count];
 
             foreach (int i in _large)
@@ -383,21 +527,16 @@ namespace GeometryHelper.Dxf.Viewer
                 }
             }
 
-            CellRange(box, out int ix0, out int iy0, out int ix1, out int iy1);
-
             for (int iy = iy0; iy <= iy1; iy++)
             {
                 for (int ix = ix0; ix <= ix1; ix++)
                 {
-                    List<int> cell = _cells[iy * _n + ix];
+                    int c = iy * _n + ix;
 
-                    if (cell == null)
+                    for (int k = _cellStart[c]; k < _cellStart[c + 1]; k++)
                     {
-                        continue;
-                    }
+                        int i = _cellItems[k];
 
-                    foreach (int i in cell)
-                    {
                         if (!seen[i] && items[i].Bounds.Intersects(box))
                         {
                             seen[i] = true;
@@ -434,15 +573,12 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 for (int ix = ix0; ix <= ix1; ix++)
                 {
-                    List<int> cell = _cells[iy * _n + ix];
+                    int c = iy * _n + ix;
 
-                    if (cell == null)
+                    for (int k = _cellStart[c]; k < _cellStart[c + 1]; k++)
                     {
-                        continue;
-                    }
+                        int i = _cellItems[k];
 
-                    foreach (int i in cell)
-                    {
                         if (seen.Add(i))
                         {
                             yield return i;
@@ -461,5 +597,100 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         private int Clamp(int cell) => cell < 0 ? 0 : cell >= _n ? _n - 1 : cell;
+
+        /// <summary>
+        /// The runs of a display list a document made by handle: each entity's items stand together, so an entity is found by
+        /// its run, not item by item. Whole only where the runs hold every item and each item carries its run's handle.
+        /// </summary>
+        private sealed class RunsByHandle
+        {
+            // The first run of each handle, and the next run of the same handle after each (-1 for none); looked up only, never enumerated.
+            private readonly Dictionary<string, int> _first = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            private readonly int[] _next;
+            private readonly IReadOnlyList<DisplayRun> _runs;
+
+            public RunsByHandle(DisplayList2 list)
+            {
+                _runs = list.Runs;
+                _next = new int[_runs.Count];
+                IReadOnlyList<DisplayItem2> items = list.Items;
+                int covered = 0;
+
+                for (int r = 0; r < _runs.Count; r++)
+                {
+                    DisplayRun run = _runs[r];
+                    _next[r] = -1;
+
+                    if (run.Start != covered)
+                    {
+                        return;
+                    }
+
+                    covered += run.Count;
+
+                    for (int i = run.Start; i < run.Start + run.Count; i++)
+                    {
+                        string handle = items[i].Handle;
+
+                        if (!ReferenceEquals(handle, run.Handle) && !(string.IsNullOrEmpty(handle) && string.IsNullOrEmpty(run.Handle)) && !string.Equals(handle, run.Handle, StringComparison.OrdinalIgnoreCase))
+                        {
+                            return;
+                        }
+                    }
+
+                    if (string.IsNullOrEmpty(run.Handle) || run.Count == 0)
+                    {
+                        continue;
+                    }
+
+                    if (_first.TryGetValue(run.Handle, out int before))
+                    {
+                        // Two entities of one handle, as a damaged file may hold: the later run chained after the earlier.
+                        while (_next[before] >= 0)
+                        {
+                            before = _next[before];
+                        }
+
+                        _next[before] = r;
+                    }
+                    else
+                    {
+                        _first[run.Handle] = r;
+                    }
+                }
+
+                IsWhole = covered == items.Count;
+            }
+
+            public bool IsWhole { get; }
+
+            public IReadOnlyList<int> PlacesOf(string handle)
+            {
+                if (!_first.TryGetValue(handle, out int r))
+                {
+                    return Array.Empty<int>();
+                }
+
+                int count = 0;
+
+                for (int k = r; k >= 0; k = _next[k])
+                {
+                    count += _runs[k].Count;
+                }
+
+                var places = new int[count];
+                int at = 0;
+
+                for (int k = r; k >= 0; k = _next[k])
+                {
+                    for (int i = 0; i < _runs[k].Count; i++)
+                    {
+                        places[at++] = _runs[k].Start + i;
+                    }
+                }
+
+                return places;
+            }
+        }
     }
 }
