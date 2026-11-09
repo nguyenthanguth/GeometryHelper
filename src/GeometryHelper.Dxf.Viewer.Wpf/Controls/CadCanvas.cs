@@ -817,6 +817,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 DrawCells(drawingContext, view, scale);
                 DrawMark(drawingContext, view, scale);
                 DrawPrompt(drawingContext, view, scale);
+                DrawBand(drawingContext, view, scale);
                 DrawCrosshair(drawingContext);
             }
 
@@ -1906,6 +1907,55 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             geometry.Freeze();
             dc.DrawGeometry(crossing ? CrossingFill : WindowFill, crossing ? CrossingPen : WindowPen, geometry);
+        }
+
+        /// <summary>
+        /// The band an option of "Select objects:" draws while it asks its next point (<see cref="CadPrompt.Band"/>), to the
+        /// snapped cursor: the box of Window, Crossing and BOX as a box dragged is drawn, solid blue for a window and dashed
+        /// green for a crossing; the line of Fence dashed green, not closed; the polygon of WPolygon solid blue and of CPolygon
+        /// dashed green, closed back to its first point.
+        /// </summary>
+        private void DrawBand(DrawingContext dc, CadView view, double scale)
+        {
+            CadSelectionBand band = Session?.Prompt?.Band;
+
+            if (band == null || band.Points.Count == 0 || !_cursor.HasValue)
+            {
+                return;
+            }
+
+            GeoPoint2 cursor = _snapped?.Point ?? _cursor.Value;
+            GeoPoint2 first = band.Points[0];
+            bool crossing;
+
+            switch (band.Kind)
+            {
+                case CadSelectionBandKind.Window:
+                case CadSelectionBandKind.Crossing:
+                case CadSelectionBandKind.Box:
+                    crossing = band.Kind == CadSelectionBandKind.Crossing || (band.Kind == CadSelectionBandKind.Box && cursor.X < first.X);
+                    dc.DrawRectangle(crossing ? CrossingFill : WindowFill, crossing ? CrossingPen : WindowPen, new Rect(ToScreen(view, first, scale), ToScreen(view, cursor, scale)));
+                    return;
+            }
+
+            bool closed = band.Kind != CadSelectionBandKind.Fence;
+            crossing = band.Kind != CadSelectionBandKind.WindowPolygon;
+            var geometry = new StreamGeometry();
+
+            using (StreamGeometryContext context = geometry.Open())
+            {
+                context.BeginFigure(ToScreen(view, first, scale), closed, closed);
+
+                for (int i = 1; i < band.Points.Count; i++)
+                {
+                    context.LineTo(ToScreen(view, band.Points[i], scale), true, false);
+                }
+
+                context.LineTo(ToScreen(view, cursor, scale), true, false);
+            }
+
+            geometry.Freeze();
+            dc.DrawGeometry(closed ? (crossing ? CrossingFill : WindowFill) : null, crossing ? CrossingPen : WindowPen, geometry);
         }
 
         /// <summary>

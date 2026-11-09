@@ -1361,6 +1361,22 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>
+        /// The width the display gives the words of a text (<see cref="DisplayText2.EstimatedWidth"/>), in the text's own units:
+        /// by the advances of its SHX font's letters, else 0.6 of its height a letter; nought for a text of no words.
+        /// </summary>
+        internal double WidthOf(DxfDBText text)
+        {
+            string value = CleanText(text.TextString);
+
+            if (value.Length == 0 || !(text.Height > 0.0))
+            {
+                return 0.0;
+            }
+
+            return Text(FaceOf(text.TextStyleName), value, 0.0, 0.0, text.Height, 0.0, text.WidthFactor, 0, 0, null, null, null, text.Oblique, false).EstimatedWidth;
+        }
+
+        /// <summary>
         /// A text drawn in a face: by the canvas in the face's name where it is no SHX font; else as the strokes of its letters
         /// (<see cref="ShxText"/>), its width that of their advances and its frame reaching down to the font's depth below the
         /// baseline, by which a text aligned at its bottom stands, as AutoCAD stands one.

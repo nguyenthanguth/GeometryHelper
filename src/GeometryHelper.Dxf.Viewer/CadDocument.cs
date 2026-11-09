@@ -162,6 +162,9 @@ namespace GeometryHelper.Dxf.Viewer
         private Dictionary<string, DxfEntity> _byHandle;
         private Dictionary<string, CadSpace> _spaceByHandle;
 
+        /// <summary>The width the display gives the words of a text, as MIRROR measures one it keeps readable.</summary>
+        internal double TextWidth(DxfDBText text) => _builder.WidthOf(text);
+
         private CadDocument(DxfDatabase database, string fileName)
         {
             Database = database;

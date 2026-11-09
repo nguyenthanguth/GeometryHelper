@@ -86,11 +86,40 @@ session.Enter();
 | answers a point | as `x,y`, `@dx,dy`, `@distance<angle` or `distance<angle`; a number alone at a point prompt is a distance along the rubber band, towards the cursor |
 | answers with a keyword | by its capital letters, as `U` for `Undo` in `[Close/Undo]` |
 | selects first, then starts a command | MOVE, COPY, ERASE, ROTATE, SCALE, MIRROR and EXPLODE take the selection made before them, and ask "Select objects:" where there is none |
-| answers "Select objects:" | by a click, a window, a crossing, or `ALL` for every entity of the space |
+| answers "Select objects:" | by a click, a window, a crossing, a lasso, or one of AutoCAD 2021's options typed (below); Shift held takes out what a click, a box or a lasso picks |
 | presses Esc | ends the command; what a LINE drew stays, as in AutoCAD, and what a MOVE had not yet done is not done |
 
 A command that fails part way has its edits taken back. Its outcome is `session.LastOutcome`: `Completed`, `Cancelled` or
 `Failed`. A selection of entities on a locked layer is taken without them, and the line says "1 was on a locked layer."
+
+"Select objects:" takes the options of AutoCAD 2021, each by its capital letters:
+
+| Option | Takes |
+|---|---|
+| `W`, `C` | a window or a crossing by two corners (`Specify first corner:`, `Specify opposite corner:`), whichever way the box is drawn |
+| `BOX` | two corners, a window drawn left to right and a crossing right to left |
+| `F` | what a fence crosses, by points (`Specify first fence point:`, `Specify next fence point or [Undo]:`) until Enter |
+| `WP`, `CP` | what lies inside a polygon or what it touches, by points (`First polygon point:`, `Specify endpoint of line or [Undo]:`) until Enter |
+| `ALL`, `L`, `P` | every object of the space; the last object made that the space shows; the objects the command before took |
+| `G` | the members of a group by name (`Enter group name:`) |
+| `R`, `A` | from `R` on, what is picked is taken out (`Remove objects:`) until `A` |
+| `U` | takes back the last change of the selection |
+| `M` | points picked until Enter, then the object at each, two picks at one crossing taking both lines |
+| `SI` | ends the selection with the first objects taken |
+| `AU` | a click on an object picks it, on nothing starts a box, as without it |
+
+The line counts as AutoCAD's: `1 found`, `2 found (1 duplicate), 3 total`, `1 found, 1 removed, 2 total`. Anything else is
+`*Invalid selection*` with `Expects a point or` and the options. Window, Crossing, BOX, Fence, WPolygon and CPolygon draw
+their band on the canvas as their points are given (`CadPrompt.Band`), and
+[`PickIndex`](xref:GeometryHelper.Dxf.Viewer.PickIndex) answers them: `Fence(points)`, `WindowPolygon(ring)` and
+`CrossingPolygon(ring)` over 100 000 lines each take under 70 milliseconds.
+
+MIRROR follows the drawing's MIRRTEXT, as AutoCAD 2021 does. At 0, AutoCAD's default, a TEXT, an MTEXT and the attributes
+of an INSERT stay readable: the box of their words is mirrored, and they read within the half of the circle they read in
+before. "ABC" 2.5 high turned 30 degrees at the origin, mirrored across the line y = 10, reads at 330 degrees from
+(-1.25, 17.835); turned 120 degrees and mirrored across an upright, it reads at 240. A text aligned between (0, 0) and
+(20, 0) mirrored across x = 30 runs from (40, 0) to (60, 0); an MTEXT attached top left at the origin, mirrored across
+x = 40, is attached top right at (80, 0). At 1 they are mirrored with the rest.
 
 ### The commands
 

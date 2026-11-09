@@ -89,6 +89,13 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         public GeoPoint2? Mark { get; private set; }
 
+        /// <summary>
+        /// Gets the band an option of "Select objects:" draws while the prompt asks its next point: the box of Window, Crossing
+        /// and BOX from its first corner, the line of Fence and the polygon of WPolygon and CPolygon through the points given,
+        /// each to the cursor. Null for every other prompt.
+        /// </summary>
+        public CadSelectionBand Band { get; internal set; }
+
         /// <summary>Gives the prompt a block dragged with the cursor (<see cref="Drag"/>).</summary>
         internal CadPrompt Dragging(CadBlockDrag drag)
         {

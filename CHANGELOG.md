@@ -6,6 +6,22 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** GeometryHelper.Dxf.Viewer: MIRROR now follows the drawing's MIRRTEXT, as AutoCAD 2021 does. At 0, AutoCAD's
+default, a TEXT, an MTEXT and the attributes of an INSERT came out written backwards; they now stay readable, the box of
+their words mirrored and their reading kept within the half of the circle it was in, as probed in AutoCAD 2021's console
+over 96 turns and mirror lines. "ABC" 2.5 high turned 30 degrees at the origin, mirrored across the line y = 10, reads at
+330 degrees from (-1.25, 17.835), where AutoCAD puts it; turned 120 degrees and mirrored across an upright it reads at 240.
+A text aligned between (0, 0) and (20, 0) mirrored across x = 30 runs from (40, 0) to (60, 0), and an MTEXT attached top
+left at the origin, mirrored across x = 40, is attached top right at (80, 0). At 1 they are mirrored with the rest, as before.
+
+**NEW.** GeometryHelper.Dxf.Viewer: "Select objects:" takes the options of AutoCAD 2021: Window, Crossing and BOX by two
+corners, Fence, WPolygon and CPolygon by points until Enter, Last, Previous, Group by name, Remove and Add, Undo, Multiple,
+SIngle and AUto, beside ALL; Shift held takes out what a click, a box or a lasso picks, "1 found, 1 removed, 2 total";
+anything else is "*Invalid selection*" with the options listed. Window, Crossing, BOX, Fence and the polygons draw their
+band on the canvas (`CadPrompt.Band`), and `PickIndex.Fence`, `WindowPolygon` and `CrossingPolygon` answer them: over
+100 000 lines a fence took 28 milliseconds and a polygon round them all 63 to 69. `FeedSelection` takes `remove` to take
+objects out.
+
 **NEW.** GeometryHelper DXF, `GeometryHelper.Dxf.App.exe`, the presenter's own app: the window of the 2D presenter with no
 model drawing, built only on `GeometryHelper.Dxf.Viewer` and its controls, to open, edit and plot DXF drawings in place of
 AutoCAD. `GeometryHelper.Dxf.App.exe plan.dxf` opens a drawing, as a file association does; its command plugins are kept in
