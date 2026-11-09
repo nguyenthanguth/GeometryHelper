@@ -43,6 +43,9 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Gets the objects <see cref="SelectObjects"/> gave, in ordinal order, those on locked layers left out.</summary>
         public IReadOnlyList<string> Selected { get; private set; }
 
+        /// <summary>The objects selected before the command started, which BLOCK and WBLOCK put into their dialog's objects.</summary>
+        internal IReadOnlyList<string> PreSelected => _preSelected;
+
         /// <summary>Gets or sets whether the document's selection is cleared when the command ends, as AutoCAD clears it after MOVE.</summary>
         public bool ClearsSelection { get; set; }
 

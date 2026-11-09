@@ -87,6 +87,43 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             return Draw(database, fonts, width, height, new DisplayBox(0.0, 0.0, 0.0, 0.0));
         }
 
+        /// <summary>
+        /// Draws a block of a drawing as the Blocks palette shows it: an INSERT of it at the origin, copied with the block into a
+        /// drawing of its own, zoomed to what it draws, white on the black ground of the canvas. The drawing given gets the INSERT
+        /// copied (an entity added to its model space), so a copy of the drawing edited is given, not the drawing itself.
+        /// </summary>
+        /// <param name="scratch">A copy of the drawing the block is in, which the INSERT is added to.</param>
+        /// <param name="name">The name of the block.</param>
+        /// <param name="fonts">The fonts of the drawing.</param>
+        /// <param name="width">The width of the picture, in pixels.</param>
+        /// <param name="height">The height of the picture, in pixels.</param>
+        /// <returns>The picture.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the drawing or the name is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the drawing has no block of the name.</exception>
+        public static BitmapSource Block(DxfDatabase scratch, string name, CadFonts fonts, int width, int height)
+        {
+            if (scratch == null)
+            {
+                throw new ArgumentNullException(nameof(scratch));
+            }
+
+            if (name == null)
+            {
+                throw new ArgumentNullException(nameof(name));
+            }
+
+            if (!scratch.BlockTable.Has(name))
+            {
+                throw new ArgumentException("The drawing has no block " + name + ".", nameof(name));
+            }
+
+            var carrier = new DxfBlockReference(new Geometry.GeoPoint3(0, 0, 0), scratch.BlockTable[name]);
+            scratch.ModelSpace.AppendEntity(carrier);
+            var database = new DxfDatabase("AC1027");
+            scratch.WblockCloneObjects(new[] { carrier }, database.ModelSpace);
+            return Draw(database, fonts, width, height, new DisplayBox(0.0, 0.0, 0.0, 0.0));
+        }
+
         /// <summary>Draws model space of a drawing, zoomed to what it draws and a box given, white on the black ground of the canvas.</summary>
         private static BitmapSource Draw(DxfDatabase database, CadFonts fonts, int width, int height, DisplayBox fit)
         {

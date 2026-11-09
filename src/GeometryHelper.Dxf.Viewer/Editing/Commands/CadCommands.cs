@@ -107,6 +107,7 @@ namespace GeometryHelper.Dxf.Viewer
             registry.Add(new CadCommand("ARRAYPOLAR", ArrayPolar, true));
             registry.Add(new CadCommand("-ARRAY", ArrayTyped, true));
             registry.Add(new CadCommand("ALIGN", Align, true));
+            AddBlocksTo(registry);
         }
 
         /// <summary>A point of the plan in space, at nought height.</summary>

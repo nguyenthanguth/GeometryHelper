@@ -1,0 +1,139 @@
+<Window x:Class="GeometryHelper.Dxf.Viewer.Wpf.AttributeDefinitionWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Attribute Definition" Width="760" Height="580" WindowStyle="None" ResizeMode="NoResize" ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner" Background="#262B33">
+
+    <Window.Resources>
+        <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/BlockDialogs.xaml" />
+    </Window.Resources>
+
+    <Border x:Name="Root" Background="{StaticResource GhPanel}" BorderBrush="{StaticResource GhBorder}" BorderThickness="1"
+            TextElement.FontFamily="{StaticResource GhFont}" TextElement.FontSize="12" TextElement.Foreground="{StaticResource GhText}"
+            UseLayoutRounding="True" SnapsToDevicePixels="True" TextOptions.TextFormattingMode="Display">
+        <DockPanel>
+            <Border DockPanel.Dock="Top" Background="{StaticResource GhHeader}" Padding="16,10" MouseLeftButtonDown="OnHeaderDown">
+                <DockPanel>
+                    <Button DockPanel.Dock="Right" Style="{StaticResource GhTitleCloseButton}" Click="OnCancel" ToolTip="Close" />
+                    <TextBlock Text="Attribute Definition" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" />
+                </DockPanel>
+            </Border>
+
+            <Border DockPanel.Dock="Bottom" Background="{StaticResource GhHeader}" Padding="16,10">
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                        <Button Style="{StaticResource GhDialogButton}" Content="Cancel" Padding="14,5" Margin="0,0,8,0" Click="OnCancel" IsCancel="True" />
+                        <Button Style="{StaticResource StylePrimaryButton}" Content="OK" Padding="14,5" Click="OnOk" IsDefault="True" IsEnabled="{Binding CanOk}" />
+                    </StackPanel>
+                    <CheckBox Style="{StaticResource StyleCheck}" IsEnabled="False" Foreground="{StaticResource GhTextMuted}" Content="Align below previous attribute definition" />
+                </DockPanel>
+            </Border>
+
+            <Grid Margin="16,6,16,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="220" />
+                    <ColumnDefinition Width="12" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel>
+                    <HeaderedContentControl Style="{StaticResource BlockGroup}" Header="Mode" Margin="0,0,0,4">
+                        <StackPanel>
+                            <DockPanel><TextBlock DockPanel.Dock="Right" Text="I" FontFamily="{StaticResource GhMonoFont}" FontSize="10" Foreground="{StaticResource GhTextMuted}" /><CheckBox Style="{StaticResource BlockCheck}" Content="Invisible" IsChecked="{Binding Invisible, Mode=TwoWay}" /></DockPanel>
+                            <DockPanel><TextBlock DockPanel.Dock="Right" Text="C" FontFamily="{StaticResource GhMonoFont}" FontSize="10" Foreground="{StaticResource GhTextMuted}" /><CheckBox Style="{StaticResource BlockCheck}" Content="Constant" IsChecked="{Binding Constant, Mode=TwoWay}" /></DockPanel>
+                            <DockPanel><TextBlock DockPanel.Dock="Right" Text="V" FontFamily="{StaticResource GhMonoFont}" FontSize="10" Foreground="{StaticResource GhTextMuted}" /><CheckBox Style="{StaticResource BlockCheck}" Content="Verify" IsChecked="{Binding Verify, Mode=TwoWay}" /></DockPanel>
+                            <DockPanel><TextBlock DockPanel.Dock="Right" Text="P" FontFamily="{StaticResource GhMonoFont}" FontSize="10" Foreground="{StaticResource GhTextMuted}" /><CheckBox Style="{StaticResource BlockCheck}" Content="Preset" IsChecked="{Binding Preset, Mode=TwoWay}" /></DockPanel>
+                            <DockPanel><TextBlock DockPanel.Dock="Right" Text="L" FontFamily="{StaticResource GhMonoFont}" FontSize="10" Foreground="{StaticResource GhTextMuted}" /><CheckBox Style="{StaticResource BlockCheck}" Content="Lock position" IsChecked="{Binding LockPosition, Mode=TwoWay}" /></DockPanel>
+                            <DockPanel><TextBlock DockPanel.Dock="Right" Text="M" FontFamily="{StaticResource GhMonoFont}" FontSize="10" Foreground="{StaticResource GhTextMuted}" /><CheckBox Style="{StaticResource BlockCheck}" Content="Multiple lines" IsChecked="{Binding MultipleLines, Mode=TwoWay}" Margin="0" /></DockPanel>
+                        </StackPanel>
+                    </HeaderedContentControl>
+                    <HeaderedContentControl Style="{StaticResource BlockGroup}" Header="Insertion Point">
+                        <StackPanel>
+                            <CheckBox Style="{StaticResource BlockCheck}" Content="Specify on-screen" IsChecked="{Binding SpecifyOnScreen, Mode=TwoWay}" />
+                            <DockPanel Margin="0,0,0,6">
+                                <TextBlock Text="X:" Width="20" Foreground="{StaticResource GhTextMuted}" VerticalAlignment="Center" />
+                                <TextBox Style="{StaticResource BlockNumber}" Text="{Binding X, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding IsPointTyped}" />
+                            </DockPanel>
+                            <DockPanel Margin="0,0,0,6">
+                                <TextBlock Text="Y:" Width="20" Foreground="{StaticResource GhTextMuted}" VerticalAlignment="Center" />
+                                <TextBox Style="{StaticResource BlockNumber}" Text="{Binding Y, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding IsPointTyped}" />
+                            </DockPanel>
+                            <DockPanel>
+                                <TextBlock Text="Z:" Width="20" Foreground="{StaticResource GhTextMuted}" VerticalAlignment="Center" />
+                                <TextBox Style="{StaticResource BlockNumber}" Text="{Binding Z, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding IsPointTyped}" />
+                            </DockPanel>
+                        </StackPanel>
+                    </HeaderedContentControl>
+                </StackPanel>
+
+                <StackPanel Grid.Column="2">
+                    <HeaderedContentControl Style="{StaticResource BlockGroup}" Header="Attribute" Margin="0,0,0,4">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="70" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="6" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="6" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <TextBlock Text="Tag:" Foreground="{StaticResource GhTextMuted}" VerticalAlignment="Center" />
+                            <TextBox Grid.Column="1" Grid.ColumnSpan="2" Style="{StaticResource BlockNumber}" Text="{Binding Tag, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Tag" />
+                            <TextBlock Grid.Row="2" Text="Prompt:" Foreground="{StaticResource GhTextMuted}" VerticalAlignment="Center" />
+                            <TextBox Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2" Style="{StaticResource BlockBox}" Text="{Binding Prompt, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Prompt" />
+                            <TextBlock Grid.Row="4" Text="Default:" Foreground="{StaticResource GhTextMuted}" VerticalAlignment="Center" />
+                            <TextBox Grid.Row="4" Grid.Column="1" Style="{StaticResource BlockNumber}" Text="{Binding Default, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Default" />
+                            <Button Grid.Row="4" Grid.Column="2" Style="{StaticResource GhDialogButton}" Content="%" Width="30" Padding="0" Margin="6,0,0,0" IsEnabled="False" ToolTip="Insert field (not built)" />
+                        </Grid>
+                    </HeaderedContentControl>
+
+                    <HeaderedContentControl Style="{StaticResource BlockGroup}" Header="Text Settings" Margin="0,0,0,10">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="110" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="36" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <TextBlock Text="Justification:" Foreground="{StaticResource GhTextMuted}" VerticalAlignment="Center" />
+                            <ComboBox Grid.Column="1" Style="{StaticResource GhComboBox}" Margin="0,0,0,6" ItemsSource="{Binding Justifications}" SelectedItem="{Binding Justification, Mode=TwoWay}" AutomationProperties.Name="Justification" />
+                            <TextBlock Grid.Row="1" Text="Text style:" Foreground="{StaticResource GhTextMuted}" VerticalAlignment="Center" />
+                            <ComboBox Grid.Row="1" Grid.Column="1" Style="{StaticResource GhComboBox}" Margin="0,0,0,6" ItemsSource="{Binding Styles}" SelectedItem="{Binding TextStyle, Mode=TwoWay}" AutomationProperties.Name="Text style" />
+                            <CheckBox Grid.Row="2" Grid.Column="1" Style="{StaticResource BlockCheck}" Content="Annotative" IsEnabled="False" />
+                            <TextBlock Grid.Row="3" Text="Text height:" Foreground="{StaticResource GhTextMuted}" VerticalAlignment="Center" />
+                            <TextBox Grid.Row="3" Grid.Column="1" Style="{StaticResource BlockNumber}" Margin="0,0,0,6" Text="{Binding Height, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Text height" />
+                            <Button Grid.Row="3" Grid.Column="2" Style="{StaticResource GhDialogButton}" Padding="0" Margin="6,0,0,6" Click="OnPickHeight" ToolTip="Pick text height on the canvas">
+                                <Path Data="{StaticResource BlockPickIcon}" Stroke="#C9D1DB" StrokeThickness="1.8" Width="14" Height="14" Stretch="Uniform" />
+                            </Button>
+                            <TextBlock Grid.Row="4" Text="Rotation:" Foreground="{StaticResource GhTextMuted}" VerticalAlignment="Center" />
+                            <TextBox Grid.Row="4" Grid.Column="1" Style="{StaticResource BlockNumber}" Margin="0,0,0,6" Text="{Binding Rotation, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Rotation" />
+                            <Button Grid.Row="4" Grid.Column="2" Style="{StaticResource GhDialogButton}" Padding="0" Margin="6,0,0,6" Click="OnPickRotation" ToolTip="Pick rotation on the canvas">
+                                <Path Data="{StaticResource BlockPickIcon}" Stroke="#C9D1DB" StrokeThickness="1.8" Width="14" Height="14" Stretch="Uniform" />
+                            </Button>
+                            <TextBlock Grid.Row="5" Text="Boundary width:" Foreground="{StaticResource GhTextMuted}" VerticalAlignment="Center" />
+                            <TextBox Grid.Row="5" Grid.Column="1" Style="{StaticResource BlockNumber}" Text="0" IsEnabled="False" AutomationProperties.Name="Boundary width, for multiple lines only" />
+                        </Grid>
+                    </HeaderedContentControl>
+
+                    <Border Style="{StaticResource StyleFrame}">
+                        <DockPanel>
+                            <Ellipse Width="8" Height="8" Fill="{StaticResource GhAccent}" VerticalAlignment="Top" Margin="0,4,8,0" />
+                            <TextBlock Foreground="{StaticResource GhTextMuted}" TextWrapping="Wrap" Text="{Binding Note}" />
+                        </DockPanel>
+                    </Border>
+                </StackPanel>
+            </Grid>
+        </DockPanel>
+    </Border>
+</Window>

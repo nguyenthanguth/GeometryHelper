@@ -827,7 +827,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 Track(p);
 
-                if (CadPicking.WantsPoint(Session))
+                if (e.ClickCount == 2 && EditAttributesAt(p))
+                {
+                    _swallowUp = true;
+                }
+                else if (CadPicking.WantsPoint(Session))
                 {
                     _pointDown = p;
                 }
@@ -1217,6 +1221,39 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>Gets whether a box may start here: with no command running, or while "Select objects:" waits.</summary>
         private bool TakesBox => !IsRunning || Session.Prompt?.Kind == CadPromptKind.Selection;
+
+        /// <summary>
+        /// A double click with no command running on an INSERT with attributes: the Enhanced Attribute Editor, as AutoCAD opens
+        /// it, by EATTEDIT started once the click is done with and given the INSERT; false where no such INSERT is there.
+        /// </summary>
+        private bool EditAttributesAt(Point p)
+        {
+            CadDocument document = Document;
+            CadView view = View;
+            CadCommandSession session = Session;
+
+            if (document == null || Space == null || view == null || session == null || session.IsRunning)
+            {
+                return false;
+            }
+
+            double scale = PixelScale;
+            view.ScreenToDrawing(p.X * scale, p.Y * scale, out double x, out double y);
+            IReadOnlyList<string> picked = document.GetPickIndex(Space).Pick(x, y, PickboxPixels * scale / view.PixelsPerUnit);
+
+            if (picked.Count == 0 || !(document.FindEntity(picked[0]) is DxfBlockReference insert) || insert.AttributeCollection.Count == 0)
+            {
+                return false;
+            }
+
+            CancelGesture();
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                session.Start("EATTEDIT");
+                session.FeedSelection(new[] { insert.Handle });
+            }));
+            return true;
+        }
 
         /// <summary>Whether an entity lies within the pickbox of a point of the canvas.</summary>
         private bool IsObjectAt(Point p)

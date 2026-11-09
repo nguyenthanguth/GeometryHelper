@@ -1,0 +1,95 @@
+<Window x:Class="GeometryHelper.Dxf.Viewer.Wpf.BlocksPaletteWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:GeometryHelper.Dxf.Viewer.Wpf"
+        Title="Blocks" Width="440" Height="800" WindowStyle="None" ResizeMode="NoResize" ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner" Background="#262B33">
+
+    <Window.Resources>
+        <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/BlockDialogs.xaml" />
+    </Window.Resources>
+
+    <Border x:Name="Root" Background="{StaticResource GhPanel}" BorderBrush="{StaticResource GhBorder}" BorderThickness="1"
+            TextElement.FontFamily="{StaticResource GhFont}" TextElement.FontSize="12" TextElement.Foreground="{StaticResource GhText}"
+            UseLayoutRounding="True" SnapsToDevicePixels="True" TextOptions.TextFormattingMode="Display">
+        <DockPanel>
+            <Border DockPanel.Dock="Top" Background="{StaticResource GhHeader}" Padding="12,8" MouseLeftButtonDown="OnHeaderDown">
+                <DockPanel>
+                    <Button DockPanel.Dock="Right" Style="{StaticResource GhTitleCloseButton}" Click="OnCancel" ToolTip="Close" />
+                    <TextBlock Text="BLOCKS" FontSize="11" FontWeight="Medium" Foreground="{StaticResource GhTextMuted}" VerticalAlignment="Center" />
+                </DockPanel>
+            </Border>
+
+            <Border DockPanel.Dock="Top" BorderBrush="{StaticResource GhBorder}" BorderThickness="0,0,0,1" Padding="12,8,12,0">
+                <StackPanel Orientation="Horizontal">
+                    <RadioButton Style="{StaticResource StyleTab}" GroupName="Source" Content="Current drawing" IsChecked="True" Checked="OnTab" />
+                    <RadioButton x:Name="RecentTab" Style="{StaticResource StyleTab}" GroupName="Source" Content="Recent" Checked="OnTab" />
+                    <RadioButton x:Name="OtherTab" Style="{StaticResource StyleTab}" GroupName="Source" Content="Other drawing" Checked="OnTab" />
+                </StackPanel>
+            </Border>
+
+            <DockPanel DockPanel.Dock="Top" Margin="12,8">
+                <Button DockPanel.Dock="Right" Style="{StaticResource GhDialogButton}" Content="Browse…" Padding="8,3" Margin="6,0,0,0" Click="OnBrowse"
+                        Visibility="{Binding IsOtherDrawing, Converter={StaticResource Shown}}" />
+                <Border Background="{StaticResource GhCommandInput}" CornerRadius="4" Padding="8,4">
+                    <DockPanel>
+                        <Path Data="M11 4a7 7 0 1 0 0.01 0M20 20l-4-4" Stroke="{StaticResource GhTextMuted}" StrokeThickness="2" Width="13" Height="13" Stretch="Uniform" Margin="0,0,6,0" />
+                        <TextBox Style="{StaticResource StyleBox}" BorderThickness="0" Padding="0" Background="Transparent" Tag="Filter…"
+                                 Text="{Binding Filter, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Filter blocks" />
+                    </DockPanel>
+                </Border>
+            </DockPanel>
+
+            <TextBlock DockPanel.Dock="Top" Text="{Binding SourceText}" Foreground="{StaticResource GhTextMuted}" Margin="12,0,12,4" />
+
+            <Border DockPanel.Dock="Bottom" Background="{StaticResource GhHeader}" BorderBrush="{StaticResource GhBorder}" BorderThickness="0,1,0,0" Padding="12,10">
+                <StackPanel>
+                    <TextBlock Text="Insertion Options" FontWeight="SemiBold" Margin="0,0,0,6" />
+                    <CheckBox Style="{StaticResource BlockCheck}" IsChecked="{Binding SpecifyPointOnScreen, Mode=TwoWay}">
+                        <TextBlock><Run Text="Insertion Point " /><Run Text="(pick on the canvas)" Foreground="{StaticResource GhTextMuted}" /></TextBlock>
+                    </CheckBox>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                        <CheckBox Style="{StaticResource StyleCheck}" IsChecked="{Binding SpecifyScaleOnScreen, Mode=TwoWay}" Margin="0,0,6,0" ToolTip="Specify scale on the command line" />
+                        <ComboBox Style="{StaticResource GhComboBox}" Width="120" SelectedIndex="0" IsEnabled="False">
+                            <ComboBoxItem Content="Uniform Scale" />
+                        </ComboBox>
+                        <TextBox Style="{StaticResource BlockNumber}" Width="70" Margin="6,0,0,0" Text="{Binding Scale, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Uniform scale" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                        <CheckBox Style="{StaticResource StyleCheck}" Width="126" Content="Rotation" IsChecked="{Binding SpecifyRotationOnScreen, Mode=TwoWay}" ToolTip="Specify rotation on the command line" />
+                        <TextBox Style="{StaticResource BlockNumber}" Width="70" Text="{Binding Rotation, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Rotation angle" />
+                        <TextBlock Text="°" Foreground="{StaticResource GhTextMuted}" Margin="6,0,0,0" VerticalAlignment="Center" />
+                    </StackPanel>
+                    <CheckBox Style="{StaticResource BlockCheck}" Content="Auto-placement" IsEnabled="False" />
+                    <CheckBox Style="{StaticResource BlockCheck}" Content="Repeat Placement" IsChecked="{Binding Repeat, Mode=TwoWay}" />
+                    <CheckBox Style="{StaticResource BlockCheck}" Content="Explode" IsChecked="{Binding Explode, Mode=TwoWay}" />
+                    <TextBlock Foreground="{StaticResource GhTextMuted}" TextWrapping="Wrap"
+                               Text="Click a block to insert it. Other drawing: Browse… picks a .dxf; each of its blocks shows here, or the whole file as one block." />
+                </StackPanel>
+            </Border>
+
+            <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="12,4,4,8">
+                <ItemsControl ItemsSource="{Binding Tiles}" Focusable="False">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <UniformGrid Columns="3" VerticalAlignment="Top" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="{x:Type local:BlockTileViewModel}">
+                            <Button Style="{StaticResource BlockTile}" Click="OnTile" ToolTip="{Binding Description}">
+                                <StackPanel>
+                                    <Border Width="72" Height="56" Background="Black" CornerRadius="2" HorizontalAlignment="Center">
+                                        <Image Source="{Binding Picture}" Stretch="Uniform" />
+                                    </Border>
+                                    <TextBlock Text="{Binding DisplayName}" FontSize="11" FontWeight="Medium" TextTrimming="CharacterEllipsis"
+                                               HorizontalAlignment="Center" Margin="0,4,0,0" MaxWidth="110" />
+                                </StackPanel>
+                            </Button>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </DockPanel>
+    </Border>
+</Window>
