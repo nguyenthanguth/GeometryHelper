@@ -366,7 +366,11 @@ INSERT of the block places it. `XrefStatus`, of the new [`DxfXrefStatus`](xref:G
 and its path: `Unreferenced` while no INSERT places it, `FileNotFound` where the path names no file, as written or from the
 folder of the drawing's `Filename`, `Resolved` where AutoCAD saved it resolved (70 of 36), else `Unresolved`; no DXF says one
 is unloaded. `db.DetachXref(block)` erases its INSERTs, the records it brought, those named `COLUMN|...` in the layer,
-linetype, text style, dimension style and block tables, and its block.
+linetype, text style, dimension style and block tables, and its block. `block.PathName = @"..\xref\column.dxf"` gives
+it a new path, written in its BLOCK's group 1 as AutoCAD's -XREF Path writes it; a block that is no external reference
+refuses one. The library reads no drawing referenced; the presenter does, and shows it
+([Editing in the presenter](../presenter/editing.md)). AutoCAD 2021 reads only a DWG as an external reference: a path to a
+DXF it keeps, saying "Unable to load".
 
 ### Linetypes from a file
 

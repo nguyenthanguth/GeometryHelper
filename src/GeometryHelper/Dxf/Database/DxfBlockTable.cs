@@ -3478,8 +3478,53 @@ namespace GeometryHelper.Dxf
         /// </summary>
         public bool HasAttributeDefinitions => (Flags & 2) != 0;
 
-        /// <summary>Gets the path of the drawing an external reference comes from (group 1 of its BLOCK), as AutoCAD's <c>PathName</c>; empty for a block that is none.</summary>
-        public string PathName => _block?.Head == null || _file == null ? string.Empty : _file.ValueOf(_block.Head, 1) ?? string.Empty;
+        /// <summary>
+        /// Gets or sets the path of the drawing an external reference comes from (group 1 of its BLOCK), as AutoCAD's
+        /// <c>PathName</c>; empty for a block that is none.
+        /// </summary>
+        /// <value>
+        /// Set, written as the BLOCK's 1 in place of the path it had, as AutoCAD's -XREF Path writes the new one: the
+        /// reference <c>column.dxf</c> given <c>..\xref\column.dxf</c> names that from then on. The path it has changes nothing.
+        /// </value>
+        /// <exception cref="ArgumentNullException">Thrown when the path set is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the path set is blank or has a line break in it.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when set on a block that is no external reference.</exception>
+        public string PathName
+        {
+            get => _block?.Head == null || _file == null ? string.Empty : _file.ValueOf(_block.Head, 1) ?? string.Empty;
+
+            set
+            {
+                if (value == null)
+                {
+                    throw new ArgumentNullException(nameof(value));
+                }
+
+                if (value.Trim().Length == 0 || value.IndexOf('\n') >= 0 || value.IndexOf('\r') >= 0)
+                {
+                    throw new ArgumentException("The path of an external reference is given, on one line: '" + value + "' is not one.", nameof(value));
+                }
+
+                if (!IsFromExternalReference && (MadeFlags & 4) == 0)
+                {
+                    throw new InvalidOperationException("The block " + Name + " is no external reference, so it has no path.");
+                }
+
+                if (_file == null)
+                {
+                    MadePath = value;
+                    return;
+                }
+
+                if (string.Equals(value, PathName, StringComparison.Ordinal))
+                {
+                    return;
+                }
+
+                DxfItem head = _block?.Head ?? throw new InvalidOperationException("The block " + Name + " has no BLOCK to hold a path.");
+                _file.SetValues(head, new[] { new KeyValuePair<int, string>(1, value) }, BlockOrder, false);
+            }
+        }
 
         /// <summary>
         /// Gets where the external reference stands, as AutoCAD's <c>XrefStatus</c>, from its BLOCK's flags and its path:

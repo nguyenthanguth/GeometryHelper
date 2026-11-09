@@ -159,7 +159,8 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (look.ColorIndex.Value >= 256)
             {
-                return _layers.TryGetValue(layerName ?? "0", out LayerState layer) ? layer.Rgb : style.Rgb;
+                LayerState layer = LayerNamed(layerName ?? "0");
+                return layer != null ? layer.Rgb : style.Rgb;
             }
 
             return SafeRgb(DxfColor.FromColorIndex(DxfColorMethod.ByAci, (short)look.ColorIndex.Value));

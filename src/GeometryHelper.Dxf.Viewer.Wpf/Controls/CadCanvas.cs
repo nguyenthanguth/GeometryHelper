@@ -186,9 +186,17 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             FocusVisualStyle = null;
             ClipToBounds = true;
             Cursor = IdleCursor;
-            Loaded += (s, e) => RequestRender();
+
+            // The pictures of images are decoded off the window's thread; the canvas draws again as each is ready.
+            _renderer.LazyImages = true;
+            Loaded += (s, e) =>
+            {
+                CadImageCache.Decoded += OnPictureDecoded;
+                RequestRender();
+            };
             Unloaded += (s, e) =>
             {
+                CadImageCache.Decoded -= OnPictureDecoded;
                 _renderQueued = false;
                 StopQueue();
                 _settle?.Stop();
@@ -561,6 +569,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 view.CenterX, view.CenterY, view.PixelsPerUnit, view.Width, view.Height, info.Width, info.Height, scale,
                 o.Background, o.Paper, o.ShowLineWeights, o.FontName, o.VisibleLineColor, o.HiddenLineColor, o.HiddenLayerName,
                 ShowGrid, GridSpacing, paper.MinX, paper.MinY, paper.MaxX, paper.MaxY, ucs.Origin.X, ucs.Origin.Y, ucs.Angle,
+                CadImageCache.Version,
             }.Select(v => Convert.ToString(v, CultureInfo.InvariantCulture)));
             var key = new SceneKey(document.GetDisplay(space), numbers);
 
@@ -734,9 +743,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             return any;
         }
 
+        /// <summary>A picture decoded on a worker thread: the canvas draws again on its own thread.</summary>
+        private void OnPictureDecoded(object sender, EventArgs e) => Dispatcher.BeginInvoke(new Action(RequestRender));
+
         /// <summary>Releases the typefaces of the renderer and the kept pictures.</summary>
         public void Dispose()
         {
+            CadImageCache.Decoded -= OnPictureDecoded;
             StopQueue();
             _settle?.Stop();
             _renderer.Dispose();

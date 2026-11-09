@@ -6,6 +6,15 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** The presenter attaches and shows external references and images, as AutoCAD 2021 does: XATTACH and IMAGEATTACH
+(the Attach External Reference and Attach Image dialogs), the External References palette (XREF, ER, IMAGE), -XREF,
+-IMAGE, IMAGECLIP, IMAGEFRAME and TRANSPARENCY. A DXF referenced is read and drawn under its INSERT, its layers named after
+it (`grid|GRID`), its attachments followed and its overlays not, and never written into the drawing; one changed on disk
+stands Needs reloading until Reload. A PNG, JPEG or BMP is placed at AutoCAD's size, 40 by 30 pixels at 3 779 pixels a
+metre 10.584811 by 7.938608 mm, and drawn by its pixels, decoded off the window's thread. A drawing of 100 000 entities
+shown as a reference is read and drawn in 0.90 s, where opening it alone takes 0.87 s. `DxfBlockTableRecord.PathName`
+is now set as well as read.
+
 **NEW.** `GeometryHelper.Dxf.Viewer`, `GeometryHelper.Dxf.Viewer.Wpf` and the `GeometryHelper.Drawing.App` window are a 2D
 presenter for any DXF, built as AutoCAD behaves (not packed yet). A file opens as a `CadDocument` drawn from display
 lists through SkiaSharp: 100 000 entities open in 0.9 s, a click picks in 0.007 ms and a window of 1 000 entities draws

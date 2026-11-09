@@ -173,6 +173,14 @@ namespace GeometryHelper.Dxf.Viewer
                 ["-G"] = "-GROUP",
                 ["PU"] = "PURGE",
                 ["-PU"] = "-PURGE",
+                ["XA"] = "XATTACH",
+                ["XR"] = "XREF",
+                ["-XR"] = "-XREF",
+                ["ER"] = "EXTERNALREFERENCES",
+                ["IAT"] = "IMAGEATTACH",
+                ["IM"] = "IMAGE",
+                ["-IM"] = "-IMAGE",
+                ["ICL"] = "IMAGECLIP",
             },
             new Dictionary<string, string>
             {

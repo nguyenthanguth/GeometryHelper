@@ -970,4 +970,117 @@ namespace GeometryHelper.Dxf.Viewer
             return box;
         }
     }
+
+    /// <summary>
+    /// The picture of an IMAGE: the file it shows laid on the parallelogram of its corner and its two sides, clipped by its
+    /// boundary. A picture of 40 by 30 pixels placed at (10, 20) with a pixel 0.25 across is the parallelogram from (10, 20)
+    /// along (10, 0) and (0, 7.5). It is never picked by a point: the frame drawn as its own item is, as AutoCAD picks an
+    /// image by its frame; a window or a crossing takes it by its box.
+    /// </summary>
+    public sealed class DisplayImage2 : DisplayItem2
+    {
+        private readonly DisplayBox _bounds;
+
+        /// <summary>Makes the picture of an image.</summary>
+        /// <param name="x">The X of the corner the picture's lower left pixel sits at.</param>
+        /// <param name="y">The Y of that corner.</param>
+        /// <param name="ux">The X of the side along the picture's width, the whole of it.</param>
+        /// <param name="uy">The Y of that side.</param>
+        /// <param name="vx">The X of the side up the picture's height, the whole of it.</param>
+        /// <param name="vy">The Y of that side.</param>
+        /// <param name="clip">The rings it is clipped by, each as X and Y in turn; null where it shows the whole picture.</param>
+        /// <param name="clipInverted">Whether it shows what lies outside the rings rather than inside.</param>
+        /// <param name="filePath">The full path of the picture file found; null where none was found or it is unloaded.</param>
+        /// <param name="fileName">The path the drawing names the picture by, shown in the frame of one not found.</param>
+        /// <param name="style">How its frame is drawn.</param>
+        /// <param name="handle">The handle of the entity.</param>
+        /// <param name="layer">The layer.</param>
+        public DisplayImage2(double x, double y, double ux, double uy, double vx, double vy, IReadOnlyList<double[]> clip, bool clipInverted, string filePath, string fileName, DisplayStyle style, string handle, string layer)
+            : base(style, handle, layer)
+        {
+            X = x;
+            Y = y;
+            Ux = ux;
+            Uy = uy;
+            Vx = vx;
+            Vy = vy;
+            Clip = clip;
+            IsClipInverted = clipInverted;
+            FilePath = filePath;
+            FileName = fileName ?? string.Empty;
+            DisplayBox box = DisplayBox.Empty;
+
+            if (clip != null && !clipInverted)
+            {
+                foreach (double[] ring in clip)
+                {
+                    for (int i = 0; i + 1 < ring.Length; i += 2)
+                    {
+                        box = box.Add(ring[i], ring[i + 1]);
+                    }
+                }
+            }
+
+            if (box.IsEmpty)
+            {
+                box = box.Add(x, y).Add(x + ux, y + uy).Add(x + ux + vx, y + uy + vy).Add(x + vx, y + vy);
+            }
+
+            _bounds = box;
+        }
+
+        /// <summary>Gets the X of the corner the picture's lower left pixel sits at.</summary>
+        public double X { get; }
+
+        /// <summary>Gets the Y of that corner.</summary>
+        public double Y { get; }
+
+        /// <summary>Gets the X of the side along the picture's width.</summary>
+        public double Ux { get; }
+
+        /// <summary>Gets the Y of the side along the picture's width.</summary>
+        public double Uy { get; }
+
+        /// <summary>Gets the X of the side up the picture's height.</summary>
+        public double Vx { get; }
+
+        /// <summary>Gets the Y of the side up the picture's height.</summary>
+        public double Vy { get; }
+
+        /// <summary>Gets the rings the picture is clipped by, each as X and Y in turn; null where it shows the whole picture.</summary>
+        public IReadOnlyList<double[]> Clip { get; }
+
+        /// <summary>Gets whether the picture shows what lies outside its rings rather than inside.</summary>
+        public bool IsClipInverted { get; }
+
+        /// <summary>Gets the full path of the picture file found; null where none was found or the picture is unloaded.</summary>
+        public string FilePath { get; }
+
+        /// <summary>Gets the path the drawing names the picture by.</summary>
+        public string FileName { get; }
+
+        /// <summary>Gets whether the picture's transparent pixels let what is under it show (the IMAGE's transparency on).</summary>
+        public bool IsTransparent { get; internal set; }
+
+        /// <summary>Gets the brightness of the picture, 0 to 100, 50 as it is.</summary>
+        public int Brightness { get; internal set; } = 50;
+
+        /// <summary>Gets the contrast of the picture, 0 to 100, 50 as it is.</summary>
+        public int Contrast { get; internal set; } = 50;
+
+        /// <summary>Gets how far the picture is faded into the background, 0 to 100, 0 not at all.</summary>
+        public int Fade { get; internal set; }
+
+        /// <summary>Gets the time the picture file was last written, in ticks, when the item was made, so that a picture changed on disk is read again; nought for none.</summary>
+        public long FileStamp { get; internal set; }
+
+        /// <inheritdoc/>
+        public override DisplayBox Bounds => _bounds;
+
+        /// <summary>Gets an infinite distance: a picture is picked by its frame, never by a point on it.</summary>
+        /// <param name="x">The X of the point.</param>
+        /// <param name="y">The Y of the point.</param>
+        /// <returns>Infinity.</returns>
+        public override double DistanceTo(double x, double y) => double.PositiveInfinity;
+    }
 }

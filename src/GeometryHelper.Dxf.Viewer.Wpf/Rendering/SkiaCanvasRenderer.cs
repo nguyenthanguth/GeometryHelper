@@ -476,10 +476,126 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 case DisplayViewport2 viewport:
                     DrawViewport(canvas, document, viewport, m, options, stroke, background, isSelected);
                     break;
+                case DisplayImage2 picture:
+                    DrawPicture(canvas, picture, m, stroke, background, isSelected || isHover);
+                    break;
             }
 
             stroke.PathEffect?.Dispose();
             stroke.PathEffect = null;
+        }
+
+        /// <summary>
+        /// Gets or sets whether the pictures of images are decoded off the calling thread, the frame alone drawn until one is
+        /// ready (<see cref="CadImageCache.Decoded"/>), as the canvas draws them; false, the default, decodes each at once, as a
+        /// plot, a test or a screenshot needs.
+        /// </summary>
+        internal bool LazyImages { get; set; }
+
+        /// <summary>
+        /// The picture of an image laid on its parallelogram, clipped by its boundary (outside it where inverted), over the
+        /// background where its transparency is off, its brightness, contrast and fade applied; highlighted, its outline alone.
+        /// </summary>
+        private void DrawPicture(SKCanvas canvas, DisplayImage2 picture, Affine2 m, SKPaint stroke, int background, bool highlighted)
+        {
+            double x0 = m.X(picture.X, picture.Y);
+            double y0 = m.Y(picture.X, picture.Y);
+            double ux = m.X(picture.X + picture.Ux, picture.Y + picture.Uy) - x0;
+            double uy = m.Y(picture.X + picture.Ux, picture.Y + picture.Uy) - y0;
+            double vx = m.X(picture.X + picture.Vx, picture.Y + picture.Vy) - x0;
+            double vy = m.Y(picture.X + picture.Vx, picture.Y + picture.Vy) - y0;
+            double[] frame = { picture.X, picture.Y, picture.X + picture.Ux, picture.Y + picture.Uy, picture.X + picture.Ux + picture.Vx, picture.Y + picture.Uy + picture.Vy, picture.X + picture.Vx, picture.Y + picture.Vy };
+
+            if (highlighted)
+            {
+                using (SKPath path = RingsPath(picture.Clip != null && !picture.IsClipInverted ? picture.Clip : new[] { frame }, m))
+                {
+                    canvas.DrawPath(path, stroke);
+                }
+
+                return;
+            }
+
+            if (picture.FilePath == null)
+            {
+                return;
+            }
+
+            SKImage image = CadImageCache.Get(picture.FilePath, picture.FileStamp, _plot != null || !LazyImages);
+
+            if (image == null || image.Width <= 0 || image.Height <= 0)
+            {
+                return;
+            }
+
+            double w = image.Width;
+            double h = image.Height;
+            var matrix = new SKMatrix((float)(ux / w), (float)(-vx / h), (float)(x0 + vx), (float)(uy / w), (float)(-vy / h), (float)(y0 + vy), 0f, 0f, 1f);
+            canvas.Save();
+
+            try
+            {
+                using (SKPath outline = RingsPath(new[] { frame }, m))
+                {
+                    canvas.ClipPath(outline, SKClipOperation.Intersect, true);
+                }
+
+                if (picture.Clip != null)
+                {
+                    using (SKPath clip = RingsPath(picture.Clip, m))
+                    {
+                        canvas.ClipPath(clip, picture.IsClipInverted ? SKClipOperation.Difference : SKClipOperation.Intersect, true);
+                    }
+                }
+
+                canvas.Concat(in matrix);
+
+                using (var paint = new SKPaint { IsAntialias = true })
+                {
+                    if (!picture.IsTransparent)
+                    {
+                        paint.Color = Color(background, 255);
+                        canvas.DrawRect(SKRect.Create((float)w, (float)h), paint);
+                        paint.Color = SKColors.Black;
+                    }
+
+                    paint.ColorFilter = Adjustments(picture, background);
+                    canvas.DrawImage(image, SKRect.Create((float)w, (float)h), SKRect.Create((float)w, (float)h), new SKSamplingOptions(SKFilterMode.Linear, SKMipmapMode.Linear), paint);
+                    paint.ColorFilter?.Dispose();
+                }
+            }
+            finally
+            {
+                canvas.Restore();
+            }
+        }
+
+        /// <summary>
+        /// The brightness, contrast and fade of an image as one colour matrix: contrast scales each channel about its middle by
+        /// a fiftieth of the contrast, brightness moves it by a hundredth of what it is over 50, fade takes it that far towards
+        /// the background; null for an image at 50, 50 and 0, drawn as it is.
+        /// </summary>
+        private static SKColorFilter Adjustments(DisplayImage2 picture, int background)
+        {
+            if (picture.Brightness == 50 && picture.Contrast == 50 && picture.Fade == 0)
+            {
+                return null;
+            }
+
+            float k = picture.Contrast / 50f;
+            float shift = 0.5f - 0.5f * k + (picture.Brightness - 50) / 100f;
+            float fade = Math.Max(0, Math.Min(100, picture.Fade)) / 100f;
+            float keep = 1f - fade;
+            float r = ((background >> 16) & 0xFF) / 255f;
+            float g = ((background >> 8) & 0xFF) / 255f;
+            float b = (background & 0xFF) / 255f;
+            return SKColorFilter.CreateColorMatrix(new[]
+            {
+                keep * k, 0f, 0f, 0f, keep * shift + fade * r,
+                0f, keep * k, 0f, 0f, keep * shift + fade * g,
+                0f, 0f, keep * k, 0f, keep * shift + fade * b,
+                0f, 0f, 0f, 1f, 0f,
+            });
         }
 
         private static SKPathEffect DashEffect(double[] dashes, double zoom)
