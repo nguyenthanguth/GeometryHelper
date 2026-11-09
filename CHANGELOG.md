@@ -93,6 +93,18 @@ another file of the folder was opened, or once it was saved with Save and shown 
 now says, for example, "Test bodies (from file)" until the drawing is made again. The out-of-date dot now shows on such a
 drawing too, checked in the source its file names without changing it.
 
+**NEW.** The presenter edits dimensions as AutoCAD 2021 does: DIMCONTINUE (DCO) and DIMBASELINE (DBA) go on from the last
+linear or angular dimension, or one selected, on the same line or DIMDLI further out, with Undo inside; QDIM dimensions the
+ends of lines and polylines and the centres of circles in a row, staggered, from a base or as radii and diameters; DIMEDIT
+(DED) gives dimensions a new text, turns their words, puts them home or slants their extension lines; DIMTEDIT moves the
+words, the dimension line going with them where DIMTMOVE is 0; DIMSPACE spaces parallel dimensions a value apart or by twice
+their text height; DIMBREAK gaps the lines of a dimension where lines, polylines, circles and arcs cross them. A row of 100
+and 150 continued from a dimension of 100 between (0, 0) and (100, 0) stands on its line 30 below. Each run is one undo
+step, and an owned dimension of a model drawing is refused in words. A dimension drawn again keeps its moved and turned
+words and its oblique angle. A break of DIMBREAK is drawn into the dimension's picture only, not stored as AutoCAD stores
+it, so a dimension drawn again is whole; DIMJOGLINE and ordinate dimensions are not made yet. AutoCAD 2021's AUDIT finds
+nothing in a drawing edited by all of them.
+
 **NEW.** The presenter's TRIM (TR), EXTEND (EX), BREAK (BR), BREAKATPOINT, JOIN (J) and LENGTHEN (LEN) as AutoCAD 2021's:
 TRIM and EXTEND in the Quick and Standard modes with Fence, Crossing, Edge, eRase and Undo, Shift-pick switching between the
 two; each command is one undo step (a line from (0, 0) to (100, 0) crossed by a line at x = 40 and picked at (80, 0) is
