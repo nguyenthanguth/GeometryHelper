@@ -7,7 +7,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// <summary>
     /// The ghost copy a transforming command draws while it waits for its second point, as AutoCAD drags the objects along:
     /// MOVE and COPY by the displacement from the base point to the cursor, ROTATE by the angle about the base point, SCALE by
-    /// the distance from it as the factor, MIRROR across the line from the first point to the cursor. It follows the session's
+    /// the distance from it as the factor, MIRROR across the line from the first point to the cursor, and a grip edit's MOVE,
+    /// ROTATE, SCALE and MIRROR the same way from its base point. It follows the session's
     /// prompts to know the objects the command took (those selected before it started, or those "Select objects:" gathered),
     /// and keeps their outlines in drawing units so that a move of the mouse only transforms them. The block INSERT drags while
     /// it asks where and how to place it (<see cref="CadPrompt.Drag"/>) is outlined the same way, in the block's coordinates.
@@ -69,7 +70,20 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             GeoVector2 way = target - b;
             string message = prompt.Message ?? string.Empty;
 
-            switch (session.Current.Name)
+            // A grip edit drags the objects selected as the command of its mode does: MOVE, ROTATE, SCALE, MIRROR; STRETCH has none.
+            string name = session.IsGripEditing
+                ? message.StartsWith("Specify move point", StringComparison.Ordinal) ? "MOVE"
+                : message.StartsWith("Specify rotation angle", StringComparison.Ordinal) ? "ROTATE"
+                : message.StartsWith("Specify scale factor", StringComparison.Ordinal) ? "SCALE"
+                : message.StartsWith("Specify second point", StringComparison.Ordinal) ? "MIRROR" : null
+                : session.Current.Name;
+
+            if (session.IsGripEditing && name != null)
+            {
+                message = name == "MOVE" ? "Specify second point" : name == "MIRROR" ? "Specify second point of mirror line" : message;
+            }
+
+            switch (name)
             {
                 case "MOVE":
                 case "COPY":

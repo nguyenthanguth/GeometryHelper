@@ -126,7 +126,6 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private static readonly Pen CrossingPen = Frozen(new Pen(Solid(0x3FB950), 1.0) { DashStyle = new DashStyle(new[] { 4.0, 3.0 }, 0.0) });
         private static readonly Brush DefaultGripBrush = Solid(0x3D9BFF);
         private static readonly Brush HotGripBrush = Solid(0xF85149);
-        private static readonly Brush DragGripBrush = Solid(0x3FB950);
         private static readonly Brush CellFill = Frozen(new SolidColorBrush(Color.FromArgb(46, 0x3D, 0x9B, 0xFF)));
         private static readonly Pen CellPen = Frozen(new Pen(Solid(0x3D9BFF), 3.0));
         private static readonly Brush CellBrush = Solid(0x3D9BFF);
@@ -182,8 +181,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private GeoPoint2? _restAt;
         private double _restAperture;
         private int _hotGrip = -1;
-        private int _dragGrip = -1;
-        private GeoPoint2 _dragTo;
+
+        // The hot grips, each the handle of its object and its index there, the one a grip edit starts from first; a grip
+        // Shift+clicked turns hot, and a grip edit runs while _gripEditing.
+        private readonly List<KeyValuePair<string, int>> _hot = new List<KeyValuePair<string, int>>();
+        private bool _gripEditing;
+        private Point? _gripPress;
 
         /// <summary>Makes an empty canvas.</summary>
         public CadCanvas()
@@ -744,17 +747,22 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             SelectionChanged?.Invoke(this, EventArgs.Empty);
         }
 
-        /// <summary>Stops a box or a grip being dragged, as the first Esc does.</summary>
+        /// <summary>Stops a box being dragged, or turns the grips Shift made hot cold, as the first Esc does.</summary>
         /// <returns>Whether there was one to stop.</returns>
         public bool CancelGesture()
         {
-            bool any = _boxFrom.HasValue || _dragGrip >= 0 || _cycler.IsArmed;
+            bool any = _boxFrom.HasValue || _cycler.IsArmed || (_hot.Count > 0 && !_gripEditing);
             _cycler.Disarm();
             _boxFrom = null;
             _lasso = null;
             _boxing = false;
             _boxOpen = false;
-            _dragGrip = -1;
+            _gripPress = null;
+
+            if (!_gripEditing)
+            {
+                _hot.Clear();
+            }
 
             if (any)
             {
@@ -922,9 +930,37 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 }
                 else if (!IsRunning && _hotGrip >= 0)
                 {
-                    _dragGrip = _hotGrip;
-                    _dragTo = _grips[_dragGrip].Grip.Point;
-                    CaptureMouse();
+                    // Shift+click makes a grip hot, or cold again; a click starts the grip edit from the grip clicked, the
+                    // grips made hot before going with it, as AutoCAD's. Let go away from where it was pressed, the grip is
+                    // dragged there.
+                    var grip = new KeyValuePair<string, int>(_grips[_hotGrip].Handle, _grips[_hotGrip].Grip.Index);
+
+                    if ((Keyboard.Modifiers & ModifierKeys.Shift) != 0)
+                    {
+                        if (!_hot.Remove(grip))
+                        {
+                            _hot.Add(grip);
+                        }
+
+                        _swallowUp = true;
+                    }
+                    else
+                    {
+                        _hot.Remove(grip);
+                        _hot.Insert(0, grip);
+                        _gripEditing = Session != null && Session.StartGripEdit(_hot);
+
+                        if (_gripEditing)
+                        {
+                            _gripPress = p;
+                            CaptureMouse();
+                        }
+                        else
+                        {
+                            _hot.Clear();
+                        }
+                    }
+
                     InvalidateVisual();
                 }
                 else
@@ -976,23 +1012,22 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
                 e.Handled = true;
             }
-            else if (e.ChangedButton == MouseButton.Left && _dragGrip >= 0)
+            else if (e.ChangedButton == MouseButton.Left && _gripPress.HasValue)
             {
-                GripAt grip = _grips[_dragGrip];
-                _dragGrip = -1;
+                // The press that started a grip edit: let go where it was pressed, the grip waits for a click; dragged away,
+                // the point it is let go at, snapped, is the stretch point.
+                Vector moved = at - _gripPress.Value;
+                _gripPress = null;
                 ReleaseMouseCapture();
-                Track(at);
-                GeoPoint2 to = _dragTo;
-                CadEditResult result = Document?.GripDrag(grip.Handle, grip.Grip.Index, to);
 
-                if (result != null && !result.Succeeded && Session != null)
+                if (Math.Abs(moved.X) > DragPixels || Math.Abs(moved.Y) > DragPixels)
                 {
-                    Session.Write(result.Message);
+                    Track(at);
+                    Click(at, false);
                     HistoryWritten?.Invoke(this, EventArgs.Empty);
                 }
 
                 InvalidateVisual();
-                SelectionChanged?.Invoke(this, EventArgs.Empty);
                 e.Handled = true;
             }
             else if (e.ChangedButton == MouseButton.Left && _pointDown.HasValue)
@@ -1213,6 +1248,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             _snapped = null;
             _ghost.Follow(Session);
             _markedDirty = true;
+
+            // The hot grips go cold once their grip edit has ended, as AutoCAD's.
+            if (_gripEditing && Session != null && !Session.IsGripEditing)
+            {
+                _gripEditing = false;
+                _hot.Clear();
+            }
 
             if (_boxOpen)
             {
@@ -1526,15 +1568,6 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return;
             }
 
-            if (_dragGrip >= 0)
-            {
-                CadSnapResult snapped = CadPicking.Snap(document, Space, Snap, cursor, aperture, _grips[_dragGrip].Grip.Point);
-                _snapped = snapped;
-                _dragTo = snapped?.Point ?? cursor;
-                InvalidateVisual();
-                return;
-            }
-
             if (_boxFrom.HasValue)
             {
                 _boxTo = p;
@@ -1798,7 +1831,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             _tags.Clear();
             CadDocument document = Document;
 
-            if (document == null || Space == null || IsRunning || document.Selection.Count == 0)
+            // A grip edit keeps the grips shown, its hot grips among them, as AutoCAD's.
+            if (document == null || Space == null || (IsRunning && !Session.IsGripEditing) || document.Selection.Count == 0)
             {
                 _hotGrip = -1;
                 return;
@@ -2208,17 +2242,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             for (int i = 0; i < _grips.Count; i++)
             {
                 Point at = ToScreen(view, _grips[i].Grip.Point, scale);
-                Brush fill = i == _dragGrip ? DragGripBrush : i == _hotGrip ? HotGripBrush : GripBrush;
-                dc.DrawRectangle(fill, null, new Rect(at.X - half, at.Y - half, GripSize, GripSize));
-            }
-
-            if (_dragGrip >= 0)
-            {
-                Point from = ToScreen(view, _grips[_dragGrip].Grip.Point, scale);
-                Point to = ToScreen(view, _dragTo, scale);
-                dc.DrawLine(RubberPen, from, to);
-                dc.DrawRectangle(DragGripBrush, null, new Rect(to.X - half, to.Y - half, GripSize, GripSize));
-                DrawMarker(dc, _snapped, to);
+                bool hot = i == _hotGrip || _hot.Contains(new KeyValuePair<string, int>(_grips[i].Handle, _grips[i].Grip.Index));
+                dc.DrawRectangle(hot ? HotGripBrush : GripBrush, null, new Rect(at.X - half, at.Y - half, GripSize, GripSize));
             }
         }
 

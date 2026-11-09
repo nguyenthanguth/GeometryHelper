@@ -30,7 +30,6 @@ namespace GeometryHelper.Dxf.Viewer
             registry.Add(new CadCommand("-XREF", XrefTyped));
             registry.Add(new CadCommand("-IMAGE", ImageTyped));
             registry.Add(new CadCommand("IMAGECLIP", ImageClip));
-            registry.Add(new CadCommand("IMAGEFRAME", ImageFrame));
             registry.Add(new CadCommand("TRANSPARENCY", Transparency));
         }
 
@@ -1136,39 +1135,6 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             return false;
-        }
-
-        /// <summary>IMAGEFRAME: "Enter new value for IMAGEFRAME &lt;1&gt;:", 0 hiding the frames of the images, 1 showing and plotting them, 2 showing them only.</summary>
-        private static IEnumerable<CadPrompt> ImageFrame(CadCommandContext c)
-        {
-            DxfRasterVariables variables = c.Database.NamedObjectsDictionary?.Contains("ACAD_IMAGE_VARS") == true ? c.Database.NamedObjectsDictionary.GetAt("ACAD_IMAGE_VARS") as DxfRasterVariables : null;
-            int now = variables == null ? 1 : (int)variables.ImageFrame;
-            yield return CadPrompt.ForInteger("Enter new value for IMAGEFRAME", null, now.ToString(CultureInfo.InvariantCulture));
-
-            if (c.Input.Kind != CadInputKind.Number)
-            {
-                yield break;
-            }
-
-            int value = (int)c.Input.Number;
-
-            if (value < 0 || value > 2)
-            {
-                c.Write("Requires an integer between 0 and 2.");
-                yield break;
-            }
-
-            if (variables == null)
-            {
-                c.Write("IMAGEFRAME is kept with the drawing's images: attach an image first.");
-                yield break;
-            }
-
-            if (value != now)
-            {
-                c.Apply(new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "IMAGEFRAME", now.ToString(CultureInfo.InvariantCulture), value.ToString(CultureInfo.InvariantCulture)) }, s =>
-                    ((DxfRasterVariables)s.Database.NamedObjectsDictionary.GetAt("ACAD_IMAGE_VARS")).ImageFrame = (DxfFrameSetting)value);
-            }
         }
 
         /// <summary>TRANSPARENCY: "Select image(s):", then "Enter transparency mode [ON/OFF] &lt;OFF&gt;:", the transparent pixels of a picture letting what is under it show while ON.</summary>

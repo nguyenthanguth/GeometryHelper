@@ -32,7 +32,7 @@ The nine categories are those of the Global settings dialog, and of the JSON.
 | Category | Holds | Defaults |
 |---|---|---|
 | Appearance | the colours of the canvas, paper, visible and hidden lines, selection and grips; the crosshair and pickbox; the grid; line weights | canvas `#000000`, paper `#FFFFFF`, hidden lines `#9AA4B1`, selection and grips `#3D9BFF`, crosshair 5 %, pickbox 5 pixels, grid off, line weights shown |
-| Canvas and cursor | the wheel zoom, the object snaps, the aperture, what F3 does | 1.2 a notch (1.01 to 4), every snap but Nearest, 10 pixels (2 to 50), F3 toggles them |
+| Canvas and cursor | the wheel zoom, the object snaps, the aperture, the polar increment, what F3 does | 1.2 a notch (1.01 to 4), every snap but Nearest, 10 pixels (2 to 50), 90 degrees (above 0 to 360, POLARANG), F3 toggles them |
 | Drawing defaults | the preset, sheet, orientation and projection of a new model drawing | Assembly, A2, Landscape, Third angle |
 | Units and rounding | decimals of coordinates, dimensions and angles; the separators | 2, 0 and 1 decimals; thousands parted by a space, decimals by a point |
 | Layers, colours and lines | the layer table written to new drawings | Visible, Hidden, Centre, Hatch, Dimension, Mark, Sheet |
@@ -126,7 +126,7 @@ The function keys, Delete and the Ctrl keys of [the defaults](editing.md#aliases
 | Shift+right-click, a point asked | the object snap menu; the snap chosen is taken for that point alone |
 | left button dragged, no command running | with Select by dragging on, a box as above; off, the box waits for a click at its other corner (left to right a window in solid blue, right to left a crossing in dashed green) |
 | cursor over an entity | drawn 2 pixels wide in its colour taken halfway to the selection colour |
-| a grip dragged | drags that grip |
+| a grip clicked | makes it hot and starts the grip modes, `** STRETCH **` first (see [Grip modes](editing.md#grip-modes)); Shift+click makes several hot; dragged, stretches it where it is let go |
 | left click, a command running | answers its prompt: a point taken through the snaps, with a rubber band from the base point; or objects, by a click or a box |
 | right click, a command running | Enter |
 

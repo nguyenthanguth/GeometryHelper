@@ -267,18 +267,6 @@ namespace GeometryHelper.Dxf.Viewer
             }
         }
 
-        /// <summary>CELTSCALE: the linetype scale new objects take ($CELTSCALE), above nought.</summary>
-        private static IEnumerable<CadPrompt> CurrentLinetypeScale(CadCommandContext c)
-        {
-            double old = c.Database.Celtscale;
-            yield return CadPrompt.ForDistance("Enter new value for CELTSCALE", null, null, Length(old));
-
-            if (ScaleTyped(c, old, out double scale) && scale != old)
-            {
-                c.Apply(new[] { new CadEditRecord(CadEditRecordKind.SettingChanged, null, "$CELTSCALE", Values(old), Values(scale)) }, s => s.Database.Celtscale = scale);
-            }
-        }
-
         /// <summary>Makes a linetype current ($CELTYPE) as one undo step, where it is another than the current.</summary>
         internal static void SetCurrentLinetype(CadCommandContext c, string name)
         {

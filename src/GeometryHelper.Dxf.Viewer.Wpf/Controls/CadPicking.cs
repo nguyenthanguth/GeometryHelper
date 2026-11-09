@@ -116,7 +116,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                         return false;
                     }
 
-                    // Ctrl held as the point is picked turns an arc of ARC or PLINE the other way, as in AutoCAD.
+                    // Ctrl held as the point is picked turns an arc of ARC or PLINE the other way, as in AutoCAD, and a grip
+                    // edit's first point copies.
                     return session.Feed(snapped?.Point ?? cursor, false, control);
                 }
 
