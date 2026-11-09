@@ -110,6 +110,50 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         }
 
         [Fact]
+        public void PickboxApertureLwdisplayAndPolarang_AreKeptInTheSettingsFile_AsDynAndOsmodeAre()
+        {
+            MainViewModel model = Room();
+            model.SettingsPath = System.IO.Path.Combine(_folder.FullPath, "settings.json");
+            int raised = 0;
+
+            // The window saves the settings on SettingsChanged, as CadAppHost does.
+            model.SettingsChanged += (s, e) =>
+            {
+                raised++;
+                model.Settings.Save(model.SettingsPath);
+            };
+
+            model.Execute("PICKBOX");
+            model.Execute("9");
+            model.Execute("APERTURE");
+            model.Execute("14");
+            model.Execute("LWDISPLAY");
+            model.Execute("0");
+            model.Execute("POLARANG");
+            model.Execute("400");
+            Assert.Equal("Value must be at most 360.", model.History.Last());
+            model.Execute("30");
+
+            Assert.Equal(4, raised);
+            Assert.Equal(Math.PI / 6.0, model.Snap.PolarAngle, 12);
+            GlobalSettings saved = GlobalSettings.Load(model.SettingsPath);
+            Assert.Equal(9, saved.PickboxPixels);
+            Assert.Equal(14, saved.AperturePixels);
+            Assert.False(saved.ShowLineWeights);
+            Assert.Equal(30.0, saved.PolarAngle);
+
+            // Read back by a new window, the polar increment is the snaps' again; Drafting Settings' increment is kept the same way.
+            var again = new MainViewModel();
+            again.ApplySettings(saved);
+            Assert.Equal(Math.PI / 6.0, again.Snap.PolarAngle, 12);
+
+            DraftingSettingsViewModel dialog = model.CreateDraftingSettings("Polar Tracking");
+            dialog.IncrementAngle = "15";
+            Assert.True(dialog.Apply());
+            Assert.Equal(15.0, GlobalSettings.Load(model.SettingsPath).PolarAngle);
+        }
+
+        [Fact]
         public void AGripClicked_AsksStretch_AClickStretchesIt_AndSpaceGoesOnToMoveWhoseGhostFollows()
         {
             Exception failure = null;

@@ -11,13 +11,16 @@ variable name or [?] <FILLETRAD>:`, then `Enter new value for FILLETRAD <10.0000
 same, and `?` lists those a pattern of wildcards matches. FILLETRAD 5 writes `$FILLETRAD` 5 into the header as one undo
 step; SORTENTS 200 is refused with `Requires an integer between 0 and 127.` and asked again; OSMODE 4133 ticks Endpoint,
 Center, Intersection and Extension, and 16391 ticks Endpoint, Midpoint and Center with OSNAP off; EXTMIN says
-`EXTMIN = 0.0000,0.0000,0.0000 (read only)`. 46 variables in the window: those of the drawing's header (CLAYER, CECOLOR,
+`EXTMIN = 0.0000,0.0000,0.0000 (read only)`. 47 variables in the window: those of the drawing's header (CLAYER, CECOLOR,
 CELTYPE, CELWEIGHT, CELTSCALE, LTSCALE, PSLTSCALE, MSLTSCALE, DIMSCALE, TEXTSIZE, TEXTSTYLE, FILLETRAD, CHAMFERA, CHAMFERB,
 PDMODE, PDSIZE, MIRRTEXT, SORTENTS, IMAGEFRAME, CANNOSCALE, INSBASE, LIMMIN, LIMMAX) each one undo step; those of the
-session and the window (PICKSTYLE, SELECTIONCYCLING, OFFSETDIST, TILEMODE, OSMODE, ORTHOMODE, SNAPMODE, GRIDMODE, POLARANG,
-AUTOSNAP, DYNMODE, PICKBOX, APERTURE, LWDISPLAY) at once; and DIMSTYLE, EXTMIN, EXTMAX, UCSNAME, UCSORG, DWGNAME, DWGPREFIX,
-DATE and CDATE read only. PDMODE, PDSIZE, CELTSCALE, PICKSTYLE, SELECTIONCYCLING and IMAGEFRAME are variables of the table
-now rather than commands of their own, and CECOLOR, CELTYPE and LTSCALE keep their own prompts when typed alone; the
+session and the window (PICKSTYLE, SELECTIONCYCLING, PICKFIRST, OFFSETDIST, TILEMODE, OSMODE, ORTHOMODE, SNAPMODE, GRIDMODE,
+POLARANG, AUTOSNAP, DYNMODE, PICKBOX, APERTURE, LWDISPLAY) at once; and DIMSTYLE, EXTMIN, EXTMAX, UCSNAME, UCSORG, DWGNAME,
+DWGPREFIX, DATE and CDATE read only. PICKFIRST 0 (`CadDocument.PickFirst`) makes MOVE ask `Select objects:` though a line
+is selected, as AutoCAD's. PICKBOX, APERTURE, LWDISPLAY and POLARANG are kept in the settings file as DYN and OSMODE are
+(`MainViewModel.SettingsChanged`), POLARANG 30 as `"polarAngle": 30` of the new `GlobalSettings.PolarAngle`, which Drafting
+Settings' increment sets too. PDMODE, PDSIZE, CELTSCALE, PICKSTYLE, SELECTIONCYCLING and IMAGEFRAME are variables of the
+table now rather than commands of their own, and CECOLOR, CELTYPE and LTSCALE keep their own prompts when typed alone; the
 registry holds 148 commands. `CadCommandRegistry.Variables`, `AddVariable` and `FindVariable`, and `CadSystemVariable`,
 are the API.
 

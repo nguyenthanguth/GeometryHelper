@@ -32,7 +32,7 @@ The nine categories are those of the Global settings dialog, and of the JSON.
 | Category | Holds | Defaults |
 |---|---|---|
 | Appearance | the colours of the canvas, paper, visible and hidden lines, selection and grips; the crosshair and pickbox; the grid; line weights | canvas `#000000`, paper `#FFFFFF`, hidden lines `#9AA4B1`, selection and grips `#3D9BFF`, crosshair 5 %, pickbox 5 pixels, grid off, line weights shown |
-| Canvas and cursor | the wheel zoom, the object snaps, the aperture, what F3 does | 1.2 a notch (1.01 to 4), every snap but Nearest, 10 pixels (2 to 50), F3 toggles them |
+| Canvas and cursor | the wheel zoom, the object snaps, the aperture, the polar increment, what F3 does | 1.2 a notch (1.01 to 4), every snap but Nearest, 10 pixels (2 to 50), 90 degrees (above 0 to 360, POLARANG), F3 toggles them |
 | Drawing defaults | the preset, sheet, orientation and projection of a new model drawing | Assembly, A2, Landscape, Third angle |
 | Units and rounding | decimals of coordinates, dimensions and angles; the separators | 2, 0 and 1 decimals; thousands parted by a space, decimals by a point |
 | Layers, colours and lines | the layer table written to new drawings | Visible, Hidden, Centre, Hatch, Dimension, Mark, Sheet |

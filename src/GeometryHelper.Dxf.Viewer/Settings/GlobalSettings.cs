@@ -94,6 +94,7 @@ namespace GeometryHelper.Dxf.Viewer
         private double _crosshairPercent = 5.0;
         private int _pickboxPixels = 5;
         private int _aperturePixels = 10;
+        private double _polarAngle = 90.0;
         private double _wheelZoomFactor = 1.2;
         private string _preset = "Assembly";
         private string _sheetSize = "A2";
@@ -181,6 +182,17 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Gets or sets how near the cursor a snap is taken, in pixels, 2 to 50: 10 by default, as AutoCAD's APERTURE.</summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the value is out of range.</exception>
         public int AperturePixels { get => _aperturePixels; set => _aperturePixels = (int)Range(value, 2, 50, nameof(AperturePixels)); }
+
+        /// <summary>
+        /// Gets or sets the polar tracking increment in degrees, as AutoCAD's POLARANG: above nought and up to 360; 90 by
+        /// default, so that POLAR holds the cursor every quarter turn, and 45 every eighth.
+        /// </summary>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the value is not above nought and up to 360.</exception>
+        public double PolarAngle
+        {
+            get => _polarAngle;
+            set => _polarAngle = value > 0.0 && value <= 360.0 ? value : throw new ArgumentOutOfRangeException(nameof(PolarAngle), value, "The polar angle has to be above 0 and up to 360 degrees.");
+        }
 
         /// <summary>Gets or sets whether F3 switches the snaps: on by default.</summary>
         public bool F3TogglesSnaps { get; set; } = true;
@@ -559,6 +571,7 @@ namespace GeometryHelper.Dxf.Viewer
             w.Value("wheelZoomFactor", _wheelZoomFactor);
             w.Value("snaps", string.Join(",", SnapNames(Snaps)));
             w.Value("aperturePixels", _aperturePixels);
+            w.Value("polarAngle", _polarAngle);
             w.Value("f3TogglesSnaps", F3TogglesSnaps);
             w.Value("selectByDragging", SelectByDragging);
             w.Value("dynamicInput", DynamicInput);
@@ -752,6 +765,7 @@ namespace GeometryHelper.Dxf.Viewer
                 Number("canvas", "wheelZoomFactor", v => _s.WheelZoomFactor = v);
                 Text("canvas", "snaps", v => _s.Snaps = Snaps(v));
                 Number("canvas", "aperturePixels", v => _s.AperturePixels = Whole(v));
+                Number("canvas", "polarAngle", v => _s.PolarAngle = v);
                 Flag("canvas", "f3TogglesSnaps", v => _s.F3TogglesSnaps = v);
                 Flag("canvas", "selectByDragging", v => _s.SelectByDragging = v);
                 Flag("canvas", "dynamicInput", v => _s.DynamicInput = v);

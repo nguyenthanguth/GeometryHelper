@@ -240,13 +240,17 @@ and set where the presenter keeps it, listed in [`CadCommandRegistry.Variables`]
 | Kept in | Variables | A change |
 |---|---|---|
 | the header of the drawing, written as AutoCAD writes it | CLAYER, CECOLOR, CELTYPE, CELWEIGHT, CELTSCALE, LTSCALE, PSLTSCALE, MSLTSCALE, DIMSCALE, TEXTSIZE, TEXTSTYLE, FILLETRAD, CHAMFERA, CHAMFERB, PDMODE, PDSIZE, MIRRTEXT, SORTENTS, IMAGEFRAME, CANNOSCALE, INSBASE, LIMMIN, LIMMAX | one undo step |
-| the document or the session | PICKSTYLE, SELECTIONCYCLING, OFFSETDIST, TILEMODE (the space shown) | at once, no undo step |
-| the window: the status bar, the snaps and Global settings | OSMODE, ORTHOMODE, SNAPMODE, GRIDMODE, POLARANG, AUTOSNAP, DYNMODE, PICKBOX, APERTURE, LWDISPLAY | at once, no undo step |
+| the document or the session | PICKSTYLE, SELECTIONCYCLING, PICKFIRST, OFFSETDIST, TILEMODE (the space shown) | at once, no undo step |
+| the window: the status bar, the snaps and Global settings | OSMODE, ORTHOMODE, SNAPMODE, GRIDMODE, POLARANG, AUTOSNAP, DYNMODE, PICKBOX, APERTURE, LWDISPLAY | at once, no undo step; kept in the settings file |
 | read only | DIMSTYLE, EXTMIN, EXTMAX, UCSNAME, UCSORG, DWGNAME, DWGPREFIX, DATE, CDATE | |
 
 FILLETRAD 5 writes `$FILLETRAD` 40 `5` into the header and U takes it back to 10. OSMODE 4133 ticks Endpoint, Center,
 Intersection and Extension, and 16391 ticks Endpoint, Midpoint and Center with OSNAP off. With no window, ORTHOMODE and
 LWDISPLAY are the drawing's `$ORTHOMODE` and `$LWDISPLAY`; the window answers them with its ORTHO and its lineweights.
+PICKFIRST 0 makes a command that works on objects ask `Select objects:` whatever is selected before it: with a line
+selected, MOVE asks for objects rather than its base point. The window keeps PICKBOX, APERTURE, LWDISPLAY and POLARANG in
+the settings file as it keeps DYN and the snaps, POLARANG 30 written `"polarAngle": 30`. POLARMODE, PICKADD, ATTREQ,
+ATTDIA, FILEDIA and CMDDIA are not variables of the presenter yet.
 CECOLOR, CELTYPE and LTSCALE typed alone ask their own prompts, as before (`Enter new object color [Truecolor/COlorbook]
 <BYLAYER>:`); SETVAR asks them in its words, a text in quotes, `<"ByLayer">`. A window adds its own with
 `registry.AddVariable(CadSystemVariable.Integer(...))` or `CadSystemVariable.Real(...)`.

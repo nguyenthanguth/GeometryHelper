@@ -203,7 +203,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                 {
                     "CANNOSCALE", "CDATE", "CECOLOR", "CELTSCALE", "CELTYPE", "CELWEIGHT", "CHAMFERA", "CHAMFERB", "CLAYER", "DATE", "DIMSCALE", "DIMSTYLE",
                     "DWGNAME", "DWGPREFIX", "EXTMAX", "EXTMIN", "FILLETRAD", "IMAGEFRAME", "INSBASE", "LIMMAX", "LIMMIN", "LTSCALE", "LWDISPLAY", "MIRRTEXT",
-                    "MSLTSCALE", "OFFSETDIST", "ORTHOMODE", "PDMODE", "PDSIZE", "PICKSTYLE", "PSLTSCALE", "SELECTIONCYCLING", "SORTENTS", "TEXTSIZE",
+                    "MSLTSCALE", "OFFSETDIST", "ORTHOMODE", "PDMODE", "PDSIZE", "PICKFIRST", "PICKSTYLE", "PSLTSCALE", "SELECTIONCYCLING", "SORTENTS", "TEXTSIZE",
                     "TEXTSTYLE", "TILEMODE", "UCSNAME", "UCSORG",
                 },
                 registry.Variables.Select(v => v.Name));
@@ -214,6 +214,33 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.True(registry.FindVariable("PDMODE").IsInDrawing);
             Assert.False(registry.FindVariable("PICKSTYLE").IsInDrawing);
             Assert.True(registry.FindVariable("EXTMIN").IsReadOnly);
+        }
+
+        [Fact]
+        public void PickfirstZero_MakesACommandAskForItsObjects_WhatIsSelectedBeforeItLeftAside()
+        {
+            CadDocument document = Plan();
+            document.Selection.Set(new[] { "A1" });
+
+            // PICKFIRST 1, the default: MOVE takes the line selected and asks its base point.
+            CadCommandSession session = Start(document, "MOVE");
+            Assert.StartsWith("Specify base point", session.PromptText, StringComparison.Ordinal);
+            Run(session, Esc);
+
+            Run(session, "PICKFIRST");
+            Assert.Equal("Enter new value for PICKFIRST <1>:", session.PromptText);
+            Run(session, "0");
+            Assert.Equal(0, document.PickFirst);
+            Assert.False(document.CanUndo);
+
+            // PICKFIRST 0: MOVE asks "Select objects:", and moves what is picked there, not the line selected before.
+            document.Selection.Set(new[] { "A1" });
+            Run(session, "MOVE");
+            Assert.Equal("Select objects:", session.PromptText);
+            Run(session, new[] { "A2" }, Enter, P(0, 0), P(10, 0));
+
+            Near(new GeoPoint3(10, 0, 0), Entity<DxfLine>(document, "A2").StartPoint);
+            Near(new GeoPoint3(0, 0, 0), Entity<DxfLine>(document, "A1").StartPoint);
         }
 
         [Fact]

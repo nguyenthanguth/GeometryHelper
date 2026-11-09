@@ -205,7 +205,8 @@ namespace GeometryHelper.Dxf.Viewer
 
             var preSelected = new List<string>();
 
-            if (command.UsesSelection)
+            // With PICKFIRST 0 a command asks for its objects whatever was selected before it, as AutoCAD's.
+            if (command.UsesSelection && Document.PickFirst != 0)
             {
                 foreach (string handle in new SortedSet<string>(Document.Selection.Handles, StringComparer.OrdinalIgnoreCase))
                 {

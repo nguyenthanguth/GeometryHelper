@@ -96,20 +96,21 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// Makes a real number above nought the app keeps, as POLARANG: asked "Enter new value for POLARANG &lt;90&gt;:", shown
-        /// to as few places as it needs; nought or less refused with "Value must be positive and nonzero." and asked again; set
-        /// at once, no step of undo.
+        /// to as few places as it needs; nought or less refused with "Value must be positive and nonzero.", one above
+        /// <paramref name="most"/> with "Value must be at most 360.", and asked again; set at once, no step of undo.
         /// </summary>
         /// <param name="name">The name.</param>
+        /// <param name="most">The greatest value taken, 360 for an angle in degrees.</param>
         /// <param name="get">Reads the value.</param>
         /// <param name="set">Sets a value taken.</param>
         /// <returns>The variable.</returns>
         /// <exception cref="ArgumentNullException">Thrown when either delegate is null.</exception>
         /// <exception cref="ArgumentException">Thrown when the name is empty or has a space.</exception>
-        public static CadSystemVariable Real(string name, Func<double> get, Action<double> set)
+        public static CadSystemVariable Real(string name, double most, Func<double> get, Action<double> set)
         {
             Func<double> read = get ?? throw new ArgumentNullException(nameof(get));
             Action<double> write = set ?? throw new ArgumentNullException(nameof(set));
-            return Number(name, false, RealBound.Positive, true, s => read(), (c, v) => write(v));
+            return Number(name, false, RealBound.Positive, true, s => read(), (c, v) => write(v), most: most);
         }
 
         /// <inheritdoc/>
@@ -137,10 +138,10 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>A real number, shown to four places or, for an angle, to as few as it needs.</summary>
-        internal static CadSystemVariable Number(string name, bool inDrawing, RealBound bound, bool plain, Func<CadCommandSession, double> get, Action<CadCommandContext, double> set, string record = null)
+        internal static CadSystemVariable Number(string name, bool inDrawing, RealBound bound, bool plain, Func<CadCommandSession, double> get, Action<CadCommandContext, double> set, string record = null, double most = double.PositiveInfinity)
         {
             var variable = new CadSystemVariable(name, CadVariableKind.Real, inDrawing, s => Show(get(s), plain));
-            variable._ask = c => AskReal(c, variable, bound, plain, get, set, record);
+            variable._ask = c => AskReal(c, variable, bound, plain, most, get, set, record);
             return variable;
         }
 
@@ -235,7 +236,7 @@ namespace GeometryHelper.Dxf.Viewer
             }
         }
 
-        private static IEnumerable<CadPrompt> AskReal(CadCommandContext c, CadSystemVariable variable, RealBound bound, bool plain, Func<CadCommandSession, double> get, Action<CadCommandContext, double> set, string record)
+        private static IEnumerable<CadPrompt> AskReal(CadCommandContext c, CadSystemVariable variable, RealBound bound, bool plain, double most, Func<CadCommandSession, double> get, Action<CadCommandContext, double> set, string record)
         {
             while (true)
             {
@@ -258,6 +259,12 @@ namespace GeometryHelper.Dxf.Viewer
                 if (bound == RealBound.NonNegative && value < 0.0)
                 {
                     c.Write("Value must be positive or zero.");
+                    continue;
+                }
+
+                if (value > most)
+                {
+                    c.Write("Value must be at most " + Show(most, true) + ".");
                     continue;
                 }
 

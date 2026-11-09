@@ -53,6 +53,7 @@ namespace GeometryHelper.Dxf.Viewer
             // Selection, which the document keeps for the presenter, not the drawing.
             registry.AddVariable(CadSystemVariable.Whole("PICKSTYLE", false, 0, 3, s => s.Document.PickStyle, (c, v) => c.Document.PickStyle = v));
             registry.AddVariable(CadSystemVariable.Whole("SELECTIONCYCLING", false, 0, 2, s => s.Document.SelectionCycling, (c, v) => c.Document.SelectionCycling = v));
+            registry.AddVariable(CadSystemVariable.Whole("PICKFIRST", false, 0, 1, s => s.Document.PickFirst, (c, v) => c.Document.PickFirst = v));
 
             // What the drawing shows and how it sorts.
             registry.AddVariable(Flag("ORTHOMODE", s => s.Document.Database.Orthomode, (c, v) => c.Database.Orthomode = v, "$ORTHOMODE"));
