@@ -34,8 +34,8 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Gets the drawing as it stands now; a new object after an undo, so it is read again each time rather than kept.</summary>
         public DxfDatabase Database => Session.Document.Database;
 
-        /// <summary>Gets the space the command works in: the current space of the document.</summary>
-        public CadSpace Space => Session.Document.CurrentSpace;
+        /// <summary>Gets the space the command works in: the document's working space, model space while a viewport of the layout shown is worked through.</summary>
+        public CadSpace Space => Session.Document.WorkingSpace;
 
         /// <summary>Gets the answer to the last prompt.</summary>
         public CadInput Input { get; internal set; }

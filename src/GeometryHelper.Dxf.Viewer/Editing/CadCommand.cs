@@ -114,6 +114,8 @@ namespace GeometryHelper.Dxf.Viewer
                 ["DJL"] = "DIMJOGLINE",
                 ["MLD"] = "MLEADER",
                 ["MV"] = "MVIEW",
+                ["MS"] = "MSPACE",
+                ["PS"] = "PSPACE",
                 ["EL"] = "ELLIPSE",
                 ["PO"] = "POINT",
                 ["LO"] = "LAYOUT",

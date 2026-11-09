@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using GeometryHelper.Dxf;
 using GeometryHelper.Geometry;
 
@@ -20,7 +21,8 @@ namespace GeometryHelper.Dxf.Viewer
     /// text override of a dimension, "&lt;&gt; TYP" showing 3000 TYP on a dimension of 3 000, an empty one its measurement and
     /// one of a single space, which is not trimmed as every other value is, no text at all, as AutoCAD reads it; the arrowhead
     /// of a multileader, one of <see cref="CadArrowheads.Names"/> (its block made as AutoCAD makes it on first use) or a block
-    /// of the drawing as a user arrow. With
+    /// of the drawing as a user arrow; a viewport's Display locked (Yes or No), and its Standard scale (1:50) or Custom scale
+    /// (0.02), which set the height of its view to that of its frame over the scale. With
     /// no entity selected, the first five set the drawing's current settings, which new entities take.
     /// </remarks>
     public static class CadPropertyEditor
@@ -310,10 +312,70 @@ namespace GeometryHelper.Dxf.Viewer
                     }
 
                     break;
+                case DxfViewport viewport:
+                    return ViewportRow(label, text, viewport, ref write);
             }
 
             write = null;
             return "The property " + label + " of a " + CadDocument.KindName(entity) + " cannot be set here.";
+        }
+
+        /// <summary>
+        /// A viewport's rows: Display locked (Yes or No); Standard scale, one of <see cref="CadViewports.StandardScales"/>, and
+        /// Custom scale, the paper units to the model unit above nought, each making the view's height the frame's over the
+        /// scale about the same centre, as AutoCAD's palette does; a viewport whose display is locked keeps its scale.
+        /// </summary>
+        private static string ViewportRow(string label, string text, DxfViewport viewport, ref Action<DxfEntity> write)
+        {
+            switch (label)
+            {
+                case "Display locked":
+                    {
+                        bool yes = string.Equals(text, "Yes", StringComparison.OrdinalIgnoreCase);
+
+                        if (!yes && !string.Equals(text, "No", StringComparison.OrdinalIgnoreCase))
+                        {
+                            return "Display locked is Yes or No.";
+                        }
+
+                        write = e => ((DxfViewport)e).Locked = yes;
+                        return null;
+                    }
+
+                case "Standard scale":
+                case "Custom scale":
+                    {
+                        double scale;
+
+                        if (label == "Standard scale")
+                        {
+                            if (!CadViewports.StandardScales.Contains(text) || !CadViewports.TryReadScale(text, out scale))
+                            {
+                                return "Standard scale is one of " + string.Join(", ", CadViewports.StandardScales) + ".";
+                            }
+                        }
+                        else if (!Number(text, out scale) || !(scale > 0.0))
+                        {
+                            return "Custom scale is a number above nought.";
+                        }
+
+                        if (viewport.Locked)
+                        {
+                            return "The viewport's display is locked.";
+                        }
+
+                        if (viewport.Number == 1 || !(viewport.Height > 0.0))
+                        {
+                            return "The viewport of the sheet has no scale to set.";
+                        }
+
+                        write = e => ((DxfViewport)e).CustomScale = scale;
+                        return null;
+                    }
+            }
+
+            write = null;
+            return "The property " + label + " of a viewport cannot be set here.";
         }
 
         /// <summary>The current settings of the drawing, set with no entity selected.</summary>

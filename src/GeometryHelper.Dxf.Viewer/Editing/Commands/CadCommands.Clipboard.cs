@@ -79,7 +79,7 @@ namespace GeometryHelper.Dxf.Viewer
             GeoPoint2 corner = basePoint ?? (box.IsEmpty ? GeoPoint2.Origin : new GeoPoint2(box.Min.X, box.Min.Y));
             fragment.Insbase = new GeoPoint3(corner.X, corner.Y, 0.0);
             string plain = words.Count == 0 ? null : string.Join("\r\n", words);
-            return new CadClipboardData(fragment.ToText(), plain, SourceOf(document), document.Title, document.CurrentSpace.Name, entities.Count);
+            return new CadClipboardData(fragment.ToText(), plain, SourceOf(document), document.Title, document.WorkingSpace.Name, entities.Count);
         }
 
         private static IEnumerable<CadPrompt> CopyClip(CadCommandContext c) => Copying(c, false, false);

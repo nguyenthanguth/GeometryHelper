@@ -141,6 +141,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private static readonly Pen DarkDottedPen = Frozen(new Pen(Solid(0xFFFF00), 1.0) { DashStyle = new DashStyle(new[] { 1.0, 2.0 }, 0.0) });
         private static readonly Pen LightDottedPen = Frozen(new Pen(Solid(0x1A1A1A), 1.0) { DashStyle = new DashStyle(new[] { 1.0, 2.0 }, 0.0) });
         private static readonly Pen BasePen = Frozen(new Pen(Solid(0x3FB950), 2.0));
+        private static readonly Pen ActiveFrameLight = Frozen(new Pen(Solid(0xE6E9ED), 3.0));
+        private static readonly Pen ActiveFrameDark = Frozen(new Pen(Solid(0x1A1A1A), 3.0));
         private static readonly Brush TipFill = Solid(0x1A1E24);
         private static readonly Pen TipPen = Frozen(new Pen(Solid(0x3A414C), 1.0));
         private static readonly Brush TipInk = Solid(0xE6E9ED);
@@ -184,6 +186,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private int _hotGrip = -1;
         private int _dragGrip = -1;
         private GeoPoint2 _dragTo;
+
+        // Through a viewport: its view in model units as the picture was drawn, and as the wheel or the middle button has
+        // moved it since, written into the viewport as one undo step once the view is still.
+        private CadView _throughDrawn;
+        private CadView _throughNow;
+        private string _throughName;
 
         /// <summary>Makes an empty canvas.</summary>
         public CadCanvas()
@@ -452,7 +460,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <param name="y">The Y of the drawing point.</param>
         public void MoveCursorTo(double x, double y)
         {
-            CadView view = View;
+            CadView view = WorkView;
 
             if (view == null)
             {
@@ -479,13 +487,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>
         /// Draws the space now rather than at the next frame, as a screenshot taken with no window showing needs. The drawing
-        /// itself is drawn again only where what it shows has changed; the selection and the entity under the cursor always.
+        /// itself is drawn again only where what it shows has changed; the selection and the entity under the cursor always. A
+        /// view of a viewport zoomed or panned through it and not yet written is written first, one undo step.
         /// </summary>
         public void RenderNow()
         {
             _renderQueued = false;
             StopQueue();
             _settle?.Stop();
+            CommitThrough();
             double scale = PixelScale;
             int width = (int)Math.Ceiling(ActualWidth * scale);
             int height = (int)Math.Ceiling(ActualHeight * scale);
@@ -552,7 +562,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
                         if (hover != null && !(Options.Selected is ICollection<string> marked && marked.Contains(hover)))
                         {
-                            _renderer.RenderHighlight(surface.Canvas, document, space, view, Options, new[] { hover }, true);
+                            Highlight(surface.Canvas, document, new[] { hover }, true);
                         }
                     }
 
@@ -575,6 +585,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             else
             {
                 _shown = new[] { view.CenterX, view.CenterY, view.PixelsPerUnit, view.Width, view.Height };
+                _throughDrawn = Through is DxfViewport through ? CadViewports.ModelView(view, through) : null;
             }
 
             InvalidateVisual();
@@ -647,7 +658,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 using (SKSurface surface = SKSurface.Create(info, _marked.GetPixels(), _marked.RowBytes))
                 {
                     Copy(_scene, info, _marked.GetPixels(), _marked.RowBytes);
-                    _renderer.RenderHighlight(surface.Canvas, document, space, view, Options, highlighted, false);
+                    Highlight(surface.Canvas, document, highlighted, false);
                     surface.Canvas.Flush();
                 }
             }
@@ -807,23 +818,29 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 {
                     drawingContext.Pop();
                 }
+
+                DrawMovedThrough(drawingContext, scale);
             }
+
+            // Through a viewport, what follows the cursor is drawn in model units, as the viewport shows them.
+            CadView work = WorkView;
 
             if (view != null)
             {
-                DrawUcsIcon(drawingContext, view, scale);
+                DrawUcsIcon(drawingContext, work, scale);
                 DrawTags(drawingContext, view, scale);
-                DrawGrips(drawingContext, view, scale);
-                DrawCells(drawingContext, view, scale);
-                DrawMark(drawingContext, view, scale);
-                DrawPrompt(drawingContext, view, scale);
-                DrawBand(drawingContext, view, scale);
+                DrawActiveFrame(drawingContext);
+                DrawGrips(drawingContext, work, scale);
+                DrawCells(drawingContext, work, scale);
+                DrawMark(drawingContext, work, scale);
+                DrawPrompt(drawingContext, work, scale);
+                DrawBand(drawingContext, work, scale);
                 DrawCrosshair(drawingContext);
             }
 
             if (_lasso != null && view != null)
             {
-                DrawLasso(drawingContext, view, scale);
+                DrawLasso(drawingContext, work, scale);
             }
             else if (_boxing && _boxFrom.HasValue)
             {
@@ -860,7 +877,21 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             Point p = PositionOf(e);
             double scale = PixelScale;
-            view.ZoomAt(p.X * scale, p.Y * scale, Math.Pow(WheelZoomFactor, e.Delta / 120.0));
+            double factor = Math.Pow(WheelZoomFactor, e.Delta / 120.0);
+
+            // Through a viewport its view zooms, the paper staying; through one whose display is locked, the paper zooms.
+            if (MovesThrough)
+            {
+                CadView model = WorkView;
+                model.ZoomAt(p.X * scale, p.Y * scale, factor);
+                _throughNow = model;
+                _throughName = "ZOOM";
+            }
+            else
+            {
+                view.ZoomAt(p.X * scale, p.Y * scale, factor);
+            }
+
             e.Handled = true;
             ViewMoved();
         }
@@ -885,6 +916,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     Cursor = Cursors.SizeAll;
                 }
 
+                e.Handled = true;
+            }
+            else if (e.ChangedButton == MouseButton.Left && ViewportClick(p, e.ClickCount == 2))
+            {
+                CancelGesture();
+                _swallowUp = true;
                 e.Handled = true;
             }
             else if (e.ChangedButton == MouseButton.Left && e.ClickCount == 2 && !IsRunning && CellDoubleClicked != null && InsideCell(p) && CellDoubleClicked(DrawingAt(p)))
@@ -947,6 +984,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             base.OnMouseMove(e);
             Point at = PositionOf(e);
             Track(at);
+
+            // Through a viewport the cursor is an arrow off its frame, as AutoCAD's.
+            if (!_panFrom.HasValue && Through is DxfViewport through)
+            {
+                Cursor = InsideFrame(through, at) ? IdleCursor : Cursors.Arrow;
+            }
 
             if (_crosshairPercent > 0.0)
             {
@@ -1022,9 +1065,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     // A lasso drawn clockwise takes what it holds whole, counter-clockwise what it touches.
                     CancelGesture();
 
-                    if (Document != null && Space != null)
+                    if (Document != null && WorkSpace != null)
                     {
-                        CadPicking.LassoDone(Document, Space, Session, lasso, shift);
+                        CadPicking.LassoDone(Document, WorkSpace, Session, lasso, shift);
                         SelectionChanged?.Invoke(this, EventArgs.Empty);
                     }
                 }
@@ -1120,11 +1163,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             if (e.OldValue is CadDocument old)
             {
                 old.Selection.Changed -= canvas.OnSelectionChanged;
+                old.ActiveViewportChanged -= canvas.OnActiveViewportChanged;
             }
 
             if (e.NewValue is CadDocument next)
             {
                 next.Selection.Changed += canvas.OnSelectionChanged;
+                next.ActiveViewportChanged += canvas.OnActiveViewportChanged;
             }
 
             canvas.Options.Hover = null;
@@ -1345,17 +1390,17 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private bool EditAttributesAt(Point p)
         {
             CadDocument document = Document;
-            CadView view = View;
+            CadView view = WorkView;
             CadCommandSession session = Session;
 
-            if (document == null || Space == null || view == null || session == null || session.IsRunning)
+            if (document == null || WorkSpace == null || view == null || session == null || session.IsRunning)
             {
                 return false;
             }
 
             double scale = PixelScale;
             view.ScreenToDrawing(p.X * scale, p.Y * scale, out double x, out double y);
-            IReadOnlyList<string> picked = document.GetPickIndex(Space).Pick(x, y, PickboxPixels * scale / view.PixelsPerUnit);
+            IReadOnlyList<string> picked = document.GetPickIndex(WorkSpace).Pick(x, y, PickboxPixels * scale / view.PixelsPerUnit);
 
             if (picked.Count == 0 || !(document.FindEntity(picked[0]) is DxfBlockReference insert) || insert.AttributeCollection.Count == 0)
             {
@@ -1376,32 +1421,32 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private string ObjectAt(Point p)
         {
             CadDocument document = Document;
-            CadView view = View;
+            CadView view = WorkView;
 
-            if (document == null || Space == null || view == null)
+            if (document == null || WorkSpace == null || view == null)
             {
                 return null;
             }
 
             double scale = PixelScale;
             view.ScreenToDrawing(p.X * scale, p.Y * scale, out double x, out double y);
-            IReadOnlyList<string> found = document.GetPickIndex(Space).Pick(x, y, PickboxPixels * scale / view.PixelsPerUnit);
+            IReadOnlyList<string> found = document.GetPickIndex(WorkSpace).Pick(x, y, PickboxPixels * scale / view.PixelsPerUnit);
             return found.Count > 0 ? found[0] : null;
         }
 
         private bool IsObjectAt(Point p)
         {
             CadDocument document = Document;
-            CadView view = View;
+            CadView view = WorkView;
 
-            if (document == null || Space == null || view == null)
+            if (document == null || WorkSpace == null || view == null)
             {
                 return false;
             }
 
             double scale = PixelScale;
             view.ScreenToDrawing(p.X * scale, p.Y * scale, out double x, out double y);
-            return document.GetPickIndex(Space).Pick(x, y, PickboxPixels * scale / view.PixelsPerUnit).Count > 0;
+            return document.GetPickIndex(WorkSpace).Pick(x, y, PickboxPixels * scale / view.PixelsPerUnit).Count > 0;
         }
 
         /// <summary>
@@ -1413,7 +1458,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             CadBlockDrag drag = Session?.Prompt?.Drag;
             Affine2? moved = drag != null ? drag.Transform(target) : CadGhost.Transform(Session, target);
 
-            if (!moved.HasValue || Document == null || Space == null)
+            if (!moved.HasValue || Document == null || WorkSpace == null)
             {
                 return;
             }
@@ -1434,7 +1479,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
             else
             {
-                paths = _ghost.Paths(Document, Space, tolerance);
+                paths = _ghost.Paths(Document, WorkSpace, tolerance);
                 rays = _ghost.Rays(m, grown);
             }
 
@@ -1493,10 +1538,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Follows the cursor: its drawing point, the session's cursor and aperture, the snap, the grip under it, the hover.</summary>
         private void Track(Point p)
         {
-            CadView view = View;
+            CadView view = WorkView;
             CadDocument document = Document;
 
-            if (view == null || document == null || Space == null)
+            if (view == null || document == null || WorkSpace == null)
             {
                 return;
             }
@@ -1520,15 +1565,37 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             if (_panFrom.HasValue)
             {
                 Point from = _panFrom.Value;
-                view.Pan((p.X - from.X) * scale, (p.Y - from.Y) * scale);
+
+                // Through a viewport its view pans, the paper staying; through one whose display is locked, the paper pans.
+                if (MovesThrough)
+                {
+                    view.Pan((p.X - from.X) * scale, (p.Y - from.Y) * scale);
+                    _throughNow = view;
+                    _throughName = "PAN";
+                }
+                else
+                {
+                    View.Pan((p.X - from.X) * scale, (p.Y - from.Y) * scale);
+                }
+
                 _panFrom = p;
                 ViewMoved();
                 return;
             }
 
+            // Through a viewport the cursor works inside its frame alone, as AutoCAD's crosshair shows only there.
+            if (Through != null && _dragGrip < 0 && !_boxFrom.HasValue && !InsideFrame(Through, p))
+            {
+                _cursor = null;
+                _snapped = null;
+                SetHover(null);
+                InvalidateVisual();
+                return;
+            }
+
             if (_dragGrip >= 0)
             {
-                CadSnapResult snapped = CadPicking.Snap(document, Space, Snap, cursor, aperture, _grips[_dragGrip].Grip.Point);
+                CadSnapResult snapped = CadPicking.Snap(document, WorkSpace, Snap, cursor, aperture, _grips[_dragGrip].Grip.Point);
                 _snapped = snapped;
                 _dragTo = snapped?.Point ?? cursor;
                 InvalidateVisual();
@@ -1572,7 +1639,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             if (CadPicking.WantsPoint(session))
             {
-                _snapped = CadPicking.Snap(document, Space, Snap, cursor, aperture, session.Prompt.BasePoint);
+                _snapped = CadPicking.Snap(document, WorkSpace, Snap, cursor, aperture, session.Prompt.BasePoint);
                 SetHover(null);
                 RestartRest(cursor, aperture);
                 InvalidateVisual();
@@ -1602,7 +1669,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 InvalidateVisual();
             }
 
-            IReadOnlyList<string> found = document.GetPickIndex(Space).Pick(x, y, pick);
+            IReadOnlyList<string> found = document.GetPickIndex(WorkSpace).Pick(x, y, pick);
             SetHover(found.Count > 0 ? found[0] : null);
 
             if (session != null && session.Prompt != null)
@@ -1645,7 +1712,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             CadCommandSession session = Session;
             CadDocument document = Document;
 
-            if (!_restAt.HasValue || document == null || Space == null || !CadPicking.WantsPoint(session))
+            if (!_restAt.HasValue || document == null || WorkSpace == null || !CadPicking.WantsPoint(session))
             {
                 return false;
             }
@@ -1653,12 +1720,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             GeoPoint2 at = _restAt.Value;
             _restAt = null;
 
-            if (!CadPicking.Acquire(document, Space, Snap, at, _restAperture, session.Prompt.BasePoint))
+            if (!CadPicking.Acquire(document, WorkSpace, Snap, at, _restAperture, session.Prompt.BasePoint))
             {
                 return false;
             }
 
-            _snapped = CadPicking.Snap(document, Space, Snap, at, _restAperture, session.Prompt.BasePoint);
+            _snapped = CadPicking.Snap(document, WorkSpace, Snap, at, _restAperture, session.Prompt.BasePoint);
             InvalidateVisual();
             return true;
         }
@@ -1675,9 +1742,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private void Click(Point p, bool shift)
         {
             CadDocument document = Document;
-            CadView view = View;
+            CadView view = WorkView;
 
-            if (document == null || Space == null || view == null)
+            if (document == null || WorkSpace == null || view == null)
             {
                 return;
             }
@@ -1704,14 +1771,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             // Shift+Space armed: each click at one place takes the next object there, as AutoCAD's cycling.
             if (_cycler.IsArmed && (Session == null || !Session.IsRunning))
             {
-                _cycler.Next(document, Space, at, aperture);
+                _cycler.Next(document, WorkSpace, at, aperture);
                 SelectionChanged?.Invoke(this, EventArgs.Empty);
                 InvalidateVisual();
                 return;
             }
 
             // SELECTIONCYCLING 2: where several objects lie under the pick, the list of them to choose from.
-            IReadOnlyList<string> overlapping = CadPicking.Overlapping(document, Space, Session, at, aperture);
+            IReadOnlyList<string> overlapping = CadPicking.Overlapping(document, WorkSpace, Session, at, aperture);
 
             if (overlapping.Count > 1)
             {
@@ -1719,7 +1786,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return;
             }
 
-            if (CadPicking.Click(document, Space, Session, Snap, at, aperture, shift, (Keyboard.Modifiers & ModifierKeys.Control) != 0))
+            if (CadPicking.Click(document, WorkSpace, Session, Snap, at, aperture, shift, (Keyboard.Modifiers & ModifierKeys.Control) != 0))
             {
                 SelectionChanged?.Invoke(this, EventArgs.Empty);
             }
@@ -1760,9 +1827,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private void SelectBox(GeoPoint2 corner, Point a, Point b, bool remove)
         {
             CadDocument document = Document;
-            CadView view = View;
+            CadView view = WorkView;
 
-            if (document == null || Space == null || view == null)
+            if (document == null || WorkSpace == null || view == null)
             {
                 return;
             }
@@ -1772,7 +1839,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             double y0 = corner.Y;
             view.ScreenToDrawing(b.X * scale, b.Y * scale, out double x1, out double y1);
             var box = new DisplayBox(Math.Min(x0, x1), Math.Min(y0, y1), Math.Max(x0, x1), Math.Max(y0, y1));
-            CadPicking.BoxDone(document, Space, Session, box, b.X < a.X, remove);
+            CadPicking.BoxDone(document, WorkSpace, Session, box, b.X < a.X, remove);
             SelectionChanged?.Invoke(this, EventArgs.Empty);
         }
 
@@ -1786,9 +1853,250 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return;
             }
 
+            // Through a viewport, its view is fitted to what model space draws, one undo step.
+            if (MovesThrough)
+            {
+                DxfViewport through = Through;
+                DisplayBox extents = document.GetDisplay(document.ModelSpace).Bounds;
+
+                if (!extents.IsEmpty)
+                {
+                    _throughNow = null;
+                    CadViewports.Fit(through, extents, out GeoPoint2 center, out double height);
+                    Report(document.SetViewportView(through.Handle, center, height, "ZOOM"));
+                }
+
+                RequestRender();
+                return;
+            }
+
             view.ZoomTo(CadPicking.Extents(document, Space));
             ViewChanged?.Invoke(this, EventArgs.Empty);
             RequestRender();
+        }
+
+        /// <summary>The viewport of the layout shown that is worked through (MSPACE); null on the paper and in model space.</summary>
+        private DxfViewport Through
+        {
+            get
+            {
+                CadDocument document = Document;
+                return document != null && Space != null && !Space.IsModel && ReferenceEquals(Space, document.CurrentSpace) ? document.ActiveViewport : null;
+            }
+        }
+
+        /// <summary>Whether the wheel and the middle button change the view of the viewport worked through: one is, its display not locked.</summary>
+        private bool MovesThrough => Through is DxfViewport through && !through.Locked;
+
+        /// <summary>The space picks, snaps and grips work in: model space through a viewport, else the space shown.</summary>
+        private CadSpace WorkSpace => Through != null ? Document.ModelSpace : Space;
+
+        /// <summary>The view picks, snaps and grips work in: through a viewport, the paper's view in model units; else <see cref="View"/>.</summary>
+        private CadView WorkView
+        {
+            get
+            {
+                CadView view = View;
+                DxfViewport through = Through;
+
+                if (view == null || through == null)
+                {
+                    return view;
+                }
+
+                return _throughNow ?? CadViewports.ModelView(view, through);
+            }
+        }
+
+        /// <summary>Gets the handle of the viewport worked through, as the canvas shows it; null on the paper. A test reads it.</summary>
+        internal string ThroughHandle => Through?.Handle;
+
+        /// <summary>A viewport's frame on the canvas, in device-independent pixels.</summary>
+        private Rect FrameOnScreen(DxfViewport viewport)
+        {
+            double scale = PixelScale;
+            GeoPoint3 c = viewport.CenterPoint;
+            Point a = ToScreen(View, new GeoPoint2(c.X - viewport.Width / 2.0, c.Y - viewport.Height / 2.0), scale);
+            Point b = ToScreen(View, new GeoPoint2(c.X + viewport.Width / 2.0, c.Y + viewport.Height / 2.0), scale);
+            return new Rect(a, b);
+        }
+
+        private bool InsideFrame(DxfViewport viewport, Point p) => View != null && FrameOnScreen(viewport).Contains(p);
+
+        /// <summary>The viewport of the layout shown whose frame holds a point of the canvas, the one drawn last where frames overlap; null for none.</summary>
+        private DxfViewport FrameAt(Point p)
+        {
+            IReadOnlyList<DxfViewport> all = Document.EnterableViewports;
+
+            for (int i = all.Count - 1; i >= 0; i--)
+            {
+                if (InsideFrame(all[i], p))
+                {
+                    return all[i];
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// A click of the left button in a layout, as AutoCAD takes it about viewports: on the paper a double click inside a
+        /// viewport's frame, on no object of the paper, works through it (MSPACE); through a viewport a click inside another's
+        /// frame works through that one, a double click off every frame goes back to the paper (PSPACE), and any other click
+        /// off the frame worked through is taken by nothing. False where the click is left to the rest of the canvas.
+        /// </summary>
+        internal bool ViewportClick(Point p, bool twice)
+        {
+            CadDocument document = Document;
+
+            if (document == null || Space == null || Space.IsModel || View == null || !ReferenceEquals(Space, document.CurrentSpace))
+            {
+                return false;
+            }
+
+            DxfViewport through = Through;
+
+            if (through != null)
+            {
+                if (InsideFrame(through, p))
+                {
+                    return false;
+                }
+
+                if (IsRunning)
+                {
+                    return true;
+                }
+
+                DxfViewport other = FrameAt(p);
+
+                if (other != null)
+                {
+                    document.EnterViewport(other.Handle);
+                }
+                else if (twice)
+                {
+                    document.LeaveViewport();
+                }
+
+                return true;
+            }
+
+            if (!twice || IsRunning)
+            {
+                return false;
+            }
+
+            DxfViewport at = FrameAt(p);
+
+            if (at == null || (ObjectAt(p) is string handle && !(document.FindEntity(handle) is DxfViewport)))
+            {
+                return false;
+            }
+
+            return document.EnterViewport(at.Handle);
+        }
+
+        /// <summary>Model space entered through a viewport or left: what follows the cursor and the selection drawn anew.</summary>
+        private void OnActiveViewportChanged(object sender, EventArgs e)
+        {
+            _throughNow = null;
+            Options.Hover = null;
+            _snapped = null;
+            CancelGesture();
+            Cursor = IdleCursor;
+            _markedDirty = true;
+            RequestRender();
+        }
+
+        /// <summary>
+        /// Writes into the viewport worked through the view the wheel or the middle button gave it, one undo step named ZOOM or
+        /// PAN; a refusal written on the command line.
+        /// </summary>
+        private void CommitThrough()
+        {
+            CadView model = _throughNow;
+            _throughNow = null;
+            DxfViewport through = Through;
+            CadView paper = View;
+
+            if (model == null || through == null || paper == null)
+            {
+                return;
+            }
+
+            CadViewports.ViewOf(paper, model, through, out GeoPoint2 center, out double height);
+            Report(Document.SetViewportView(through.Handle, center, height, _throughName ?? "ZOOM"));
+        }
+
+        private void Report(CadEditResult result)
+        {
+            if (result != null && !result.Succeeded && Session != null)
+            {
+                Session.Write(result.Message);
+                HistoryWritten?.Invoke(this, EventArgs.Empty);
+            }
+        }
+
+        /// <summary>
+        /// While the view of a viewport is zoomed or panned and not yet drawn again: the picture inside its frame moved and
+        /// scaled with the view, as the whole picture follows a view of the paper.
+        /// </summary>
+        private void DrawMovedThrough(DrawingContext dc, double scale)
+        {
+            CadView drawn = _throughDrawn;
+            CadView now = _throughNow;
+            DxfViewport through = Through;
+
+            if (drawn == null || now == null || through == null)
+            {
+                return;
+            }
+
+            double s = now.PixelsPerUnit / drawn.PixelsPerUnit;
+            double tx = now.Width / 2.0 + (drawn.CenterX - now.CenterX) * now.PixelsPerUnit - drawn.Width / 2.0 * s;
+            double ty = now.Height / 2.0 - (drawn.CenterY - now.CenterY) * now.PixelsPerUnit - drawn.Height / 2.0 * s;
+            var moved = new MatrixTransform(s, 0.0, 0.0, s, tx / scale, ty / scale);
+            moved.Freeze();
+            dc.PushClip(new RectangleGeometry(FrameOnScreen(through)));
+            dc.PushTransform(moved);
+            dc.DrawImage(_bitmap, new Rect(0, 0, _bitmap.PixelWidth / scale, _bitmap.PixelHeight / scale));
+            dc.Pop();
+            dc.Pop();
+        }
+
+        /// <summary>The frame of the viewport worked through drawn thick, as AutoCAD shows the current viewport, in the ink that shows on the paper.</summary>
+        private void DrawActiveFrame(DrawingContext dc)
+        {
+            DxfViewport through = Through;
+
+            if (through == null)
+            {
+                return;
+            }
+
+            int rgb = Options.Paper;
+            double luminance = (0.2126 * ((rgb >> 16) & 0xFF) + 0.7152 * ((rgb >> 8) & 0xFF) + 0.0722 * (rgb & 0xFF)) / 255.0;
+            dc.DrawRectangle(null, luminance < 0.5 ? ActiveFrameLight : ActiveFrameDark, FrameOnScreen(through));
+        }
+
+        /// <summary>Draws entities highlighted over a picture: through a viewport those of model space, inside its frame alone.</summary>
+        private void Highlight(SKCanvas canvas, CadDocument document, IReadOnlyCollection<string> handles, bool hover)
+        {
+            DxfViewport through = Through;
+
+            if (through == null)
+            {
+                _renderer.RenderHighlight(canvas, document, Space, View, Options, handles, hover);
+                return;
+            }
+
+            Rect frame = FrameOnScreen(through);
+            double scale = PixelScale;
+            canvas.Save();
+            canvas.ClipRect(new SKRect((float)(frame.Left * scale), (float)(frame.Top * scale), (float)(frame.Right * scale), (float)(frame.Bottom * scale)));
+            _renderer.RenderHighlight(canvas, document, document.ModelSpace, WorkView, Options, handles, hover);
+            canvas.Restore();
         }
 
         /// <summary>The grips of the selected entities while no command runs, and the tags of the selected viewports.</summary>
@@ -1798,7 +2106,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             _tags.Clear();
             CadDocument document = Document;
 
-            if (document == null || Space == null || IsRunning || document.Selection.Count == 0)
+            if (document == null || WorkSpace == null || IsRunning || document.Selection.Count == 0)
             {
                 _hotGrip = -1;
                 return;
@@ -1822,11 +2130,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 }
             }
 
-            if (!Space.IsModel)
+            if (!WorkSpace.IsModel)
             {
                 var selected = new HashSet<string>(handles, StringComparer.OrdinalIgnoreCase);
 
-                foreach (DisplayItem2 item in document.GetDisplay(Space).Items)
+                foreach (DisplayItem2 item in document.GetDisplay(WorkSpace).Items)
                 {
                     if (item is DisplayViewport2 viewport && item.Handle != null && selected.Contains(item.Handle))
                     {
@@ -1862,7 +2170,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>The point of the drawing under a point of the canvas; the origin with no view.</summary>
         private GeoPoint2 DrawingAt(Point p)
         {
-            CadView view = View;
+            CadView view = WorkView;
 
             if (view == null)
             {
@@ -1880,7 +2188,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// </summary>
         private Point BoxCorner()
         {
-            CadView view = View;
+            CadView view = WorkView;
             return view == null ? _boxFrom.Value : ToScreen(view, _boxCorner, PixelScale);
         }
 
@@ -1964,7 +2272,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// </summary>
         private void DrawCrosshair(DrawingContext dc)
         {
-            if (_crosshairPercent <= 0.0 || !_mouse.HasValue || _panFrom.HasValue)
+            if (_crosshairPercent <= 0.0 || !_mouse.HasValue || _panFrom.HasValue || (Through is DxfViewport through && !InsideFrame(through, _mouse.Value)))
             {
                 return;
             }
@@ -1996,7 +2304,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private Vector CrosshairAxis()
         {
             CadDocument document = Document;
-            CadUcs ucs = document == null || Space == null ? CadUcs.World : document.Ucs.WorkingOf(Space);
+            CadUcs ucs = document == null || WorkSpace == null ? CadUcs.World : document.Ucs.WorkingOf(WorkSpace);
             return ucs.IsWorld ? new Vector(1.0, 0.0) : new Vector(Math.Cos(ucs.Angle), -Math.Sin(ucs.Angle));
         }
 
@@ -2011,9 +2319,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             atOrigin = false;
             xArm = CrosshairAxis();
             CadDocument document = Document;
-            CadView view = View;
+            CadView view = WorkView;
 
-            if (document == null || Space == null || view == null || !document.Ucs.IconOn)
+            if (document == null || WorkSpace == null || view == null || !document.Ucs.IconOn)
             {
                 return false;
             }
@@ -2025,7 +2333,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             double maxX = reach.Max(v => v.X) + UcsIconLetter / 2.0;
             double minY = reach.Min(v => v.Y) - UcsIconLetter / 2.0;
             double maxY = reach.Max(v => v.Y) + UcsIconLetter / 2.0;
-            CadUcs ucs = document.Ucs.WorkingOf(Space);
+            CadUcs ucs = document.Ucs.WorkingOf(WorkSpace);
 
             if (document.Ucs.IconAtOrigin)
             {
@@ -2105,7 +2413,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 dc.DrawLine(pen, middle - yArm * 2.5, middle + yArm * 2.5);
             }
 
-            if (Document.Ucs.WorkingOf(Space).IsWorld)
+            if (Document.Ucs.WorkingOf(WorkSpace).IsWorld)
             {
                 var w = new FormattedText("W", CultureInfo.InvariantCulture, FlowDirection.LeftToRight, TagFace, 10.0, ink, dip);
                 Point at = corner + yArm * 20.0 + xArm * 10.0;
@@ -2161,9 +2469,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Whether a point of the canvas falls in one cell of a table of the space shown, the pick box about it in that cell too, away from its lines.</summary>
         private bool InsideCell(Point p)
         {
-            CadView view = View;
+            CadView view = WorkView;
 
-            if (Document == null || Space == null || view == null)
+            if (Document == null || WorkSpace == null || view == null)
             {
                 return false;
             }
@@ -2171,14 +2479,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             GeoPoint2 at = DrawingAt(p);
             double aperture = PickboxPixels * PixelScale / view.PixelsPerUnit;
 
-            if (!CadTableEditor.TryCellAt(Space, at, out string handle, out int row, out int column))
+            if (!CadTableEditor.TryCellAt(WorkSpace, at, out string handle, out int row, out int column))
             {
                 return false;
             }
 
             foreach (GeoPoint2 near in new[] { new GeoPoint2(at.X - aperture, at.Y), new GeoPoint2(at.X + aperture, at.Y), new GeoPoint2(at.X, at.Y - aperture), new GeoPoint2(at.X, at.Y + aperture) })
             {
-                if (!CadTableEditor.TryCellAt(Space, near, out string other, out int r, out int c) || other != handle || r != row || c != column)
+                if (!CadTableEditor.TryCellAt(WorkSpace, near, out string other, out int r, out int c) || other != handle || r != row || c != column)
                 {
                     return false;
                 }

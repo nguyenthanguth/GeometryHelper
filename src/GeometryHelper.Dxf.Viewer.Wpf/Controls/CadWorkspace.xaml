@@ -2108,8 +2108,10 @@
                     </TextBlock>
                     <TextBlock Text="{Binding CursorText}" Width="170" TextAlignment="Right" FontFamily="{StaticResource GhMonoFont}" FontSize="12"
                                FontWeight="Normal" Margin="0,0,12,0" VerticalAlignment="Center" />
-                    <TextBlock Text="{Binding SpaceLabel}" FontWeight="SemiBold" Foreground="{StaticResource GhText}" Margin="0,0,12,0"
-                               VerticalAlignment="Center" />
+                    <!-- MODEL/PAPER: in a layout a button, as AutoCAD's, MSPACE on the paper and PSPACE through a viewport. -->
+                    <Button Style="{StaticResource GhFlatButton}" Content="{Binding SpaceLabel}" Command="{Binding ToggleSpaceCommand}" FontWeight="SemiBold"
+                            FontSize="11" Foreground="{StaticResource GhText}" Margin="0,0,12,0" VerticalAlignment="Center"
+                            ToolTip="Model or paper space of the layout (MSPACE, PSPACE); Ctrl+R goes to the next viewport" />
                     <ItemsControl ItemsSource="{Binding Toggles}" Focusable="False" Visibility="{Binding HasDocument, Converter={StaticResource Shown}}">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
@@ -2138,7 +2140,11 @@
                     <ToggleButton Style="{StaticResource GhStatusToggle}" Content="{Binding DynamicInput.Name}" IsChecked="{Binding DynamicInput.IsOn, Mode=TwoWay}"
                                   Margin="0,0,12,0" FontSize="11" Visibility="{Binding HasDocument, Converter={StaticResource Shown}}"
                                   ToolTip="Dynamic input (DYN, F12): the prompt, the coordinates and what you type, beside the cursor. Ctrl+9 shows or hides the command line." />
-                    <TextBlock Text="1:1" VerticalAlignment="Center" />
+                    <!-- The scale of the viewport worked through or selected; 1:1 otherwise. -->
+                    <ComboBox Style="{StaticResource GhComboBox}" ItemsSource="{Binding ViewportScales}" SelectedItem="{Binding ViewportScale, Mode=TwoWay}"
+                              Width="84" FontSize="11" VerticalAlignment="Center" ToolTip="Viewport scale"
+                              Visibility="{Binding HasViewportScale, Converter={StaticResource Shown}}" />
+                    <TextBlock Text="1:1" VerticalAlignment="Center" Visibility="{Binding HasViewportScale, Converter={StaticResource Hidden}}" />
                 </StackPanel>
             </DockPanel>
         </Border>

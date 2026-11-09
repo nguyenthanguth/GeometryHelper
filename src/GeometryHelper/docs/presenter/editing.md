@@ -221,8 +221,8 @@ to bottom as its prompts do, and a [command plugin](plugins.md) is written the s
 ### Aliases and keys
 
 [`CadShortcuts`](xref:GeometryHelper.Dxf.Viewer.CadShortcuts) holds the aliases and the keys as data. The defaults are
-AutoCAD's: 112 aliases (`M` MOVE, `CO` COPY, `E` ERASE, `L` LINE, `PL` PLINE, `C` CIRCLE, `Z` ZOOM, `LA` LAYER, `DLI`
-DIMLINEAR, `MV` MVIEW, and the rest) and 21 keys (F3 OSNAP, F7 GRID, F8 ORTHO, F9 SNAP, F10 POLAR, F11 OTRACK, F12 DYN, Delete ERASE,
+AutoCAD's: 114 aliases (`M` MOVE, `CO` COPY, `E` ERASE, `L` LINE, `PL` PLINE, `C` CIRCLE, `Z` ZOOM, `LA` LAYER, `DLI`
+DIMLINEAR, `MV` MVIEW, `MS` MSPACE, `PS` PSPACE, and the rest) and 21 keys (F3 OSNAP, F7 GRID, F8 ORTHO, F9 SNAP, F10 POLAR, F11 OTRACK, F12 DYN, Delete ERASE,
 Ctrl+Z U, Ctrl+Y REDO, Ctrl+S QSAVE, Ctrl+1 PROPERTIES, Ctrl+A SELECTALL, Ctrl+C COPYCLIP, Ctrl+X CUTCLIP, Ctrl+V PASTECLIP, Ctrl+Shift+C COPYBASE, Ctrl+Shift+V PASTEBLOCK, Ctrl+P PLOT, Ctrl+Shift+A PICKSTYLE, Ctrl+W SELECTIONCYCLING). A registry's `Shortcuts` is replaced, from
 [global settings](app.md#global-settings), by another set; letters of either case are the same, and a name wins over an
 alias of the same letters.
@@ -313,11 +313,38 @@ and its place; `document.GripDrag(handle, index, point)` drags one, as one undo 
 | polylines | each vertex, the middle of each segment | a vertex moves; the middle of a straight segment moves it, of an arc segment bends it |
 | TEXT, MTEXT, INSERT | the insertion point | moves it |
 | VIEWPORT | four corners, the middle | a corner resizes the frame, the opposite corner, the scale and the centre of the view kept |
-| anything else, a DIMENSION among it | none | |
+| linear and aligned DIMENSION | the two extension line origins, the two ends of the dimension line, the words | an origin measures anew, the dimension line kept where it is; an end of the line moves the line through the point; the words move as DIMTEDIT moves them |
+| radius and diameter DIMENSION | the chord point (a diameter's two), the words | a chord point goes round the circle towards the point |
+| angular DIMENSION | the vertex and the two line points (an angle between two lines: the ends of both lines), the arc, the words | a point measures anew; the arc runs through the point |
+| ordinate DIMENSION | the feature, the leader's end | moves that point |
+| anything else | none | |
 
 The plate's line has `End 0 (0, 0)`, `End 1 (100, 0)` and `Middle 2 (50, 0)`; dragging grip 1 to (120, 0) leaves its end at
-(120, 0, 0). A dimension has no grips because the library does not draw a dimension's block anew: its picture is
-AutoCAD's, or the model drawing's, and a point dragged would not be seen to move.
+(120, 0, 0). A dimension's grips are AutoCAD 2021's, and dragging one rewrites its points of definition and draws its
+picture anew, as DIMEDIT does. A dimension of 100 from (0, 0) to (100, 0), its line 30 below, dragged by its second origin
+to (150, 10) measures 150 with its line still 30 below; dragged by an end of its line to (20, -60), its line runs 60 below,
+and words placed by DIMTEDIT go down with it. Its words dragged to (60, -50) stand there, the line moved to run under them
+where DIMTMOVE is 0 and a leader drawn to them where it is 1. A drag that would measure nothing, an origin onto the other,
+is refused.
+
+## Model space through a viewport
+
+In a layout, model space is worked in through a viewport as in AutoCAD: MSPACE (`MS`), a double click inside a viewport's
+frame or the status bar's PAPER button enters it, and PSPACE (`PS`), a double click off every frame or the MODEL button
+goes back to the paper. [`CadDocument`](xref:GeometryHelper.Dxf.Viewer.CadDocument)`.EnterViewport(handle)` and
+`LeaveViewport()` do the same in code, and `ActiveViewport` is the viewport worked through, null on the paper. While one
+is, `WorkingSpace` is model space: the commands draw there, picks and snaps work in model units as the viewport shows them,
+and the canvas draws the viewport's frame thick, the crosshair inside it alone. A line drawn through a viewport of
+Layout1 goes into model space. Ctrl+R goes on to the next viewport (`NextViewport`).
+
+The wheel, the middle button and ZOOM and PAN change the viewport's view, not the paper, one undo step each (the wheel's
+notches one step once the view is still). ZOOM `nXP` sets its scale, n paper units to the model unit: `1/50XP` in a
+viewport 100 high shows 5 000 of model space, 1:50. A viewport whose display is locked keeps its view, and the paper is
+zoomed instead. The status bar's scale list and Properties' Standard scale (1:1 to 100:1) and Custom scale (0.02) set the
+view's height to the frame's over the scale, about the same centre; Display locked is a row of Properties too.
+[`CadViewports`](xref:GeometryHelper.Dxf.Viewer.CadViewports) has the arithmetic: the canvas's view in model units
+(`ModelView`) and the view a viewport takes back from it (`ViewOf`), a box fitted to the frame (`Fit`), and the scales'
+names. A viewport whose view is turned, or not a plan, is not entered.
 
 ## Properties
 

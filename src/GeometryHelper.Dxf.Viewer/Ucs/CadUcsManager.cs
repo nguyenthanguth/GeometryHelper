@@ -70,13 +70,13 @@ namespace GeometryHelper.Dxf.Viewer
         public CadUcs Paper { get; private set; }
 
         /// <summary>Gets the current system of the space the canvas shows.</summary>
-        public CadUcs Current => CurrentOf(_document.CurrentSpace);
+        public CadUcs Current => CurrentOf(_document.WorkingSpace);
 
         /// <summary>
         /// Gets the system points are given in for the space the canvas shows: the current one, or the world where the current
         /// one is not parallel to the view (<see cref="CadUcs.IsPlanar"/>), as a system turned out of the plan read from a file.
         /// </summary>
-        public CadUcs Working => WorkingOf(_document.CurrentSpace);
+        public CadUcs Working => WorkingOf(_document.WorkingSpace);
 
         /// <summary>Gets the named systems, in ordinal order of their names, letters of either case the same.</summary>
         public IReadOnlyList<CadUcs> Named => new List<CadUcs>(_named.Values);
@@ -151,7 +151,7 @@ namespace GeometryHelper.Dxf.Viewer
                 throw new ArgumentException("The UCS " + ucs + " is not parallel to the view, which shows the drawing from above.", nameof(ucs));
             }
 
-            bool model = _document.CurrentSpace.IsModel;
+            bool model = _document.WorkingSpace.IsModel;
             CadUcs now = model ? Model : Paper;
 
             if (now.IsSameAs(ucs, Tolerance.Default) && string.Equals(now.Name, ucs.Name, StringComparison.Ordinal))
@@ -174,7 +174,7 @@ namespace GeometryHelper.Dxf.Viewer
         /// <returns>False where there is none.</returns>
         public bool Previous()
         {
-            bool model = _document.CurrentSpace.IsModel;
+            bool model = _document.WorkingSpace.IsModel;
             List<CadUcs> previous = model ? _modelPrevious : _paperPrevious;
 
             if (previous.Count == 0)
@@ -202,7 +202,7 @@ namespace GeometryHelper.Dxf.Viewer
             _named.Add(checkedName, saved);
             _tableChanged = true;
             _modified = true;
-            Put(_document.CurrentSpace.IsModel, saved);
+            Put(_document.WorkingSpace.IsModel, saved);
         }
 
         /// <summary>Makes a named system current in the space the canvas shows, as UCS Restore.</summary>

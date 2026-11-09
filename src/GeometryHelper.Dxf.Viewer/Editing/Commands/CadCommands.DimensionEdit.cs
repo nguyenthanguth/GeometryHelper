@@ -425,7 +425,7 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>Gives a dimension a picture block of its own where another dimension draws with the same one, as a copy does.</summary>
-        private static void OwnPicture(DxfDatabase database, DxfDimension dimension)
+        internal static void OwnPicture(DxfDatabase database, DxfDimension dimension)
         {
             DxfBlockTableRecord picture = dimension.DimBlock;
 
@@ -441,7 +441,7 @@ namespace GeometryHelper.Dxf.Viewer
         /// Moves the words of a dimension to a point: a linear one's dimension line moved to run under them where its DIMTMOVE is
         /// 0, an angular one's arc to the radius under them; a radius's or a diameter's line turned toward them.
         /// </summary>
-        private static void MoveWords(DxfDimension dimension, GeoPoint2 at)
+        internal static void MoveWords(DxfDimension dimension, GeoPoint2 at)
         {
             DxfDimStyleTableRecord data = dimension.GetDimstyleData();
             double scale = data.Dimscale > 0.0 ? data.Dimscale : 1.0;

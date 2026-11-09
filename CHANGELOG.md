@@ -6,6 +6,23 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** The presenter gives dimensions AutoCAD 2021's grips: a linear or aligned one its two extension line origins, the
+two ends of its dimension line and its words; a radius its chord point and words, a diameter its two chord points and
+words; an angle its vertex, line points, arc and words; an ordinate its feature and leader end. Dragging one rewrites the
+dimension's points and draws its picture anew, one undo step. A dimension of 100 from (0, 0) to (100, 0), its line 30
+below, dragged by its second origin to (150, 10) measures 150 with its line still 30 below; its words dragged to (60, -50)
+stand there with the line under them, as DIMTEDIT puts them at DIMTMOVE 0. `CadGripKind` has `DefinitionPoint`,
+`DimensionLine` and `Text`.
+
+**NEW.** The presenter works in model space through a viewport of a layout, as AutoCAD's MSPACE: a double click inside the
+viewport, MSPACE (`MS`) or the status bar's PAPER button enters it, its frame drawn thick and the crosshair inside it alone;
+a double click off it, PSPACE (`PS`) or MODEL goes back to the paper, and Ctrl+R goes to the next viewport. Through it the
+commands draw in model space, picks and snaps work as the viewport shows model space, and the wheel, the middle button,
+ZOOM and PAN change the viewport's view, one undo step each; `ZOOM 1/50XP` sets the scale to 1:50, and a viewport whose
+display is locked keeps its view. The status bar's scale list and Properties' Standard scale, Custom scale and Display
+locked rows set a viewport's scale: 1:50 in a viewport 100 high shows 5 000 of model space. `CadDocument.EnterViewport`,
+`LeaveViewport`, `ActiveViewport`, `WorkingSpace`, `SetViewportView` and `CadViewports` are the API.
+
 **NEW.** The presenter takes AutoCAD's point modifiers at any prompt for a point, typed or from the top of the
 Shift+right-click menu (Temporary track point, From, Mid Between 2 Points, Point Filters with .X .Y .Z .XY .XZ .YZ), with
 AutoCAD's prompts. LINE with FROM, the base point 100,50 and the offset `@30,20` starts at (130, 70); M2P (or MTP) between
