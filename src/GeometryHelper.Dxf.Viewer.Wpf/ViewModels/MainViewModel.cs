@@ -1365,6 +1365,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 case "-PLOT":
                     OnPlotFileRequested(sender, e);
                     break;
+                case "QSELECT":
+                    OnQuickSelectRequested(e);
+                    break;
+                case "FIND":
+                    OnFindRequested(e);
+                    break;
             }
         }
 

@@ -230,6 +230,21 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return false;
             }
 
+            // A key given PICKSTYLE (Ctrl+Shift+A) or SELECTIONCYCLING switches it, as AutoCAD's, a command running going on.
+            if (Session != null && (target == "PICKSTYLE" || target == "SELECTIONCYCLING"))
+            {
+                if (target == "PICKSTYLE")
+                {
+                    Session.TogglePickStyle();
+                }
+                else
+                {
+                    Session.ToggleSelectionCycling();
+                }
+
+                return true;
+            }
+
             StatusToggleViewModel toggle = FindToggle(target);
 
             if (toggle != null)

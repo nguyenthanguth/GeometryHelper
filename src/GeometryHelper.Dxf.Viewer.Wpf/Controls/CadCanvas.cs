@@ -157,6 +157,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private bool _renderQueued;
         private Point? _panFrom;
         private Point? _boxFrom;
+        private readonly CadSelectionCycler _cycler = new CadSelectionCycler();
         private GeoPoint2 _boxCorner;
         private List<GeoPoint2> _lasso;
         private Point _boxTo;
@@ -716,7 +717,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <returns>Whether there was one to stop.</returns>
         public bool CancelGesture()
         {
-            bool any = _boxFrom.HasValue || _dragGrip >= 0;
+            bool any = _boxFrom.HasValue || _dragGrip >= 0 || _cycler.IsArmed;
+            _cycler.Disarm();
             _boxFrom = null;
             _lasso = null;
             _boxing = false;
@@ -1574,8 +1576,27 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             double scale = PixelScale;
             view.ScreenToDrawing(p.X * scale, p.Y * scale, out double x, out double y);
             double aperture = (CadPicking.WantsPoint(Session) ? AperturePixels : PickboxPixels) * scale / view.PixelsPerUnit;
+            var at = new GeoPoint2(x, y);
 
-            if (CadPicking.Click(document, Space, Session, Snap, new GeoPoint2(x, y), aperture, shift))
+            // Shift+Space armed: each click at one place takes the next object there, as AutoCAD's cycling.
+            if (_cycler.IsArmed && (Session == null || !Session.IsRunning))
+            {
+                _cycler.Next(document, Space, at, aperture);
+                SelectionChanged?.Invoke(this, EventArgs.Empty);
+                InvalidateVisual();
+                return;
+            }
+
+            // SELECTIONCYCLING 2: where several objects lie under the pick, the list of them to choose from.
+            IReadOnlyList<string> overlapping = CadPicking.Overlapping(document, Space, Session, at, aperture);
+
+            if (overlapping.Count > 1)
+            {
+                ShowCycleList(document, overlapping, shift);
+                return;
+            }
+
+            if (CadPicking.Click(document, Space, Session, Snap, at, aperture, shift))
             {
                 SelectionChanged?.Invoke(this, EventArgs.Empty);
             }
@@ -1583,6 +1604,34 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             _snapped = null;
             InvalidateVisual();
         }
+
+        /// <summary>
+        /// The Selection list of SELECTIONCYCLING 2 near the cursor: a row for each object under the pick, "Line · WALLS",
+        /// the nearest first; the row chosen is taken as a click on that object alone.
+        /// </summary>
+        private void ShowCycleList(CadDocument document, IReadOnlyList<string> handles, bool shift)
+        {
+            var items = new List<CadMenuItemViewModel>();
+
+            foreach (string handle in handles)
+            {
+                string chosen = handle;
+                items.Add(new CadMenuItemViewModel(CadPicking.CycleLabel(document, handle), () =>
+                {
+                    CadPicking.Choose(document, Session, chosen, shift);
+                    SelectionChanged?.Invoke(this, EventArgs.Empty);
+                    InvalidateVisual();
+                }));
+            }
+
+            System.Windows.Controls.ContextMenu menu = CadMenus.Make(items);
+            menu.PlacementTarget = this;
+            menu.Placement = System.Windows.Controls.Primitives.PlacementMode.MousePoint;
+            menu.IsOpen = true;
+        }
+
+        /// <summary>Arms selection cycling, as Shift+Space does in AutoCAD: each click at one place then takes the next object there.</summary>
+        public void ArmCycling() => _cycler.Arm();
 
         /// <summary>A box ended: its first corner kept in drawing units and shown at <paramref name="a"/>, its second at <paramref name="b"/>.</summary>
         private void SelectBox(GeoPoint2 corner, Point a, Point b, bool remove)

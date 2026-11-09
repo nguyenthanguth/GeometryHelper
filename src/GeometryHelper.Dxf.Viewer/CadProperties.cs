@@ -236,6 +236,29 @@ namespace GeometryHelper.Dxf.Viewer
             };
         }
 
+        /// <summary>
+        /// The reader of the rows of one entity as the palette shows them, for Quick Select: its General rows alone, or those and
+        /// the rows of its kind; the drawing's formats read once.
+        /// </summary>
+        internal static Func<DxfEntity, bool, List<CadPropertyRow>> RowReader(DxfDatabase database)
+        {
+            var format = new Formats(database);
+            return (entity, own) =>
+            {
+                var rows = new List<CadPropertyRow>(General(entity).Rows);
+
+                if (own)
+                {
+                    foreach (CadPropertyGroup group in Own(entity, format))
+                    {
+                        rows.AddRange(group.Rows);
+                    }
+                }
+
+                return rows;
+            };
+        }
+
         /// <summary>The General group of one entity.</summary>
         private static CadPropertyGroup General(DxfEntity entity)
         {

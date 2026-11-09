@@ -327,6 +327,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 _model.SubmitCommand();
                 e.Handled = true;
             }
+            else if (e.Key == Key.Space && Keyboard.Modifiers == ModifierKeys.Shift && _model.Document != null && _model.Document.SelectionCycling >= 1)
+            {
+                // Shift+Space arms selection cycling, as AutoCAD's: each click at one place then takes the next object there.
+                CanvasView.ArmCycling();
+                e.Handled = true;
+            }
             else if (e.Key == Key.Space || e.Key == Key.Enter)
             {
                 // Space or Enter with the focus on the canvas is Enter, as in AutoCAD: it ends a command or runs the last again.
@@ -450,6 +456,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 _model.ShowPlotPreview = preview => PlotPreviewWindow.Show(Window.GetWindow(this), preview);
                 _model.AskPlotFile = AskPlotFile;
                 _model.WindowsPrinters = WindowsPrinters;
+                _model.ShowQuickSelect = dialog => QuickSelectWindow.Show(Window.GetWindow(this), dialog);
+                _model.ShowFindReplace = dialog => FindReplaceWindow.Show(Window.GetWindow(this), dialog);
 
                 if (CanvasView.PixelWidth > 0 && CanvasView.PixelHeight > 0)
                 {

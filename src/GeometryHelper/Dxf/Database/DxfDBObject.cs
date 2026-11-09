@@ -390,7 +390,8 @@ namespace GeometryHelper.Dxf
         /// a <see cref="DxfPlotSettings"/> for a PLOTSETTINGS, a <see cref="DxfMLeaderStyle"/> for an MLEADERSTYLE, a
         /// <see cref="DxfField"/> for a FIELD, a <see cref="DxfMlineStyle"/> for an MLINESTYLE, a <see cref="DxfSun"/> for a SUN,
         /// a <see cref="DxfGeoData"/> for a GEODATA, a <see cref="DxfDataLink"/> for a DATALINK, a <see cref="DxfRasterImageDef"/>
-        /// for an IMAGEDEF, a <see cref="DxfRasterVariables"/> for a RASTERVARIABLES; else one of no class of its own.
+        /// for an IMAGEDEF, a <see cref="DxfRasterVariables"/> for a RASTERVARIABLES, a <see cref="DxfDrawOrderTable"/> for a
+        /// SORTENTSTABLE; else one of no class of its own.
         /// </summary>
         internal static DxfDBObject OfObject(DxfItem item)
         {
@@ -442,6 +443,9 @@ namespace GeometryHelper.Dxf
                     break;
                 case "RASTERVARIABLES":
                     made = new DxfRasterVariables(item);
+                    break;
+                case "SORTENTSTABLE":
+                    made = new DxfDrawOrderTable(item);
                     break;
                 default:
                     made = new DxfUnknownObject(item);

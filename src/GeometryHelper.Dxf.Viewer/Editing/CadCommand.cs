@@ -168,6 +168,11 @@ namespace GeometryHelper.Dxf.Viewer
                 ["-ATE"] = "-ATTEDIT",
                 ["ED"] = "TEXTEDIT",
                 ["DDEDIT"] = "TEXTEDIT",
+                ["DR"] = "DRAWORDER",
+                ["G"] = "GROUP",
+                ["-G"] = "-GROUP",
+                ["PU"] = "PURGE",
+                ["-PU"] = "-PURGE",
             },
             new Dictionary<string, string>
             {
@@ -190,6 +195,7 @@ namespace GeometryHelper.Dxf.Viewer
                 ["Ctrl+Shift+C"] = "COPYBASE",
                 ["Ctrl+Shift+V"] = "PASTEBLOCK",
                 ["Ctrl+P"] = "PLOT",
+                ["Ctrl+Shift+A"] = "PICKSTYLE",
             });
 
         private static IReadOnlyDictionary<string, string> Copy(IEnumerable<KeyValuePair<string, string>> pairs)

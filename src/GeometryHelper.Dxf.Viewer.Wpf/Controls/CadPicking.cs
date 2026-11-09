@@ -13,6 +13,51 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// </summary>
     internal static class CadPicking
     {
+        /// <summary>
+        /// Gets the objects SELECTIONCYCLING 2 lists for a click: those within the aperture, the nearest first, where more than
+        /// one lies there and the click would pick (no command, or "Select objects:" and the like); else none.
+        /// </summary>
+        public static IReadOnlyList<string> Overlapping(CadDocument document, CadSpace space, CadCommandSession session, GeoPoint2 at, double aperture)
+        {
+            if (document.SelectionCycling != 2 || (session != null && session.IsRunning && !WantsObjects(session)))
+            {
+                return Array.Empty<string>();
+            }
+
+            IReadOnlyList<string> found = document.GetPickIndex(space).Pick(at.X, at.Y, aperture);
+            return found.Count > 1 ? found : (IReadOnlyList<string>)Array.Empty<string>();
+        }
+
+        /// <summary>The words of a row of the Selection list: the type of the object and its layer, "Line · WALLS".</summary>
+        public static string CycleLabel(CadDocument document, string handle)
+        {
+            DxfEntity entity = document.FindEntity(handle);
+            return entity == null ? handle : CadProperties.Describe(document, null, new[] { handle }).Label.Replace(" (1)", string.Empty) + " · " + (entity.Layer ?? "0");
+        }
+
+        /// <summary>An object chosen from the Selection list, taken as a click on it alone takes it: fed to "Select objects:", or selected with its group.</summary>
+        /// <returns>Whether the selection or the command changed.</returns>
+        public static bool Choose(CadDocument document, CadCommandSession session, string handle, bool shift)
+        {
+            if (session != null && session.IsRunning)
+            {
+                return WantsObjects(session) && session.FeedSelection(new[] { handle });
+            }
+
+            IReadOnlyList<string> group = document.WithGroups(new[] { handle });
+
+            if (shift && document.Selection.Contains(handle))
+            {
+                document.Selection.Remove(group);
+            }
+            else
+            {
+                document.Selection.Add(group);
+            }
+
+            return true;
+        }
+
         /// <summary>Gets whether the prompt waiting takes a point: a point, a distance or an angle.</summary>
         public static bool WantsPoint(CadCommandSession session)
         {
@@ -143,6 +188,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             IReadOnlyList<string> found = Lasso(document.GetPickIndex(space), ring, SignedArea(ring) > 0.0);
+
+            if (!running)
+            {
+                found = document.WithGroups(found);
+            }
 
             if (running)
             {
@@ -348,11 +398,20 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             if (toggle)
             {
-                document.Selection.Toggle(found[0]);
+                IReadOnlyList<string> group = document.WithGroups(new[] { found[0] });
+
+                if (document.Selection.Contains(found[0]))
+                {
+                    document.Selection.Remove(group);
+                }
+                else
+                {
+                    document.Selection.Add(group);
+                }
             }
             else
             {
-                document.Selection.Add(new[] { found[0] });
+                document.Selection.Add(document.WithGroups(new[] { found[0] }));
             }
 
             return found[0];
@@ -369,7 +428,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public static IReadOnlyList<string> Box(CadDocument document, CadSpace space, DisplayBox box, bool crossing, bool remove)
         {
             PickIndex index = document.GetPickIndex(space);
-            IReadOnlyList<string> found = crossing ? index.Crossing(box) : index.Window(box);
+            IReadOnlyList<string> found = document.WithGroups(crossing ? index.Crossing(box) : index.Window(box));
 
             if (remove)
             {

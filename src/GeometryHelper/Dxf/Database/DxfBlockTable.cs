@@ -3588,6 +3588,47 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
+        /// Gets the draw order of the block, as AutoCAD's <c>DrawOrderTableId</c> names it: the SORTENTSTABLE under ACAD_SORTENTS
+        /// in the block's extension dictionary; null where the block has none, its entities then drawn in the order of the block.
+        /// </summary>
+        public DxfDrawOrderTable DrawOrderTable
+        {
+            get
+            {
+                DxfDBDictionary dictionary = ExtensionDictionary;
+                return dictionary != null && dictionary.Contains(DxfDrawOrderTable.Key) && dictionary.GetAt(DxfDrawOrderTable.Key) is DxfDrawOrderTable table ? table.For(this) : null;
+            }
+        }
+
+        /// <summary>
+        /// Gives the block a draw order where it has none, as AutoCAD makes one when its <c>DrawOrderTableId</c> is asked for: an
+        /// empty SORTENTSTABLE under ACAD_SORTENTS in the block's extension dictionary, made where it has none, owned by that
+        /// dictionary and naming the block (330). The table the block has, where it has one.
+        /// </summary>
+        /// <returns>The table.</returns>
+        /// <exception cref="InvalidOperationException">Thrown when the block is in no file, is erased, or has no handle, as in a
+        /// file of R12.</exception>
+        public DxfDrawOrderTable CreateDrawOrderTable()
+        {
+            DxfDrawOrderTable table = DrawOrderTable;
+
+            if (table != null)
+            {
+                return table;
+            }
+
+            string block = Handle ?? throw new InvalidOperationException("The block " + Name + " has no handle to be given a draw order by.");
+            CreateExtensionDictionary();
+            DxfItem made = ExtensionDictionary.Add(DxfDrawOrderTable.Key, "SORTENTSTABLE", b =>
+            {
+                b.Group(100, "AcDbSortentsTable");
+                b.Group(330, block);
+            });
+
+            return ((DxfDrawOrderTable)OfObject(made)).For(this);
+        }
+
+        /// <summary>
         /// Appends an entity made in code to the block, as AutoCAD's <c>AppendEntity</c>: written at the end of the ENTITIES
         /// section for model space and paper space, before the block's ENDBLK for a block, in the file's own style. The same
         /// object is the entity of the block from then on, with its handle and its owner.
