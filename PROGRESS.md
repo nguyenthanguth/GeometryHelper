@@ -42,6 +42,10 @@ The list of work on the drawing stack: Part A, the 2D presenter (`GeometryHelper
       screenshot mode shared with Drawing.App through `CadAppHost`
 - [x] Blocks round 2: EATTEDIT live with Apply kept open, INSERT drags the block, -ATTEDIT picks one attribute, ATTSYNC,
       Block Definition previews the selection, redefine a block brought from another drawing
+- [x] SETVAR and 47 system variables typed by name (OSMODE, CLAYER, FILLETRAD, PICKFIRST...), drawing ones one undo step,
+      window ones kept in the settings file
+- [x] Grip modes: Space cycles STRETCH, MOVE, ROTATE, SCALE, MIRROR with Base point, Copy, Undo, Reference; Ctrl copies;
+      several hot grips with Shift
 - [x] MIRRTEXT: mirrored TEXT, MTEXT and attributes stay readable as AutoCAD keeps them (rule measured on 105 cases)
 - [x] Selection: "Select objects:" takes W, C, BOX, F, WP, CP, ALL, L, P, G, R, A, U, M, SI, AU; Shift removes in a command
 - [x] Draw options: ARC every AutoCAD way and tangent continue, CIRCLE Ttr and Tan Tan Tan, PLINE widths and arc options,
@@ -67,12 +71,11 @@ the ones wanted.
       against AutoCAD (S)
 - [ ] Draw: AUDIT a drawing made with every ARC, CIRCLE, PLINE, TEXT and MTEXT option, and compare ARC and PLINE entity
       by entity with AutoCAD's own; check Ctrl, ANGDIR 1 and the MTEXT column defaults against AutoCAD (S)
-- [ ] Grips (running): grip modes (Space cycles Stretch, Move, Rotate, Scale, Mirror; Base point, Copy; Ctrl copies; several hot
-      grips with Shift) (M)
 - [ ] Properties: editable rows for polylines, hatches, dimensions, MTEXT, INSERTs (attributes), viewports, multileaders (L) (running)
 - [ ] Properties (running): MATCHPROP Settings dialog and special properties (dimension, text, hatch, polyline, viewport, table,
       multileader) (M)
-- [ ] Utilities: SETVAR and system variable names typed at the command line, the variables drafters set first (M) (running)
+- [ ] Variables: PICKADD, POLARMODE, ATTREQ, ATTDIA, FILEDIA, CMDDIA; AUTOSNAP's other bits; DYNMODE values; ORTHOMODE
+      written to the drawing; new dimensions follow DIMSCALE; polar angle field in Global settings (S)
 - [ ] Utilities: command line AutoComplete (suggestions as you type, mid-string search, most used first) (M)
 - [ ] Modify (running): PEDIT (Close/Open, Join, Width, Edit vertex, Fit/Spline/Decurve, Ltype gen, Reverse, Multiple; lines and
       arcs made a polyline) (L)
