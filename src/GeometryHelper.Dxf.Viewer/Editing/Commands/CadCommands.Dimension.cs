@@ -43,10 +43,12 @@ namespace GeometryHelper.Dxf.Viewer
 
             GeoPoint2 p1;
             GeoPoint2 p2;
+            var tied = new DxfOsnapPointRef[2];
 
             if (first.HasValue || c.Input.IsPoint)
             {
                 p1 = first ?? c.Input.Point;
+                tied[0] = first.HasValue ? null : CadDimAssociation.FromSnap(c.Document, 0, c.Input.Snap);
                 yield return CadPrompt.ForPoint("Specify second extension line origin", p1);
 
                 if (!c.Input.IsPoint)
@@ -55,6 +57,7 @@ namespace GeometryHelper.Dxf.Viewer
                 }
 
                 p2 = c.Input.Point;
+                tied[1] = CadDimAssociation.FromSnap(c.Document, 1, c.Input.Snap);
             }
             else
             {
@@ -68,6 +71,7 @@ namespace GeometryHelper.Dxf.Viewer
 
                 p1 = new GeoPoint2(line.StartPoint.X, line.StartPoint.Y);
                 p2 = new GeoPoint2(line.EndPoint.X, line.EndPoint.Y);
+                tied = CadDimAssociation.LineEnds(line);
             }
 
             if ((p2 - p1).Length <= c.Session.Tolerance.EqualPoint)
@@ -116,7 +120,7 @@ namespace GeometryHelper.Dxf.Viewer
                 yield break;
             }
 
-            MakeLinear(c, style, aligned, p1, p2, c.Input.Point, text, fixedAngle, null);
+            CadDimAssociation.Tie(c, MakeLinear(c, style, aligned, p1, p2, c.Input.Point, text, fixedAngle, null), tied);
         }
 
         /// <summary>
@@ -237,7 +241,7 @@ namespace GeometryHelper.Dxf.Viewer
                 yield break;
             }
 
-            MakeRadial(c, style, center, radius, diameter, c.Input.Point, text, null);
+            CadDimAssociation.Tie(c, MakeRadial(c, style, center, radius, diameter, c.Input.Point, text, null), CadDimAssociation.CenterOf(picked));
         }
 
         /// <summary>
@@ -291,6 +295,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             GeoPoint2 vertex;
             DxfLine first = null;
+            DxfArc tiedArc = null;
             DxfLine second = null;
 
             // The two rays the angle lies between, and the stretch of each its object covers, as distances from the vertex.
@@ -308,6 +313,7 @@ namespace GeometryHelper.Dxf.Viewer
                     vertex = new GeoPoint2(arc.Center.X, arc.Center.Y);
                     points[0] = new GeoPoint2(arc.StartPoint.X, arc.StartPoint.Y);
                     points[1] = new GeoPoint2(arc.EndPoint.X, arc.EndPoint.Y);
+                    tiedArc = arc;
                 }
                 else if (picked is DxfLine line)
                 {
@@ -410,7 +416,12 @@ namespace GeometryHelper.Dxf.Viewer
             string words = Words(style, made, sweep, text, string.Empty);
             c.Write("Dimension text = " + words);
             double textHeight = TextHeight(c, style);
-            Place(c, style, textHeight, made, Angular(style, textHeight, vertex, radius, from, sweep, near, far, words));
+            string handle = AddedHandle(Place(c, style, textHeight, made, Angular(style, textHeight, vertex, radius, from, sweep, near, far, words)));
+
+            if (tiedArc != null)
+            {
+                CadDimAssociation.Tie(c, handle, CadDimAssociation.ArcEnds(tiedArc));
+            }
         }
 
         /// <summary>

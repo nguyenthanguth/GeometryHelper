@@ -1999,5 +1999,198 @@ namespace GeometryHelper.Dxf
         private static int FeetAndInches(int zin, bool feet, bool inches) => (zin & ~3) | (feet ? (inches ? 0 : 3) : (inches ? 2 : 1));
 
         #endregion
+
+        #region Association
+
+        // The application AutoCAD 2021 lists the class DIMASSOC under.
+        private const string DimAssocApplication = "\"AcDbDimAssoc|Product Desc:     AcDim ARX App For Dimension|Company:          Autodesk, Inc.|WEB Address:      www.autodesk.com\"";
+
+        /// <summary>
+        /// Gets the DIMASSOC that ties the dimension's points to objects, as AutoCAD keeps it under ACAD_DIMASSOC in the
+        /// dimension's extension dictionary; null for a dimension tied to nothing, as one AutoCAD has disassociated.
+        /// </summary>
+        public DxfDimAssoc DimAssoc
+        {
+            get
+            {
+                DxfDBDictionary dictionary = IsErased ? null : ExtensionDictionary;
+                return dictionary != null && dictionary.Contains(DxfDimAssoc.Key) ? dictionary.GetAt(DxfDimAssoc.Key) as DxfDimAssoc : null;
+            }
+        }
+
+        /// <summary>
+        /// Ties the dimension's points to objects, as AutoCAD 2021 ties a dimension made with DIMASSOC 2 by object snaps: a
+        /// DIMASSOC under ACAD_DIMASSOC in the dimension's extension dictionary (made where it has none), owned by the dictionary,
+        /// naming the dimension and each reference, and listed among the reactors of the dimension and of every object it names;
+        /// the class DIMASSOC listed. A dimension tied already has its DIMASSOC written anew, the same handle, an object it no
+        /// longer names losing the reactor. A DIMLINEAR from the start of the line 2A to its end is tied by
+        /// <c>dimension.SetDimAssoc(new[] { new DxfOsnapPointRef(0, DxfOsnapType.StartPoint, "2A", 0, 0, start, null), new DxfOsnapPointRef(1, DxfOsnapType.Endpoint, "2A", 0, 1, end, null) })</c>.
+        /// The dimension's points are not moved: they are where the references say already.
+        /// </summary>
+        /// <param name="references">The references, one for each point tied, in any order.</param>
+        /// <returns>The DIMASSOC.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the references are null.</exception>
+        /// <exception cref="ArgumentException">Thrown when there are none, one is null, two tie the same point, or one names an
+        /// object the drawing has not.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the dimension is in no file, is erased, or its file has no
+        /// OBJECTS section (R12).</exception>
+        public DxfDimAssoc SetDimAssoc(IEnumerable<DxfOsnapPointRef> references)
+        {
+            if (references == null)
+            {
+                throw new ArgumentNullException(nameof(references));
+            }
+
+            var list = new List<DxfOsnapPointRef>();
+
+            foreach (DxfOsnapPointRef reference in references)
+            {
+                if (reference == null)
+                {
+                    throw new ArgumentException("A point reference is null.", nameof(references));
+                }
+
+                if (list.Exists(r => r.PointIndex == reference.PointIndex))
+                {
+                    throw new ArgumentException("Two point references tie the point " + reference.PointIndex.ToString(CultureInfo.InvariantCulture) + ".", nameof(references));
+                }
+
+                list.Add(reference);
+            }
+
+            if (list.Count == 0)
+            {
+                throw new ArgumentException("A dimension is tied by one point reference at least.", nameof(references));
+            }
+
+            list.Sort((a, b) => a.PointIndex.CompareTo(b.PointIndex));
+            DxfFile file = InFile("be tied to objects");
+            var now = new List<string>();
+
+            foreach (DxfOsnapPointRef reference in list)
+            {
+                foreach (string handle in new[] { reference.ObjectHandle, reference.IntersectionObjectHandle })
+                {
+                    if (handle == null)
+                    {
+                        continue;
+                    }
+
+                    if (!file.Database.TryGetObject(handle, out DxfDBObject tied) || tied.Item == null)
+                    {
+                        throw new ArgumentException("The drawing has no object " + handle + " to tie the dimension to.", nameof(references));
+                    }
+
+                    if (!now.Exists(h => string.Equals(h, tied.Handle, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        now.Add(tied.Handle);
+                    }
+                }
+            }
+
+            DxfDimAssoc kept = DimAssoc;
+            List<string> before = kept == null ? new List<string>() : TiedObjects(kept);
+            List<KeyValuePair<int, string>> body = DxfDimAssoc.Body(Handle, list);
+
+            if (kept == null)
+            {
+                CreateExtensionDictionary();
+                DxfItem made = ExtensionDictionary.Add(DxfDimAssoc.Key, "DIMASSOC", b =>
+                {
+                    foreach (KeyValuePair<int, string> group in body)
+                    {
+                        b.Group(group.Key, group.Value);
+                    }
+                });
+
+                kept = (DxfDimAssoc)OfObject(made);
+                file.SetReactor(Item, kept.Handle, true);
+                file.AddClass("DIMASSOC", "AcDbDimAssoc", 0, DimAssocApplication, 1);
+                file.CountClass("DIMASSOC");
+            }
+            else
+            {
+                kept.Rewrite(body);
+            }
+
+            foreach (string handle in before)
+            {
+                if (!now.Exists(h => string.Equals(h, handle, StringComparison.OrdinalIgnoreCase)))
+                {
+                    React(file, handle, kept.Handle, false);
+                }
+            }
+
+            foreach (string handle in now)
+            {
+                React(file, handle, kept.Handle, true);
+            }
+
+            return kept;
+        }
+
+        /// <summary>
+        /// Unties the dimension from the objects its points were tied to, as AutoCAD disassociates it (DIMDISASSOCIATE, or the
+        /// last object it was tied to erased): the DIMASSOC taken out of the reactors of each object and of the dimension and
+        /// erased, and the extension dictionary released where it is left empty, as AutoCAD leaves a dimension with none. The
+        /// dimension keeps its points and its picture. Nothing for a dimension tied to nothing.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">Thrown when the dimension is erased.</exception>
+        public void ReleaseDimAssoc()
+        {
+            DxfDimAssoc kept = DimAssoc;
+
+            if (kept == null)
+            {
+                return;
+            }
+
+            DxfFile file = InFile("be untied");
+            string handle = kept.Handle;
+
+            foreach (string tied in TiedObjects(kept))
+            {
+                React(file, tied, handle, false);
+            }
+
+            file.SetReactor(Item, handle, false);
+            DxfDBDictionary dictionary = ExtensionDictionary;
+            dictionary.Remove(DxfDimAssoc.Key);
+
+            if (dictionary.Count == 0)
+            {
+                ReleaseExtensionDictionary();
+            }
+        }
+
+        /// <summary>The handles of the objects a DIMASSOC names, each once, in the order of its references.</summary>
+        private static List<string> TiedObjects(DxfDimAssoc assoc)
+        {
+            var handles = new List<string>();
+
+            foreach (DxfOsnapPointRef reference in assoc.PointReferences)
+            {
+                foreach (string handle in new[] { reference.ObjectHandle, reference.IntersectionObjectHandle })
+                {
+                    if (handle != null && !handles.Exists(h => string.Equals(h, handle, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        handles.Add(handle);
+                    }
+                }
+            }
+
+            return handles;
+        }
+
+        /// <summary>Puts a DIMASSOC among the reactors of an object of the drawing, or takes it out; nothing for an object the drawing has not, or has erased.</summary>
+        private static void React(DxfFile file, string objectHandle, string assoc, bool present)
+        {
+            if (file.Database.TryGetObject(objectHandle, out DxfDBObject tied) && tied.Item != null && !tied.IsErased)
+            {
+                file.SetReactor(tied.Item, assoc, present);
+            }
+        }
+
+        #endregion
     }
 }

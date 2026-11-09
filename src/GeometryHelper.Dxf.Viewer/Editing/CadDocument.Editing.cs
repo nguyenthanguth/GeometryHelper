@@ -224,10 +224,14 @@ namespace GeometryHelper.Dxf.Viewer
         private CadEditResult Write(string name, IReadOnlyList<CadEditRecord> planned, Action<CadEditScope> apply, HashSet<string> handled)
         {
             var scope = new CadEditScope(this, handled);
+            List<CadEditRecord> followed;
 
             try
             {
                 apply(scope);
+
+                // The associative dimensions tied to what the edit changed follow it, in the same step.
+                followed = CadDimAssociation.Follow(this, planned, scope.Records);
             }
             catch (Exception exception)
             {
@@ -236,9 +240,10 @@ namespace GeometryHelper.Dxf.Viewer
                 return CadEditResult.Fail(exception.Message);
             }
 
-            var records = new List<CadEditRecord>(planned.Count + scope.Records.Count);
+            var records = new List<CadEditRecord>(planned.Count + scope.Records.Count + followed.Count);
             records.AddRange(planned);
             records.AddRange(scope.Records);
+            records.AddRange(followed);
             KeepHandles(records, scope);
             _entityCount = null;
 
