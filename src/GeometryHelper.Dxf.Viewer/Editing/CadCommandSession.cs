@@ -499,7 +499,7 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>
-        /// Ctrl+W: switches selection cycling (<see cref="CadDocument.SelectionCycling"/>) off, or on again as 2, writing
+        /// Switches selection cycling (<see cref="CadDocument.SelectionCycling"/>) off, or on again as 2, writing
         /// "&lt;Selection Cycling off&gt;" or "&lt;Selection Cycling on&gt;" as AutoCAD does.
         /// </summary>
         public void ToggleSelectionCycling()

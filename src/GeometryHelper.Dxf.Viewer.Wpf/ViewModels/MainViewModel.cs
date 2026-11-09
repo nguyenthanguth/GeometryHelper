@@ -1344,6 +1344,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 case "EATTEDIT":
                     OnBlockRequested(e);
                     break;
+                case "QSELECT":
+                    OnQuickSelectRequested(e);
+                    break;
+                case "FIND":
+                    OnFindRequested(e);
+                    break;
             }
         }
 

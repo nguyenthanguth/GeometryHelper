@@ -187,7 +187,6 @@ namespace GeometryHelper.Dxf.Viewer
                 ["Ctrl+1"] = "PROPERTIES",
                 ["Ctrl+A"] = "SELECTALL",
                 ["Ctrl+Shift+A"] = "PICKSTYLE",
-                ["Ctrl+W"] = "SELECTIONCYCLING",
             });
 
         private static IReadOnlyDictionary<string, string> Copy(IEnumerable<KeyValuePair<string, string>> pairs)

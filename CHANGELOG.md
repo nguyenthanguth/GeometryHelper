@@ -17,6 +17,18 @@ the file list close a drawing, asking first about unsaved changes. An owner (`Ca
 control of the entities it wrote: an edit of one goes to its owner in the same undo step, or is refused in the words the
 command line shows.
 
+**NEW.** The presenter selects and tidies as AutoCAD 2021 does. QSELECT shows Quick Select over the rows of the
+Properties panel (`CadQuickSelect`): Line, Layer, `= Equals`, WALLS selects the lines of WALLS and says `312 item(s)
+selected.`, in 0.25 s over 100 000 objects. FIND shows Find and Replace (`CadFind`) over TEXT, MTEXT, attribute values,
+dimension and multileader text and table cells, with match case, whole words, wildcards, blocks and hidden items; it
+replaces in an MTEXT its words alone, `{\fArial|b1;Bolts M20}` becoming `{\fArial|b1;Bolts M24}`, and Replace All is one
+undo step. DRAWORDER (DR) and TEXTTOFRONT write AutoCAD's sort table, which the display follows, through the new
+`DxfDrawOrderTable` of the core library (`DxfBlockTableRecord.DrawOrderTable`, `CreateDrawOrderTable`). GROUP (G), -GROUP
+and UNGROUP make and change the GROUP objects of ACAD_GROUP, and with PICKSTYLE 1 (Ctrl+Shift+A switches it) a pick of
+one member takes its group. -PURGE (PU) deletes the unused blocks, dimension, text, multileader and table styles,
+layers, linetypes and plot styles, the lines of no length and the empty texts, asking of each name where told to, and
+never what AutoCAD keeps: layer 0, Defpoints, Standard, ByLayer, ByBlock, Continuous or the current ones.
+
 **NEW.** `GeometryHelper.Drawing` makes a model drawing, in the manner of Tekla's, from a `DrawingSource` of
 `DrawingObject` bodies: views along the axes and an isometric view with exact hidden-line projection (2 000 objects in
 the front view take 0.3 s), sections with ANSI31 hatches, details, dimensions by rule, marks that keep clear of the

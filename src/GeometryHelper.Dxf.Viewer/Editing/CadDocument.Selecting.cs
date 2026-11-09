@@ -16,8 +16,10 @@ namespace GeometryHelper.Dxf.Viewer
         public int PickStyle { get; set; } = 1;
 
         /// <summary>
-        /// Gets or sets SELECTIONCYCLING, as AutoCAD's: 2 (the default) shows the list of the objects under a pick where more
-        /// than one lies there, 1 cycles through them with Shift+Space only, 0 is off. Ctrl+W switches it off and on again.
+        /// Gets or sets SELECTIONCYCLING, as AutoCAD's: 2 (the default) for the list of the objects under a pick where more than
+        /// one lies there, 1 for cycling through them with Shift+Space only, 0 off; the window shows the list and cycles. Kept
+        /// by the presenter, not in the drawing. AutoCAD's Ctrl+W switches it, which in the presenter closes the drawing; the
+        /// command SELECTIONCYCLING sets it.
         /// </summary>
         public int SelectionCycling { get; set; } = 2;
 
