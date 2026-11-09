@@ -42,6 +42,8 @@ The list of work on the drawing stack: Part A, the 2D presenter (`GeometryHelper
       screenshot mode shared with Drawing.App through `CadAppHost`
 - [x] Blocks round 2: EATTEDIT live with Apply kept open, INSERT drags the block, -ATTEDIT picks one attribute, ATTSYNC,
       Block Definition previews the selection, redefine a block brought from another drawing
+- [x] Associative dimensions (DIMASSOC 2): stored as AutoCAD stores them, following MOVE, STRETCH, grips, SCALE and the
+      rest in the same undo step; DIMREASSOCIATE, DIMDISASSOCIATE; AutoCAD's own MOVE carries them too
 - [x] MLEADERSTYLE: the Multileader Style Manager and Modify dialog to the design, styles written as AutoCAD writes them,
       MLEADER in the current style; MATCHPROP's Property Settings to the design
 - [x] Layers per viewport: VP Freeze, New VP Freeze, VP Color, Linetype, Lineweight, Transparency, Plot Style (as AutoCAD
@@ -100,7 +102,9 @@ the ones wanted.
       through the core's API, not only MVIEW (S)
 - [ ] Styles: DICTIONARYVAR class in drawings made new, so Set Current works for multileader and table styles; MLEADER with
       no style makes Standard; Block and None content; the Annotative flag written (S)
-- [ ] Dimensions: associative dimensions that follow their geometry (DIMASSOC 2, DIMREASSOCIATE) (L) (running)
+- [ ] Associative dimensions: an aligned dimension with one end stretched (AutoCAD moves its line), a line and its dimension
+      copied together stay tied, intersection and other snaps tied, ties from DIM, QDIM, DIMCONTINUE, DIMBASELINE, ordinate
+      and two-line angular; check whether a plain MOVE leaves a presenter-made dimension's picture behind (flag 32) (M)
 - [ ] Blocks: BEDIT, the Block Editor (L, design first)
 - [ ] Blocks: dynamic blocks in use: custom grips (visibility, lookup, stretch, flip, rotate, array) and their Properties
       rows (L)
