@@ -42,6 +42,8 @@ The list of work on the drawing stack: Part A, the 2D presenter (`GeometryHelper
       screenshot mode shared with Drawing.App through `CadAppHost`
 - [x] Blocks round 2: EATTEDIT live with Apply kept open, INSERT drags the block, -ATTEDIT picks one attribute, ATTSYNC,
       Block Definition previews the selection, redefine a block brought from another drawing
+- [x] Dimensions round 2: linear pictures laid out by DIMTAD, DIMJUST, DIMGAP, DIMTIH, DIMTOH and the fit rules (checked
+      against 89 pictures AutoCAD drew), DIMORDINATE, DIMJOGLINE, DIM
 - [x] Images of the view: PNGOUT, JPGOUT, BMPOUT as AutoCAD's (the drawing area as shown, all objects or those selected;
       1920 x 1080 of 100 000 entities written as PNG in 0.25 s)
 - [x] AutoCAD parity check: 101 gaps and 19 partial items, listed in full in
@@ -104,8 +106,12 @@ the ones wanted.
 - [ ] Blocks: INSERT with a base point picked lands wrong for a block of other units (the shift is not scaled by the unit
       factor)
 - [ ] Blocks: -ATTEDIT by a window takes only the attributes inside the window
-- [ ] Dimensions: DIMORDINATE (and its part in DIMCONTINUE, DIMBASELINE, QDIM), DIMJOGLINE, the DIM command (running)
-- [ ] Dimensions: draw DIMTAD and DIMJUST (words above or beside the line) (running)
+- [ ] Dimensions: radius, diameter and angular pictures follow DIMTAD, DIMJUST and the fit rules (linear and ordinate do)
+- [ ] Dimensions: the dimension line starts at the back of a closed arrowhead, as AutoCAD draws it; words sized by the
+      font, not estimated
+- [ ] Dimensions: DIMTVP, DIMTMOVE 1's leader for words moved out by fit, DIMGAP below zero (box round the words);
+      DIMTEDIT on a DIMTAD 0 dimension puts the line through the words
+- [ ] Dimensions: DIM offers Jogged and Arc length, edits Mtext in the editor
 - [ ] MTEXT: word wrap at the width, stacked fractions, columns; line spacing 5/3 as AutoCAD (check first)
 - [ ] Clipboard: preview of the objects while PASTECLIP asks for the point
 - [ ] PLOT: print to Windows printers; add named page setups; embed only the glyphs used (smaller PDFs)
