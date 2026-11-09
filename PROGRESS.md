@@ -69,18 +69,18 @@ the ones wanted.
       by entity with AutoCAD's own; check Ctrl, ANGDIR 1 and the MTEXT column defaults against AutoCAD (S)
 - [ ] Grips (running): grip modes (Space cycles Stretch, Move, Rotate, Scale, Mirror; Base point, Copy; Ctrl copies; several hot
       grips with Shift) (M)
-- [ ] Properties: editable rows for polylines, hatches, dimensions, MTEXT, INSERTs (attributes), viewports, multileaders (L)
-- [ ] Properties: MATCHPROP Settings dialog and special properties (dimension, text, hatch, polyline, viewport, table,
+- [ ] Properties: editable rows for polylines, hatches, dimensions, MTEXT, INSERTs (attributes), viewports, multileaders (L) (running)
+- [ ] Properties (running): MATCHPROP Settings dialog and special properties (dimension, text, hatch, polyline, viewport, table,
       multileader) (M)
 - [ ] Utilities: SETVAR and system variable names typed at the command line, the variables drafters set first (M) (running)
 - [ ] Utilities: command line AutoComplete (suggestions as you type, mid-string search, most used first) (M)
-- [ ] Modify: PEDIT (Close/Open, Join, Width, Edit vertex, Fit/Spline/Decurve, Ltype gen, Reverse, Multiple; lines and
+- [ ] Modify (running): PEDIT (Close/Open, Join, Width, Edit vertex, Fit/Spline/Decurve, Ltype gen, Reverse, Multiple; lines and
       arcs made a polyline) (L)
-- [ ] Dimensions: dimension grips (text position, dimension line, extension origins) (M)
-- [ ] Layouts: MSPACE/PSPACE through a viewport (double click inside, the MODEL/PAPER button) and the viewport scale in
+- [ ] Dimensions: dimension grips (text position, dimension line, extension origins) (M) (running)
+- [ ] Layouts (running): MSPACE/PSPACE through a viewport (double click inside, the MODEL/PAPER button) and the viewport scale in
       Properties and the status bar (L)
 - [ ] Files: recent files on the start screen and the application menu (S)
-- [ ] Draw: REVCLOUD (Arc length, Object, Rectangular, Polygonal, Freehand, Style) (M)
+- [ ] Draw: REVCLOUD (Arc length, Object, Rectangular, Polygonal, Freehand, Style) (M) (running)
 - [ ] Layers: VP Freeze per viewport (VPLAYER, the Layer manager's VP columns, LAYVPI) (M)
 - [ ] Dimensions: MLEADERSTYLE, the Multileader Style Manager (M, design first)
 - [ ] Dimensions: associative dimensions that follow their geometry (DIMASSOC 2, DIMREASSOCIATE) (L)
