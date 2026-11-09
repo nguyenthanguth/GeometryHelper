@@ -113,6 +113,7 @@ namespace GeometryHelper.Dxf.Viewer
                 ["DIMORD"] = "DIMORDINATE",
                 ["DJL"] = "DIMJOGLINE",
                 ["MLD"] = "MLEADER",
+                ["MLS"] = "MLEADERSTYLE",
                 ["MV"] = "MVIEW",
                 ["MS"] = "MSPACE",
                 ["PS"] = "PSPACE",

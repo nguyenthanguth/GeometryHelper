@@ -278,7 +278,15 @@ multileader is met on its lines too.
 
 The multileader style a multileader is drawn with is a [`DxfMLeaderStyle`](xref:GeometryHelper.Dxf.DxfMLeaderStyle), as AutoCAD's `MLeaderStyle`: the styles of
 `db.MLeaderStyleDictionary` are read as the file holds them (`TextHeight`, `ArrowSize`, `LandingGap`, `DoglegLength`,
-`LeaderLineType`, `LeaderLineLinetype`, `TextStyle`, `Block` and the rest of its look), and
+`LeaderLineType`, `LeaderLineLinetype`, `TextStyle`, `Block` and the rest of its look). A style is made in code and added
+as AutoCAD's is: `db.MLeaderStyleDictionary.SetAt("GH_NOTES", new DxfMLeaderStyle { TextHeight = 2.5, ArrowSize = 2.5 })`
+writes every group AutoCAD 2021 holds of a style, in its order, and lists its class in CLASSES. The values of its leaders,
+landing and words are set by the names AutoCAD gives them, each written into the record at once as AutoCAD 2021 holds it
+(checked by entget on styles its API made): `FirstSegmentAngleConstraint` of `Degrees045` as 0.785398 radians,
+`MaxLeaderSegmentsPoints` of 0 for no limit, a `Scale` of 0 for multileaders scaled to the layout, `ExtendLeaderToText`
+from R2013 and `DefaultMText` as its words. The multileaders of a style keep their own values until `SetFromStyle()` is
+called on each. A drawing of R2013 with three styles made so, and multileaders drawn in them, is audited by AutoCAD 2021
+with no error. And
 `mleader.GetOverridedMLeaderStyle(style)`, AutoCAD's `getOverridedMLeaderStyle` named as the library names its members, gives
 a style made by `new DxfMLeaderStyle()` the style's values with the multileader's own in place of those it overrides (the
 bits of its 90), as ezdxf's `MLeaderStyleOverride` reads them: a multileader of Standard with words 2.5 high of its own gives

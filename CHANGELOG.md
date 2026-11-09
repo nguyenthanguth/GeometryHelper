@@ -68,6 +68,26 @@ on the command line. Ctrl+N makes a new drawing there (`MainViewModel.NewByShort
 items. The screenshot mode draws the new menus with `--dialog app-menu[:export]`, `cmdline-menu`, `input-settings-menu`,
 `recent-commands-menu` and `autocomplete:LA`, and fills Recent Documents with `--recent`.
 
+**NEW.** Multileader styles are written as well as read. `DxfMLeaderStyle` has setters for its leaders, landing and
+words (`LeaderLineType`, `LeaderLineColor`, `LeaderLineLinetype`, `LeaderLineWeight`, `ArrowSymbol`, `ArrowSize`,
+`BreakSize`, `MaxLeaderSegmentsPoints`, `EnableLanding`, `EnableDogleg`, `DoglegLength`, `Scale`, `ContentType`,
+`TextStyle`, `TextAngleType`, `TextColor`, `TextHeight`, `TextAlignAlwaysLeft`, `EnableFrameText`,
+`TextAttachmentDirection`, `SetTextAttachmentType`, `LandingGap`) and new `FirstSegmentAngleConstraint` and
+`SecondSegmentAngleConstraint` (`DxfAngleConstraint`), `ExtendLeaderToText` and `DefaultMText`, each written as AutoCAD
+2021 holds it: 45 degrees as 0.785398 radians, no limit of points as 0, scaled to the layout as a scale of 0.
+`db.MLeaderStyleDictionary.SetAt("GH_NOTES", new DxfMLeaderStyle { TextHeight = 2.5 })` adds a style with every group
+AutoCAD writes, its class listed and counted in CLASSES. The presenter has MLEADERSTYLE (MLS), the Multileader Style
+Manager and its Modify dialog of three tabs, Leader Format, Leader Structure and Content, after AutoCAD 2021's: Set
+Current, New…, Modify… and Delete (refused for Standard, the current style and a style in use), each one undo step; a
+drawing of no style is given a metric Standard, arrows 2.5, break 3.75, landing 8, text 2.5 and a landing gap of 2. A
+style modified gives its multileaders its values, those they have of their own kept. MLEADER draws in the current style
+(CMLEADERSTYLE), its words and arrows as high as the style's rather than TEXTSIZE, and the Annotate tab's multileader
+style box ends in "Multileader style…". Block content is not offered, as MLEADER places words only, and the annotative
+box is greyed. MATCHPROP's Property Settings dialog is laid out as designed: the source's value beside each basic
+property, its kind and layer under the boxes, and the prompt at the foot. The registry holds 149 commands and 113
+aliases. AutoCAD 2021 audits a drawing of R2013 with three styles made and modified so, and multileaders drawn in them,
+with no error, and reads every value as written.
+
 **NEW.** The presenter has SETVAR and the system variables drafters set, typed as commands as in AutoCAD 2021: `Enter
 variable name or [?] <FILLETRAD>:`, then `Enter new value for FILLETRAD <10.0000>:`; a variable's name typed alone asks the
 same, and `?` lists those a pattern of wildcards matches. FILLETRAD 5 writes `$FILLETRAD` 5 into the header as one undo

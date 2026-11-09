@@ -88,6 +88,23 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>
+        /// Draws the sample multileader of a multileader style's settings, as <see cref="CadMLeaderStyleEditor.Sample"/> makes
+        /// it: the words "Default Text" in the style, its arrow down on the left and its landing up on the right, made as
+        /// MLEADER makes one, in the font of the text style the settings name in the drawing edited.
+        /// </summary>
+        /// <param name="source">The drawing edited, whose text style's font the words take.</param>
+        /// <param name="settings">The settings of the style.</param>
+        /// <param name="fonts">The fonts of the drawing edited.</param>
+        /// <param name="width">The width of the picture, in pixels.</param>
+        /// <param name="height">The height of the picture, in pixels.</param>
+        /// <returns>The picture; of the parts alone where the settings do not make a style.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the settings are null.</exception>
+        public static BitmapSource MLeader(DxfDatabase source, CadMLeaderStyleSettings settings, CadFonts fonts, int width, int height)
+        {
+            return Draw(CadMLeaderStyleEditor.Sample(source, settings), fonts, width, height, new DisplayBox(0.0, 0.0, 0.0, 0.0));
+        }
+
+        /// <summary>
         /// Draws a block of a drawing as the Blocks palette shows it: an INSERT of it at the origin, copied with the block into a
         /// drawing of its own, zoomed to what it draws, white on the black ground of the canvas. The drawing given gets the INSERT
         /// copied (an entity added to its model space), so a copy of the drawing edited is given, not the drawing itself.

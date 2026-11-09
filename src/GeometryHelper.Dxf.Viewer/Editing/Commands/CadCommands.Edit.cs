@@ -464,8 +464,9 @@ namespace GeometryHelper.Dxf.Viewer
                     break;
                 }
 
-                // The window's Property Settings dialog sets the session's choice; the command goes on with it.
-                if (!c.Session.Request("MATCHPROP", c.Document))
+                // The window's Property Settings dialog, given the source's handle to show its values, sets the session's
+                // choice; the command goes on with it.
+                if (!c.Session.Request("MATCHPROP", c.Document, source))
                 {
                     c.Write("The Property Settings dialog is shown by the window.");
                 }

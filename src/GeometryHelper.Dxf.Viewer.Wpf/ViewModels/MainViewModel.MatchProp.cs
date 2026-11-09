@@ -19,7 +19,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return;
             }
 
-            var dialog = new MatchPropSettingsViewModel(session.MatchProperties);
+            var dialog = new MatchPropSettingsViewModel(session.MatchProperties, e.Document, e.Payload as string);
 
             if (ShowMatchPropSettings(dialog))
             {

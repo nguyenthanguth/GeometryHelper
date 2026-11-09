@@ -426,14 +426,28 @@ namespace GeometryHelper.Dxf.Viewer
                 yield break;
             }
 
+            // Drawn in the current multileader style (CMLEADERSTYLE, else Standard): its text height, landing, arrows and the
+            // rest of its values, as AutoCAD's MLEADER draws one.
             string words = c.Input.Text;
-            double height = TextSize(c);
+            string name = CadMLeaderStyleEditor.Current(c.Database);
             c.Apply(null, s =>
             {
-                var mleader = new DxfMLeader { MText = new DxfMText { Contents = words, Location = P3(landing), TextHeight = height } };
-                mleader.AddLeaderLine(P3(arrow));
+                DxfMLeader mleader = CadMLeaderStyleEditor.Make(CadMLeaderStyleEditor.Find(s.Database, name), P3(arrow), P3(landing), words);
                 s.Append(c.Space, Current(c, mleader));
+                mleader.MLeaderStyle = name;
+                mleader.SetFromStyle();
             });
+        }
+
+        /// <summary>MLEADERSTYLE (MLS): the window's Multileader Style Manager; with no window, the current style said.</summary>
+        private static IEnumerable<CadPrompt> MLeaderStyleDialog(CadCommandContext c)
+        {
+            if (!c.Session.Request("MLEADERSTYLE", c.Document))
+            {
+                c.Write("Current multileader style: \"" + CadMLeaderStyleEditor.Current(c.Database) + "\". The Multileader Style Manager is shown by the window.");
+            }
+
+            yield break;
         }
 
         private static IEnumerable<CadPrompt> MView(CadCommandContext c)

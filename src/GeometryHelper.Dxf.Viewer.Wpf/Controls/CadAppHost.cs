@@ -41,7 +41,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// <c>hatch-gradient</c>, <c>hatch-user</c>, <c>hatch-solid</c>, <c>hatch-file</c>, <c>block</c>, <c>insert</c>,
     /// <c>wblock</c>, <c>attdef</c>, <c>eattedit[:Tab]</c>, <c>style</c>, <c>style-new</c>, <c>dimstyle</c>,
     /// <c>dimstyle-new</c>, <c>dimstyle-modify[:Tab]</c>, <c>dimstyle-override[:Tab]</c>, <c>dimstyle-compare[:Other]</c>,
-    /// <c>pastespec</c>, <c>app-menu[:new|open|saveas|export|print|close]</c> (the application menu, on Recent Documents or the
+    /// <c>mleaderstyle</c>, <c>mleaderstyle-modify[:Tab]</c>, <c>matchprop</c> (of the first object selected, else the first
+    /// of the space shown), <c>pastespec</c>, <c>app-menu[:new|open|saveas|export|print|close]</c> (the application menu, on Recent Documents or the
     /// list of an item), <c>cmdline-menu</c>, <c>input-settings-menu</c> and <c>recent-commands-menu</c> (the command line's
     /// right-click menu and its two submenus) and <c>autocomplete:LA</c> (the AutoComplete list for what is typed), the lines of
     /// <c>--run</c> typed first where the dialog needs them. <c>--recent "D:\a.dxf|*D:\b.dxf"</c> fills Recent Documents, the
@@ -81,7 +82,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// Gets the line written to the error output when the arguments of <c>--screenshot</c> do not read: the options the
         /// presenter knows, after the name of the program.
         /// </summary>
-        protected virtual string Usage => "Usage: " + (Assembly.GetEntryAssembly()?.GetName().Name ?? "app") + " --screenshot out.png [file.dxf] [--size 1600 960] [--space \"Layout1\"] [--select H1,H2] [--run \"MOVE;0,0\"] [--cursor x,y] [--toggle GRID,SNAP] [--layers] [--tab Insert|Annotate|View|Plugins|Settings] [--dialog save-changes|options|settings:Category|plugins|plugin-settings|plugin-untrusted|color|truecolor|truecolor-rgb|dsettings[:Tab]|osnap-menu|snap-menu|drawings-menu|scale-menu|missing-shx|missing-shx-replace|ptype|linetype|linetype-load|select-linetype|hatch|hatch-gradient|hatch-user|hatch-solid|hatch-file|block|insert|wblock|attdef|eattedit[:Tab]|style|style-new|dimstyle|dimstyle-new|dimstyle-modify[:Tab]|dimstyle-override[:Tab]|dimstyle-compare[:Other]|pastespec|app-menu[:Item]|cmdline-menu|input-settings-menu|recent-commands-menu|autocomplete:Text] [--recent \"a.dxf|*b.dxf\"] [--plugin path.dll]";
+        protected virtual string Usage => "Usage: " + (Assembly.GetEntryAssembly()?.GetName().Name ?? "app") + " --screenshot out.png [file.dxf] [--size 1600 960] [--space \"Layout1\"] [--select H1,H2] [--run \"MOVE;0,0\"] [--cursor x,y] [--toggle GRID,SNAP] [--layers] [--tab Insert|Annotate|View|Plugins|Settings] [--dialog save-changes|options|settings:Category|plugins|plugin-settings|plugin-untrusted|color|truecolor|truecolor-rgb|dsettings[:Tab]|osnap-menu|snap-menu|drawings-menu|scale-menu|missing-shx|missing-shx-replace|ptype|linetype|linetype-load|select-linetype|hatch|hatch-gradient|hatch-user|hatch-solid|hatch-file|block|insert|wblock|attdef|eattedit[:Tab]|style|style-new|dimstyle|dimstyle-new|dimstyle-modify[:Tab]|dimstyle-override[:Tab]|dimstyle-compare[:Other]|mleaderstyle|mleaderstyle-modify[:Tab]|matchprop|pastespec|app-menu[:Item]|cmdline-menu|input-settings-menu|recent-commands-menu|autocomplete:Text] [--recent \"a.dxf|*b.dxf\"] [--plugin path.dll]";
 
         /// <summary>
         /// Runs the app on the STA thread of its entry point: the window until it is closed, or the screenshot where the first
@@ -961,7 +962,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// The style dialogs (C10), after the lines of --run: <c>style</c> or <c>textstyle</c> (Text Style), <c>style-new</c> (its
         /// name asked), <c>dimstyle</c> (the Manager), <c>dimstyle-new</c> (Create New Dimension Style), <c>dimstyle-modify[:Tab]</c>
         /// (or <c>dimstyle-edit[:Tab]</c>) and
-        /// <c>dimstyle-override[:Tab]</c> of the style selected or current, <c>dimstyle-compare[:Other]</c>.
+        /// <c>dimstyle-override[:Tab]</c> of the style selected or current, <c>dimstyle-compare[:Other]</c>; <c>mleaderstyle</c>
+        /// (the Multileader Style Manager) and <c>mleaderstyle-modify[:Tab]</c> of the current style; <c>matchprop</c>, the
+        /// Property Settings dialog of the first object selected, else the first of the space shown.
         /// </summary>
         private static bool StyleDialog(MainViewModel model, string dialogName, ref string run, out Window window, out FrameworkElement root)
         {
@@ -971,7 +974,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             string kind = parts[0].ToLowerInvariant();
             kind = kind == "textstyle" ? "style" : kind == "dimstyle-edit" ? "dimstyle-modify" : kind;
 
-            if (kind != "style" && kind != "style-new" && !kind.StartsWith("dimstyle", StringComparison.Ordinal))
+            if (kind != "style" && kind != "style-new" && !kind.StartsWith("dimstyle", StringComparison.Ordinal) && kind != "mleaderstyle" && kind != "mleaderstyle-modify" && kind != "matchprop")
             {
                 return false;
             }
@@ -982,6 +985,38 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             run = null;
+
+            switch (kind)
+            {
+                case "mleaderstyle":
+                case "mleaderstyle-modify":
+                    MLeaderStyleManagerViewModel styles = model.CreateMLeaderStyleManager();
+
+                    if (kind == "mleaderstyle")
+                    {
+                        var list = new MLeaderStyleManagerWindow(styles);
+                        (window, root) = (list, list.Body);
+                        return true;
+                    }
+
+                    MLeaderStyleEditViewModel modify = styles.CreateModify();
+
+                    if (parts.Length > 1)
+                    {
+                        modify.Tab = modify.Tabs.FirstOrDefault(t => string.Equals(t, parts[1], StringComparison.OrdinalIgnoreCase)) ?? modify.Tab;
+                    }
+
+                    var change = new MLeaderStyleEditWindow(modify);
+                    (window, root) = (change, change.Body);
+                    return true;
+                case "matchprop":
+                    // The source is the first object selected (--select), else the first of the space shown.
+                    string source = model.Document.Selection.Handles.FirstOrDefault() ?? model.Document.CurrentSpace.Block.Cast<DxfEntity>().FirstOrDefault()?.Handle;
+                    var settings = new MatchPropSettingsWindow(new MatchPropSettingsViewModel(CadMatchProperties.All, model.Document, source));
+                    (window, root) = (settings, settings.Body);
+                    return true;
+            }
+
             DimStyleManagerViewModel manager = model.CreateDimStyleManager();
 
             switch (kind)

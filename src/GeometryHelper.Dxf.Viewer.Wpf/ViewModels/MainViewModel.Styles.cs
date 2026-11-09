@@ -20,7 +20,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>The last item of the dimension style box, which opens the Dimension Style Manager.</summary>
         public const string ManageDimensionStyles = "Dimension style…";
 
-        /// <summary>Raised by STYLE (ST), DIMSTYLE (D, DST, DDIM) and TABLESTYLE (TS), and by the boxes' last items: the window shows the dialog named, "STYLE", "DIMSTYLE" or "TABLESTYLE".</summary>
+        /// <summary>The last item of the multileader style box, which opens the Multileader Style Manager.</summary>
+        public const string ManageMLeaderStyles = "Multileader style…";
+
+        /// <summary>
+        /// Raised by STYLE (ST), DIMSTYLE (D, DST, DDIM), TABLESTYLE (TS) and MLEADERSTYLE (MLS), and by the boxes' last items:
+        /// the window shows the dialog named, "STYLE", "DIMSTYLE", "TABLESTYLE" or "MLEADERSTYLE".
+        /// </summary>
         public event EventHandler<string> StyleDialogRequested;
 
         /// <summary>Gets the text styles of the drawing for the text style box, then <see cref="ManageTextStyles"/>; empty with no drawing.</summary>
@@ -133,10 +139,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Gets the items of the dimension style box: the styles, the current one ticked, a model drawing's marked "model", then "Dimension style…".</summary>
         public IReadOnlyList<StyleBoxItemViewModel> DimStyleItems => Items(DimStyleNames, CurrentDimStyle, ManageDimensionStyles);
 
-        /// <summary>Gets the items of the multileader style box: the styles, the current one ticked; no dialog item, as no multileader style dialog is built.</summary>
-        public IReadOnlyList<StyleBoxItemViewModel> MLeaderStyleItems => Items(MLeaderStyleNames, CurrentMLeaderStyle, null);
+        /// <summary>Gets the items of the multileader style box: the styles, the current one ticked, then "Multileader style…" under a line.</summary>
+        public IReadOnlyList<StyleBoxItemViewModel> MLeaderStyleItems
+            => _current == null ? Array.Empty<StyleBoxItemViewModel>() : Items(MLeaderStyleNames.Concat(new[] { ManageMLeaderStyles }).ToList(), CurrentMLeaderStyle, ManageMLeaderStyles);
 
-        /// <summary>Gets or sets the current multileader style (CMLEADERSTYLE), as the multileader style box shows and sets it.</summary>
+        /// <summary>
+        /// Gets or sets the current multileader style (CMLEADERSTYLE), as the multileader style box shows and sets it (one undo
+        /// step); set to <see cref="ManageMLeaderStyles"/>, the Multileader Style Manager is asked for.
+        /// </summary>
         public string CurrentMLeaderStyle
         {
             get
@@ -153,10 +163,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             set
             {
-                if (_current != null && value != null && MLeaderStyleNames.Contains(value) && !string.Equals(value, CurrentMLeaderStyle, StringComparison.Ordinal))
+                if (_current != null && value == ManageMLeaderStyles)
                 {
-                    string old = CurrentMLeaderStyle;
-                    SayRefused(_current.Document.ApplyEdit("MLEADERSTYLE", new[] { new CadEditRecord(CadEditRecordKind.SettingChanged, null, "CMLEADERSTYLE", old, value) }, s => s.Database.MLeaderstyle = value));
+                    RequestStyleDialog("MLEADERSTYLE");
+                }
+                else if (_current != null && value != null && MLeaderStyleNames.Contains(value) && !string.Equals(value, CurrentMLeaderStyle, StringComparison.Ordinal))
+                {
+                    SayRefused(CadMLeaderStyleEditor.SetCurrent(_current.Document, value));
                 }
 
                 RaiseStyles();
@@ -172,14 +185,18 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public DimStyleManagerViewModel CreateDimStyleManager()
             => _current == null || CadDimStyleEditor.Current(_current.Document.Database) == null ? null : new DimStyleManagerViewModel(_current.Document);
 
+        /// <summary>Makes the Multileader Style Manager's view model over the drawing shown, Standard added to a drawing of no multileader style.</summary>
+        /// <returns>The view model; null with no drawing.</returns>
+        public MLeaderStyleManagerViewModel CreateMLeaderStyleManager() => _current == null ? null : new MLeaderStyleManagerViewModel(_current.Document);
+
         /// <summary>Asks the window for a style dialog; with no window, says so on the command line.</summary>
-        /// <param name="name">STYLE or DIMSTYLE.</param>
+        /// <param name="name">STYLE, DIMSTYLE, TABLESTYLE or MLEADERSTYLE.</param>
         /// <returns>Whether the window was asked.</returns>
         internal bool RequestStyleDialog(string name)
         {
             if (StyleDialogRequested == null)
             {
-                Say((name == "STYLE" ? "The Text Style dialog" : name == "TABLESTYLE" ? "The Table Style dialog" : "The Dimension Style Manager") + " is shown by the window.");
+                Say((name == "STYLE" ? "The Text Style dialog" : name == "TABLESTYLE" ? "The Table Style dialog" : name == "MLEADERSTYLE" ? "The Multileader Style Manager" : "The Dimension Style Manager") + " is shown by the window.");
                 return false;
             }
 

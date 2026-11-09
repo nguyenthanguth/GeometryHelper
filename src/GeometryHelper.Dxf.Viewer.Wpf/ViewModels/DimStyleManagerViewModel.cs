@@ -63,8 +63,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             set => Set(ref _startWith, value);
         }
 
-        /// <summary>Gets what a new dimension style is used for: All dimensions, the one choice built.</summary>
-        public string UseFor => "All dimensions";
+        /// <summary>
+        /// Gets or sets what a new style is used for, shown greyed under Start With: All dimensions, the one choice built for a
+        /// dimension style; null hides it, as the Create New Multileader Style dialog has none.
+        /// </summary>
+        public string UseFor { get; set; } = "All dimensions";
+
+        /// <summary>Gets whether Use for is shown: a style is asked to start with, and <see cref="UseFor"/> names what it is used for.</summary>
+        public bool AsksUseFor => AsksStartWith && !string.IsNullOrEmpty(UseFor);
 
         /// <summary>Gets why OK was refused; empty where it was not.</summary>
         public string Notice
