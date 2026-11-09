@@ -177,6 +177,16 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Whether an item lies wholly inside a ring: every vertex inside and no edge crossing the ring; and whether it touches the ring at all.</summary>
         private static bool Inside(DisplayItem2 item, IReadOnlyList<GeoPoint2> ring, out bool touches)
         {
+            if (item is DisplayRay2 ray)
+            {
+                // A line without end is never wholly inside; it touches the ring where its part across the ring's box,
+                // grown so that its ends lie outside the ring, crosses an edge.
+                DisplayBox around = Bounds(ring);
+                around = around.Inflate(Math.Max(1.0, Math.Max(around.Width, around.Height)));
+                touches = ray.TryClip(around, out double x0, out double y0, out double x1, out double y1) && Crosses(ring, x0, y0, x1, y1);
+                return false;
+            }
+
             bool inside = true;
             touches = item is DisplayFill2 fill && fill.Contains(ring[0].X, ring[0].Y);
 

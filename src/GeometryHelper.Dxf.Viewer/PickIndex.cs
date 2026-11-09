@@ -162,6 +162,13 @@ namespace GeometryHelper.Dxf.Viewer
                     continue;
                 }
 
+                // A line without end reaches past the grid: it is looked at for every point and box, as a large item is.
+                if (double.IsInfinity(box.MinX) || double.IsInfinity(box.MinY) || double.IsInfinity(box.MaxX) || double.IsInfinity(box.MaxY))
+                {
+                    _large.Add(i);
+                    continue;
+                }
+
                 CellRange(box, out int ix0, out int iy0, out int ix1, out int iy1);
 
                 if ((ix1 - ix0 + 1) * (iy1 - iy0 + 1) > _n * _n / 4 + 4)

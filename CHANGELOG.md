@@ -93,6 +93,16 @@ another file of the folder was opened, or once it was saved with Save and shown 
 now says, for example, "Test bodies (from file)" until the drawing is made again. The out-of-date dot now shows on such a
 drawing too, checked in the source its file names without changing it.
 
+**FIXED.** The presenter draws XLINE and RAY, which it drew not at all: an XLINE across the whole view both ways from its
+base point and a RAY on from it, as AutoCAD draws them, picked and highlighted anywhere along them like a line (a new
+`DisplayRay2`). ZOOM Extents takes their base points only, as AutoCAD's does: a line 100 by 50 from the origin and an XLINE
+through (200, 300) zoom to the box from (0, 0) to (200, 300). A crossing box or lasso they run through takes them; a window
+never does.
+
+**NEW.** Home › Modify of the presenter's ribbon is laid out as AutoCAD 2021's panel, with buttons for the commands it had
+only on the command line: Stretch, Trim with Extend on its arrow, Fillet with Chamfer, Array (rectangular) with Polar Array,
+and Offset; its title drops Break at Point, Break, Join, Lengthen and Align, as AutoCAD's panel slides out.
+
 **NEW.** The presenter's TRIM (TR), EXTEND (EX), BREAK (BR), BREAKATPOINT, JOIN (J) and LENGTHEN (LEN) as AutoCAD 2021's:
 TRIM and EXTEND in the Quick and Standard modes with Fence, Crossing, Edge, eRase and Undo, Shift-pick switching between the
 two; each command is one undo step (a line from (0, 0) to (100, 0) crossed by a line at x = 40 and picked at (80, 0) is

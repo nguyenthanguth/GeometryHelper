@@ -22,6 +22,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// Ctrl+9 shows or hides the command line. In the DRAWINGS list a click selects a row, a double click or Enter opens it,
     /// Delete does nothing and a right click shows Open and the Close items; OSNAP of the status bar has the menu of the object
     /// snaps on its arrow and its right click, and Shift+right-click on the canvas while a point is asked gives the snap menu.
+    /// The arrows of Trim, Fillet and Array on the ribbon drop their other commands (Extend, Chamfer, Polar Array), and the
+    /// title of Modify the rest of the group, as AutoCAD 2021's panel slides out.
     /// Letters typed with the focus on the canvas go to the command line, where Enter or Space runs the line (Space types a
     /// space at a prompt for text) and Up and Down recall what was typed before. A value of Properties is committed by Enter
     /// or by leaving it, and Esc puts the old one back. DXF files dropped on it are opened.
@@ -500,6 +502,20 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         private void OnOsnapArrow(object sender, RoutedEventArgs e) => ShowMenu(_model?.OsnapMenu(), (UIElement)sender);
+
+        /// <summary>The arrow of a split button of the ribbon, or the title of Modify: its menu dropped under it, as AutoCAD's ribbon drops one.</summary>
+        private void OnRibbonMenu(object sender, RoutedEventArgs e)
+        {
+            var button = (Button)sender;
+            ContextMenu menu = button.ContextMenu;
+
+            if (menu != null)
+            {
+                menu.PlacementTarget = button;
+                menu.Placement = PlacementMode.Bottom;
+                menu.IsOpen = true;
+            }
+        }
 
         /// <summary>Opens a menu of a view model's items at the mouse.</summary>
         private static void ShowMenu(System.Collections.Generic.IReadOnlyList<CadMenuItemViewModel> items, UIElement target)
