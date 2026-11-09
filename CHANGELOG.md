@@ -93,6 +93,15 @@ another file of the folder was opened, or once it was saved with Save and shown 
 now says, for example, "Test bodies (from file)" until the drawing is made again. The out-of-date dot now shows on such a
 drawing too, checked in the source its file names without changing it.
 
+**NEW.** The presenter makes and places blocks as AutoCAD 2021 does: BLOCK (B) with the Block Definition dialog and -BLOCK,
+INSERT (I) with the Blocks palette (Current drawing, Recent, Other drawing) and -INSERT with its attribute prompts, WBLOCK (W)
+writing a new metric DXF and -WBLOCK, ATTDEF (ATT) and -ATTDEF, the Enhanced Attribute Editor (EATTEDIT, ATTEDIT, or a double
+click on a block with attributes) and -ATTEDIT, and BASE; each run is one undo step. A grid bubble of a circle 10 across, a
+line and the attribute GRID, made a block with its base point at the foot of the line and inserted at (500, 500) at scale 2
+and turned 90 degrees, asks "Grid letter <A>:"; exploding an INSERT scaled 2 by 1 turns its circle into an ellipse with a
+major radius of 20. EXPLODE refuses a block that does not allow exploding. BATTMAN, ATTSYNC and the ATTDIA dialog are not
+built yet. AutoCAD 2021's AUDIT finds nothing in a drawing made by these commands or in the files WBLOCK writes.
+
 **NEW.** The presenter edits dimensions as AutoCAD 2021 does: DIMCONTINUE (DCO) and DIMBASELINE (DBA) go on from the last
 linear or angular dimension, or one selected, on the same line or DIMDLI further out, with Undo inside; QDIM dimensions the
 ends of lines and polylines and the centres of circles in a row, staggered, from a base or as radii and diameters; DIMEDIT
