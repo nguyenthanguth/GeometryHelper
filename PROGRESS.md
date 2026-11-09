@@ -45,7 +45,7 @@ which aims to work like AutoCAD 2021 and replace it, and Part B, model drawings 
 
 - [ ] GeometryHelper.Dxf.App (running): a DXF-only app for Part A (the presenter alone, no Drawing); the screenshot and dialog modes
       move into Dxf.Viewer.Wpf, shared with Drawing.App (after ribbon round 3)
-- [ ] Images of the view: PNGOUT, JPGOUT, BMPOUT as AutoCAD's: the drawing area as shown, at the window's pixel size,
+- [ ] Images of the view (running): PNGOUT, JPGOUT, BMPOUT as AutoCAD's: the drawing area as shown, at the window's pixel size,
       all objects or those selected; asks the file name
 - [ ] Images of an area: PNG and JPG devices in PLOT and -PLOT ("GeometryHelper PNG", "GeometryHelper JPG", as AutoCAD's
       PublishToWeb PNG/JPG), plot area Window, Extents, Display or Layout, size in pixels (1920 x 1080, 3840 x 2160 or
