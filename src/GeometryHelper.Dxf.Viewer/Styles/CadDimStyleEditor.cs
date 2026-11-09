@@ -295,6 +295,46 @@ namespace GeometryHelper.Dxf.Viewer
             });
         }
 
+        /// <summary>
+        /// Gives one dimension the style of another and its overrides, as MATCHPROP's Dimension: the style's name, then each
+        /// variable and the text style where the two then differ, written as an override; the dimension drawn again, but where
+        /// another dimension draws with its picture.
+        /// </summary>
+        internal static void Match(DxfDatabase database, DxfDimension from, DxfDimension to)
+        {
+            if (!string.IsNullOrEmpty(from.DimensionStyleName) && database.DimStyleTable.Has(from.DimensionStyleName))
+            {
+                to.DimensionStyleName = database.DimStyleTable[from.DimensionStyleName].Name;
+            }
+
+            var values = new Dictionary<string, object>(StringComparer.Ordinal);
+
+            foreach (PropertyInfo property in DimensionProperties.Value)
+            {
+                try
+                {
+                    object value = Named(property.GetValue(from));
+                    values[property.Name] = value == null && property.PropertyType == typeof(DxfBlockTableRecord) ? CadArrowheads.ClosedFilled : value;
+                }
+                catch (TargetInvocationException)
+                {
+                    // A variable the file's version has not: left as it is.
+                }
+            }
+
+            SetAll(database, DimensionProperties.Value, to, values);
+
+            if (from.TextStyle != null && !ReferenceEquals(from.TextStyle, to.TextStyle))
+            {
+                to.TextStyle = from.TextStyle;
+            }
+
+            if (to.DimBlock != null && !CadPropertyEditor.SharesPicture(database, to, to.DimBlock))
+            {
+                CadCommands.Redraw(to);
+            }
+        }
+
         /// <summary>Deletes a style, as the Manager's Delete: refused for Standard, the current style and a style dimensions are drawn in, saying how many.</summary>
         /// <param name="document">The document.</param>
         /// <param name="name">The style's name.</param>

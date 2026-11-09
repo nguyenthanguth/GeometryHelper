@@ -315,7 +315,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             CadCommandSession session = Session(document);
 
             Run(session, "MA", P(50, 0));
-            Assert.Equal("Select destination object(s):", session.PromptText);
+            Assert.Equal("Select destination object(s) or [Settings]:", session.PromptText);
             Run(session, new[] { "A2", "A3" }, Enter);
 
             Assert.Equal("Steel", Entity<DxfLine>(document, "A2").Layer);

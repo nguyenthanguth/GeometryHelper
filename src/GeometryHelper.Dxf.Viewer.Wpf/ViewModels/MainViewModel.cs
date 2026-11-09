@@ -1373,6 +1373,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 case "PASTESPEC":
                     OnPasteSpecialRequested(e);
                     break;
+                case "MATCHPROP":
+                    OnMatchPropRequested(sender, e);
+                    break;
                 case "PLOT":
                 case "PAGESETUP":
                     OnPlotRequested(sender, e);
@@ -1656,7 +1659,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
                 foreach (CadPropertyRow row in group.Rows)
                 {
-                    rows.Add(new PropertyRowViewModel(row, OptionsOf(row.Label), (r, text) => CommitProperty(handles, r.Label, text)));
+                    // An MTEXT's contents are edited in its editor, as the palette's button opens it.
+                    IReadOnlyList<string> options = row.Label == "Contents" && info.Label == "MText (1)" ? new[] { EditMTextOption } : OptionsOf(row.Label) ?? row.Choices;
+                    rows.Add(new PropertyRowViewModel(row, options, (r, text) => CommitProperty(handles, r.Label, text)));
                 }
 
                 groups.Add(new PropertyGroupViewModel(group.Title, rows));
@@ -1704,6 +1709,16 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             if (label == "Color" && text == SelectColorOption)
             {
                 return PickPropertyColor(handles);
+            }
+
+            if (label == "Contents" && text == EditMTextOption)
+            {
+                if (handles.Count == 1)
+                {
+                    EditTextAt(handles.First());
+                }
+
+                return false;
             }
 
             CadEditResult result = CadPropertyEditor.Set(_current.Document, handles, label, text);

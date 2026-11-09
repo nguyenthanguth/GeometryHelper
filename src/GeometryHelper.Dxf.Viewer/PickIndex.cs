@@ -10,9 +10,31 @@ namespace GeometryHelper.Dxf.Viewer
     public sealed class CadSelection
     {
         private readonly HashSet<string> _handles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        private int _vertex = 1;
 
-        /// <summary>Raised when the set of selected handles changes.</summary>
+        /// <summary>Raised when the set of selected handles changes, or the vertex Properties shows (<see cref="CurrentVertex"/>).</summary>
         public event EventHandler Changed;
+
+        /// <summary>
+        /// Gets or sets the vertex of a selected polyline the Properties panel shows, counted from 1, as the Current vertex row of
+        /// AutoCAD's palette steps through them; back to 1 whenever the set of selected handles changes. A polyline of 4 vertices
+        /// at 9 shows its fourth.
+        /// </summary>
+        /// <value>Set, a number from 1; one less is taken as 1.</value>
+        public int CurrentVertex
+        {
+            get => _vertex;
+            set
+            {
+                int vertex = Math.Max(1, value);
+
+                if (vertex != _vertex)
+                {
+                    _vertex = vertex;
+                    Changed?.Invoke(this, EventArgs.Empty);
+                }
+            }
+        }
 
         /// <summary>Gets the handles of the selected entities.</summary>
         public IReadOnlyCollection<string> Handles => _handles;
@@ -38,7 +60,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (changed)
             {
-                Changed?.Invoke(this, EventArgs.Empty);
+                Raise();
             }
         }
 
@@ -55,7 +77,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (changed)
             {
-                Changed?.Invoke(this, EventArgs.Empty);
+                Raise();
             }
         }
 
@@ -73,7 +95,7 @@ namespace GeometryHelper.Dxf.Viewer
                 _handles.Add(handle);
             }
 
-            Changed?.Invoke(this, EventArgs.Empty);
+            Raise();
         }
 
         /// <summary>Makes the selection exactly these entities.</summary>
@@ -94,7 +116,7 @@ namespace GeometryHelper.Dxf.Viewer
                 _handles.Add(handle);
             }
 
-            Changed?.Invoke(this, EventArgs.Empty);
+            Raise();
         }
 
         /// <summary>Selects nothing.</summary>
@@ -106,6 +128,13 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             _handles.Clear();
+            Raise();
+        }
+
+        /// <summary>Raises <see cref="Changed"/> for a new set of handles, the vertex shown back to the first.</summary>
+        private void Raise()
+        {
+            _vertex = 1;
             Changed?.Invoke(this, EventArgs.Empty);
         }
     }

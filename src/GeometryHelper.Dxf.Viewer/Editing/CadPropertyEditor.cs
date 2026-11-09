@@ -20,10 +20,12 @@ namespace GeometryHelper.Dxf.Viewer
     /// text override of a dimension, "&lt;&gt; TYP" showing 3000 TYP on a dimension of 3 000, an empty one its measurement and
     /// one of a single space, which is not trimmed as every other value is, no text at all, as AutoCAD reads it; the arrowhead
     /// of a multileader, one of <see cref="CadArrowheads.Names"/> (its block made as AutoCAD makes it on first use) or a block
-    /// of the drawing as a user arrow. With
+    /// of the drawing as a user arrow; and the rows AutoCAD 2021 sets of a polyline, an ellipse, a hatch, a dimension (as
+    /// overrides of its variables, the dimension drawn again), an MTEXT, a block reference and its attributes, a viewport and a
+    /// multileader. Current vertex of a polyline is no edit: it sets <see cref="CadSelection.CurrentVertex"/>. With
     /// no entity selected, the first five set the drawing's current settings, which new entities take.
     /// </remarks>
-    public static class CadPropertyEditor
+    public static partial class CadPropertyEditor
     {
         private static readonly string[] ColorNames = { null, "Red", "Yellow", "Green", "Cyan", "Blue", "Magenta", "White" };
 
@@ -71,6 +73,13 @@ namespace GeometryHelper.Dxf.Viewer
                 return SetCurrent(document, label, value.Trim());
             }
 
+            if (label == "Current vertex" && entities.TrueForAll(e => e is DxfPolyline))
+            {
+                return Browse(document, entities, value.Trim());
+            }
+
+            int vertex = document.Selection.CurrentVertex;
+
             foreach (DxfEntity entity in entities)
             {
                 if (CadLayerEditor.IsLocked(document.Database, entity.Layer))
@@ -79,7 +88,7 @@ namespace GeometryHelper.Dxf.Viewer
                 }
             }
 
-            string error = Writer(document.Database, label, value, entities[0], out Action<DxfEntity> write, out string normal);
+            string error = Writer(document.Database, label, value, vertex, entities[0], out Action<DxfEntity> write, out string normal);
 
             if (error != null)
             {
@@ -90,7 +99,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             for (int i = 0; i < entities.Count; i++)
             {
-                if (i > 0 && Writer(document.Database, label, value, entities[i], out _, out _) != null)
+                if (i > 0 && Writer(document.Database, label, value, vertex, entities[i], out _, out _) != null)
                 {
                     return CadEditResult.Refuse("The selected objects do not all have the property " + label + ".");
                 }
@@ -108,7 +117,7 @@ namespace GeometryHelper.Dxf.Viewer
                     }
 
                     DxfEntity entity = s.Document.FindEntity(record.Handle);
-                    Writer(s.Database, label, value, entity, out Action<DxfEntity> each, out _);
+                    Writer(s.Database, label, value, vertex, entity, out Action<DxfEntity> each, out _);
                     each(entity);
                 }
             });
@@ -134,12 +143,13 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>Works out how a value is written to an entity: null and the writer, or the reason it cannot be.</summary>
-        private static string Writer(DxfDatabase db, string label, string value, DxfEntity entity, out Action<DxfEntity> write, out string normal)
+        private static string Writer(DxfDatabase db, string label, string value, int vertex, DxfEntity entity, out Action<DxfEntity> write, out string normal)
         {
             write = null;
 
-            // AutoCAD reads a text override of one space as no text at all, so that one is kept as it is typed.
-            normal = label == "Text override" && value == " " ? value : value.Trim();
+            // AutoCAD reads a text override of one space as no text at all, so that one is kept as it is typed; so is a
+            // dimension's prefix or suffix, whose spaces stand between it and the measurement.
+            normal = (label == "Text override" && value == " ") || (entity is DxfDimension && (label == "Dim prefix" || label == "Dim suffix")) ? value : value.Trim();
             string text = normal;
 
             switch (label)
@@ -238,11 +248,11 @@ namespace GeometryHelper.Dxf.Viewer
                     }
             }
 
-            return Own(label, text, entity, ref write);
+            return Own(db, label, text, vertex, entity, ref write);
         }
 
         /// <summary>The rows of an entity's own kind.</summary>
-        private static string Own(string label, string text, DxfEntity entity, ref Action<DxfEntity> write)
+        private static string Own(DxfDatabase db, string label, string text, int vertex, DxfEntity entity, ref Action<DxfEntity> write)
         {
             bool number = Number(text, out double v);
             string notNumber = label + " is a number.";
@@ -310,6 +320,11 @@ namespace GeometryHelper.Dxf.Viewer
                     }
 
                     break;
+            }
+
+            if (More(db, label, text, vertex, entity, out write, out string error))
+            {
+                return error;
             }
 
             write = null;
@@ -502,7 +517,7 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>A lineweight as the palette writes it: ByLayer, ByBlock, Default, or one of AutoCAD's widths as 0.25 mm.</summary>
-        private static string ParseLineWeight(string text, out DxfLineWeight weight)
+        internal static string ParseLineWeight(string text, out DxfLineWeight weight)
         {
             weight = DxfLineWeight.ByLayer;
 
