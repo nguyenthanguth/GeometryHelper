@@ -8,10 +8,11 @@ namespace GeometryHelper.Dxf.Viewer
     /// <summary>The dimensions made in a row: DIMCONTINUE, DIMBASELINE and QDIM.</summary>
     /// <remarks>
     /// Each dimension is made as the DIM commands make one, in the current dimension style, with its picture in a block of its
-    /// own. DIMCONTINUE and DIMBASELINE go on from the last linear or angular dimension of the space, or one selected: a row of
-    /// 100 and 200 from (0, 0) along a dimension line 30 below gives, continued to (300, 0), a dimension of 200 on the same
-    /// line; based on it, a dimension of 300 from (0, 0) on a line DIMDLI further out. The whole run is one undo step, and
-    /// Undo inside takes back the last dimension made, as AutoCAD's.
+    /// own. DIMCONTINUE and DIMBASELINE go on from the last linear, ordinate or angular dimension of the space, or one selected:
+    /// a row of 100 and 200 from (0, 0) along a dimension line 30 below gives, continued to (300, 0), a dimension of 200 on the
+    /// same line; based on it, a dimension of 300 from (0, 0) on a line DIMDLI further out. Of an ordinate dimension, either
+    /// gives another from the same origin along the same axis, its leader ending level with the last's. The whole run is one
+    /// undo step, and Undo inside takes back the last dimension made, as AutoCAD's.
     /// </remarks>
     internal static partial class CadCommands
     {
@@ -19,6 +20,18 @@ namespace GeometryHelper.Dxf.Viewer
         private sealed class Chain
         {
             public bool Angular { get; set; }
+
+            /// <summary>Whether the row is of ordinate dimensions, each from <see cref="Origin"/>, its leader ending level with the last's.</summary>
+            public bool Ordinate { get; set; }
+
+            /// <summary>Whether an ordinate row measures along the X axis of its system.</summary>
+            public bool AlongX { get; set; }
+
+            /// <summary>How far the system of an ordinate row is turned, in radians.</summary>
+            public double Turn { get; set; }
+
+            /// <summary>Where the leader of the last ordinate dimension ends.</summary>
+            public GeoPoint2 LeaderEnd { get; set; }
 
             /// <summary>The direction measured along, in radians, of a linear row.</summary>
             public double Angle { get; set; }
@@ -61,7 +74,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             foreach (DxfEntity entity in c.Space.Block)
             {
-                if (entity is DxfDimension dimension && !dimension.IsErased && IsChained(dimension))
+                if (entity is DxfDimension dimension && !dimension.IsErased && (IsChained(dimension) || dimension is DxfOrdinateDimension))
                 {
                     last = dimension;
                 }
@@ -84,7 +97,7 @@ namespace GeometryHelper.Dxf.Viewer
                     }
 
                     DxfDimension picked = c.Document.FindEntity(c.Input.Handles[0]) as DxfDimension;
-                    chain = picked == null || !IsChained(picked) ? null : ChainOf(picked, c.Input.Point, baseline);
+                    chain = picked == null || !(IsChained(picked) || picked is DxfOrdinateDimension) ? null : ChainOf(picked, c.Input.Point, baseline);
 
                     if (chain == null)
                     {
@@ -94,7 +107,9 @@ namespace GeometryHelper.Dxf.Viewer
                     continue;
                 }
 
-                yield return CadPrompt.ForPoint("Specify a second extension line origin", chain.Origin, new[] { "Select", "Undo" }, "Select");
+                yield return chain.Ordinate
+                    ? CadPrompt.ForPoint("Specify feature location", null, new[] { "Select", "Undo" }, "Select")
+                    : CadPrompt.ForPoint("Specify a second extension line origin", chain.Origin, new[] { "Select", "Undo" }, "Select");
 
                 if (c.Input.IsPoint)
                 {
@@ -102,7 +117,16 @@ namespace GeometryHelper.Dxf.Viewer
                     double spacing = baseline ? style.Dimdli * (style.Dimscale > 0.0 ? style.Dimscale : 1.0) : 0.0;
                     string handle;
 
-                    if (chain.Angular)
+                    if (chain.Ordinate)
+                    {
+                        // Continued or based alike, an ordinate dimension measures from the same origin, its leader ending level with the last's.
+                        GeoVector2 square = chain.AlongX ? new GeoVector2(-Math.Sin(chain.Turn), Math.Cos(chain.Turn)) : new GeoVector2(Math.Cos(chain.Turn), Math.Sin(chain.Turn));
+                        GeoPoint2 feature = c.Input.Point;
+                        double across = (chain.LeaderEnd - feature).X * square.X + (chain.LeaderEnd - feature).Y * square.Y;
+                        next.LeaderEnd = feature + square * across;
+                        handle = OrdinateDimension(c, style, chain.AlongX, chain.Origin, chain.Turn, feature, next.LeaderEnd, null, null, true);
+                    }
+                    else if (chain.Angular)
                     {
                         next.Radius = chain.Radius + spacing;
                         handle = AngularDimension(c, style, chain.Vertex, chain.Origin, c.Input.Point, next.Radius, true);
@@ -118,7 +142,7 @@ namespace GeometryHelper.Dxf.Viewer
 
                     if (handle != null)
                     {
-                        if (!baseline)
+                        if (!baseline && !chain.Ordinate)
                         {
                             next.Origin = c.Input.Point;
                         }
@@ -186,6 +210,13 @@ namespace GeometryHelper.Dxf.Viewer
                     chain.Angle = Math.Atan2(second.Y - first.Y, second.X - first.X);
                     chain.Line = P2(aligned.DimLinePoint);
                     break;
+                case DxfOrdinateDimension ordinate:
+                    chain.Ordinate = true;
+                    chain.AlongX = ordinate.UsingXAxis;
+                    chain.Turn = -ordinate.HorizontalRotation;
+                    chain.Origin = P2(ordinate.Origin);
+                    chain.LeaderEnd = P2(ordinate.LeaderEndPoint);
+                    return chain;
                 default:
                     if (!AngularRays(dimension, out GeoPoint2 vertex, out first, out second, out double radius))
                     {
@@ -355,6 +386,7 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>
         /// QDIM: dimensions of the geometry selected, made at once where the dimension line is put: Continuous, a row end to
         /// end; Staggered, pairs from the outside in, nested DIMDLI apart; Baseline, each from the first point (or the datum);
+        /// Ordinate, an ordinate dimension of each from the datum (or the origin of the UCS), its leader ending on the line;
         /// Radius and Diameter, one of each circle and arc. The points are the ends of lines, the vertices of polylines and the
         /// centres of circles and arcs, measured level or upright by where the line is put, as DIMLINEAR measures.
         /// </summary>
@@ -423,13 +455,9 @@ namespace GeometryHelper.Dxf.Viewer
                     break;
                 }
 
-                if (c.Input.Is("Continuous") || c.Input.Is("Staggered") || c.Input.Is("Baseline") || c.Input.Is("Radius") || c.Input.Is("Diameter"))
+                if (c.Input.Is("Continuous") || c.Input.Is("Staggered") || c.Input.Is("Baseline") || c.Input.Is("Ordinate") || c.Input.Is("Radius") || c.Input.Is("Diameter"))
                 {
                     mode = c.Input.Text;
-                }
-                else if (c.Input.Is("Ordinate"))
-                {
-                    c.Write("Ordinate dimensions are not made yet.");
                 }
                 else if (c.Input.Is("datumPoint"))
                 {
@@ -600,6 +628,19 @@ namespace GeometryHelper.Dxf.Viewer
 
             switch (mode)
             {
+                case "Ordinate":
+                    // From the datum, else the origin of the UCS: along X where the line is put above or below the points, each
+                    // leader ending on it; else along Y.
+                    GeoPoint2 zero = datum ?? new GeoPoint2(ucs.Origin.X, ucs.Origin.Y);
+
+                    foreach (GeoPoint2 point in row)
+                    {
+                        GeoPoint2 u = ucs.ToUcs(point);
+                        GeoPoint2 end = ucs.ToWorld(level ? new GeoPoint2(u.X, at.Y) : new GeoPoint2(at.X, u.Y));
+                        made += OrdinateDimension(c, style, level, zero, ucs.Angle, point, end, null, null, false) != null ? 1 : 0;
+                    }
+
+                    break;
                 case "Baseline":
                     GeoPoint2 origin = datum ?? row[0];
                     int step = 0;

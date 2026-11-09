@@ -109,6 +109,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         public void ADimensionStyleModified_RedrawsTheDimensionsDrawnInIt_InOneUndoStep()
         {
             CadDocument document = Blank();
+            document.Database.DimStyleTable["Standard"].Dimtad = 1;
             CadCommandSession session = Session(document);
             string style = CadDimStyleEditor.Current(document.Database);
             Run(session, "DLI", P(0, 0), P(300, 0), P(150, -30));

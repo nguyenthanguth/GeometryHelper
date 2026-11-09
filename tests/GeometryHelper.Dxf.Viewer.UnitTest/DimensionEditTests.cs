@@ -24,6 +24,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         private static CadDocument WithDimension(out CadCommandSession session)
         {
             CadDocument document = Blank();
+            document.Database.DimStyleTable["Standard"].Dimtad = 1;
             session = Session(document);
             Run(session, "DLI", P(0, 0), P(100, 0), P(50, -30));
             return document;

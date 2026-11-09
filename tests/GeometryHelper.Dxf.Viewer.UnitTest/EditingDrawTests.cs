@@ -215,6 +215,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         public void DimLinearMeasuresLevelOrUprightByWhereItsLineIsPut_AndIsDrawnByABlockOfItsOwn()
         {
             CadDocument document = Blank();
+            document.Database.DimStyleTable["Standard"].Dimtad = 1;
             CadCommandSession session = Session(document);
 
             Run(session, "DLI", P(0, 0), P(300, 100));
