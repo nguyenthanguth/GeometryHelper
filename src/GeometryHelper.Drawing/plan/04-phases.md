@@ -21,6 +21,15 @@ Part B shows its sheets in it.
 | C8 | A | Repair of DXF files (RECOVER, AUDIT) and fonts (SHX and TrueType, font substitution, STYLE) | queued 2026-11-09 |
 | C9 | A | Linetypes as AutoCAD (LINETYPE manager, load from .lin, create simple and complex, LTSCALE) and HATCH creation (patterns, solid, gradient, from a point or objects) with HATCHEDIT | queued 2026-11-09 |
 | C10 | A | Style forms as AutoCAD: the Text Style dialog (STYLE) and the Dimension Style Manager (DIMSTYLE) with the style boxes of the Annotate tab, and a style of text, dimension and multileader applied by the commands | queued 2026-11-09 |
+| C11 | A | Modify commands: TRIM, EXTEND, OFFSET, FILLET, CHAMFER, STRETCH, ARRAY, BREAK, JOIN, LENGTHEN, ALIGN | queued 2026-11-09 (Part A first) |
+| C12 | A | Clipboard (COPYCLIP, CUTCLIP, PASTECLIP, COPYBASE, PASTEBLOCK) and text edited in place (TEXTEDIT, the MTEXT editor) | queued |
+| C13 | A | Blocks and attributes: BLOCK, INSERT, WBLOCK, ATTDEF, ATTEDIT, a light block editor | queued |
+| C14 | A | Dimension editing: DIMCONTINUE, DIMBASELINE, QDIM, DIMEDIT, DIMTEDIT, DIMSPACE, DIMBREAK | queued |
+| C15 | A | PLOT and PDF | queued |
+| C16 | A | The snaps left: Extension, Parallel, Apparent Intersection, Insertion, object snap tracking | queued |
+| C17 | A | QSELECT, FIND, DRAWORDER, GROUP, PURGE, selection cycling | queued |
+| C18 | A | Tables, external references, images | queued |
+| C19 | A | Speed at scale: open, display and edit of drawings of a million entities | queued |
 | G0 | B | Research and spec | spec done; the maintainer's list of Tekla faults not collected |
 | G1 | B | Hidden-line projection, written to DXF | built, awaiting review |
 | G2 | B | Views (viewports) and the drawing document L7, owners | built, awaiting review |
