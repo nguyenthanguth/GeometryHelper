@@ -77,7 +77,7 @@ the ones wanted.
       against AutoCAD (S)
 - [ ] Draw: AUDIT a drawing made with every ARC, CIRCLE, PLINE, TEXT and MTEXT option, and compare ARC and PLINE entity
       by entity with AutoCAD's own; check Ctrl, ANGDIR 1 and the MTEXT column defaults against AutoCAD (S)
-- [ ] Properties: MATCHPROP's Property Settings window restyled to the design (MatchPropSettings board, v104) (S)
+- [ ] Properties: MATCHPROP's Property Settings window restyled to the design (MatchPropSettings board, v104) (S) (running)
 - [ ] Properties: dimension rows Ext line fixed and length (core DIMFXLENON), Fill color, Fractional type, Text view
       direction, Text position X/Y; hatch origin kept through angle and scale; MATCHPROP plot style and gradient hatch (S)
 - [ ] Variables: PICKADD, POLARMODE, ATTREQ, ATTDIA, FILEDIA, CMDDIA; AUTOSNAP's other bits; DYNMODE values; ORTHOMODE
@@ -85,12 +85,12 @@ the ones wanted.
 - [ ] Utilities: command line AutoComplete (suggestions as you type, mid-string search, most used first) (M) (running)
 - [ ] Modify (running): PEDIT (Close/Open, Join, Width, Edit vertex, Fit/Spline/Decurve, Ltype gen, Reverse, Multiple; lines and
       arcs made a polyline) (L)
-- [ ] Layouts: the status bar's MODEL/PAPER button, viewport scale list and padlock restyled to the design (StatusSpace
+- [ ] Layouts (running): the status bar's MODEL/PAPER button, viewport scale list and padlock restyled to the design (StatusSpace
       board, v104); twisted viewports entered; one undo step per wheel or pan gesture; a ZOOM Previous list per viewport (S)
 - [ ] Files: recent files on the start screen and the application menu (S) (running)
 - [ ] Draw: REVCLOUD (Arc length, Object, Rectangular, Polygonal, Freehand, Style) (M) (running)
-- [ ] Layers: VP Freeze per viewport (VPLAYER, the Layer manager's VP columns, LAYVPI) (M)
-- [ ] Dimensions: MLEADERSTYLE, the Multileader Style Manager (M, design first)
+- [ ] Layers: VP Freeze per viewport (VPLAYER, the Layer manager's VP columns, LAYVPI) (M) (running)
+- [ ] Dimensions: MLEADERSTYLE, the Multileader Style Manager (M, design first) (running)
 - [ ] Dimensions: associative dimensions that follow their geometry (DIMASSOC 2, DIMREASSOCIATE) (L)
 - [ ] Blocks: BEDIT, the Block Editor (L, design first)
 - [ ] Blocks: dynamic blocks in use: custom grips (visibility, lookup, stretch, flip, rotate, array) and their Properties
