@@ -33,17 +33,22 @@ which aims to work like AutoCAD 2021 and replace it, and Part B, model drawings 
 - [x] XLINE and RAY: drawn, picked, snapped, previewed while moved
 - [x] Picking takes the object drawn on top (draw order)
 - [x] Ribbon shrinks to the window as AutoCAD's: Home, Annotate Dimensions panel, Text Editor tab
+- [x] C19 Speed at scale: an edit patches the display instead of redrawing it (1-line move at 1 000 000 entities 10.6 s -> 0.6 s)
 
 ### In progress
 
 - [ ] C18a Tables: TABLE, TABLESTYLE, editing cells, Table Cell tab (running)
-- [ ] C19 Speed at scale: drawings of 100 000 to 1 000 000 entities (running)
+
 - [ ] Ribbon round 3: Insert tab, Annotate and View shrink to 1 280 px (running)
 
 ### To do
 
 - [ ] Ribbon: check drop-downs at 125 % and 150 % display scaling; pin and Esc by hand
 - [ ] XLINE and RAY: pick and snap test only the visible part (they cost 9 times a line today)
+- [ ] Speed: undo by deltas (undo reloads the whole drawing, 2.5 s at 1 000 000 entities)
+- [ ] Speed: draw the first display off the UI thread (10–13 s at 1 000 000 entities)
+- [ ] Speed: frame at extents at 1 000 000 entities (0.8–1.1 s, inside Skia); level of detail would change pixels (needs a decision)
+- [ ] Speed: highlight of 100 000 selected objects (1.2–1.6 s)
 - [ ] Blocks: EATTEDIT stays open on Apply; INSERT drag preview; pick one ATTRIB in -ATTEDIT; ATTSYNC; BATTMAN
 - [ ] Blocks: Block Definition dialog previews the selected objects
 - [ ] Dimensions: DIMORDINATE (and its part in DIMCONTINUE, DIMBASELINE, QDIM), DIMJOGLINE, the DIM command

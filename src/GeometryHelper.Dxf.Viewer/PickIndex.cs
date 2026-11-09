@@ -381,7 +381,7 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>The place in the list of the last item an entity is drawn as: the higher, the nearer the top.</summary>
         private int Top(string handle)
         {
-            List<int> group = _byHandle[handle];
+            List<int> group = ByHandle()[handle];
             return group[group.Count - 1];
         }
 
