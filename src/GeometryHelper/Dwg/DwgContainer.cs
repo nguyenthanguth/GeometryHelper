@@ -7,9 +7,10 @@ namespace GeometryHelper.Dwg
     /// <summary>
     /// The parts of a DWG file taken out of its container, as the decoders of objects need them whatever the version: the
     /// version and the code page, the data of the header variables and of the classes, and the object map with the bytes
-    /// its offsets count into. Reading the container is the only step that knows where a version keeps its sections; of
-    /// the versions, R2000 (AC1015) is read, whose sections lie in the file as they are, found through the section
-    /// locator records of the file header.
+    /// its offsets count into. Reading the container is the only step that knows where a version keeps its sections. Of
+    /// R2000 (AC1015) the sections lie in the file as they are, found through the section locator records of the file
+    /// header; of R2004 (AC1018) and of R2010 to R2018 (AC1024, AC1027, AC1032) they are compressed pages, read in
+    /// DwgContainer.R2004.cs. R2007 (AC1021) has a container of its own and is not read yet.
     /// </summary>
     internal sealed partial class DwgContainer
     {

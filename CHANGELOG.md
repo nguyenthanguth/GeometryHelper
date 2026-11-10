@@ -6,18 +6,21 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
-**NEW.** `DwgReader` (namespace `GeometryHelper.Dwg`) reads a DWG file of AutoCAD 2000 (AC1015, which every later
-AutoCAD writes on "Save as AutoCAD 2000") by the library's own code, as the drawing its DXF would give:
+**NEW.** `DwgReader` (namespace `GeometryHelper.Dwg`) reads a DWG file of AutoCAD 2000 (AC1015), 2004 (AC1018), 2010
+(AC1024), 2013 (AC1027) and 2018 and later (AC1032) by the library's own code, as the drawing its DXF would give:
 `DwgReader.Read` gives the `DxfDocument` of `DxfReader` and `DwgReader.Open` the `DxfDatabase`, from a path or a stream.
 Read are the header variables, the classes, the nine tables, the blocks and layouts, LINE, POINT, CIRCLE, ARC, ELLIPSE,
 SPLINE, RAY, XLINE, LWPOLYLINE, POLYLINE with its vertices, TEXT, MTEXT, ATTDEF, INSERT with its ATTRIBs, SOLID, TRACE,
 3DFACE and DIMENSION, and of the objects DICTIONARY, XRECORD, LAYOUT, GROUP and MLINESTYLE, each with its layer,
-linetype, colour, lineweight, owner, reactors, extension dictionary and extended data. Eight drawings made in AutoCAD
-2021 come out group for group as the DXF AutoCAD writes of them, numbers to nine places. The types not read yet, VIEWPORT,
-HATCH and LEADER among them, are left out and counted by type in one Debug line; a DWG of another version is refused
-with a `NotSupportedException` that names it. Every check sum is checked: a wrong one in the header, the classes or the
-object map refuses the file with a `FormatException`, and one broken object is left out with a Warn line while the
-others are read. See the guide page "Reading DWG files".
+linetype, colour (from 2004 with its true colour and transparency), lineweight, owner, reactors, extension dictionary
+and extended data; texts of 2010 and later, UTF-16 in the file, come out letter for letter. Eight drawings made in
+AutoCAD 2021, in each of the five versions, and a drawing of 100 000 lines in each come out group for group as the DXF
+AutoCAD writes of them, numbers to nine places; the 100 000 lines read in about 0.75 s, against 0.27 s for AutoCAD's
+14 MB DXF of them. The types not read yet, VIEWPORT, HATCH and LEADER among them, are left out and counted by type in
+one Debug line; a DWG of another version, AutoCAD 2007 (AC1021) among them, is refused with a `NotSupportedException`
+that names it. Every check sum is checked, from 2004 those of every compressed page too: a wrong one in the header, the
+classes, the object map or a page refuses the file with a `FormatException`, and one broken object is left out with a
+Warn line while the others are read. See the guide page "Reading DWG files".
 
 **NEW.** DIMARC (DAR), the presenter's arc length dimension, as AutoCAD 2021 makes it and stored as the library's
 `DxfArcDimension`: Mtext and Text for its words, Angle for theirs, Partial for the length between two points of the arc,

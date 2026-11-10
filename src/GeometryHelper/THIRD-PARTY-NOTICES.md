@@ -58,9 +58,15 @@ Albert Domenech, as read at commit `c780699` of 10 November 2026. No file of ACa
 GeometryHelper decode the header variables and the objects of a DWG in the order ACadSharp's reader does, and are to be
 taken as derived from it:
 
-- `src/GeometryHelper/Dwg/DwgHeaderVariables.cs`: the header variables of AC1015.
+- `src/GeometryHelper/Dwg/DwgHeaderVariables.cs`: the header variables of AC1015 to AC1032, with their version
+  conditions.
 - `src/GeometryHelper/Dwg/DwgObjectReader.cs`, `DwgObjectReader.Entities.cs`, `DwgObjectReader.Tables.cs` and
-  `DwgObjectReader.Objects.cs`: the common data of objects and entities, and the entities, table records and objects.
+  `DwgObjectReader.Objects.cs`: the common data of objects and entities, and the entities, table records and objects,
+  with the fields of R2004 to R2018 (the colours, the owned objects, the string stream, the object head of R2010, the
+  classes of R2004 and later).
+- `src/GeometryHelper/Dwg/DwgContainer.R2004.cs` and `src/GeometryHelper/Dwg/DwgLz77.cs`: the container of AC1018 to
+  AC1032 (the masked file header, the page map and the section map, the pages) and the decompression of its pages,
+  whose handling of the codes 0x10 to 0x1F and of a first byte above 0x11 follows ACadSharp's.
 
 ```text
 MIT License

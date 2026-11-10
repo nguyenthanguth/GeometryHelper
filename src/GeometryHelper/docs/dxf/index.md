@@ -15,7 +15,7 @@ it was read. `DxfWriter` makes a file from nothing. The three meet: an entity of
 `DxfReader` would read for it by `GetGeometry()`, and a drawing begins as the text `DxfWriter` writes (see
 [The model](#the-model)).
 
-A DWG file of AutoCAD 2000 is read into the same two: [`DwgReader`](xref:GeometryHelper.Dwg.DwgReader)`.Read` gives the
+A DWG file of AutoCAD 2000, 2004, 2010, 2013 or 2018 is read into the same two: [`DwgReader`](xref:GeometryHelper.Dwg.DwgReader)`.Read` gives the
 `DxfDocument` and `DwgReader.Open` the `DxfDatabase` that the DXF of the drawing would give (see
 [Reading DWG files](dwg.md)).
 

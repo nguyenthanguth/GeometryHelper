@@ -1,4 +1,4 @@
-# 78 Our own DWG reader (W1: the bit layer and R2000)
+# 78 Our own DWG reader (W1: the bit layer and R2000; W2: R2004 to R2018)
 
 A DWG is read by code of our own into the records the library already has for a DXF, so that everything built on a DXF
 document works on a DWG: `DxfDatabase`, `DxfReader`, the presenter. Stage W1, done here, is the bit layer and the format
@@ -190,6 +190,95 @@ Robustness: files cut short, other versions, noise, a DXF, a byte changed in eac
 inside objects under a repaired check sum so that the decoders see them. A longer run of the same fuzz, 10 500 files
 read both as document and as database: 0 faults of another kind, none over 0.14 s.
 
+## W2: R2004, R2010, R2013, R2018
+
+| Path | What it holds |
+|---|---|
+| `src/GeometryHelper/Dwg/DwgContainer.R2004.cs` | the container of AC1018, AC1024, AC1027, AC1032: masked file header, page map, section map, pages |
+| `src/GeometryHelper/Dwg/DwgLz77.cs` | the decompression of a page |
+| `src/GeometryHelper/Dwg/DwgCrc.cs` | also the CRC-32 of the file header and the sums of a page |
+
+The file of R2004 and later: the version and a few fields at 0x00 (maintenance release 0x0B, code page 0x13, security
+flags 0x18), then 0x6C bytes at 0x80 masked by the series of a linear congruential generator from 1, which hold the place
+of the page map, the number of the page of the section map, and their CRC-32. The page map gives each page its number
+and size from 0x100 on; the section map gives each named section its size, the size of its pages, whether they are
+compressed, and its pages with their starts in the section. A data page has a head of 32 bytes masked by
+`0x4164536B ^ address`, with the sums of its data and of its head. The sections read are AcDb:Header, AcDb:Classes,
+AcDb:Handles (the object map, in the form of R2000), AcDb:AcDbObjects and AcDb:Template.
+
+DECIDED: every sum is checked: the CRC-32 of the file header (zip's, inverted before and after, over the 0x6C bytes with
+its own four zero), the sum of every system page (seeded by its head) and of every data page and its head. A wrong one
+refuses the file with a `FormatException`.
+
+DECIDED: a hostile length cannot make the reader allocate without bound. The sections of one file may decompress to at
+most 64 times the size of the file and 8 MB more, a page to at most 1 MB; a page that would write past its size, copy
+from before its start or read past its input is refused. AutoCAD's test drawings take 5 times their size or less.
+
+DECIDED: a file with the security flag of encrypted data, or a section marked encrypted, is a `NotSupportedException`.
+R2007 (AC1021) keeps its own container and is refused by name until W3.
+
+DECIDED: the decoders take the version. From R2004 an entity's colour is ENC (index, true colour, a colour book in the
+handles, transparency) and a table record's is CMC; an owner lists the entities it owns, which no longer name the next.
+From R2007 the texts are UTF-16 in a string stream at the end of the data, found from the flag before the handles; the
+header variables and the classes have their own string stream, and the header its own handle stream. From R2010 an
+object's head gives the size of its handles, and its type is two bits and bytes. R2013 adds a bit for data in the data
+store and the spline flags and knot parameterisation; R2018 an attribute type, the columns of an MTEXT and the linetypes
+of an MLINESTYLE by handle.
+
+DECIDED: BLL takes its count of bytes from three plain bits, not from the 3B code (as ACadSharp reads it); with the 3B
+code the header of R2013 and R2018 read wrongly.
+
+DECIDED: the DXF a DWG is turned into is of the DWG's own version: header variables, classes (with their count, group
+91), records and groups as AutoCAD writes that version. From R2007 its texts are UTF-8, as AutoCAD's DXF of those
+versions is; the bytes of one UTF-8 character are not split between the pieces of a long MTEXT.
+
+DECIDED: a true colour of a table record is written with the nearest colour index (62), which AutoCAD writes and the file
+does not hold (it holds 0 beside it). The palette is the library's but for the greys 250 to 255, which the library has as
+ezdxf does (250 black) and AutoCAD as 51, 80, 105, 130, 190, 255; the reader uses AutoCAD's there. A layer of RGB
+10, 200, 30 gets 102 and a viewport's ambient 0x333333 gets 250, as in AutoCAD's DXF.
+
+DECIDED: before R2010 `$XCLIPFRAME` is group 290, on or off; the value 2 of later releases is written 0, as AutoCAD
+writes it.
+
+DECIDED: from R2013 a closed spline is written periodic too (group 70 bit 2): AutoCAD keeps a periodic spline clamped and
+marked closed alone, and writes it periodic. Inferred from the one periodic spline of the test drawings.
+
+DECIDED: an attribute of several lines of R2018 (attribute type 2 or 4) holds an MTEXT of its own and is not read yet: it
+is counted with the types not read, not as broken.
+
+DECIDED: a colour of a book (flag 0x4000 of ENC) is read as the specification gives it, its RGB value following; no test
+drawing has one, and ACadSharp reads no RGB there. Group 430 is not looked up from the DBCOLOR object.
+
+DECIDED (W1's open questions, the maintainer's answers): the round-trip data of a true colour in an R2000 file is left as
+it is; three drawings a version are in the repository (curves, blocks, props: 284 KB gzipped for the four later
+versions), the other five run from a local test where `DWG_ANSWER_KEYS` names their folder and pass empty elsewhere;
+`DwgReader` stays apart from `DxfReader` (the app side is W6).
+
+DECIDED: anonymous blocks are numbered with one counter for every letter, in the order of the block table. A test drawing
+of *U, *D, *U, *D, *U blocks compares clean in all five versions.
+
+DECIDED: the normal of a planar spline off the XY plane keeps W1's rule (`DxfCurveTools.TryPlane`, its largest part
+positive). Of the ten splines of a test drawing in five tilted planes, by control points and by fit points, AutoCAD
+agrees on eight; for the plane facing (-1, -1, -2) it keeps the normal facing down. A rule by the turning of the points
+(Newell's) agreed on four only: AutoCAD's choice does not follow the turning, since the turning relative to the plane is
+the same in all five. Parked.
+
+What AutoCAD adds as it reads a drawing or writes its DXF, which the comparer leaves out on both sides and names in its
+remarks: the counts of the classes (group 91), the extended data `DbSaveVer` on the head of the VPORT table (R2013), the
+entry `ACDB_RECOMPOSE_DATA` of the root dictionary with its record, the dictionary
+`ACAD_ROUNDTRIP_2008_TABLESTYLE_CELLSTYLEMAP` with what it holds, the class and the object CELLSTYLEMAP (R2010 on), and
+`$INTERFEREOBJVS` and `$INTERFEREVPVS`, which a file of R2010 and later holds as no handle (its header data are read to
+their last bit, so the place is right).
+
+Proof: the eight drawings of W1 in AC1018, AC1024, AC1027 and AC1032, and a drawing of anonymous blocks, one of tilted
+splines and one of 100 000 lines in all five versions (probe `GhDwg2`, W1's route), compare with AutoCAD's DXF with no
+difference but the spline normals above. Fuzz: 12 800 changed copies of the 32 later drawings, half with bytes changed in
+the decompressed objects under a repaired check sum, each read or refused in under 0.14 s, the process under 36 MB; in
+the suite 3 000 pages of noise, 160 files changed anywhere and 480 changed inside objects.
+
+Speed, best of five, 100 000 lines: `DwgReader.Read` takes 720 to 771 ms in every version (418 to 477 ms of it to DXF),
+`DxfReader.Read` of AutoCAD's 14 MB DXF 246 to 303 ms.
+
 ## Left open by W1
 
 | What | State |
@@ -199,8 +288,8 @@ read both as document and as database: 0 faults of another kind, none over 0.14 
 | true colour in R2000 | the round-trip data is passed on as it is; it is not turned into group 420 |
 | polygon mesh, polyface mesh, MINSERT | decoded from the specification, with no test drawing from AutoCAD yet |
 | `$TDCREATE`, `$TDUPDATE` | not written (the file holds universal time only) |
-| anonymous blocks | one counter for `*D`, `*U` and the rest; checked with `*D` only. AutoCAD may count each letter apart |
-| normal of a spline off the XY plane | from `TryPlane`; its sign against AutoCAD's is checked only for planes AutoCAD drew in the tests |
+| anonymous blocks | settled in W2: one counter for every letter, as AutoCAD |
+| normal of a spline off the XY plane | W2: AutoCAD agrees on 8 of 10 tilted splines; parked (see W2) |
 | the preview image, the second header, the auxiliary header | skipped |
 | R13 and R14 (AC1012, AC1014) | refused by name; the container is the same as R2000's and the fields differ little, so they are cheap to add once the decoders take a version |
 
@@ -208,11 +297,9 @@ read both as document and as database: 0 faults of another kind, none over 0.14 
 
 | Stage | Needs |
 |---|---|
-| W2: R2004, R2010, R2013, R2018 (AC1018 to AC1032) | a second container behind the same hand-over (`Header`, `Classes`, `ObjectMap`, the bytes of the objects): the encrypted file header, the page map and section map, the LZ77 decompression of pages, the 32-bit check sum. Objects are no longer at offsets of the file but of the decompressed AcDbObjects section, so `DwgObjectReader` is to take that array. The decoders take the version: R2004 colours (CMC with a true colour and a book name), the count of owned objects in place of first and last handles, no next and previous links; R2010 the type as two bits and bytes, the size of the handle stream in the object's head; R2013 and R2018 a few more fields. The probe already wrote the eight drawings in AC1018, AC1021, AC1024, AC1027 and AC1032 with their answer keys (scratch, `out/`), ready to be the proof |
-| W3: R2007 (AC1021) | its own container (Reed-Solomon coded pages, its own compression) and the split of an object into data, text and handle streams with UTF-16 text; the text stream stays for R2010 and later, so W2 depends on the same split |
+| W2: R2004, R2010, R2013, R2018 (AC1018 to AC1032) | done, see W2 above. As planned: a second container behind the same hand-over (`Header`, `Classes`, `ObjectMap`, the bytes of the objects): the encrypted file header, the page map and section map, the LZ77 decompression of pages, the 32-bit check sum. Objects are no longer at offsets of the file but of the decompressed AcDbObjects section, so `DwgObjectReader` is to take that array. The decoders take the version: R2004 colours (CMC with a true colour and a book name), the count of owned objects in place of first and last handles, no next and previous links; R2010 the type as two bits and bytes, the size of the handle stream in the object's head; R2013 and R2018 a few more fields. The probe already wrote the eight drawings in AC1018, AC1021, AC1024, AC1027 and AC1032 with their answer keys (scratch, `out/`), ready to be the proof |
+| W3: R2007 (AC1021) | its own container (Reed-Solomon coded pages, its own compression, the CRCs of 64 bits). The decoders already take AC1021: every branch of W2 for the string stream, the UTF-16 texts and the fields of R2007 is written from 1021 up, and the object head of R2007 (a bit size, as R2000, with the string stream found from it) is in `DwgObjectReader.Read`. None of it has met a file of R2007 yet; the eight drawings of AC1021 with their keys are in W1's scratch, `out/` |
 | later: the entities and objects left out | a decoder each in `DwgObjectReader`, a drawing each from the probe; nothing in the container changes |
 | later: writing a DWG | the bit writer as the mirror of `DwgBitReader`, and the tables of `DwgHeaderVariables` and the decoders read the other way |
 
-Open questions for W2: whether the transcoder should turn R2000 round-trip colours into true colours once R2004's real
-ones are read; whether one entry point should take DWG and DXF alike; and whether the answer keys of the later
-versions, about 200 KB gzipped a version, all go into the repository or only two or three drawings a version.
+W1's open questions for W2 were answered by the maintainer and are DECIDED in the W2 section.
