@@ -13,7 +13,7 @@ namespace GeometryHelper.Dxf
     /// the node's id under AcDbBlockRepresentation, AppDataCache and ACAD_ENHANCEDBLOCKDATA of the INSERT's extension
     /// dictionary), else the block's own. Nothing is worked out anew: a length is that of the points saved.
     /// </summary>
-    internal static class DxfDynamicProperties
+    internal static partial class DxfDynamicProperties
     {
         private const double Turn = 2.0 * Math.PI;
 
@@ -52,6 +52,7 @@ namespace GeometryHelper.Dxf
             }
 
             Dictionary<string, DxfXrecord> saved = Saved(insert);
+            HashSet<string> shown = ShownInState(nodes, saved);
 
             // The properties each parameter gave, by its node's id, for a block properties table to read; and each table, by
             // the place of its property.
@@ -131,6 +132,8 @@ namespace GeometryHelper.Dxf
                 {
                     given.Add(id, properties.GetRange(before, properties.Count - before));
                 }
+
+                Shown(properties, before, node, shown);
             }
 
             // Each table reads the values the other properties show, so it is read last, in its place; one that cannot be read
@@ -510,7 +513,7 @@ namespace GeometryHelper.Dxf
                 }
             }
 
-            properties.Add(new DxfDynamicBlockReferenceProperty(Name(own, 305), Words(own, 306), state, 3, DxfDynamicBlockReferencePropertyUnitsType.NoUnits, false, FlipStates));
+            properties.Add(new DxfDynamicBlockReferenceProperty(Name(own, 305), Words(own, 306), state, 3, DxfDynamicBlockReferencePropertyUnitsType.NoUnits, false, FlipStates) { StateNames = FlipNames(groups) });
         }
 
         /// <summary>

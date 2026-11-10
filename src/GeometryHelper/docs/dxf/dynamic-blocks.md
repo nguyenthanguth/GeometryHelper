@@ -240,6 +240,44 @@ the evaluation graph, number for number. A block takes one visibility parameter,
 may take linear parameters besides: its INSERTs keep the state and the distances together. Writing the parameter takes a
 fifth of a millisecond.
 
+## Grips, reset and the states of a block
+
+`GetDynamicGrips` gives the custom grips AutoCAD shows on a dynamic INSERT selected, where the INSERT's values put them,
+in the coordinates of the file: of each linear, polar, XY, rotation and horizontal, vertical or radial constraint
+parameter the grip at its end, of each flip, point, visibility and lookup parameter its grip, in the order of the grips in
+the block's graph. Each `DxfDynamicBlockGrip` gives its `GripType`, its `Position`, the `BasePoint` its parameter measures
+from, the `Direction` an arrow points (along a linear parameter, across a flip's line, to the other side while flipped)
+and the `PropertyNames` it sets. A grip stands where the block puts it, moved as the point it follows moved: Width set to
+200 on an INSERT of the panel above at (1 000, 500) turned a quarter turn has its grip at (1 000, 700), its base point
+(1 000, 500) and its direction (0, 1). On AutoCAD 2021's Architectural and Annotation samples every custom grip
+`GetGripPoints` gave came out at its point and in its order (probe GhDyn1), Door Size of the Door at (750, 0), Hinge at
+(375, -312.5) and Opening Angle at (-125, 375), the grip of a block properties table apart, which is not given; nor are a
+linear parameter's base grip and an XY parameter's corner grips, as a value set moves the end alone.
+
+A block of a visibility parameter shows a parameter, its grip and its property in the states that list it, as AutoCAD's
+Block Editor lists them: `VisibleInCurrentVisibilityState` is false for the others, and their grips are not given, as
+AutoCAD 2021 showed no grip of the Angle of its Toilet sample in the state Elongated (Front). `Show` is the parameter's Show
+properties, false for Stud Height of AutoCAD's Stud sample; AutoCAD's Properties palette lists a property where both are
+true. `StateNames` gives the names of a flip's two states, Not flipped and Flipped, or Left and Right for Hinge of the
+Door sample. The library's own visibility parameter lists no other parameter in its states, so AutoCAD reads every other
+property of such a block as not visible and shows none of its grips.
+
+`ResetBlock` puts every value of the INSERT back to the block's own, as AutoCAD's `ResetBlock` and RESETBLOCK: the INSERT
+places the dynamic block again and its AcDbBlockRepresentation goes, the extension dictionary kept, as AutoCAD 2021 left
+it. The place, the scale and the ATTRIBs stay where they are, and the anonymous block stays in the drawing until purged:
+
+```csharp
+{
+    DxfBlockReference reset = db.ModelSpace.OfType<DxfBlockReference>().First(i => i.DynamicBlockTableRecord.Name == "PANEL");
+    reset.ResetBlock();
+    // reset.Name is PANEL again; Width reads 100.
+}
+```
+
+`GetVisibilityStates` lists a block's states, as the Block Editor's Visibility State box does, each a
+`DxfBlockVisibilityState` of its name and the entities it shows: SIGN reads Cross (the cross), Tick (the tick) and Blank
+(none), the frame in no state, shown in all three.
+
 ## See also
 
 - [Parameters and actions](dynamic-actions.md): move, scale, point, rotation, flip, XY, arrays, polar parameters and value sets.

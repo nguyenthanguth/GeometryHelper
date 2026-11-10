@@ -2354,6 +2354,21 @@ namespace GeometryHelper.Dxf
         /// </remarks>
         public DxfBlockPropertiesTable BlockPropertiesTable => _file == null || Item == null || IsErased ? null : DxfDynamicProperties.Table(this);
 
+        /// <summary>
+        /// Gets the visibility states of the dynamic block, as AutoCAD's Block Editor lists them in its Visibility State box:
+        /// each by its name, in the order of the block's visibility parameter, with the entities of the block it shows, in the
+        /// order the parameter lists them; read anew on each call.
+        /// </summary>
+        /// <returns>The states; empty where the block has no visibility parameter. An entity no state lists is shown in every
+        /// state, as the frame of a sign of the states Cross, Tick and Blank is; a handle the block has no entity of is passed
+        /// over.</returns>
+        /// <remarks>
+        /// The sign <see cref="AddVisibilityParameter"/> gave the states Cross (the cross), Tick (the tick) and Blank (nothing)
+        /// reads back so; AutoCAD's Door - Metric sample reads Open 30º, Open 45º, Open 60º, Open 90º and Closed, four entities
+        /// each.
+        /// </remarks>
+        public IReadOnlyList<DxfBlockVisibilityState> GetVisibilityStates() => _file == null || Item == null || IsErased ? new List<DxfBlockVisibilityState>().AsReadOnly() : DxfDynamicProperties.VisibilityStates(this);
+
         /// <summary>Whether two rows of a block properties table give each column the same: numbers within the tolerance of their kind, texts alike, empty cells alike.</summary>
         private static bool Same(DxfBlockPropertiesTableRow a, DxfBlockPropertiesTableRow b, List<DxfBlockPropertiesTableColumn> columns)
         {

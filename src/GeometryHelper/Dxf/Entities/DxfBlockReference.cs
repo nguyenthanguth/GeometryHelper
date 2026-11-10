@@ -623,7 +623,8 @@ namespace GeometryHelper.Dxf
         /// <see cref="DynamicBlockReferencePropertyCollection"/> reads the dynamic properties as AutoCAD saved them; a linear,
         /// XY, point, rotation, flip, visibility or lookup property of a block of the actions the library writes, or of the
         /// stretches and moves AutoCAD's Block Editor writes besides, is set by
-        /// <see cref="DxfDynamicBlockReferenceProperty.Value"/>, the others are not, nor is AutoCAD's <c>ResetBlock</c> given.
+        /// <see cref="DxfDynamicBlockReferenceProperty.Value"/>, the others are not; <see cref="ResetBlock"/> puts them all back
+        /// to the block's own, and <see cref="GetDynamicGrips"/> gives the custom grips that drive them.
         /// <see cref="ConvertToStaticBlock(string)"/> makes the INSERT place a plain copy of what it draws.
         /// </remarks>
         public bool IsDynamicBlock => Dynamic(out _) is DxfBlockTableRecord dynamic && dynamic.IsDynamicBlock && ScaledAlike();
@@ -701,6 +702,73 @@ namespace GeometryHelper.Dxf
         /// </para>
         /// </remarks>
         public IReadOnlyList<DxfDynamicBlockReferenceProperty> DynamicBlockReferencePropertyCollection => DxfDynamicProperties.Of(this, Dynamic(out _));
+
+        /// <summary>
+        /// Gets the custom grips AutoCAD shows on the INSERT of a dynamic block selected, where its values put them: a new list
+        /// on each call, in the order of the parameters of the block's graph. Empty where the INSERT places no dynamic block
+        /// (<see cref="IsDynamicBlock"/>).
+        /// </summary>
+        /// <returns>
+        /// The grips, each where the INSERT places it: of a linear, a polar or an XY parameter the grip at its end, of a rotation
+        /// parameter the grip at its end, of a flip parameter its grip, of a point, a visibility or a lookup parameter its grip,
+        /// where the parameter lists such a grip and gives a property that is not read only. The base grip of a linear, a polar
+        /// or an XY parameter and the corner grips of an XY one are not given, as a value set moves the end alone.
+        /// </returns>
+        /// <remarks>
+        /// <para>
+        /// A grip stands where the block puts it (the position of its grip object of the block's graph), moved as the point it
+        /// follows moved from the block's own to where the INSERT saved it (as AutoCAD saved it, or a value set here): the end
+        /// point of a parameter of two points, the base point of a flip parameter, the position of a point, a visibility or a
+        /// lookup parameter. A flip's grip flipped is mirrored about the reflection line and points the other way.
+        /// </para>
+        /// <para>
+        /// The door of AutoCAD 2021's Door - Metric sample at (0, 0) gives Door Size at (750, 0), Wall Thickness at (0, -100),
+        /// Hinge at (375, -312.5), Swing at (375, -150) and Opening Angle at (-125, 375), as AutoCAD gave them (plugin GhDyn1);
+        /// a rectangle of a Width from (0, 0) to (100, 0) set to 200 on an INSERT at (1 000, 500) gives Width at (1 200, 500),
+        /// its base point (1 000, 500) and its direction (1, 0).
+        /// </para>
+        /// </remarks>
+        public IReadOnlyList<DxfDynamicBlockGrip> GetDynamicGrips() => IsDynamicBlock ? DxfDynamicProperties.Grips(this, Dynamic(out _)) : new List<DxfDynamicBlockGrip>().AsReadOnly();
+
+        /// <summary>
+        /// Puts every dynamic property of the INSERT back to the dynamic block's own value, as AutoCAD's <c>ResetBlock</c> and
+        /// its RESETBLOCK command do: the INSERT places the dynamic block itself again, and its representation data (the entry
+        /// AcDbBlockRepresentation of its extension dictionary, with the values saved and the history of grip edits) is
+        /// removed, the dictionary kept, as AutoCAD 2021 left it (plugin GhDyn1). The INSERT keeps its place, rotation, scale and
+        /// ATTRIBs where they are, as AutoCAD kept the door's DOOR_NO at (2 800, -450) reset from a Width of 1 000 to its own
+        /// 900; the anonymous block it placed is left in the drawing, as AutoCAD left <c>*U2</c>. An INSERT that places the
+        /// dynamic block itself already has its representation data removed where it keeps some, and is left as it is where it
+        /// keeps none; one that places no dynamic block is left as it is.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">Thrown when the INSERT is in no drawing or is erased.</exception>
+        public void ResetBlock()
+        {
+            if (!IsResident || IsErased || Item.File.Database == null)
+            {
+                throw new InvalidOperationException("The INSERT of " + Name + " is in no drawing, or is erased, and is not reset.");
+            }
+
+            DxfBlockTableRecord dynamic = Dynamic(out DxfBlockTableRecord anonymous);
+            DxfDBDictionary extension = ExtensionDictionary;
+            bool kept = extension != null && extension.Contains("AcDbBlockRepresentation");
+
+            if (!IsDynamicBlock || (anonymous == null && !kept))
+            {
+                return;
+            }
+
+            if (anonymous != null)
+            {
+                BlockTableRecord = dynamic;
+            }
+
+            if (kept)
+            {
+                extension.Remove("AcDbBlockRepresentation");
+            }
+
+            GeometryHelperLog.Info("DxfDatabase: the INSERT " + (Handle ?? string.Empty) + " of the dynamic block " + dynamic.Name + " is reset" + (anonymous == null ? "." : " from " + anonymous.Name + "."));
+        }
 
         /// <summary>
         /// Gets the box the shapes of the block take where the INSERT places them, as AutoCAD's <c>GeometryExtentsBestFit</c>:

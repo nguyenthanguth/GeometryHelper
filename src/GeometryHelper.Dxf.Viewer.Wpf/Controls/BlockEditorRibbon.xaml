@@ -86,9 +86,8 @@
                     <Button Style="{DynamicResource BigButton}" Tag="{StaticResource IconVisibility}" Content="Visibility States" ToolTip="Authoring visibility states: not in this version" />
                     <StackPanel Width="150" Margin="0,2,0,0">
                         <ComboBox Style="{DynamicResource GhComboBox}" IsEnabled="{Binding HasVisibilityStates}" ToolTip="Current visibility state: live only for a block with visibility states"
-                                  AutomationProperties.Name="Current visibility state" Margin="0,0,0,4">
-                            <ComboBoxItem Content="{Binding VisibilityState}" IsSelected="True" />
-                        </ComboBox>
+                                  AutomationProperties.Name="Current visibility state" Margin="0,0,0,4"
+                                  ItemsSource="{Binding VisibilityStates}" SelectedItem="{Binding VisibilityState, Mode=TwoWay}" />
                         <Button Style="{DynamicResource SmallButton}" Content="Make Visible" ToolTip="Not in this version" />
                         <Button Style="{DynamicResource SmallButton}" Content="Make Invisible" ToolTip="Not in this version" />
                     </StackPanel>

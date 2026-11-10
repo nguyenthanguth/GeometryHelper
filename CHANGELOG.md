@@ -45,6 +45,23 @@ of each, as AutoCAD 2021 draws it: a dimension of 100 with arrowheads of 2.5 has
 filled ones too. The ticks, Dot small, Dot small blank, Integral and None run to the tip and, as AutoCAD's, never move
 outside a short dimension.
 
+**NEW.** Dynamic blocks in use, in the core: `DxfBlockReference.GetDynamicGrips()` gives the custom grips AutoCAD shows on
+a dynamic INSERT, where its values put them (`DxfDynamicBlockGrip`: `GripType`, `Position`, `BasePoint`, `Direction`,
+`PropertyNames`); on AutoCAD 2021's Architectural and Annotation samples every custom grip came out at AutoCAD's point and
+in its order, the block properties table's grip apart. `DxfBlockReference.ResetBlock()` puts every value back to the
+block's own as AutoCAD's ResetBlock does: the INSERT places the dynamic block again, its AcDbBlockRepresentation goes, its
+place and ATTRIBs stay. `DxfDynamicBlockReferenceProperty` gains AutoCAD's `Show` and `VisibleInCurrentVisibilityState`,
+and `StateNames`, Not flipped and Flipped of a flip; `DxfBlockTableRecord.GetVisibilityStates()` lists a block's states
+with the entities each shows.
+
+**NEW.** Dynamic blocks in the presenter, to AutoCAD 2021: a selected dynamic INSERT shows its custom grips (arrows,
+squares, circles, flip arrows and list triangles in the dynamic grip colour); a grip dragged sets its value, taken to the
+value set, a flip grip clicked flips, a visibility or lookup grip lists its values at the grip, the current ticked.
+Properties has the Custom group (lists as drop-downs, distances and angles typed) and names an anonymous copy by its
+dynamic block; RESETBLOCK and the right-click Reset Block put the values back; each change is one undo step. The Block
+Editor's Visibility State box is live for a block with states. AutoCAD 2021 read every value the presenter set on the
+library's dynamic samples as the library reads it, and AUDIT found no error.
+
 **FIXED.** The presenter's -GROUP on a DXF of R2000 written without its OBJECTS section said "Object reference not set to
 an instance of an object."; the drawing is now given the named object dictionary AutoCAD makes on opening it, and the
 group goes in, one undo taking both back.
