@@ -27,9 +27,12 @@ namespace GeometryHelper.Dxf.Viewer
         /// from 20 in to 17.5 and its line from 17.5 to past the words. The words stand on the line (DIMTAD 0, the line stopped
         /// short of them), above it as they read (1, 2, 3) or below (4); kept level (DIMTOH outside, DIMTIH inside) they stand on
         /// a level landing from the end of the line. <paramref name="placed"/> says the words were put by hand (DIMTEDIT): they
-        /// stay where they are put.
+        /// stay where they are put along the line. <paramref name="free"/> says they were put off it under DIMTMOVE 2: they stand
+        /// at <paramref name="location"/> itself, turned along the line, and the line is drawn inside as though they were not
+        /// there, from the centre (the back of the far arrowhead) to the back of the arrowhead inside the rim, broken where it
+        /// runs through them.
         /// </remarks>
-        internal static List<DxfEntity> Radial(DxfDimStyleTableRecord style, double dimscale, double textHeight, GeoPoint2 center, double radius, GeoPoint2 chord, GeoPoint2 far, GeoPoint2 location, bool diameter, string words, bool placed = false)
+        internal static List<DxfEntity> Radial(DxfDimStyleTableRecord style, double dimscale, double textHeight, GeoPoint2 center, double radius, GeoPoint2 chord, GeoPoint2 far, GeoPoint2 location, bool diameter, string words, bool placed = false, bool free = false)
         {
             Sizes(style, dimscale, textHeight, out double scale, out double arrow, out double height, out double gap, out _, out _);
             var picture = new List<DxfEntity>();
@@ -43,6 +46,12 @@ namespace GeometryHelper.Dxf.Viewer
             string farName = ArrowOf(style, DxfDimArrowFlag.SecondArrow);
             double trim = CadArrowheads.TakesNoRoom(nearName) ? 0.0 : arrow;
             double farTrim = CadArrowheads.TakesNoRoom(farName) ? 0.0 : arrow;
+
+            if (free)
+            {
+                return FreeRadial(style, picture, text, center, chord, far, location, u, aligned, diameter, width, height, gap, arrow, trim, farTrim);
+            }
+
             var words2 = new RoundWords(style, scale, height, gap, width);
             var lines = new List<KeyValuePair<GeoPoint2, GeoPoint2>>();
             bool arrowOut;
@@ -184,6 +193,45 @@ namespace GeometryHelper.Dxf.Viewer
                 AddCenterMark(picture, style, center, radius, scale);
             }
 
+            picture.Add(Definition(diameter ? far : center));
+            picture.Add(Definition(chord));
+            return picture;
+        }
+
+        /// <summary>
+        /// The picture of a radius or a diameter whose words were put off its line under DIMTMOVE 2, as AutoCAD 2021 draws it:
+        /// the words at their point, turned along the line; the line inside from the centre, or the back of the far arrowhead,
+        /// to the back of the arrowhead inside the rim, taken out for DIMGAP and half their width either side where it runs
+        /// through them. A diameter of 40 at 30 degrees with "%%c40" put 8 out along its line has its line from 17.5 back to
+        /// 4.229 and from 11.771 on to 17.5.
+        /// </summary>
+        private static List<DxfEntity> FreeRadial(DxfDimStyleTableRecord style, List<DxfEntity> picture, DxfMText text, GeoPoint2 center, GeoPoint2 chord, GeoPoint2 far, GeoPoint2 location, GeoVector2 u, double angle, bool diameter, double width, double height, double gap, double arrow, double trim, double farTrim)
+        {
+            GeoPoint2 from = diameter ? far + u * farTrim : center;
+            var lines = new List<KeyValuePair<GeoPoint2, GeoPoint2>> { new KeyValuePair<GeoPoint2, GeoPoint2>(from, chord - u * trim) };
+            double across = Cross(u, location - center);
+
+            if (Math.Abs(across) < height / 2.0 + gap)
+            {
+                lines = Broken(lines, location - new GeoVector2(-u.Y, u.X) * across, u, width / 2.0 + gap);
+            }
+
+            foreach (KeyValuePair<GeoPoint2, GeoPoint2> line in lines)
+            {
+                picture.Add(Lined(new DxfLine(P3(line.Key), P3(line.Value)), style.Dimclrd, style.Dimlwd));
+            }
+
+            AddArrow(picture, style, DxfDimArrowFlag.FirstArrow, chord, u, arrow);
+
+            if (diameter)
+            {
+                AddArrow(picture, style, DxfDimArrowFlag.SecondArrow, far, -u, arrow);
+            }
+
+            text.Location = P3(location);
+            text.Rotation = angle < 0.0 ? angle + 2.0 * Math.PI : angle;
+            picture.Add(text);
+            AddFrame(picture, style, location, angle, width, height, gap);
             picture.Add(Definition(diameter ? far : center));
             picture.Add(Definition(chord));
             return picture;
@@ -387,8 +435,10 @@ namespace GeometryHelper.Dxf.Viewer
         /// the arrowheads where it takes two of them, both where it takes the words and the arrowheads.
         /// </para>
         /// <para>
-        /// <paramref name="placed"/> is where the words were put by hand (DIMTEDIT): turned along the arc there for DIMTMOVE 0
-        /// and 2, level with a leader from the middle of the arc and a landing an arrowhead long for 1.
+        /// <paramref name="placed"/> is where the words were put by hand (DIMTEDIT): for DIMTMOVE 0 a point of the arc, the words
+        /// standing on it there as in the middle of the arc (above it as they read for DIMTAD 1, "60%%d" put 50 out at 30
+        /// degrees centred 51.9 out); for 2 the words' own point, turned along the arc; for 1 the words' point too, level, with a
+        /// leader from the middle of the arc and a landing an arrowhead long.
         /// </para>
         /// </remarks>
         internal static List<DxfEntity> Angular(DxfDimStyleTableRecord style, double dimscale, double textHeight, GeoPoint2 vertex, double radius, double from, double sweep, double[] near, double[] far, string words, GeoPoint2? placed = null)
@@ -495,7 +545,33 @@ namespace GeometryHelper.Dxf.Viewer
             double breakFrom = 0.0;
             double breakTo = 0.0;
 
-            if (placed.HasValue)
+            if (placed.HasValue && style.Dimtmove == 0)
+            {
+                // Put by hand with the arc moving with them: the arc runs through their point, and they stand on it there as
+                // in the middle of the arc, above it as they read for DIMTAD 1, on it for 0 with the arc broken about them.
+                double theta = Math.Atan2(placed.Value.Y - vertex.Y, placed.Value.X - vertex.X);
+                double tangent = Readable(theta + Math.PI / 2.0);
+                var up = new GeoVector2(-Math.Sin(tangent), Math.Cos(tangent));
+                double upSide = tad == 4 ? -1.0 : tad == 2 ? Sign(Dot(up, away)) : 1.0;
+
+                if (levelInside)
+                {
+                    textAngle = 0.0;
+                    double off = (width / 2.0 + gap) * Math.Abs(Math.Sin(tangent)) + (height / 2.0 + gap) * Math.Abs(Math.Cos(tangent));
+                    at = onInside ? placed.Value : placed.Value + up * (upSide * off);
+                }
+                else
+                {
+                    textAngle = tangent;
+                    at = onInside ? placed.Value + up * onOffset : placed.Value + up * (upSide * lift);
+                }
+
+                if (onInside && arrowsInside)
+                {
+                    LevelBreak(vertex, radius, at, textAngle, width, height, gap, theta, out breakFrom, out breakTo);
+                }
+            }
+            else if (placed.HasValue)
             {
                 at = placed.Value;
                 double toward = Math.Atan2(at.Y - vertex.Y, at.X - vertex.X);
@@ -643,10 +719,13 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (!arrowsLeftOut)
             {
-                // Each arrowhead along the chord from its back on the arc to its tip on the ray.
+                // Each arrowhead along the chord from its back on the arc to its tip on the ray; one that takes no room, as a tick,
+                // along the arc at its tip, as AutoCAD 2021 turns it.
                 double sign = arrowsInside ? 1.0 : -1.0;
-                AddArrow(picture, style, DxfDimArrowFlag.FirstArrow, start2, UnitOf(start2 - (vertex + Heading(from + sign * turn) * radius)), arrow);
-                AddArrow(picture, style, DxfDimArrowFlag.SecondArrow, end2, UnitOf(end2 - (vertex + Heading(to - sign * turn) * radius)), arrow);
+                GeoVector2 firstWay = CadArrowheads.TakesNoRoom(firstName) ? new GeoVector2(Math.Sin(from), -Math.Cos(from)) * sign : UnitOf(start2 - (vertex + Heading(from + sign * turn) * radius));
+                GeoVector2 secondWay = CadArrowheads.TakesNoRoom(secondName) ? new GeoVector2(-Math.Sin(to), Math.Cos(to)) * sign : UnitOf(end2 - (vertex + Heading(to - sign * turn) * radius));
+                AddArrow(picture, style, DxfDimArrowFlag.FirstArrow, start2, firstWay, arrow);
+                AddArrow(picture, style, DxfDimArrowFlag.SecondArrow, end2, secondWay, arrow);
             }
 
             text.Location = P3(at);

@@ -67,10 +67,12 @@ namespace GeometryHelper.Dxf.Viewer
                 return null;
             }
 
-            // Words moved by DIMTEDIT stand where they were put, and words turned by DIMEDIT or DIMTEDIT read at their angle.
+            // Words moved by DIMTEDIT stand where they were put, and words turned by DIMEDIT or DIMTEDIT read at their angle. Those
+            // of a radius, a diameter or an angle are put by their picture about the point, which may be one of its line or arc.
             DxfMText words = picture.OfType<DxfMText>().FirstOrDefault();
+            bool round = dimension is DxfRadialDimension || dimension is DxfDiametricDimension || dimension is DxfPoint3AngularDimension || dimension is DxfLineAngularDimension2;
 
-            if (words != null && !dimension.UsingDefaultTextPosition)
+            if (words != null && !dimension.UsingDefaultTextPosition && !round)
             {
                 words.Location = dimension.TextPosition;
             }
@@ -262,7 +264,7 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>
         /// The picture of a radius or a diameter. Where the words stand along the line is read from the block as it was (its
         /// MTEXT's place along the chord), as the record keeps no point of them, or from the text's place where it was moved
-        /// (flag 128); on the rim where the block has none.
+        /// (flag 128); on the rim where the block has none. Words moved under DIMTMOVE 2 stand at the text's place itself.
         /// </summary>
         private static List<DxfEntity> RadialPicture(DxfDimension dimension, DxfDimStyleTableRecord style, double textHeight, GeoPoint2 center, GeoPoint2 chord, bool diameter)
         {
@@ -277,9 +279,11 @@ namespace GeometryHelper.Dxf.Viewer
             DxfMText words = dimension.DimBlock.OfType<DxfMText>().FirstOrDefault();
             GeoPoint2? placed = !dimension.UsingDefaultTextPosition ? P2(dimension.TextPosition) : words == null ? (GeoPoint2?)null : P2(words.Location);
             double reach = placed == null ? radius : (placed.Value - center).X * outward.X + (placed.Value - center).Y * outward.Y;
-            GeoPoint2 location = center + outward * reach;
+            // Words put off the line under DIMTMOVE 2 stand where they were put.
+            bool free = !dimension.UsingDefaultTextPosition && dimension.Dimtmove == 2;
+            GeoPoint2 location = free ? placed.Value : center + outward * reach;
             GeoPoint2 far = center - outward * radius;
-            return Radial(style, style.Dimscale, textHeight, center, radius, chord, far, location, diameter, Formatted(dimension, diameter ? 2.0 * radius : radius, diameter ? "%%c" : "R"), !dimension.UsingDefaultTextPosition);
+            return Radial(style, style.Dimscale, textHeight, center, radius, chord, far, location, diameter, Formatted(dimension, diameter ? 2.0 * radius : radius, diameter ? "%%c" : "R"), !dimension.UsingDefaultTextPosition, free);
         }
 
         private static List<DxfEntity> AngularPicture(DxfDimension dimension, DxfDimStyleTableRecord style, double textHeight, DxfLine first, DxfLine second, GeoPoint2 vertex, GeoPoint2[] points, GeoPoint2 location)

@@ -183,7 +183,7 @@ namespace GeometryHelper.Dxf.Viewer
                     }
                     else
                     {
-                        CadCommands.MoveWords(dimension, to);
+                        CadCommands.DragWords(dimension, to);
                     }
 
                     break;
@@ -202,7 +202,7 @@ namespace GeometryHelper.Dxf.Viewer
                     }
                     else
                     {
-                        CadCommands.MoveWords(dimension, to);
+                        CadCommands.DragWords(dimension, to);
                     }
 
                     break;
@@ -213,7 +213,7 @@ namespace GeometryHelper.Dxf.Viewer
                         case 1: three.XLine1Point = At(to, three.XLine1Point); break;
                         case 2: three.XLine2Point = At(to, three.XLine2Point); break;
                         case 3: three.ArcPoint = At(to, three.ArcPoint); break;
-                        default: CadCommands.MoveWords(dimension, to); break;
+                        default: CadCommands.DragWords(dimension, to); break;
                     }
 
                     break;
@@ -225,7 +225,7 @@ namespace GeometryHelper.Dxf.Viewer
                         case 2: two.XLine2Start = At(to, two.XLine2Start); break;
                         case 3: two.XLine2End = At(to, two.XLine2End); break;
                         case 4: two.ArcPoint = At(to, two.ArcPoint); break;
-                        default: CadCommands.MoveWords(dimension, to); break;
+                        default: CadCommands.DragWords(dimension, to); break;
                     }
 
                     break;
@@ -255,7 +255,7 @@ namespace GeometryHelper.Dxf.Viewer
         {
             if (gripIndex == 4)
             {
-                CadCommands.MoveWords(dimension, to);
+                CadCommands.DragWords(dimension, to);
                 return;
             }
 

@@ -401,7 +401,7 @@ namespace GeometryHelper.Dxf.Viewer
                     if (Prompt.Kind == CadPromptKind.Entity && Document.FindEntity(picked[0]) != null)
                     {
                         // The point the object was picked at goes with it, as UCS OBject takes the end of a line nearer the pick.
-                        return Answer(new CadInput(CadInputKind.Selection, point, 0.0, null, new[] { picked[0] }) { Shift = shift }, Prompt.Text, null);
+                        return Answer(new CadInput(CadInputKind.Selection, point, 0.0, null, new[] { picked[0] }) { Shift = shift, IsPickedAt = true }, Prompt.Text, null);
                     }
 
                     return TakeSelection(new[] { picked[0] }, point, shift, null, false);

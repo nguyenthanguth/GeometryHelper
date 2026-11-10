@@ -431,6 +431,19 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         [Fact]
+        public void TheTicksOfAnAngle_AreTurnedAlongTheArcAtTheirTips()
+        {
+            CadCommandSession session = Metric(s => { });
+            DxfDatabase database = session.Document.Database;
+            database.DimStyleTable["Standard"].Dimblk = CadArrowheads.Ensure(database, "Oblique");
+            Run(session, "DAN", Enter, P(0, 0), P(40, 0), Polar(60, 40), Polar(30, 30));
+
+            // AutoCAD 2021: the tick at 30 on the first ray from (28.75, 1.25) to (31.25, -1.25), the arc there running down.
+            HasLine(Made(session), P(28.75, 1.25), P(31.25, -1.25));
+            HasLine(Made(session), new GeoPoint2(16.7075, 26.4383), new GeoPoint2(13.2925, 25.5232));
+        }
+
+        [Fact]
         public void AnArrowheadThatTakesNoRoom_StaysInsideAShortLine()
         {
             CadCommandSession session = Metric(s => s.Dimtad = 1);
@@ -548,6 +561,100 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             CadCommandSession session = Metric(s => { });
             Run(session, "DLI", P(0, 0), P(60, 40), P(30, 40));
             HasLine(Made(session), P(60, 40.625), P(60, 41.25));
+        }
+
+        [Fact]
+        public void DimteditOfAnAngleUnderDimtmove0_RunsTheArcThroughThePoint_TheWordsAboveItAsTheyRead()
+        {
+            CadCommandSession session = Arial(s => s.Dimtmove = 0);
+            Run(session, "DAN", Enter, P(0, 0), P(40, 0), Polar(60, 40), Polar(30, 30));
+            DxfDimension dimension = Made(session);
+            Run(session, "DIMTEDIT", new[] { dimension.Handle }, Polar(30, 50));
+
+            // AutoCAD 2021: the arc 50 from the vertex, the words "60°" 1.902 further out, the text's point the one given.
+            HasArc(dimension, 50, 2.865, 57.135);
+            Near(new GeoPoint2(44.948, 25.9507), P2(Words(dimension).Location), 1E-3);
+            Near(Polar(30, 50), P2(dimension.TextPosition), 1E-9);
+
+            // Past the second ray, at 80 degrees: the arc 35 out, the words on it there, turned along it.
+            Run(session, "DIMTEDIT", new[] { dimension.Handle }, Polar(80, 35));
+            HasArc(dimension, 35, 4.091, 55.909);
+            Near(new GeoPoint2(6.4079, 36.3408), P2(Words(dimension).Location), 1E-3);
+            Assert.Equal(6.1087, Words(dimension).Rotation, 3);
+        }
+
+        [Fact]
+        public void DimteditOfARadiusUnderDimtmove0And1_SlidesTheWordsAlongItsLine_Under2PutsThemAtThePoint()
+        {
+            foreach (int move in new[] { 0, 1 })
+            {
+                CadCommandSession session = Arial(s => s.Dimtmove = move);
+                Run(session, "DRA", new[] { Circle(session, 20) }, At30(45));
+                DxfDimension dimension = Made(session);
+                Run(session, "DIMTEDIT", new[] { dimension.Handle }, Polar(60, 50));
+
+                // AutoCAD 2021: the line stays at 30 degrees; the words 43.3 out along it, where the point falls on it.
+                var radial = (DxfRadialDimension)dimension;
+                Near(At30(20), P2(radial.ChordPoint), 1E-9);
+                Near(new GeoPoint2(37.5, 21.6506), P2(dimension.TextPosition), 1E-3);
+                Near(new GeoPoint2(36.5493, 23.2973), P2(Words(dimension).Location), 1E-3);
+                HasLine(dimension, new GeoPoint2(40.6243, 23.4544), new GeoPoint2(19.4856, 11.25));
+            }
+
+            CadCommandSession free = Arial(s => s.Dimtmove = 2);
+            Run(free, "DRA", new[] { Circle(free, 20) }, At30(45));
+            DxfDimension moved = Made(free);
+            Run(free, "DIMTEDIT", new[] { moved.Handle }, Polar(60, 50));
+
+            // AutoCAD 2021: the words at the point, turned along the line; the line from the centre to the arrowhead inside.
+            Near(Polar(60, 50), P2(Words(moved).Location), 1E-9);
+            Assert.Equal(Math.PI / 6.0, Words(moved).Rotation, 9);
+            HasLine(moved, P(0, 0), new GeoPoint2(15.1554, 8.75));
+            Assert.Single(Lines(moved));
+            ArrowAt(moved, At30(20));
+        }
+
+        [Fact]
+        public void ARadiusMadeUnderDimtmove1And2_KeepsItsLineThroughThePointTheCircleWasPickedAt()
+        {
+            // AutoCAD 2021, the circle picked at 30 degrees and the line put 45 out at 70: under 1 the line stays at 30, the
+            // words 34.47 out along it; under 2 the words at the point itself, the line inside.
+            CadCommandSession session = Arial(s => s.Dimtmove = 1);
+            Circle(session, 20);
+            Run(session, "DRA", Polar(30, 20), Polar(70, 45));
+            var slid = (DxfRadialDimension)Made(session);
+            Near(At30(20), P2(slid.ChordPoint), 1E-9);
+            Near(new GeoPoint2(29.8536, 17.236), P2(slid.TextPosition), 1E-3);
+            Near(new GeoPoint2(28.9029, 18.8827), P2(Words(slid).Location), 1E-3);
+            HasLine(slid, new GeoPoint2(32.9779, 19.0398), new GeoPoint2(19.4856, 11.25));
+
+            session = Arial(s => s.Dimtmove = 2);
+            Circle(session, 20);
+            Run(session, "DRA", Polar(30, 20), Polar(70, 45));
+            var free = (DxfRadialDimension)Made(session);
+            Near(At30(20), P2(free.ChordPoint), 1E-9);
+            Near(Polar(70, 45), P2(Words(free).Location), 1E-9);
+            HasLine(free, P(0, 0), new GeoPoint2(15.1554, 8.75));
+
+            // Under 0 the line turns to the point, as before.
+            session = Arial(s => s.Dimtmove = 0);
+            Circle(session, 20);
+            Run(session, "DRA", Polar(30, 20), Polar(70, 45));
+            Near(Polar(70, 20), P2(((DxfRadialDimension)Made(session)).ChordPoint), 1E-9);
+        }
+
+        [Fact]
+        public void ADiameterMadeUnderDimtmove2_HasItsWordsAtThePoint_TheLineBrokenAboutThem()
+        {
+            CadCommandSession session = Arial(s => s.Dimtmove = 2);
+            Run(session, "DDI", new[] { Circle(session, 20) }, At30(8));
+            DxfDimension dimension = Made(session);
+
+            // AutoCAD 2021: "%%c40" at the point, the line between the backs of the arrowheads broken 3.771 either side of it.
+            Near(At30(8), P2(Words(dimension).Location), 1E-9);
+            HasLine(dimension, new GeoPoint2(-15.1554, -8.75), new GeoPoint2(3.6621, 2.1143));
+            HasLine(dimension, new GeoPoint2(15.1554, 8.75), new GeoPoint2(10.1943, 5.8857));
+            Assert.Equal(2, Solids(dimension).Count);
         }
     }
 }
