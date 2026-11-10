@@ -67,8 +67,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Near(new GeoPoint3(50, -30, 0), Words(dimension).Location);
             List<DxfLine> line = OnLevel(dimension, -30);
             Assert.Equal(2, line.Count);
-            Assert.Equal(0, Left(line[0]), 9);
-            Assert.Equal(100, Right(line[1]), 9);
+
+            // From the back of each arrowhead, as AutoCAD 2021 draws the line: 2.5 to 97.5.
+            Assert.Equal(Arrow, Left(line[0]), 9);
+            Assert.Equal(100 - Arrow, Right(line[1]), 9);
             Assert.Equal(100, Right(line[0]) + Left(line[1]), 9);
             Assert.True(Right(line[0]) < 50 - Gap);
             AssertReopens(session.Document);
@@ -84,8 +86,8 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             DxfDimension dimension = Made(session);
             Near(new GeoPoint3(50, -30 + Lift, 0), Words(dimension).Location);
             DxfLine line = Assert.Single(OnLevel(dimension, -30));
-            Assert.Equal(0, Left(line), 9);
-            Assert.Equal(100, Right(line), 9);
+            Assert.Equal(Arrow, Left(line), 9);
+            Assert.Equal(100 - Arrow, Right(line), 9);
         }
 
         [Fact]
