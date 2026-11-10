@@ -396,6 +396,12 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         internal IReadOnlyList<KeyValuePair<string, GeoPoint2>> Clicks { get; set; } = Array.Empty<KeyValuePair<string, GeoPoint2>>();
 
+        /// <summary>
+        /// The objects of a selection that windows or crossing boxes alone took, each with the box and whether it crossed, in
+        /// the order taken; an object another option took whole as well is not among them. Empty for every other answer.
+        /// </summary>
+        internal IReadOnlyList<Tuple<string, DisplayBox, bool>> Windows { get; set; } = Array.Empty<Tuple<string, DisplayBox, bool>>();
+
         /// <summary>The object snap a point answer was picked with (<see cref="CadCommandSession.Feed(CadSnapResult, bool)"/>), which an associative dimension ties its point to; null for a point typed or picked with none.</summary>
         internal CadSnapResult Snap { get; set; }
 

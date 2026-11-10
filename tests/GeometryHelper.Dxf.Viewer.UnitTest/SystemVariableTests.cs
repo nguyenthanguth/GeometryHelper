@@ -201,9 +201,9 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Equal(
                 new[]
                 {
-                    "CANNOSCALE", "CDATE", "CECOLOR", "CELTSCALE", "CELTYPE", "CELWEIGHT", "CHAMFERA", "CHAMFERB", "CLAYER", "DATE", "DIMASSOC", "DIMSCALE", "DIMSTYLE",
+                    "ATTREQ", "CANNOSCALE", "CDATE", "CECOLOR", "CELTSCALE", "CELTYPE", "CELWEIGHT", "CHAMFERA", "CHAMFERB", "CLAYER", "DATE", "DIMASSOC", "DIMSCALE", "DIMSTYLE",
                     "DWGNAME", "DWGPREFIX", "EXTMAX", "EXTMIN", "FILLETRAD", "IMAGEFRAME", "INSBASE", "LIMMAX", "LIMMIN", "LTSCALE", "LWDISPLAY", "MIRRTEXT",
-                    "MSLTSCALE", "OFFSETDIST", "ORTHOMODE", "PDMODE", "PDSIZE", "PICKFIRST", "PICKSTYLE", "PSLTSCALE", "SELECTIONCYCLING", "SORTENTS", "TEXTSIZE",
+                    "MSLTSCALE", "OFFSETDIST", "ORTHOMODE", "PDMODE", "PDSIZE", "PICKADD", "PICKFIRST", "PICKSTYLE", "PSLTSCALE", "SELECTIONCYCLING", "SORTENTS", "TEXTSIZE",
                     "TEXTSTYLE", "TILEMODE", "UCSNAME", "UCSORG",
                 },
                 registry.Variables.Select(v => v.Name));

@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using GeometryHelper.Dxf;
 using GeometryHelper.Geometry;
@@ -800,7 +802,69 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             bytes.Position = 0;
-            DxfDatabase database = DxfDatabase.Open(bytes);
+            Rebind(DxfDatabase.Open(bytes), records);
+        }
+
+        /// <summary>
+        /// Gives a drawing of R13 or later written without its OBJECTS section (as a program that writes only the tables, blocks
+        /// and entities saves one) the named object dictionary AutoCAD makes on opening it, so that a group or a style has a
+        /// dictionary to go in: an empty DICTIONARY, owned by none, in an OBJECTS section put before the end of the file, its
+        /// handle the next above every handle of the file. The drawing is read back with it, before the edit that needs it, so
+        /// that undoing that edit leaves the drawing as it was read; a drawing that has one, one of R12, or a binary one, is left.
+        /// </summary>
+        internal void EnsureNamedObjectsDictionary()
+        {
+            if (Database.NamedObjectsDictionary != null || Database.Version == null || string.CompareOrdinal(Database.Version, "AC1012") < 0)
+            {
+                return;
+            }
+
+            EnsureStart();
+            var raw = new MemoryStream();
+            Database.Save(raw);
+            Encoding latin = Encoding.GetEncoding(28591);
+            string text = latin.GetString(raw.GetBuffer(), 0, (int)raw.Length);
+            string newline = text.Contains("\r\n") ? "\r\n" : "\n";
+            string[] lines = text.Split('\n');
+            ulong top = 0;
+            int end = -1;
+
+            for (int i = 0; i + 1 < lines.Length; i += 2)
+            {
+                string code = lines[i].Trim();
+                string value = lines[i + 1].Trim();
+
+                if ((code == "5" || code == "105") && ulong.TryParse(value, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out ulong handle) && handle > top)
+                {
+                    top = handle;
+                }
+                else if (code == "0" && value == "EOF")
+                {
+                    end = i;
+                }
+            }
+
+            if (end < 0)
+            {
+                return;
+            }
+
+            string root = (top + 1).ToString("X", CultureInfo.InvariantCulture);
+            string section = string.Join(newline, "  0", "SECTION", "  2", "OBJECTS", "  0", "DICTIONARY", "  5", root, "330", "0", "100", "AcDbDictionary", "281", "     1", "  0", "ENDSEC") + newline;
+            int at = 0;
+
+            for (int i = 0; i < end; i++)
+            {
+                at += lines[i].Length + 1;
+            }
+
+            byte[] made = latin.GetBytes(text.Insert(at, section));
+            Rebind(DxfDatabase.Open(new MemoryStream(made)), null);
+        }
+
+        /// <summary>Points the document and its spaces at a drawing read anew; see <see cref="Reload"/>.</summary>
+        private void Rebind(DxfDatabase database, IReadOnlyList<CadEditRecord> records)
+        {
             var drop = new HashSet<CadSpace>(records == null ? _spaces : new List<CadSpace>());
             DisplayBuilder older = _builder;
             Database = database;

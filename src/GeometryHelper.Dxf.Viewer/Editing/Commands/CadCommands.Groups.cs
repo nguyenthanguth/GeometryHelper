@@ -413,13 +413,14 @@ namespace GeometryHelper.Dxf.Viewer
             var sorted = new List<string>(handles);
             sorted.Sort(StringComparer.OrdinalIgnoreCase);
             string made = null;
+            c.Document.EnsureNamedObjectsDictionary();
             CadEditResult result = c.Apply(new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "Group", null, name ?? "*") }, s =>
             {
                 DxfDBDictionary dictionary = s.Database.GroupDictionary;
 
                 if (dictionary == null)
                 {
-                    s.Database.NamedObjectsDictionary.SetAt("ACAD_GROUP", new DxfDBDictionary());
+                    (s.Database.NamedObjectsDictionary ?? throw new InvalidOperationException("A drawing of R12 has no dictionary to hold groups.")).SetAt("ACAD_GROUP", new DxfDBDictionary());
                     dictionary = s.Database.GroupDictionary;
                 }
 

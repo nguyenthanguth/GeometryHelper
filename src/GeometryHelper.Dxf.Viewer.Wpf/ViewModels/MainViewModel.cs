@@ -1571,7 +1571,23 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
         }
 
-        private void OnToggleChanged(object sender, PropertyChangedEventArgs e) => ApplyToggles();
+        private void OnToggleChanged(object sender, PropertyChangedEventArgs e)
+        {
+            ApplyToggles();
+
+            // ORTHO switched is written to the drawing's $ORTHOMODE too, as AutoCAD saves ORTHOMODE with the drawing.
+            if (sender is StatusToggleViewModel toggle && toggle.Name == "ORTHO" && _current?.Document != null && _current.Document.Database.Orthomode != toggle.IsOn)
+            {
+                try
+                {
+                    _current.Document.Database.Orthomode = toggle.IsOn;
+                }
+                catch (InvalidOperationException exception)
+                {
+                    GeometryHelperLog.Warn("MainViewModel: ORTHOMODE could not be written to the drawing.", exception);
+                }
+            }
+        }
 
         private void ApplyToggles()
         {

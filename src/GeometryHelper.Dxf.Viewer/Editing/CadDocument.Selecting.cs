@@ -31,6 +31,15 @@ namespace GeometryHelper.Dxf.Viewer
         public int PickFirst { get; set; } = 1;
 
         /// <summary>
+        /// Gets or sets PICKADD, as AutoCAD's: 1 (the default) and 2 add each object picked, or taken by a window, to those
+        /// selected, Shift taking it out; 0 makes what is picked last the selection, Shift adding to it. So with 0, a click on
+        /// line A and then on line B leaves B alone selected, and a click on B with Shift held leaves both. AutoCAD's 2 keeps what
+        /// its SELECT command took selected after it, which the presenter, with no SELECT, takes as 1. Kept by the presenter,
+        /// not in the drawing, as AutoCAD keeps it in the registry; the variable PICKADD sets it.
+        /// </summary>
+        public int PickAdd { get; set; } = 1;
+
+        /// <summary>
         /// Gets the objects a pick takes with PICKSTYLE on: those given, then the other members of each selectable group any of
         /// them is in, in ordinal order of their handles. A line and a circle of the group G1 and a text of none: picking the
         /// line gives the line and the circle. With PICKSTYLE off, those given.

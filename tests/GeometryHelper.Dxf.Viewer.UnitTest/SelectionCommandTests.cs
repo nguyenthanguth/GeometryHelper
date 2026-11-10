@@ -192,6 +192,39 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         [Fact]
+        public void PickaddZero_MakesWhatIsPickedLastTheObjectsSelected_AndShiftAddsToThem()
+        {
+            CadDocument document = Three(out string a, out string b, out string c);
+            CadCommandSession session = Run(Session(document), "PICKADD", "0");
+            Assert.Equal(0, document.PickAdd);
+
+            Run(session, "ERASE", new[] { a }, new[] { b });
+            Assert.True(session.FeedSelection(new[] { c }, true));
+            Run(session, Enter);
+
+            Assert.DoesNotContain(document.Database.ModelSpace, e => e.Handle == b || e.Handle == c);
+            Assert.Contains(document.Database.ModelSpace, e => e.Handle == a);
+        }
+
+        [Fact]
+        public void GroupTyped_OnADrawingOfR2000WithNoObjectsSection_MakesTheNamedObjectDictionary_AsAutoCadOpensOne()
+        {
+            // The plan is a DXF of R2000 written without its OBJECTS section, so without the dictionary that holds ACAD_GROUP.
+            CadDocument document = Plan();
+            Assert.Null(document.Database.NamedObjectsDictionary);
+
+            CadCommandSession session = Run(Session(document), "-GROUP", Enter, "PLATE", "Plate P1", new[] { "A1", "A2" }, Enter);
+
+            Assert.Equal("Group \"PLATE\" has been created.", session.History.Last());
+            var group = (DxfGroup)document.Database.GroupDictionary.GetAt("PLATE");
+            Assert.Equal(new[] { "A1", "A2" }, group.GetAllEntityIds().Select(e => e.Handle));
+            AssertReopens(document);
+
+            Assert.True(document.Undo());
+            Assert.Null(document.Database.GroupDictionary);
+        }
+
+        [Fact]
         public void PurgeLayers_AsksEachNameAndDeletesTheUnusedOnes_KeepingZeroDefpointsAndTheCurrentLayer()
         {
             var db = new DxfDatabase("AC1027");
