@@ -6,6 +6,19 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** The plane the DXF editing model finds for a 3D polyline or a spline no longer throws on points it cannot
+place. Points a nanometre off one line, as (0, 0, 0), (1 000, 0, 0) and (2 000, 1E-9, 0), or a normal given of length
+1E-7, threw "Cannot normalize a zero-length vector" out of `DxfPolyline3d.GetOffsetCurves`, the offsets of
+[`DxfSpline`](xref:GeometryHelper.Dxf.DxfSpline), JOIN and the DWG reader; they now lie in their plane, (0, 0, 1) for those
+points. Points that give no plane at all (none, one, all within the point tolerance of the first, any not finite, or
+so far apart that the distance between them is past the largest double) give none: a curve of them is offset as one
+that lies in no plane, and the DWG reader still leaves out a spline of points 1E+233 apart as a broken object, now by
+its own check rather than by the throw.
+
+**FIXED.** The presenter's typed lengths and angles: a number past the largest double, as 400 nines in `999…9'`,
+`1-999…9/2` or `999…9d`, threw an `OverflowException` out of the prompt in .NET Framework, and `NaNg`, `NaNr` and
+`Infinityr` were read as angles of NaN and infinity. Each is now not read.
+
 **FIXED.** The presenter draws a layer switched off or frozen in a third of the time it took. An entity on a layer that
 is not shown is passed over before its own visibility is read from its groups, which cost near a microsecond each, and
 a display list made again after an edit is sized as the one before, not grown by doubling. In a drawing of 100 000

@@ -223,6 +223,12 @@ namespace GeometryHelper.Dwg
                 flags |= 8;
                 _object.AddPoint(210, new[] { normal.X, normal.Y, normal.Z });
             }
+            else if (Finite(shape) && FarApart(shape))
+            {
+                // Points so far apart that the distance between them is past the largest double give no plane to tell,
+                // and no drawing has them: broken bytes, one broken object.
+                throw new FormatException("The spline has points too far apart for their plane to be worked out.");
+            }
 
             _object.Add(70, flags);
             _object.Add(71, degree);
@@ -279,6 +285,20 @@ namespace GeometryHelper.Dwg
             }
 
             return true;
+        }
+
+        /// <summary>Whether finite points lie so far apart that the distance from the first to one of them is past the largest double.</summary>
+        private static bool FarApart(List<GeoPoint3> points)
+        {
+            foreach (GeoPoint3 point in points)
+            {
+                if (double.IsInfinity(points[0].GetVectorTo(point).Length))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         /// <summary>A TEXT (<paramref name="kind"/> 0), an ATTRIB (1) or an ATTDEF (2); false for an attribute of several lines, which is not read yet.</summary>
