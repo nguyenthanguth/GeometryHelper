@@ -180,12 +180,15 @@ the ones wanted.
 - [ ] Speed: draw the first display off the UI thread (10–13 s at 1 000 000 entities)
 - [ ] Speed: frame at extents at 1 000 000 entities (0.8–1.1 s, inside Skia); level of detail would change pixels (needs a decision)
 - [ ] Speed: highlight of 100 000 selected objects (1.2–1.6 s)
-- [ ] Dimensions (running): radius, diameter and angular pictures follow DIMTAD, DIMJUST and the fit rules (linear and ordinate do)
-- [ ] Dimensions (running): the dimension line starts at the back of a closed arrowhead, as AutoCAD draws it; words sized by the
-      font, not estimated
-- [ ] Dimensions (running): DIMTVP, DIMTMOVE 1's leader for words moved out by fit, DIMGAP below zero (box round the words);
+- [x] Dimensions: radius, diameter and angular pictures follow DIMTAD, DIMJUST and the fit rules (linear and ordinate do)
+- [x] Dimensions: the dimension line starts at the back of a closed arrowhead, as AutoCAD draws it
+- [x] Dimensions: DIMTVP, DIMTMOVE 1's leader for words moved out by fit, DIMGAP below zero (box round the words);
       DIMTEDIT on a DIMTAD 0 dimension puts the line through the words
-- [ ] Dimensions (running, not Mtext): DIM offers Jogged and Arc length, edits Mtext in the editor
+- [ ] Dimensions follow-ups: words sized by the font, not estimated; DIMJOGGED (prompts recorded, the jog picture not yet
+      derived: one chord at -23.6 deg unexplained); DIM offering Jogged and Arc length (2016+ DIM prompts not recordable
+      headless); DIM edits Mtext in the editor; parked: angles whose arc runs through their points (56 pictures, float
+      side choice), radius 3 circles under DIMTMOVE 1/2 with the point inside (28 pictures); DIMTEDIT Left/Right and
+      DIMTOH on slanted lines unprobed (M)
 - [ ] MTEXT (running): word wrap at the width, stacked fractions, columns; line spacing 5/3 as AutoCAD (check first)
 - [x] Clipboard: preview of the objects while PASTECLIP asks for the point
 - [ ] PLOT: print to Windows printers; add named page setups; embed only the glyphs used (smaller PDFs)
