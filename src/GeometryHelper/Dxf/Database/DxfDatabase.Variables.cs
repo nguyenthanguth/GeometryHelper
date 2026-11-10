@@ -14,9 +14,9 @@ namespace GeometryHelper.Dxf
     /// <remarks>
     /// Setting <c>db.Cannoscale = "1:50"</c> writes <c>1:50</c> into the DICTIONARYVAR CANNOSCALE, every other byte of the file
     /// kept; where the drawing has none, as a drawing of ezdxf, the DICTIONARYVAR is added, owned by the dictionary
-    /// AcDbVariableDictionary, which is added to the named object dictionary where that has none, as AutoCAD adds them. A
-    /// value the variable has changes nothing. A file of R12, or one whose CLASSES section lists no DICTIONARYVAR, has none to
-    /// set.
+    /// AcDbVariableDictionary, which is added to the named object dictionary where that has none, as AutoCAD adds them; and
+    /// where the CLASSES section lists no DICTIONARYVAR, as in a drawing the library made new, the class is listed as AutoCAD
+    /// 2021 lists it. A value the variable has changes nothing. A file of R12, or one with no CLASSES section, has none to set.
     /// </remarks>
     public sealed partial class DxfDatabase
     {
@@ -351,7 +351,7 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>The dictionary of variables of the named object dictionary; made where it is asked to be and there is none; null where it is not, or the file holds no objects.</summary>
-        /// <exception cref="InvalidOperationException">Thrown when one is to be made and the file has no OBJECTS section, no named object dictionary, or no class DICTIONARYVAR.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when one is to be made and the file has no OBJECTS section, no named object dictionary, or neither the class DICTIONARYVAR nor a CLASSES section to list it in.</exception>
         private DxfDBDictionary Variables(bool make)
         {
             DxfItem rootItem = File.HoldsObjects ? File.ObjectItem(File.RootDictionaryHandle()) : null;
@@ -359,9 +359,9 @@ namespace GeometryHelper.Dxf
 
             if (root != null && root.Contains(VariableDictionary) && root.GetAt(VariableDictionary) is DxfDBDictionary variables)
             {
-                if (make && !File.HasClass("DICTIONARYVAR"))
+                if (make && !File.ListDictionaryVariables())
                 {
-                    throw new InvalidOperationException("The file's CLASSES section lists no DICTIONARYVAR, which a variable kept out of the header is.");
+                    throw new InvalidOperationException("The file has no CLASSES section to list DICTIONARYVAR, which a variable kept out of the header is.");
                 }
 
                 return variables;
@@ -377,9 +377,9 @@ namespace GeometryHelper.Dxf
                 throw new InvalidOperationException("A DXF " + (Version ?? "with no version") + " has no named object dictionary to hold a variable kept out of the header: R13 (AC1012) brought it.");
             }
 
-            if (!File.HasClass("DICTIONARYVAR"))
+            if (!File.ListDictionaryVariables())
             {
-                throw new InvalidOperationException("The file's CLASSES section lists no DICTIONARYVAR, which a variable kept out of the header is.");
+                throw new InvalidOperationException("The file has no CLASSES section to list DICTIONARYVAR, which a variable kept out of the header is.");
             }
 
             DxfItem made = root.Add(VariableDictionary, "DICTIONARY", b =>

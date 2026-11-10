@@ -509,6 +509,9 @@ namespace GeometryHelper.Dxf
         /// <summary>The text of the first group of a code; null where the style has none.</summary>
         internal string Text(int code) => DxfLeaderGroups.Text(Groups(), code);
 
+        /// <summary>Sets the annotative flag of the style, its group 296, as <see cref="DxfDBObject.Annotative"/> sets it.</summary>
+        internal void SetAnnotativeGroup(bool on) => Set(296, on ? "1" : "0");
+
         /// <summary>The value the style Standard of ezdxf, and AutoCAD 2021's new style, has for a group of no handle.</summary>
         private static string Standard(int code)
         {

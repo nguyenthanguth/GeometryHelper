@@ -105,6 +105,35 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         [Fact]
+        public void ADrawingMadeNew_ListsTheClassDictionaryVarAsAutoCad2021_WhenItsFirstVariableIsSet()
+        {
+            // AutoCAD 2021's RXClass of AcDbDictionaryVar: DXF name DICTIONARYVAR, ObjectDBX Classes, proxy flags 0; counted
+            // once from R2004 on, as AutoCAD passes over every object of a class it counts 0.
+            const string Listed = "  0\nCLASS\n  1\nDICTIONARYVAR\n  2\nAcDbDictionaryVar\n  3\nObjectDBX Classes\n 90\n0\n 91\n1\n280\n0\n281\n0\n";
+            var db = new DxfDatabase("AC1027");
+            Assert.DoesNotContain("DICTIONARYVAR", db.ToText(), StringComparison.Ordinal);
+            db.NamedObjectsDictionary.SetAt("ACAD_MLEADERSTYLE", new DxfDBDictionary());
+            db.MLeaderStyleDictionary.SetAt("Standard", new DxfMLeaderStyle());
+            db.MLeaderStyleDictionary.SetAt("GH_NOTES", new DxfMLeaderStyle());
+
+            db.MLeaderstyle = "GH_NOTES";
+            db.MsLtScale = false;
+
+            string text = db.ToText().Replace("\r\n", "\n");
+            Assert.Single(Records(text), r => r == Listed);
+            Assert.Equal(2, Records(text).Count(r => r.StartsWith("  0\nDICTIONARYVAR\n", StringComparison.Ordinal)));
+            DxfDatabase again = DxfDatabase.Parse(text);
+            Assert.Equal("GH_NOTES", again.MLeaderstyle);
+            Assert.False(again.MsLtScale);
+
+            // R2000 counts no class.
+            var r2000 = new DxfDatabase("AC1015");
+            r2000.AnnoAllVisible = false;
+            Assert.Single(Records(r2000.ToText().Replace("\r\n", "\n")), r => r == Listed.Replace(" 91\n1\n", string.Empty));
+            Assert.False(DxfDatabase.Parse(r2000.ToText()).AnnoAllVisible);
+        }
+
+        [Fact]
         public void TheFittingVariablesOfTheHeader_AreReadAndSetInPlace()
         {
             string text = DxfFileEzdxfDrawings.R2018;

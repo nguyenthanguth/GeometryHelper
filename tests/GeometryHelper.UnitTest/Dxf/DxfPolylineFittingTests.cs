@@ -158,6 +158,222 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(3.0, joint.EndWidth, 12);
         }
 
+        [Fact]
+        public void AnOpenPolylineFittedWithACurve_IsTheArcsAutoCad2021Makes_VertexByVertex()
+        {
+            // PEDIT Fit in AutoCAD 2021, dumped with entnext: each row the x, y and bulge of a vertex, and 1 for one the fitting
+            // added. On (0, 0), (100, 0), (100, 50), (0, 80) the tangent at (100, 0) is 64.41 degrees, not the 63.43 of the
+            // circle through it and its neighbours.
+            Fitted(false, new[]
+            {
+                new[] { 0.0, 0.0, 0.28407904384, 0 },
+                new[] { 50.473479334062, -31.194325758915, 0.288680674965, 1 },
+                new[] { 100.0, 0.0, 0.112125437658, 0 },
+                new[] { 105.231629414823, 23.036060694724, 0.096115383771, 1 },
+                new[] { 100.0, 50.0, 0.227837791583, 0 },
+                new[] { 57.209372712299, 89.031242374329, 0.227837791583, 1 },
+                new[] { 0.0, 80.0, 0.0, 0 },
+            });
+
+            // Five vertices, two segments of them S-shaped.
+            Fitted(false, new[]
+            {
+                new[] { 0.0, 0.0, 0.077165813254, 0 },
+                new[] { 26.254994179079, 1.139371720445, 0.080049749463, 1 },
+                new[] { 50.0, 10.0, 0.206521601094, 0 },
+                new[] { 70.539518451053, 37.211853489124, -0.238127307995, 1 },
+                new[] { 90.0, 60.0, -0.342093110794, 0 },
+                new[] { 118.161285251997, 52.424770657694, 0.282114185974, 1 },
+                new[] { 150.0, 40.0, 0.153060539429, 0 },
+                new[] { 182.267044124121, 56.865668857406, 0.148068739112, 1 },
+                new[] { 200.0, 90.0, 0.0, 0 },
+            });
+
+            // Three vertices on a line: the segments between them stay straight, with no vertex added.
+            Fitted(false, new[]
+            {
+                new[] { 0.0, 0.0, 0.0, 0 },
+                new[] { 50.0, 0.0, 0.0, 0 },
+                new[] { 100.0, 0.0, 0.135932959546, 0 },
+                new[] { 120.195784467261, 5.593908456986, 0.072993423051, 1 },
+                new[] { 150.0, 30.0, 0.0, 0 },
+            });
+
+            // Two vertices: one straight segment.
+            Fitted(false, new[] { new[] { 0.0, 0.0, 0.0, 0 }, new[] { 100.0, 30.0, 0.0, 0 } });
+        }
+
+        [Fact]
+        public void AClosedPolylineFittedWithACurve_IsTheArcsAutoCad2021Makes_VertexByVertex()
+        {
+            Fitted(true, new[]
+            {
+                new[] { 0.0, 0.0, 0.172812229613, 0 },
+                new[] { 26.700146629128, -13.448730240108, 0.09476678955, 1 },
+                new[] { 80.0, -10.0, 0.083800121773, 0 },
+                new[] { 123.778578517857, 9.591967802102, 0.156867023795, 1 },
+                new[] { 140.0, 30.0, 0.270077423561, 0 },
+                new[] { 134.993810368845, 59.6671646671, 0.142395184431, 1 },
+                new[] { 90.0, 90.0, 0.139713433167, 0 },
+                new[] { 45.07564450748, 91.467350275556, 0.153304122779, 1 },
+                new[] { 10.0, 70.0, 0.144861085964, 0 },
+                new[] { -9.0822163568, 28.350185691233, 0.229888488787, 1 },
+            });
+
+            // A triangle: the tangent at each vertex halves the turn there.
+            Fitted(true, new[]
+            {
+                new[] { 0.0, 0.0, 0.259933205007, 0 },
+                new[] { 55.533722703826, -30.962078267641, 0.31385715039, 1 },
+                new[] { 100.0, 0.0, 0.31385715039, 0 },
+                new[] { 88.372072386924, 44.803662670615, 0.23095147812, 1 },
+                new[] { 30.0, 60.0, 0.23095147812, 0 },
+                new[] { -1.611170223595, 35.808795686246, 0.259933205007, 1 },
+            });
+        }
+
+        [Fact]
+        public void APolylineWithAVertexTwice_IsFittedAsTwoCurvesMeetingThere_AsAutoCad2021()
+        {
+            // Open: (0, 0) to (50, 0) is a curve of two vertices, straight, and the rest one of three, on a circle.
+            Fitted(false, new[]
+            {
+                new[] { 0.0, 0.0, 0.0, 0 },
+                new[] { 50.0, 0.0, 0.0, 0 },
+                new[] { 50.0, 0.0, -0.0954145724, 0 },
+                new[] { 71.148351928655, 24.814560089181, -0.0954145724, 1 },
+                new[] { 100.0, 40.0, -0.07369160123, 0 },
+                new[] { 125.0, 43.704698247833, -0.07369160123, 1 },
+                new[] { 150.0, 40.0, 0.0, 0 },
+            });
+
+            // Closed: one open curve from the second (100, 0) round to the first.
+            Fitted(true, new[]
+            {
+                new[] { 0.0, 0.0, 0.331569029865, 0 },
+                new[] { 49.488315753212, -36.871124127313, 0.326151839543, 1 },
+                new[] { 100.0, 0.0, 0.0, 0 },
+                new[] { 100.0, 0.0, 0.150562063818, 0 },
+                new[] { 119.676399450404, 27.524823611556, 0.157168438949, 1 },
+                new[] { 120.0, 60.0, 0.353633960665, 0 },
+                new[] { 76.219906898164, 89.259796985769, 0.225983379751, 1 },
+                new[] { 10.0, 50.0, 0.098754143785, 0 },
+                new[] { -1.084080240376, 23.358775322043, 0.122493327872, 1 },
+            });
+        }
+
+        [Fact]
+        public void ASegmentWhoseTangentIsAMillionthOfARadianOffItsChord_StaysStraight_AsAutoCad2021()
+        {
+            // (0, 0), (50, 0), (100, y), (150, 30): the circle through the first three leaves (0, 0) y / 100 radians off the
+            // chord. AutoCAD 2021 keeps the first segment straight at y = 0.0001 and fits it with arcs at y = 0.000101.
+            DxfDatabase db = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2000);
+            DxfPolyline2d straight = Plane(db, false, new GeoPoint3(0, 0, 0), new GeoPoint3(50, 0, 0), new GeoPoint3(100, 0.0001, 0), new GeoPoint3(150, 30, 0));
+            DxfPolyline2d bent = Plane(db, false, new GeoPoint3(0, 0, 0), new GeoPoint3(50, 0, 0), new GeoPoint3(100, 0.000101, 0), new GeoPoint3(150, 30, 0));
+
+            straight.CurveFit();
+            bent.CurveFit();
+
+            Assert.Equal(DxfVertex2dType.SimpleVertex, straight.ElementAt(1).VertexType);
+            Assert.Equal(0.0, straight.First().Bulge);
+            Assert.Equal(DxfVertex2dType.CurveFitVertex, bent.ElementAt(1).VertexType);
+            Assert.Equal(new[] { 0, 1, 0, 0, 1, 0 }, bent.Select(v => v.VertexType == DxfVertex2dType.CurveFitVertex ? 1 : 0).ToArray());
+        }
+
+        [Fact]
+        public void AVertexGivenItsTangent_IsFittedAlongIt_TheOthersAsBefore_TheVertexAddedAfterItKeepingTheDirection()
+        {
+            // AutoCAD 2021, PEDIT Edit vertex Tangent 30 at (100, 0), then Fit: the vertex added after it holds group 50 too.
+            DxfDatabase db = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2000);
+            DxfPolyline2d polyline = Plane(db, false, new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), new GeoPoint3(100, 50, 0), new GeoPoint3(0, 80, 0));
+            DxfVertex2d given = polyline.ElementAt(1);
+            given.Tangent = Math.PI / 6.0;
+            given.TangentUsed = true;
+
+            polyline.CurveFit();
+
+            Same(polyline, new[]
+            {
+                new[] { 0.0, 0.0, 0.28407904384, 0 },
+                new[] { 30.243146610746, -18.691292532187, 0.131652497587, 1 },
+                new[] { 100.0, 0.0, 0.267949192431, 0 },
+                new[] { 107.261031473914, 12.576475428175, 0.096115383771, 1 },
+                new[] { 100.0, 50.0, 0.227837791583, 0 },
+                new[] { 57.209372712299, 89.031242374329, 0.227837791583, 1 },
+                new[] { 0.0, 80.0, 0.0, 0 },
+            });
+            DxfVertex2d joint = polyline.ElementAt(3);
+            Assert.False(joint.TangentUsed);
+            Assert.Equal(Math.PI / 6.0, joint.Tangent, 12);
+            Assert.True(polyline.ElementAt(2).TangentUsed);
+        }
+
+        [Fact]
+        public void TheWidthsOfACurveFit_AreAutoCad2021s_OpenAndClosed()
+        {
+            // PLINE with widths 1 to 3, then 3 to 0.5, then 2 (open); 1 to 3, then 0.5 to 2, then 2 (closed); PEDIT Fit. Each
+            // row the start and end width of a vertex.
+            DxfDatabase db = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2000);
+            DxfPolyline2d open = Plane(db, false, new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), new GeoPoint3(100, 50, 0), new GeoPoint3(0, 80, 0));
+            Widths(open, 1, 3, 3, 0.5, 2, 2, 2, 2);
+            DxfPolyline2d closed = Plane(db, true, new GeoPoint3(0, 0, 0), new GeoPoint3(80, -10, 0), new GeoPoint3(140, 30, 0), new GeoPoint3(90, 90, 0), new GeoPoint3(10, 70, 0));
+            Widths(closed, 1, 3, 0.5, 2, 2, 2, 2, 2, 2, 2);
+
+            open.CurveFit();
+            closed.CurveFit();
+
+            Near(new[] { 1.0, 2.006008626782, 2.006008626782, 3.0, 3.0, 1.842688178646, 1.842688178646, 0.5, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0 }, open.SelectMany(v => new[] { v.StartWidth, v.EndWidth }).ToArray());
+            Near(new[] { 1.0, 1.724015528075, 1.724015528075, 3.0, 0.5, 1.467840348513, 1.467840348513, 2.0 }, closed.Take(4).SelectMany(v => new[] { v.StartWidth, v.EndWidth }).ToArray());
+            Assert.All(closed.Skip(4), v => Assert.Equal(new[] { 2.0, 2.0 }, new[] { v.StartWidth, v.EndWidth }));
+        }
+
+        private static void Near(double[] expected, double[] actual)
+        {
+            Assert.Equal(expected.Length, actual.Length);
+
+            for (int i = 0; i < expected.Length; i++)
+            {
+                Assert.Equal(expected[i], actual[i], 1E-9);
+            }
+        }
+
+        private static void Widths(DxfPolyline2d polyline, params double[] widths)
+        {
+            int i = 0;
+
+            foreach (DxfVertex2d vertex in polyline)
+            {
+                vertex.StartWidth = widths[i++];
+                vertex.EndWidth = widths[i++];
+            }
+        }
+
+        /// <summary>Fits the frame of the rows (those not added) with a curve and checks every vertex against them.</summary>
+        private static void Fitted(bool closed, double[][] expected)
+        {
+            DxfDatabase db = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2000);
+            DxfPolyline2d polyline = Plane(db, closed, expected.Where(r => r[3] == 0).Select(r => new GeoPoint3(r[0], r[1], 0)).ToArray());
+
+            polyline.CurveFit();
+
+            Same(polyline, expected);
+            Same(ByHandle<DxfPolyline2d>(DxfDatabase.Parse(db.ToText()), polyline.Handle), expected);
+        }
+
+        private static void Same(DxfPolyline2d polyline, double[][] expected)
+        {
+            List<DxfVertex2d> vertices = polyline.ToList();
+            Assert.Equal(expected.Length, vertices.Count);
+
+            for (int i = 0; i < expected.Length; i++)
+            {
+                Assert.Equal(expected[i][3] == 1 ? DxfVertex2dType.CurveFitVertex : DxfVertex2dType.SimpleVertex, vertices[i].VertexType);
+                Assert.Equal(expected[i][0], vertices[i].Position.X, 1E-9);
+                Assert.Equal(expected[i][1], vertices[i].Position.Y, 1E-9);
+                Assert.Equal(expected[i][2], vertices[i].Bulge, 1E-9);
+            }
+        }
+
         private static double ArcLength(DxfVertex2d from, DxfVertex2d to)
         {
             double chord = from.Position.DistanceTo(to.Position);
@@ -210,9 +426,10 @@ namespace GeometryHelper.UnitTest.Dxf
             polyline.PolyType = DxfPoly3dType.CubicSplinePoly;
 
             List<DxfPolylineVertex3d> vertices = polyline.ToList();
+            // The first vertex of the frame, the 9 of the curve, then the rest of the frame, as AutoCAD 2021 keeps them.
             Assert.Equal(13, vertices.Count);
-            Assert.All(vertices.Take(4), v => Assert.Equal(DxfVertex3dType.ControlVertex, v.VertexType));
-            Assert.All(vertices.Skip(4), v => Assert.Equal(DxfVertex3dType.FitVertex, v.VertexType));
+            Assert.All(new[] { vertices[0] }.Concat(vertices.Skip(10)), v => Assert.Equal(DxfVertex3dType.ControlVertex, v.VertexType));
+            Assert.All(vertices.Skip(1).Take(9), v => Assert.Equal(DxfVertex3dType.FitVertex, v.VertexType));
             Assert.True(polyline.EndPoint.IsEqualTo(new GeoPoint3(30, 10, 10), Tight));
             Assert.True(polyline.GetPointAtParameter(4).IsEqualTo(new GeoPoint3(15, 5, 5), Tight));
 
@@ -222,6 +439,38 @@ namespace GeometryHelper.UnitTest.Dxf
 
             again.ConvertToPolyType(DxfPoly3dType.SimplePoly);
             Assert.Equal(4, again.Count());
+        }
+
+        [Fact]
+        public void APolylineInSpaceFittedWithASpline_KeepsTheCurveAfterTheFirstOfTheFrame_AsAutoCad2021Keeps()
+        {
+            // 3DPOLY and PEDIT Spline in AutoCAD 2021 (SPLINETYPE 6, SPLINESEGS 8), walked with entnext: the first vertex of the
+            // frame, those of the curve, then the rest of the frame; open on five vertices, and closed on four.
+            DxfDatabase db = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2000);
+            var open = new DxfPolyline3d(DxfPoly3dType.SimplePoly, new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(10, 10, 5), new GeoPoint3(20, 0, 10), new GeoPoint3(30, 10, 0), new GeoPoint3(40, 0, 5) }, false);
+            var closed = new DxfPolyline3d(DxfPoly3dType.SimplePoly, new[] { new GeoPoint3(0, 0, 0), new GeoPoint3(10, 10, 5), new GeoPoint3(20, 0, 10), new GeoPoint3(30, 10, 0) }, true);
+            db.ModelSpace.AppendEntity(open);
+            db.ModelSpace.AppendEntity(closed);
+            string[] frame = open.Select(v => v.Handle).ToArray();
+
+            open.SplineFit(DxfPoly3dType.CubicSplinePoly, 8);
+            closed.SplineFit(DxfPoly3dType.CubicSplinePoly, 8);
+
+            List<DxfPolylineVertex3d> vertices = open.ToList();
+            Assert.Equal(5 + 17, vertices.Count);
+            Assert.Equal(frame, new[] { vertices[0] }.Concat(vertices.Skip(18)).Select(v => v.Handle).ToArray());
+            Assert.All(vertices.Skip(1).Take(17), v => Assert.Equal(DxfVertex3dType.FitVertex, v.VertexType));
+            Assert.True(vertices[1].Position.IsEqualTo(new GeoPoint3(0, 0, 0), Tight));
+            Assert.True(vertices[2].Position.IsEqualTo(new GeoPoint3(3.525390625, 3.0859375, 1.75537109375), Tight));
+            Assert.True(vertices[8].Position.IsEqualTo(new GeoPoint3(18.115234375, 5.1953125, 6.54541015625), Tight));
+            Assert.True(vertices[17].Position.IsEqualTo(new GeoPoint3(40, 0, 5), Tight));
+
+            List<DxfPolylineVertex3d> round = closed.ToList();
+            Assert.Equal(4 + 32, round.Count);
+            Assert.All(new[] { round[0] }.Concat(round.Skip(33)), v => Assert.Equal(DxfVertex3dType.ControlVertex, v.VertexType));
+            Assert.True(round[1].Position.IsEqualTo(new GeoPoint3(10, 20.0 / 3.0, 5), Tight));
+            Assert.True(round[2].Position.IsEqualTo(new GeoPoint3(11.25, 6.5234375, 5.6201171875), Tight));
+            Assert.True(round[32].Position.IsEqualTo(new GeoPoint3(8.763020833333, 6.5234375, 4.376627604167), new Tolerance(1E-9, 1E-9)));
         }
 
         [Fact]

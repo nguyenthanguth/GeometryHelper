@@ -312,12 +312,19 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Fits the polyline with a curve, as AutoCAD's <c>CurveFit</c> (PEDIT Fit): a pair of arcs on each segment, meeting at a
         /// vertex the fitting adds (flag 1 of its group 70) after the vertex the segment leaves, so that the curve passes through
-        /// every vertex in the direction its tangent gives there: the one the vertex is given (<see cref="DxfVertex2d.TangentUsed"/>)
-        /// or that of the circle through it and its two neighbours; flag 2 of the polyline's group 70. The pair is the biarc of
-        /// equal tangent lengths, so that three vertices on a circle give that circle's arcs. A segment's widths run along its
-        /// two arcs, the width at the joint read off at the first arc's share of their length, as AutoCAD reads it: a segment
-        /// from width 1 to 3 whose first arc is 25.723 long and second 24.733 is 2.0197 wide at the joint. A fitted polyline is
-        /// straightened first. Each vertex of the frame keeps its handle.
+        /// every vertex in the direction its tangent gives there; flag 2 of the polyline's group 70. The tangent is the one the
+        /// vertex is given (<see cref="DxfVertex2d.TangentUsed"/>, which the added vertex's <see cref="DxfVertex2d.Tangent"/>
+        /// copies); at an end of an open polyline that of the circle through the first or last three vertices; and between,
+        /// AutoCAD's blend of the segments either side, each weighted by the turn at the far end of the other, so that a vertex
+        /// after two on a line is fitted along that line: on (0, 0), (100, 0), (100, 50), (0, 80) the tangent at (100, 0) is
+        /// 64.41 degrees, not the 63.43 of the circle through it and its neighbours. Where the tangents at a segment's ends are
+        /// either side of it, its arcs meet where the curve runs along the chord; where they are on one side (an S), the arcs'
+        /// radii are as the sines of the tangents' angles to the chord. A segment whose tangent at either end is within a
+        /// millionth of a radian of its line stays straight, with no vertex added, as do the two vertices of a polyline of two;
+        /// and two vertices on one point split the curve in two there. Every vertex and bulge is AutoCAD 2021's to 1E-11. A
+        /// segment's widths run along its two arcs, the width at the joint read off at the first arc's share of their length, as
+        /// AutoCAD reads it: a segment from width 1 to 3 whose first arc is 25.723 long and second 24.733 is 2.0197 wide at the
+        /// joint. A fitted polyline is straightened first. Each vertex of the frame keeps its handle.
         /// </summary>
         /// <exception cref="InvalidOperationException">Thrown when the polyline has fewer than two vertices, or is erased.</exception>
         public void CurveFit()
@@ -345,8 +352,14 @@ namespace GeometryHelper.Dxf
             for (int i = 0; i < segments; i++)
             {
                 int j = (i + 1) % points.Count;
-                DxfPolylineFit.Biarc(points[i], tangents[i], points[j], tangents[j], out GeoPoint2 joint, out double first, out double second);
                 IReadOnlyList<DxfTypedValue> own = vertices[i].Value;
+
+                if (!DxfPolylineFit.Biarc(points[i], tangents[i], points[j], tangents[j], out GeoPoint2 joint, out double first, out double second))
+                {
+                    changes.Add(new KeyValuePair<int, KeyValuePair<int, string>[]>(vertices[i].Key, DxfFollowers.NumberChange(own, 42, 0.0, 0.0, true)));
+                    continue;
+                }
+
                 double start = DxfFollowers.Number(own, 40, DefaultStartWidth);
                 double end = DxfFollowers.Number(own, 41, DefaultEndWidth);
                 double reach = ArcLength(points[i], joint, first);
@@ -360,7 +373,8 @@ namespace GeometryHelper.Dxf
                 }
 
                 changes.Add(new KeyValuePair<int, KeyValuePair<int, string>[]>(vertices[i].Key, change.ToArray()));
-                var extra = new DxfVertex2d(new GeoPoint3(joint.X, joint.Y, elevation), second, start != end ? middle : start, end, 0.0);
+                // The added vertex holds the direction (group 50) of the vertex before it, as AutoCAD 2021 writes it, not its flag 2.
+                var extra = new DxfVertex2d(new GeoPoint3(joint.X, joint.Y, elevation), second, start != end ? middle : start, end, DxfFollowers.Number(own, 50, 0.0) * Math.PI / 180.0);
                 extra.SetFlags(1);
                 added.Add(new KeyValuePair<int, DxfVertex2d>(vertices[i].Key, extra));
             }

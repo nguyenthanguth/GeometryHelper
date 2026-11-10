@@ -859,7 +859,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 Field(MLeaderFieldKind.Number, "Set landing distance", () => s.LandingDistance, v => s.LandingDistance = (double)v)
                     .Checked(() => s.SetLandingDistance, on => s.SetLandingDistance = on, () => s.SetLandingDistance && s.IncludeLanding, () => s.IncludeLanding),
                 Header("Scale"),
-                Flag("Annotative").Checked(() => s.Annotative, on => s.Annotative = on, null, () => false),
+                Flag("Annotative").Checked(() => s.Annotative, on => s.Annotative = on),
                 Flag("Scale multileaders to layout").Paired("mlscale", () => s.Scale == 0.0, () => s.Scale = 0.0),
                 Field(MLeaderFieldKind.Number, "Specify scale", () => s.Scale == 0.0 ? 1.0 : s.Scale, v => s.Scale = (double)v > 0.0 ? (double)v : s.Scale)
                     .Paired("mlscale", () => s.Scale != 0.0, () => s.Scale = Original.Scale > 0.0 ? Original.Scale : 1.0, () => s.Scale != 0.0),
