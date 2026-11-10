@@ -1498,6 +1498,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private void DrawGhost(DrawingContext dc, CadView view, double scale, GeoPoint2 target)
         {
             CadBlockDrag drag = Session?.Prompt?.Drag;
+
+            // A prompt with a preview of its own draws that in place of the ghost its message would give.
+            if (drag == null && Session?.Prompt?.Preview != null)
+            {
+                return;
+            }
+
             Affine2? moved = drag != null ? drag.Transform(target) : CadGhost.Transform(Session, target);
 
             if (!moved.HasValue || Document == null || WorkSpace == null)
@@ -1560,6 +1567,189 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             geometry.Freeze();
             dc.DrawGeometry(null, GhostPen, geometry);
+        }
+
+        /// <summary>
+        /// What the prompt waiting previews with the cursor at a point (<see cref="CadPrompt.Preview"/>), as AutoCAD 2021 drags
+        /// the object about to be made: the entities the command would make, each in its own colour as it will be drawn, and
+        /// the copies of the objects it would move, dashed as the ghost of MOVE. False where the prompt has no preview or one
+        /// drawn without the rubber band.
+        /// </summary>
+        private bool DrawPreview(DrawingContext dc, CadView view, double scale, GeoPoint2 target)
+        {
+            CadPreview preview = Session?.Prompt?.Preview;
+
+            if (preview == null || Document == null || WorkSpace == null)
+            {
+                return true;
+            }
+
+            double tolerance = 0.5 * scale / view.PixelsPerUnit;
+            DisplayBox grown = view.VisibleBox.Inflate(4.0 * scale / view.PixelsPerUnit);
+            IReadOnlyList<Affine2> moves = preview.Moves(target);
+
+            if (moves.Count > 0 && preview.Handles.Count > 0)
+            {
+                IReadOnlyList<double[]> paths = _ghost.Paths(Document, WorkSpace, preview.Handles, tolerance);
+                var geometry = new StreamGeometry();
+
+                using (StreamGeometryContext context = geometry.Open())
+                {
+                    foreach (Affine2 m in moves)
+                    {
+                        foreach (double[] xy in paths)
+                        {
+                            Trace(context, view, scale, xy, m, false);
+                        }
+
+                        foreach (double[] part in _ghost.MovedRays(m, grown))
+                        {
+                            Trace(context, view, scale, part, Affine2.Identity, false);
+                        }
+                    }
+                }
+
+                geometry.Freeze();
+                dc.DrawGeometry(null, GhostPen, geometry);
+            }
+
+            IReadOnlyList<DisplayItem2> items = preview.Items(target);
+
+            if (items.Count > 0)
+            {
+                int background = Options.BackgroundOf(WorkSpace);
+
+                // One figure of lines and one of fills for each colour, drawn in the order the colours first come.
+                var colours = new List<int>();
+                var lines = new Dictionary<int, StreamGeometry>();
+                var fills = new Dictionary<int, StreamGeometry>();
+                var contexts = new Dictionary<int, StreamGeometryContext>();
+                var fillContexts = new Dictionary<int, StreamGeometryContext>();
+
+                foreach (DisplayItem2 item in items)
+                {
+                    int rgb = PreviewColor(item.Style?.Rgb ?? 0xFFFFFF, background);
+
+                    if (!lines.ContainsKey(rgb))
+                    {
+                        colours.Add(rgb);
+                        lines[rgb] = new StreamGeometry();
+                        contexts[rgb] = lines[rgb].Open();
+                        fills[rgb] = new StreamGeometry { FillRule = FillRule.EvenOdd };
+                        fillContexts[rgb] = fills[rgb].Open();
+                    }
+
+                    StreamGeometryContext context = contexts[rgb];
+
+                    switch (item)
+                    {
+                        case DisplayPolyline2 chain:
+                            var xy = new double[chain.Xy.Count + (chain.Closed ? 2 : 0)];
+
+                            for (int i = 0; i < chain.Xy.Count; i++)
+                            {
+                                xy[i] = chain.Xy[i];
+                            }
+
+                            if (chain.Closed && chain.Xy.Count >= 2)
+                            {
+                                xy[xy.Length - 2] = chain.Xy[0];
+                                xy[xy.Length - 1] = chain.Xy[1];
+                            }
+
+                            Trace(context, view, scale, xy, Affine2.Identity, false);
+                            break;
+                        case DisplaySegments2 segments:
+                            for (int i = 0; i + 3 < segments.Xy.Count; i += 4)
+                            {
+                                Trace(context, view, scale, new[] { segments.Xy[i], segments.Xy[i + 1], segments.Xy[i + 2], segments.Xy[i + 3] }, Affine2.Identity, false);
+                            }
+
+                            break;
+                        case DisplayArc2 arc:
+                            Trace(context, view, scale, arc.Flatten(tolerance), Affine2.Identity, false);
+                            break;
+                        case DisplayRay2 ray:
+                            if (ray.TryClip(grown, out double x0, out double y0, out double x1, out double y1))
+                            {
+                                Trace(context, view, scale, new[] { x0, y0, x1, y1 }, Affine2.Identity, false);
+                            }
+
+                            break;
+                        case DisplayFill2 fill:
+                            foreach (double[] ring in fill.Rings)
+                            {
+                                Trace(fillContexts[rgb], view, scale, ring, Affine2.Identity, true);
+                            }
+
+                            break;
+                        case DisplayText2 text when text.Strokes != null:
+                            foreach (double[] stroke in text.Strokes)
+                            {
+                                Trace(context, view, scale, stroke, Affine2.Identity, false);
+                            }
+
+                            break;
+                        default:
+                            // A text in a TrueType font, an image or a viewport: its box, as the ghost of MOVE draws a text.
+                            DisplayBox box = item.Bounds;
+
+                            if (!box.IsEmpty)
+                            {
+                                Trace(context, view, scale, new[] { box.MinX, box.MinY, box.MaxX, box.MinY, box.MaxX, box.MaxY, box.MinX, box.MaxY, box.MinX, box.MinY }, Affine2.Identity, false);
+                            }
+
+                            break;
+                    }
+                }
+
+                foreach (int rgb in colours)
+                {
+                    contexts[rgb].Close();
+                    fillContexts[rgb].Close();
+                    lines[rgb].Freeze();
+                    fills[rgb].Freeze();
+                    var brush = new SolidColorBrush(Color.FromRgb((byte)(rgb >> 16), (byte)(rgb >> 8), (byte)rgb));
+                    brush.Freeze();
+                    dc.DrawGeometry(brush, null, fills[rgb]);
+                    var pen = new Pen(brush, 1.0);
+                    pen.Freeze();
+                    dc.DrawGeometry(null, pen, lines[rgb]);
+                }
+            }
+
+            return preview.ShowsBand;
+        }
+
+        /// <summary>A run of X and Y in drawing units, under a transformation, added to a figure as one line, or one ring where it is filled.</summary>
+        private void Trace(StreamGeometryContext context, CadView view, double scale, double[] xy, Affine2 m, bool filled)
+        {
+            for (int i = 0; i + 1 < xy.Length; i += 2)
+            {
+                Point p = ToScreen(view, new GeoPoint2(m.X(xy[i], xy[i + 1]), m.Y(xy[i], xy[i + 1])), scale);
+
+                if (i == 0)
+                {
+                    context.BeginFigure(p, filled, filled);
+                }
+                else
+                {
+                    context.LineTo(p, !filled, false);
+                }
+            }
+        }
+
+        /// <summary>The colour a preview draws an item in: its own, white turned black on a light background and black white on a dark one, as the drawing shows colour 7.</summary>
+        private static int PreviewColor(int rgb, int background)
+        {
+            double Luminance(int c) => (0.2126 * ((c >> 16) & 0xFF) + 0.7152 * ((c >> 8) & 0xFF) + 0.0722 * (c & 0xFF)) / 255.0;
+
+            if (Luminance(background) > 0.6 && Luminance(rgb) >= 0.98)
+            {
+                return 0x000000;
+            }
+
+            return Luminance(background) < 0.4 && Luminance(rgb) <= 0.02 ? 0xFFFFFF : rgb;
         }
 
         /// <summary>The selection, and while "Select objects:" waits the objects it has gathered, drawn highlighted.</summary>
@@ -2584,6 +2774,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             CadCommandSession session = Session;
 
+            // A prompt for objects previews what the object under the cursor would give, as FILLET its arc.
+            if (CadPicking.WantsObjects(session) && _cursor.HasValue)
+            {
+                DrawPreview(dc, view, scale, _cursor.Value);
+                return;
+            }
+
             if (!CadPicking.WantsPoint(session) || !_cursor.HasValue)
             {
                 return;
@@ -2593,11 +2790,18 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             Point to = ToScreen(view, target, scale);
             GeoPoint2? basePoint = session.Prompt.BasePoint;
             DrawGhost(dc, view, scale, target);
+            bool band = DrawPreview(dc, view, scale, target);
 
             if (basePoint.HasValue)
             {
                 Point from = ToScreen(view, basePoint.Value, scale);
-                dc.DrawLine(RubberPen, from, to);
+
+                // A preview drawn alone, as RECTANG's rectangle, has no rubber band beside it.
+                if (band)
+                {
+                    dc.DrawLine(RubberPen, from, to);
+                }
+
                 dc.DrawRectangle(null, BasePen, new Rect(from.X - 5.0, from.Y - 5.0, 10.0, 10.0));
             }
 

@@ -214,21 +214,25 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Rectangular: a cloud round the rectangle of two corners, from the first round by the second.</summary>
         private static IEnumerable<CadPrompt> RevCloudRectangle(CadCommandContext c, RevCloudLook cloud, GeoPoint2 first)
         {
-            yield return CadPrompt.ForPoint("Specify opposite corner", first);
+            List<GeoPoint2> Corners(GeoPoint2 second) => new List<GeoPoint2> { first, new GeoPoint2(second.X, first.Y), second, new GeoPoint2(first.X, second.Y) };
+            yield return CadPrompt.ForPoint("Specify opposite corner", first)
+                .Previewing(RevCloudPreview(c, input => RevCloudOf(cloud, Corners(input.Point), true, false)));
 
             if (!c.Input.IsPoint)
             {
                 yield break;
             }
 
-            GeoPoint2 second = c.Input.Point;
-            RevCloudPath(c, cloud, new List<GeoPoint2> { first, new GeoPoint2(second.X, first.Y), second, new GeoPoint2(first.X, second.Y) }, true, false);
+            RevCloudPath(c, cloud, Corners(c.Input.Point), true, false);
         }
 
         /// <summary>Polygonal: a cloud round the polygon of the points given until Enter; Undo takes the last point back.</summary>
         private static IEnumerable<CadPrompt> RevCloudPolygon(CadCommandContext c, RevCloudLook cloud, GeoPoint2 first)
         {
             var corners = new List<GeoPoint2> { first };
+
+            // The cloud round the corners given and the point at the cursor, once they make a polygon.
+            CadPreview shown = RevCloudPreview(c, input => corners.Count < 2 ? null : RevCloudOf(cloud, new List<GeoPoint2>(corners) { input.Point }, true, false));
 
             while (true)
             {
@@ -238,7 +242,7 @@ namespace GeometryHelper.Dxf.Viewer
                 }
                 else
                 {
-                    yield return CadPrompt.ForPoint("Specify next point", corners[corners.Count - 1], new[] { "Undo" });
+                    yield return CadPrompt.ForPoint("Specify next point", corners[corners.Count - 1], new[] { "Undo" }).Previewing(shown);
                 }
 
                 if (c.Input.Is("Undo"))
@@ -278,7 +282,8 @@ namespace GeometryHelper.Dxf.Viewer
 
             while (true)
             {
-                yield return CadPrompt.ForPoint("Guide crosshairs along cloud path...", vertices[vertices.Count - 1]).WithoutColon().Tracking();
+                yield return CadPrompt.ForPoint("Guide crosshairs along cloud path...", vertices[vertices.Count - 1]).WithoutColon().Tracking()
+                    .Previewing(RevCloudPreview(c, input => vertices.Count < 2 ? null : RevCloudPolyline(vertices, false, cloud, false)));
 
                 if (!c.Input.IsPoint)
                 {
@@ -506,6 +511,24 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>A cloud along a path of corners (closed or open), added in the current layer as a new polyline.</summary>
         private static void RevCloudPath(CadCommandContext c, RevCloudLook cloud, List<GeoPoint2> corners, bool closed, bool reverse)
         {
+            DxfPolyline made = RevCloudOf(cloud, corners, closed, reverse);
+
+            if (made == null)
+            {
+                c.Write("Invalid shape to create revision cloud.");
+                return;
+            }
+
+            RevCloudAdd(c, made);
+        }
+
+        /// <summary>The preview of the cloud the point at the cursor would give, in the current layer as it is added.</summary>
+        private static CadPreview RevCloudPreview(CadCommandContext c, Func<CadInput, DxfPolyline> make)
+            => CadPreview.MakingOne(c, input => make(input) is DxfPolyline made ? Current(c, made) : null);
+
+        /// <summary>The cloud along a path of corners, as it is previewed and made; null where the path is too short for one.</summary>
+        private static DxfPolyline RevCloudOf(RevCloudLook cloud, List<GeoPoint2> corners, bool closed, bool reverse)
+        {
             var path = new DxfPolyline();
 
             for (int i = 0; i < corners.Count; i++)
@@ -515,14 +538,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             path.Closed = closed;
             List<GeoPoint2> points = RevCloudAlong(path, closed, cloud);
-
-            if (points.Count < (closed ? 3 : 2))
-            {
-                c.Write("Invalid shape to create revision cloud.");
-                return;
-            }
-
-            RevCloudAdd(c, RevCloudPolyline(points, closed, cloud, reverse));
+            return points.Count < (closed ? 3 : 2) ? null : RevCloudPolyline(points, closed, cloud, reverse);
         }
 
         private static void RevCloudAdd(CadCommandContext c, DxfPolyline cloud)

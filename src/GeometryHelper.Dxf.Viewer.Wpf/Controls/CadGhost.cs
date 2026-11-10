@@ -26,6 +26,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private DisplayList2 _list;
         private double _tolerance;
         private bool _built;
+        private readonly List<double[]> _movedPaths = new List<double[]>();
+        private readonly List<DisplayRay2> _movedRays = new List<DisplayRay2>();
+        private IReadOnlyList<string> _movedHandles;
+        private DisplayList2 _movedList;
+        private double _movedTolerance;
 
         /// <summary>Gets the objects the command running took, in ordinal order.</summary>
         public IReadOnlyList<string> Handles => _handles;
@@ -149,7 +154,45 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return _paths;
             }
 
-            var wanted = new HashSet<string>(_handles, StringComparer.OrdinalIgnoreCase);
+            Gather(list, _handles, tolerance, _paths, _rays);
+            return _paths;
+        }
+
+        /// <summary>
+        /// Gets the outlines of the objects a prompt's preview moves (<see cref="CadPreview.Handles"/>), as
+        /// <see cref="Paths(CadDocument, CadSpace, double)"/> gives those of the objects the command took: kept while the
+        /// objects, the display list and the zoom stay much as they were.
+        /// </summary>
+        public IReadOnlyList<double[]> Paths(CadDocument document, CadSpace space, IReadOnlyList<string> handles, double tolerance)
+        {
+            DisplayList2 list = document.GetDisplay(space);
+
+            if (ReferenceEquals(handles, _movedHandles) && ReferenceEquals(list, _movedList) && tolerance <= _movedTolerance * 2.0 && tolerance >= _movedTolerance / 2.0)
+            {
+                return _movedPaths;
+            }
+
+            _movedPaths.Clear();
+            _movedRays.Clear();
+            _movedHandles = handles;
+            _movedList = list;
+            _movedTolerance = tolerance;
+            Gather(list, handles, tolerance, _movedPaths, _movedRays);
+            return _movedPaths;
+        }
+
+        /// <summary>Gets the XLINEs and RAYs of the objects the last <see cref="Paths(CadDocument, CadSpace, IReadOnlyList{string}, double)"/> outlined, transformed and cut to a view.</summary>
+        public IReadOnlyList<double[]> MovedRays(Affine2 moved, DisplayBox view) => Clip(_movedRays, moved, view);
+
+        /// <summary>The outlines of the items of some objects of a display list, added to the paths and the rays.</summary>
+        private static void Gather(DisplayList2 list, IReadOnlyList<string> handles, double tolerance, List<double[]> paths, List<DisplayRay2> rays)
+        {
+            if (handles.Count == 0)
+            {
+                return;
+            }
+
+            var wanted = new HashSet<string>(handles, StringComparer.OrdinalIgnoreCase);
 
             foreach (DisplayItem2 item in list.Items)
             {
@@ -158,10 +201,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     continue;
                 }
 
-                Outline(item, tolerance, _paths, _rays);
+                Outline(item, tolerance, paths, rays);
             }
-
-            return _paths;
         }
 
         /// <summary>
