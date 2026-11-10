@@ -1058,6 +1058,230 @@ namespace GeometryHelper.Dwg
             }
         }
 
+        /// <summary>
+        /// A HATCH: from R2004 its gradient, then its plane, its pattern name, its boundary paths (a polyline with or
+        /// without bulges, or edges: lines, arcs, elliptic arcs and splines, with fit points from R2010), the objects each
+        /// path follows, its style and pattern lines, and its seed points. DXF writes the gradient at the end, and from
+        /// R2004 only for a solid fill.
+        /// </summary>
+        private void ReadHatch()
+        {
+            var gradient = new List<DwgGroup>();
+
+            if (R2004Plus)
+            {
+                gradient.Add(new DwgGroup(450, _data.BitLong()));
+                gradient.Add(new DwgGroup(451, _data.BitLong()));
+                gradient.Add(new DwgGroup(460, _data.BitDouble()));
+                gradient.Add(new DwgGroup(461, _data.BitDouble()));
+                gradient.Add(new DwgGroup(452, _data.BitLong()));
+                gradient.Add(new DwgGroup(462, _data.BitDouble()));
+                int colours = Count(_data.BitLong());
+                gradient.Add(new DwgGroup(453, colours));
+
+                for (int i = 0; i < colours; i++)
+                {
+                    gradient.Add(new DwgGroup(463, _data.BitDouble()));
+                    AddColour(gradient, ReadColour(), false, 63, 421);
+                }
+
+                gradient.Add(new DwgGroup(470, T()));
+            }
+
+            double elevation = _data.BitDouble();
+            double[] normal = _data.Point3();
+            byte[] name = T();
+            bool solid = _data.Bit();
+            bool associative = _data.Bit();
+            int paths = Count(_data.BitLong());
+            bool derived = false;
+            _object.Add(100, "AcDbHatch");
+            _object.AddPoint(10, new[] { 0.0, 0.0, elevation });
+            _object.AddPoint(210, normal);
+            _object.Add(2, name);
+            _object.Add(70, solid ? 1 : 0);
+            _object.Add(71, associative ? 1 : 0);
+            _object.Add(91, paths);
+
+            for (int i = 0; i < paths; i++)
+            {
+                int flags = _data.BitLong();
+                derived |= (flags & 4) != 0;
+                _object.Add(92, flags);
+
+                if ((flags & 2) != 0)
+                {
+                    bool bulges = _data.Bit();
+                    bool closed = _data.Bit();
+                    int count = Count(_data.BitLong());
+                    _object.Add(72, bulges ? 1 : 0);
+                    _object.Add(73, closed ? 1 : 0);
+                    _object.Add(93, count);
+
+                    for (int j = 0; j < count; j++)
+                    {
+                        _object.AddPoint(10, _data.RawPoint2());
+
+                        if (bulges)
+                        {
+                            _object.Add(42, _data.BitDouble());
+                        }
+                    }
+                }
+                else
+                {
+                    int edges = Count(_data.BitLong());
+                    _object.Add(93, edges);
+
+                    for (int j = 0; j < edges; j++)
+                    {
+                        ReadHatchEdge();
+                    }
+                }
+
+                int sources = Count(_data.BitLong());
+                _object.Add(97, sources);
+
+                for (int j = 0; j < sources; j++)
+                {
+                    _object.Add(330, H());
+                }
+            }
+
+            _object.Add(75, _data.BitShort());
+            _object.Add(76, _data.BitShort());
+
+            if (!solid)
+            {
+                _object.Add(52, Degrees(_data.BitDouble()));
+                _object.Add(41, _data.BitDouble());
+                _object.Add(77, _data.Bit() ? 1 : 0);
+                int lines = _data.BitShort();
+
+                if (lines < 0 || lines > _data.Remaining)
+                {
+                    throw new FormatException("The hatch names more pattern lines than it has room for.");
+                }
+
+                _object.Add(78, lines);
+
+                for (int i = 0; i < lines; i++)
+                {
+                    _object.Add(53, Degrees(_data.BitDouble()));
+                    _object.Add(43, _data.BitDouble());
+                    _object.Add(44, _data.BitDouble());
+                    _object.Add(45, _data.BitDouble());
+                    _object.Add(46, _data.BitDouble());
+                    int dashes = _data.BitShort();
+
+                    if (dashes < 0 || dashes > _data.Remaining)
+                    {
+                        throw new FormatException("The hatch names more dashes than it has room for.");
+                    }
+
+                    _object.Add(79, dashes);
+
+                    for (int j = 0; j < dashes; j++)
+                    {
+                        _object.Add(49, _data.BitDouble());
+                    }
+                }
+            }
+
+            if (derived)
+            {
+                _object.Add(47, _data.BitDouble());
+            }
+
+            int seeds = Count(_data.BitLong());
+            _object.Add(98, seeds);
+
+            for (int i = 0; i < seeds; i++)
+            {
+                _object.AddPoint(10, _data.RawPoint2());
+            }
+
+            if (solid)
+            {
+                _object.Body.AddRange(gradient);
+            }
+        }
+
+        /// <summary>One edge of a boundary path of a HATCH: its kind (group 72) and its data.</summary>
+        private void ReadHatchEdge()
+        {
+            int kind = _data.RawChar();
+            _object.Add(72, kind);
+
+            switch (kind)
+            {
+                case 1:
+                    _object.AddPoint(10, _data.RawPoint2());
+                    _object.AddPoint(11, _data.RawPoint2());
+                    break;
+                case 2:
+                    _object.AddPoint(10, _data.RawPoint2());
+                    _object.Add(40, _data.BitDouble());
+                    _object.Add(50, Degrees(_data.BitDouble()));
+                    _object.Add(51, Degrees(_data.BitDouble()));
+                    _object.Add(73, _data.Bit() ? 1 : 0);
+                    break;
+                case 3:
+                    _object.AddPoint(10, _data.RawPoint2());
+                    _object.AddPoint(11, _data.RawPoint2());
+                    _object.Add(40, _data.BitDouble());
+                    _object.Add(50, Degrees(_data.BitDouble()));
+                    _object.Add(51, Degrees(_data.BitDouble()));
+                    _object.Add(73, _data.Bit() ? 1 : 0);
+                    break;
+                case 4:
+                    _object.Add(94, _data.BitLong());
+                    bool rational = _data.Bit();
+                    _object.Add(73, rational ? 1 : 0);
+                    _object.Add(74, _data.Bit() ? 1 : 0);
+                    int knots = Count(_data.BitLong());
+                    int controls = Count(_data.BitLong());
+                    _object.Add(95, knots);
+                    _object.Add(96, controls);
+
+                    for (int i = 0; i < knots; i++)
+                    {
+                        _object.Add(40, _data.BitDouble());
+                    }
+
+                    for (int i = 0; i < controls; i++)
+                    {
+                        _object.AddPoint(10, _data.RawPoint2());
+
+                        if (rational)
+                        {
+                            _object.Add(42, _data.BitDouble());
+                        }
+                    }
+
+                    if (R2010Plus)
+                    {
+                        int fits = Count(_data.BitLong());
+                        _object.Add(97, fits);
+
+                        for (int i = 0; i < fits; i++)
+                        {
+                            _object.AddPoint(11, _data.RawPoint2());
+                        }
+
+                        if (fits > 0)
+                        {
+                            _object.AddPoint(12, _data.RawPoint2());
+                            _object.AddPoint(13, _data.RawPoint2());
+                        }
+                    }
+
+                    break;
+                default:
+                    throw new FormatException("The hatch has an edge of the unknown kind " + kind + ".");
+            }
+        }
+
         private void ReadDimension(int type)
         {
             int version = R2010Plus ? _data.RawChar() : 0;

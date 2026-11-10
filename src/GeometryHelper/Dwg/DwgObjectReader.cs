@@ -748,6 +748,7 @@ namespace GeometryHelper.Dwg
                 case 0x48: ReadGroup(); return true;
                 case 0x49: ReadMLineStyle(); return true;
                 case 0x4D: ReadLwPolyline(); return true;
+                case 0x4E: ReadHatch(); return true;
                 case 0x4F: ReadXRecord(); return true;
                 case 0x50: return true;
                 case 0x52: ReadLayout(); return true;
@@ -762,6 +763,7 @@ namespace GeometryHelper.Dwg
                 case "LAYOUT": ReadLayout(); return true;
                 case "XRECORD": ReadXRecord(); return true;
                 case "LWPOLYLINE": ReadLwPolyline(); return true;
+                case "HATCH": ReadHatch(); return true;
                 default: return false;
             }
         }

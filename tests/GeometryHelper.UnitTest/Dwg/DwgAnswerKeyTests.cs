@@ -19,7 +19,7 @@ namespace GeometryHelper.UnitTest.Dwg
         /// <summary>The types the reader does not read yet, which a comparison may find missing.</summary>
         private static readonly string[] NotReadYet =
         {
-            "ACDBDETAILVIEWSTYLE", "ACDBSECTIONVIEWSTYLE", "CELLSTYLEMAP", "HATCH", "LEADER", "MATERIAL", "MLEADERSTYLE",
+            "ACDBDETAILVIEWSTYLE", "ACDBSECTIONVIEWSTYLE", "CELLSTYLEMAP", "LEADER", "MATERIAL", "MLEADERSTYLE",
             "TABLESTYLE", "VISUALSTYLE",
         };
 
@@ -84,6 +84,8 @@ namespace GeometryHelper.UnitTest.Dwg
         [Theory]
         [InlineData("vports_AC1015")]
         [InlineData("vports_AC1032")]
+        [InlineData("hatch_AC1015")]
+        [InlineData("hatch_AC1032")]
         public void ADrawingOfTheTypesOfW4_ReadFromItsDwg_IsTheDxfAutoCadWroteOfIt(string drawing)
         {
             // Made by probe GhDwg4 in all six versions; the repository holds the oldest and the newest of each.
@@ -111,6 +113,26 @@ namespace GeometryHelper.UnitTest.Dwg
             Assert.Contains(viewports, v => v.GetFrozenLayers().Count == 1 && v.Locked);
             Assert.Contains(viewports, v => v.NonRectClipOn);
             Assert.Contains(viewports, v => Math.Abs(v.LensLength - 35.0) < 1E-9);
+        }
+
+        [Theory]
+        [InlineData("hatch_AC1015", false)]
+        [InlineData("hatch_AC1032", true)]
+        public void TheHatches_AreRead_WithEveryKindOfBoundaryPath(string drawing, bool gradients)
+        {
+            DxfDatabase database = DwgReader.Open(new MemoryStream(DwgAnswerKey.Dwg(drawing), false));
+            List<DxfHatch> hatches = database.ModelSpace.OfType<DxfHatch>().ToList();
+
+            // ANSI31 over a polyline with a bulge, a double user pattern, a solid fill bounded by a line, an arc, a spline and
+            // an elliptic arc, a gradient, ANSI37 with an island, NET following a circle, and a tilted solid fill.
+            Assert.Equal(7, hatches.Count);
+            Assert.Equal(new[] { "ANSI31", "_USER", "SOLID", "SOLID", "ANSI37", "NET", "SOLID" }, hatches.Select(h => h.PatternName));
+            Assert.Equal(2, hatches[4].NumberOfLoops);
+            Assert.True(hatches[5].Associative);
+            Assert.Equal(5.0, hatches[6].Elevation, 9);
+
+            // R2000 has no gradient: AutoCAD saves the gradient as a solid fill.
+            Assert.Equal(gradients, hatches[3].IsGradient);
         }
 
         [Fact]
@@ -215,7 +237,7 @@ namespace GeometryHelper.UnitTest.Dwg
             DwgReader.ToDxf(DwgAnswerKey.Dwg("later"));
 
             string skipped = Assert.Single(_written, line => line.Level == GeometryHelperLogLevel.Debug && line.Message.StartsWith("DwgReader:", StringComparison.Ordinal)).Message;
-            Assert.Contains("HATCH 1", skipped);
+            Assert.DoesNotContain("HATCH", skipped);
             Assert.Contains("LEADER 1", skipped);
             Assert.Contains("MATERIAL 3", skipped);
 
