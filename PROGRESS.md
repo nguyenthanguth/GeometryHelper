@@ -177,9 +177,11 @@ the ones wanted.
 - [x] Dynamic input: dimensional input (length and angle boxes) beyond LINE and PLINE (M)
 - [x] Dynamic input (user 2026-11-10): while drawing LINE and the other commands with length and
       angle fields, draw no dimension line, extension lines or angle arc; keep the length and angle values in their boxes (S)
-- [ ] Dynamic input (running): with OSNAP the fields follow the raw cursor, not the snapped point the band is drawn to (S)
-- [ ] Dynamic input follow-ups (running): MIRROR and other commands still on X and Y; CIRCLE 3P; angle field from a reference line;
+- [x] Dynamic input: with OSNAP the fields follow the raw cursor, not the snapped point the band is drawn to (S)
+- [x] Dynamic input follow-ups: MIRROR and other commands still on X and Y; CIRCLE 3P; angle field from a reference line;
       grip rotate and scale tested on their own (S)
+- [ ] Snapping: grid SNAP beats an object snap (3 174.93 to the grid instead of 3 162.28 to an endpoint; AutoCAD gives the
+      object snap precedence); a handle-less R12 DXF gives no object snaps (S)
 - [ ] COPYVIEW (not in AutoCAD): the view as an image on the clipboard, also on the canvas right-click menu (optional)
 - [ ] Tables: the cell right-click menu, column letters and row numbers, autofill and width grips, drag-select a range
 - [ ] Tables: rows grow for wrapped text; Tab in the last cell adds a row; first/second/other row cell styles

@@ -1187,10 +1187,21 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Sets the coordinates the status bar shows, in the current UCS, as AutoCAD's: the world point (100, 50) in a UCS of origin (100, 0) shows "X 0.00   Y 50.00".</summary>
         /// <param name="x">The X of the drawing point under the cursor, in world coordinates.</param>
         /// <param name="y">The Y.</param>
-        public void SetCursor(double x, double y)
+        public void SetCursor(double x, double y) => SetCursor(x, y, new GeoPoint2(x, y));
+
+        /// <summary>
+        /// Sets the coordinates the status bar shows, as <see cref="SetCursor(double, double)"/> does, and the point the rubber band
+        /// ends at, which the fields of dynamic input measure to: with an endpoint snapped at (1 300, 1 400) and the cursor a
+        /// few pixels off it, LINE's next point from (1 000, 1 000) shows a length of 500 and an angle of 53.1.
+        /// </summary>
+        /// <param name="x">The X of the drawing point under the cursor, in world coordinates.</param>
+        /// <param name="y">The Y.</param>
+        /// <param name="bandEnd">Where the rubber band ends, snapped, ortho or polar, in world coordinates; the cursor where nothing holds it.</param>
+        public void SetCursor(double x, double y, GeoPoint2 bandEnd)
         {
-            _cursorAt = new GeoPoint2(x, y);
-            GeoPoint2 shown = Ucs.ToUcs(_cursorAt);
+            _bandAt = bandEnd;
+            var cursor = new GeoPoint2(x, y);
+            GeoPoint2 shown = Ucs.ToUcs(cursor);
             DxfDatabase database = _current?.Document.Database;
 
             // A drawing in units other than decimal (LUNITS 2) shows them as AutoCAD does, 1'-3 1/2"; decimal keeps the settings' style.

@@ -25,6 +25,29 @@ letter, and `CadMTextEditBox` takes the `Document` whose fonts set them. Typing 
 1.5 ms a key, the layout 0.5 ms and the drawing 1 ms. The ruler still shows no paragraph indents or tab stops, and the
 columns cannot be dragged.
 
+**FIXED.** The fields of dynamic input in the presenter followed the raw cursor while OSNAP, ortho or polar held the
+rubber band elsewhere. They now measure to the point the band ends at, as AutoCAD's do, and stand by that band. With the
+cursor 4 pixels off the end (4 000, 0) of a wall, LINE's next point from (1 000, 1 000) showed 3 185.00; it shows
+3 162.28 and 341.6, the length and the angle to the end. A distance typed alone goes along the band as well: with ortho
+on and the cursor at (1 300, 1 700), 200 typed from (1 000, 1 300) ends the line at (1 000, 1 500), straight up, where
+it went towards the cursor before. `CadCursorEventArgs` gives the band's end as `BandX` and `BandY`, and
+`MainViewModel.SetCursor` takes it.
+
+**CHANGED.** More second points show the length and the angle in the presenter's dynamic input, where they showed X
+and Y: AutoCAD 2021's pointer input gives a second or next point in polar form by default, relative Cartesian for
+RECTANG alone. They are the second point of MIRROR's line, of ROTATE's and SCALE's Reference by two points, of ALIGN's
+destinations, of BREAK's First point, of DIST, of TEXT's Align and Fit, of DIMLINEAR's and DIMALIGNED's second extension
+line, of DIMCONTINUE and DIMBASELINE, the endpoints of an angle in MEASUREGEOM and DIMANGULAR, and the next points of
+AREA and of REVCLOUD's Polygonal. MIRROR's second point 300 right of and 400 above the first shows 500.00 and 53.1, not
+300.00 and 400.00. The corner of a box (RECTANG, ZOOM's window, MTEXT, REVCLOUD's Rectangular) and the location of a
+dimension line or a leader keep X and Y.
+
+**FIXED.** CIRCLE's 3P in the presenter showed one box of text at each of its points, "500.00 < 53.1°" at the second,
+because the prompts also take _tan. Its first point now shows the X and Y fields, and its second and third points the
+length and the angle from the point before, as AutoCAD 2021's pointer input gives a first point and a second or next
+point. A number typed goes into a field and Tab locks it: from (1 000, 0) and (1 000, 400), 600 locked with the cursor at
+(1 600, 0) takes the third point 600 along the band. _tan typed still asks for the object touched.
+
 **CHANGED.** The dynamic input of the presenter shows the length and the angle in their fields alone, with no dimension
 line, extension lines, angle arc or dashed base line drawn under them. That is every prompt with these fields: the
 second point of LINE, PLINE, ARC, CIRCLE's 2P, ELLIPSE's axis, POLYGON's edge, XLINE, RAY, MOVE, COPY, STRETCH, OFFSET
