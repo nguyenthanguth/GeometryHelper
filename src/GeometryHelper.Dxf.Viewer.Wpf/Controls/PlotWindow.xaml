@@ -164,7 +164,7 @@
                                 <DockPanel Margin="0,0,0,6">
                                     <TextBlock DockPanel.Dock="Left" Text="Name:" Width="70" Style="{StaticResource MutedText}" Margin="0,0,8,0" />
                                     <Button DockPanel.Dock="Right" Style="{StaticResource GhDialogButton}" Content="Properties…" Padding="10,4" Margin="8,0,0,0" IsEnabled="False"
-                                            ToolTip="GeometryHelper PDF has no properties to set." />
+                                            ToolTip="The presenter's plotters have no properties to set." />
                                     <ComboBox x:Name="Devices" Style="{StaticResource GhComboBox}" ItemsSource="{Binding Devices}" SelectedItem="{Binding Device, Mode=TwoWay}"
                                               ItemContainerStyle="{StaticResource DeviceRow}" AutomationProperties.Name="Printer or plotter">
                                         <ComboBox.ItemTemplate>
@@ -180,8 +180,12 @@
                                                     <DataTrigger Binding="{Binding StartsGroup}" Value="True">
                                                         <Setter TargetName="Line" Property="Visibility" Value="Visible" />
                                                     </DataTrigger>
-                                                    <DataTrigger Binding="{Binding Kind}" Value="built in">
+                                                    <DataTrigger Binding="{Binding Kind}" Value="built in, vector">
                                                         <Setter TargetName="Icon" Property="Visibility" Value="Visible" />
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding Kind}" Value="built in, raster">
+                                                        <Setter TargetName="Icon" Property="Visibility" Value="Visible" />
+                                                        <Setter TargetName="Icon" Property="Data" Value="M3 5h18v14H3zM3 16l5-5 4 4 3-3 6 6M15.5 9a1.5 1.5 0 1 0 0.01 0" />
                                                     </DataTrigger>
                                                 </DataTemplate.Triggers>
                                             </DataTemplate>
@@ -206,7 +210,18 @@
                                     <TextBlock Grid.Row="2" Text="Description:" Style="{StaticResource MutedText}" />
                                     <TextBlock Grid.Row="2" Grid.Column="2" Text="{Binding DescriptionText}" Foreground="{StaticResource GhIcon}" TextWrapping="Wrap" />
                                 </Grid>
-                                <CheckBox Style="{StaticResource StyleCheck}" IsChecked="True" IsEnabled="False" Content="Plot to file (always, for PDF)" HorizontalAlignment="Left" />
+                                <CheckBox IsChecked="True" IsEnabled="False" HorizontalAlignment="Left">
+                                    <CheckBox.Style>
+                                        <Style TargetType="CheckBox" BasedOn="{StaticResource StyleCheck}">
+                                            <Setter Property="Content" Value="Plot to file (always, for PDF)" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsRaster}" Value="True">
+                                                    <Setter Property="Content" Value="Plot to file (always, for a raster device)" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </CheckBox.Style>
+                                </CheckBox>
                             </StackPanel>
                             <StackPanel Grid.Column="2" HorizontalAlignment="Center" VerticalAlignment="Center" TextElement.FontFamily="{StaticResource GhMonoFont}" TextElement.FontSize="10"
                                         AutomationProperties.Name="Paper preview, printable area shaded">
@@ -283,11 +298,11 @@
                                 <TextBlock Text="X:" Style="{StaticResource MutedText}" />
                                 <TextBox Grid.Column="1" Style="{StaticResource StyleBox}" Text="{Binding OffsetXText, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding IsOffsetEnabled}"
                                          Margin="0,0,6,6" AutomationProperties.Name="Plot offset X" />
-                                <TextBlock Grid.Column="2" Text="mm" Style="{StaticResource MutedText}" Margin="0,0,0,6" />
+                                <TextBlock Grid.Column="2" Text="{Binding OffsetUnit}" Style="{StaticResource MutedText}" Margin="0,0,0,6" />
                                 <TextBlock Grid.Row="1" Text="Y:" Style="{StaticResource MutedText}" />
                                 <TextBox Grid.Row="1" Grid.Column="1" Style="{StaticResource StyleBox}" Text="{Binding OffsetYText, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding IsOffsetEnabled}"
                                          Margin="0,0,6,6" AutomationProperties.Name="Plot offset Y" />
-                                <TextBlock Grid.Row="1" Grid.Column="2" Text="mm" Style="{StaticResource MutedText}" Margin="0,0,0,6" />
+                                <TextBlock Grid.Row="1" Grid.Column="2" Text="{Binding OffsetUnit}" Style="{StaticResource MutedText}" Margin="0,0,0,6" />
                                 <CheckBox Grid.Row="2" Grid.Column="1" Style="{StaticResource StyleCheck}" IsChecked="{Binding Centered, Mode=TwoWay}" IsEnabled="{Binding IsCenterEnabled}"
                                           Content="Center the plot" HorizontalAlignment="Left" />
                             </Grid>
@@ -316,7 +331,7 @@
                             <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,6">
                                 <TextBox Style="{StaticResource StyleBox}" Width="70" Text="{Binding PaperUnitsText, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding IsScaleEnabled}"
                                          AutomationProperties.Name="Paper millimetres" />
-                                <TextBlock Text="mm =" Style="{StaticResource MutedText}" Margin="6,0,0,0" />
+                                <TextBlock Text="{Binding ScaleUnit}" Style="{StaticResource MutedText}" Margin="6,0,0,0" />
                             </StackPanel>
                             <StackPanel Grid.Row="1" Grid.Column="2" Orientation="Horizontal" Margin="0,0,0,6">
                                 <TextBox Style="{StaticResource StyleBox}" Width="70" Text="{Binding DrawingUnitsText, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding IsScaleEnabled}"
@@ -340,8 +355,7 @@
                                 </Button>
                                 <ComboBox Style="{StaticResource GhComboBox}" ItemsSource="{Binding StyleTables}" SelectedItem="{Binding StyleTable, Mode=TwoWay}" AutomationProperties.Name="Plot style table" />
                             </DockPanel>
-                            <TextBlock Text="Monochrome: every colour plots black (as monochrome.ctb). Grayscale: colours as greys. None: as displayed."
-                                       Foreground="{StaticResource GhTextMuted}" TextWrapping="Wrap" />
+                            <TextBlock Text="{Binding StyleNote}" Foreground="{StaticResource GhTextMuted}" TextWrapping="Wrap" />
                         </StackPanel>
                     </HeaderedContentControl>
 
@@ -368,8 +382,8 @@
                                 <ComboBoxItem Content="Normal" />
                             </ComboBox>
                             <TextBlock Grid.Row="2" Text="DPI" Style="{StaticResource MutedText}" />
-                            <TextBox Grid.Row="2" Grid.Column="2" Style="{StaticResource StyleBox}" Text="300" IsEnabled="False" Margin="0,0,0,6" AutomationProperties.Name="DPI" />
-                            <TextBlock Grid.Row="3" Grid.ColumnSpan="3" Text="2D only: kept grey, as AutoCAD shows them for 2D Wireframe." FontSize="11" Foreground="{StaticResource GhTextMuted}" TextWrapping="Wrap" />
+                            <TextBox Grid.Row="2" Grid.Column="2" Style="{StaticResource StyleBox}" Text="{Binding DpiText, Mode=OneWay}" IsEnabled="False" Margin="0,0,0,6" AutomationProperties.Name="DPI" />
+                            <TextBlock Grid.Row="3" Grid.ColumnSpan="3" Text="{Binding ShadeNote}" FontSize="11" Foreground="{StaticResource GhTextMuted}" TextWrapping="Wrap" />
                         </Grid>
                     </HeaderedContentControl>
 

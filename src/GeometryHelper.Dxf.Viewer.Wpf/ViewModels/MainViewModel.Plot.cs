@@ -39,7 +39,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             bool isPageSetup = e.Name == "PAGESETUP";
-            var dialog = new PlotDialogViewModel(document, e.Plot, isPageSetup, Printers());
+            var dialog = new PlotDialogViewModel(document, e.Plot, isPageSetup, Printers(), _settings.CustomPixelSizes);
+
+            // A size of an image made with Custom… is kept in the settings file, as AutoCAD keeps it in the device's PC3.
+            dialog.CustomSizeMade += (s, size) =>
+            {
+                _settings.NoteCustomPixelSize(size);
+                SettingsChanged?.Invoke(this, EventArgs.Empty);
+            };
             bool ok = ShowPlot(dialog);
             e.Handled = true;
 
@@ -57,6 +64,18 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             if (isPageSetup)
             {
                 SayRefused(dialog.ApplyToLayout());
+                return;
+            }
+
+            if (!((CadCommandSession)sender).FileDialogs)
+            {
+                // FILEDIA 0: the command asks the file on the command line, then writes the plot as -PLOT does.
+                if (dialog.SaveChangesToLayout)
+                {
+                    SayRefused(dialog.ApplyToLayout());
+                }
+
+                dialog.HandBack(true);
                 return;
             }
 
@@ -95,12 +114,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
                 if (path != null)
                 {
-                    Plotted(sender, () => CadPdfWriter.Write(path, document, job.Space, job.Settings, job.Display), path);
+                    Plotted(sender, () => PlotDialogViewModel.Write(path, document, job.Space, job.Settings, job.Display), path);
                 }
             }
         }
 
-        /// <summary>-PLOT's request: the plot written to the file it named, by the PDF writer.</summary>
+        /// <summary>-PLOT's request: the plot written to the file it named, by the PDF writer or, for GeometryHelper PNG and JPG, the image writer.</summary>
         private void OnPlotFileRequested(object sender, CadUiRequestEventArgs e)
         {
             CadDocument document = e.Document ?? _current?.Document;
@@ -113,7 +132,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             try
             {
-                CadPdfWriter.Write(job.FileName, document, job.Space, job.Settings, job.Display);
+                PlotDialogViewModel.Write(job.FileName, document, job.Space, job.Settings, job.Display);
                 e.Handled = true;
             }
             catch (Exception exception) when (exception is InvalidOperationException || exception is System.IO.IOException || exception is UnauthorizedAccessException || exception is ArgumentException)

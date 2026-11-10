@@ -61,8 +61,31 @@ namespace GeometryHelper.Dxf.Viewer
             MarginTop = marginTop;
         }
 
-        /// <summary>Gets the name shown, as "ISO A3".</summary>
+        /// <summary>The fewest pixels a side of an image may have: 16.</summary>
+        public const int MinPixels = 16;
+
+        /// <summary>The most pixels a side of an image may have: 8 000.</summary>
+        public const int MaxPixels = 8000;
+
+        // The words after the size of an image in the list, "Full HD"; null for a sheet in millimetres.
+        private readonly string _note;
+
+        /// <summary>A size of an image: its sides in pixels, no margins.</summary>
+        private CadPaper(int width, int height, string note)
+            : this(width.ToString(CultureInfo.InvariantCulture) + " x " + height.ToString(CultureInfo.InvariantCulture) + " Pixels", width, height, 0.0, 0.0, 0.0, 0.0)
+        {
+            IsPixels = true;
+            _note = note;
+        }
+
+        /// <summary>Gets the name shown, as "ISO A3", or for an image "1920 x 1080 Pixels".</summary>
         public string Name { get; }
+
+        /// <summary>
+        /// Gets whether this is the size of an image for the raster devices, GeometryHelper PNG and JPG: its width and height
+        /// are then pixels rather than millimetres, and it has no margins, the whole image being printable.
+        /// </summary>
+        public bool IsPixels { get; }
 
         /// <summary>Gets the width in millimetres, as the name gives it: 420 for ISO A3.</summary>
         public double Width { get; }
@@ -82,14 +105,71 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Gets the margin at the top, in millimetres.</summary>
         public double MarginTop { get; }
 
-        /// <summary>Gets the name as the Paper size list shows it: <c>ISO A3 (420.00 x 297.00 MM)</c>.</summary>
-        public string Label => Name + " (" + Mm(Width) + " x " + Mm(Height) + " MM)";
+        /// <summary>Gets the name as the Paper size list shows it: <c>ISO A3 (420.00 x 297.00 MM)</c>, or for an image <c>1920 x 1080 Pixels (Full HD)</c>.</summary>
+        public string Label => _custom ? "Custom…" : IsPixels ? Name + " (" + _note + ")" : Name + " (" + Mm(Width) + " x " + Mm(Height) + " MM)";
 
         /// <summary>
         /// Gets the name as a DXF keeps it in a layout's group 4, AutoCAD's <c>CanonicalMediaName</c>: the name's spaces as
-        /// underscores, then the size, <c>ISO_A3_(420.00_x_297.00_MM)</c>.
+        /// underscores, then the size, <c>ISO_A3_(420.00_x_297.00_MM)</c>. An image is named the same way,
+        /// <c>1920_x_1080_Pixels_(1920.00_x_1080.00_MM)</c>, the DXF layer taking a name that ends in a size alone; the layout
+        /// keeps its units as pixels (group 72 = 2), which <see cref="CadPlotSettings.Read"/> reads back as the image's size.
         /// </summary>
         public string CanonicalName => Name.Replace(' ', '_') + "_(" + Mm(Width) + "_x_" + Mm(Height) + "_MM)";
+
+        /// <summary>
+        /// Gets the sizes of an image the raster devices offer, in the order of the list: 1280 by 720 (HD), 1600 by 1200
+        /// (UXGA), 1920 by 1080 (Full HD), 2560 by 1440 (QHD) and 3840 by 2160 (4K UHD).
+        /// </summary>
+        public static IReadOnlyList<CadPaper> PixelSizes { get; } = Array.AsReadOnly(new[]
+        {
+            new CadPaper(1280, 720, "HD"),
+            new CadPaper(1600, 1200, "UXGA"),
+            new CadPaper(1920, 1080, "Full HD"),
+            new CadPaper(2560, 1440, "QHD"),
+            new CadPaper(3840, 2160, "4K UHD"),
+        });
+
+        /// <summary>Gets the size of an image a raster device starts on: 1920 by 1080 pixels, Full HD.</summary>
+        public static CadPaper DefaultPixels => PixelSizes[2];
+
+        /// <summary>Gets the last entry of the Paper size list of a raster device, "Custom…", which asks for a width and a height; it is no size to plot on.</summary>
+        public static CadPaper CustomPixelsChoice { get; } = new CadPaper(MinPixels, MinPixels, null) { _custom = true };
+
+        // Whether this is the Custom… entry.
+        private bool _custom;
+
+        /// <summary>Gets whether this is <see cref="CustomPixelsChoice"/>.</summary>
+        public bool IsCustomChoice => _custom;
+
+        /// <summary>
+        /// Makes a size of an image of the user's own, as Custom Image Size makes it: <c>2480 x 1754 Pixels (Custom)</c>.
+        /// </summary>
+        /// <param name="width">The width in pixels, <see cref="MinPixels"/> to <see cref="MaxPixels"/>.</param>
+        /// <param name="height">The height in pixels, as the width.</param>
+        /// <returns>The size: the listed one where it is one of <see cref="PixelSizes"/>.</returns>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when a side is outside 16 to 8 000.</exception>
+        public static CadPaper Pixels(int width, int height)
+        {
+            if (width < MinPixels || width > MaxPixels)
+            {
+                throw new ArgumentOutOfRangeException(nameof(width), width, "A side of an image is 16 to 8 000 pixels.");
+            }
+
+            if (height < MinPixels || height > MaxPixels)
+            {
+                throw new ArgumentOutOfRangeException(nameof(height), height, "A side of an image is 16 to 8 000 pixels.");
+            }
+
+            foreach (CadPaper listed in PixelSizes)
+            {
+                if ((int)listed.Width == width && (int)listed.Height == height)
+                {
+                    return listed;
+                }
+            }
+
+            return new CadPaper(width, height, "Custom");
+        }
 
         /// <summary>
         /// Gets the sheets the built-in PDF plotter offers, in the order of the list: ISO A0 to A4 (1 189 by 841 to 297 by 210)
@@ -120,7 +200,7 @@ namespace GeometryHelper.Dxf.Viewer
         /// <returns>True when it is.</returns>
         public bool IsSameAs(CadPaper other)
         {
-            return other != null && string.Equals(Name, other.Name, StringComparison.OrdinalIgnoreCase)
+            return other != null && IsPixels == other.IsPixels && _custom == other._custom && string.Equals(Name, other.Name, StringComparison.OrdinalIgnoreCase)
                 && Near(Width, other.Width) && Near(Height, other.Height) && Near(MarginLeft, other.MarginLeft)
                 && Near(MarginBottom, other.MarginBottom) && Near(MarginRight, other.MarginRight) && Near(MarginTop, other.MarginTop);
         }

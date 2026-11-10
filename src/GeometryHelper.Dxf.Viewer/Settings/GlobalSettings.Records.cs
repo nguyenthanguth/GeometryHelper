@@ -89,6 +89,7 @@ namespace GeometryHelper.Dxf.Viewer
         private List<GlobalAutoCorrection> _corrections = new List<GlobalAutoCorrection>();
         private List<GlobalRecentFile> _recent = new List<GlobalRecentFile>();
         private List<string> _recentCommands = new List<string>();
+        private List<CadPaper> _pixelSizes = new List<CadPaper>();
 
         // ---- Input settings
 
@@ -134,6 +135,46 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>How many commands Recent Commands keeps: 20, as AutoCAD's.</summary>
         public const int RecentCommandsKept = 20;
+
+        /// <summary>
+        /// Gets the sizes of an image made with Custom… of a raster device's Paper size list, the newest first, each once,
+        /// <see cref="CustomPixelSizesKept"/> at most: "2480 x 1754 Pixels (Custom)", listed after the sizes built in and
+        /// kept from one session to the next.
+        /// </summary>
+        public IReadOnlyList<CadPaper> CustomPixelSizes => _pixelSizes;
+
+        /// <summary>How many sizes of an image of the user's own <see cref="CustomPixelSizes"/> keeps: 10.</summary>
+        public const int CustomPixelSizesKept = 10;
+
+        /// <summary>Puts a size of an image first in <see cref="CustomPixelSizes"/>, once, the oldest past <see cref="CustomPixelSizesKept"/> dropped; a size built in is not kept.</summary>
+        /// <param name="size">The size, as <see cref="CadPaper.Pixels"/> makes it.</param>
+        /// <exception cref="ArgumentNullException">Thrown when the size is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the size is not in pixels.</exception>
+        public void NoteCustomPixelSize(CadPaper size)
+        {
+            if (size == null)
+            {
+                throw new ArgumentNullException(nameof(size));
+            }
+
+            if (!size.IsPixels || size.IsCustomChoice)
+            {
+                throw new ArgumentException("A size of an image in pixels is kept.", nameof(size));
+            }
+
+            if (CadPaper.PixelSizes.Any(p => p.IsSameAs(size)))
+            {
+                return;
+            }
+
+            _pixelSizes.RemoveAll(p => p.IsSameAs(size));
+            _pixelSizes.Insert(0, size);
+
+            if (_pixelSizes.Count > CustomPixelSizesKept)
+            {
+                _pixelSizes.RemoveRange(CustomPixelSizesKept, _pixelSizes.Count - CustomPixelSizesKept);
+            }
+        }
 
         /// <summary>Puts a command first in <see cref="RecentCommands"/>, once, the oldest past <see cref="RecentCommandsKept"/> dropped.</summary>
         /// <param name="name">The command's name, as LINE.</param>
@@ -298,6 +339,7 @@ namespace GeometryHelper.Dxf.Viewer
             copy._corrections = new List<GlobalAutoCorrection>(_corrections);
             copy._recent = new List<GlobalRecentFile>(_recent);
             copy._recentCommands = new List<string>(_recentCommands);
+            copy._pixelSizes = new List<CadPaper>(_pixelSizes);
         }
 
         private int IndexOfRecent(string path)
@@ -365,6 +407,14 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             w.CloseList();
+            w.OpenList("customPixelSizes");
+
+            foreach (CadPaper size in _pixelSizes)
+            {
+                w.Value(null, ((int)size.Width).ToString(CultureInfo.InvariantCulture) + "x" + ((int)size.Height).ToString(CultureInfo.InvariantCulture));
+            }
+
+            w.CloseList();
         }
 
         /// <summary>Reads the command uses, the misspellings, the recent files and the recent commands; an entry that does not read is left out with a Warn.</summary>
@@ -428,6 +478,29 @@ namespace GeometryHelper.Dxf.Viewer
                 if (command.Length > 0 && !_recentCommands.Contains(command) && _recentCommands.Count < RecentCommandsKept)
                 {
                     _recentCommands.Add(command);
+                }
+            }
+
+            foreach (XElement item in root.Element("customPixelSizes")?.Elements() ?? Enumerable.Empty<XElement>())
+            {
+                string[] sides = item.Value.Split('x');
+
+                if (sides.Length == 2 && int.TryParse(sides[0], NumberStyles.Integer, CultureInfo.InvariantCulture, out int width)
+                    && int.TryParse(sides[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out int height)
+                    && width >= CadPaper.MinPixels && width <= CadPaper.MaxPixels && height >= CadPaper.MinPixels && height <= CadPaper.MaxPixels)
+                {
+                    CadPaper size = CadPaper.Pixels(width, height);
+
+                    if (CadPaper.PixelSizes.Contains(size) || _pixelSizes.Any(p => p.IsSameAs(size)) || _pixelSizes.Count >= CustomPixelSizesKept)
+                    {
+                        continue;
+                    }
+
+                    _pixelSizes.Add(size);
+                }
+                else
+                {
+                    GeometryHelperLog.Warn("GlobalSettings: the image size " + item.Value + " of " + path + " is not valid; it is left out.");
                 }
             }
         }

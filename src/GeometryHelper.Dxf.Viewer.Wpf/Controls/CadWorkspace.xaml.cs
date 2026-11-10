@@ -552,7 +552,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Browse for Plot File: where a plot is written, a PDF, the folder and name offered; null where it is cancelled.</summary>
         private string AskPlotFile(string folder, string name)
         {
-            var dialog = new SaveFileDialog { Filter = "PDF files (*.pdf)|*.pdf", Title = "Browse for Plot File", FileName = name, DefaultExt = ".pdf" };
+            // Of the type of the name offered: a PDF, or for GeometryHelper PNG and JPG an image.
+            string extension = Path.GetExtension(name).ToLowerInvariant();
+            string filter = extension == ".png" ? "PNG files (*.png)|*.png" : extension == ".jpg" ? "JPEG files (*.jpg)|*.jpg" : "PDF files (*.pdf)|*.pdf";
+            var dialog = new SaveFileDialog { Filter = filter, Title = "Browse for Plot File", FileName = name, DefaultExt = extension.Length > 0 ? extension : ".pdf" };
 
             if (folder != null && Directory.Exists(folder))
             {

@@ -47,5 +47,11 @@ namespace GeometryHelper.Dxf.Viewer
         /// corner:" and "Specify opposite corner:", sets the window as the area plotted, and shows the dialog again.
         /// </summary>
         public bool PicksWindow { get; set; }
+
+        /// <summary>
+        /// Gets or sets whether the dialog's OK left the file to the command, as with FILEDIA 0: the command then asks "Enter
+        /// file name &lt;plan-level2-Model.png&gt;:" and has the plot written to the file named, as -PLOT does.
+        /// </summary>
+        public bool AsksFile { get; set; }
     }
 }

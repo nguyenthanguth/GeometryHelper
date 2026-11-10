@@ -69,6 +69,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private static readonly NumberFormatInfo Spaced = new NumberFormatInfo { NumberGroupSeparator = " ", NumberDecimalSeparator = "." };
 
         private readonly CadPlotJob _job;
+        private readonly List<CadPaper> _customSizes;
+        private CadPaper _mmPaper;
         private CadPlotSettings _settings;
         private string _pageSetup = NoPageSetup;
         private string _offsetXText;
@@ -82,19 +84,23 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <param name="job">The space and its page setup; the dialog edits a copy of the settings.</param>
         /// <param name="isPageSetup">True for PAGESETUP's form: titled Page Setup, OK writing the page setup instead of plotting.</param>
         /// <param name="windowsPrinters">The printers of Windows to list, greyed, each its name and whether it is on the network; null for none.</param>
+        /// <param name="customPixelSizes">The sizes of an image of the user's own a raster device lists after those built in, the newest first; null for none.</param>
         /// <exception cref="ArgumentNullException">Thrown when the document or the job is null.</exception>
-        public PlotDialogViewModel(CadDocument document, CadPlotJob job, bool isPageSetup = false, IEnumerable<KeyValuePair<string, bool>> windowsPrinters = null)
+        public PlotDialogViewModel(CadDocument document, CadPlotJob job, bool isPageSetup = false, IEnumerable<KeyValuePair<string, bool>> windowsPrinters = null, IEnumerable<CadPaper> customPixelSizes = null)
         {
             Document = document ?? throw new ArgumentNullException(nameof(document));
             _job = job ?? throw new ArgumentNullException(nameof(job));
             IsPageSetup = isPageSetup;
             _settings = job.Settings.Clone();
-            _settings.DeviceName = CadPlotSettings.PdfDevice;
+            _settings.UseDevice(_settings.IsRaster ? _settings.DeviceName : CadPlotSettings.PdfDevice);
+            _customSizes = (customPixelSizes ?? Array.Empty<CadPaper>()).Where(p => p != null && p.IsPixels && !p.IsCustomChoice).ToList();
 
             var devices = new List<PlotDeviceRow>
             {
                 new PlotDeviceRow("None", string.Empty, false, false),
-                new PlotDeviceRow(CadPlotSettings.PdfDevice, "built in", true, false),
+                new PlotDeviceRow(CadPlotSettings.PdfDevice, "built in, vector", true, false),
+                new PlotDeviceRow(CadPlotSettings.PngDevice, "built in, raster", true, false),
+                new PlotDeviceRow(CadPlotSettings.JpgDevice, "built in, raster", true, false),
             };
 
             bool first = true;
@@ -106,16 +112,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             Devices = devices;
-            Device = devices[1];
-
-            var papers = new List<CadPaper>(CadPaper.Standard);
-
-            if (!papers.Any(p => p.IsSameAs(_settings.Paper)))
-            {
-                papers.Add(_settings.Paper);
-            }
-
-            Papers = papers;
+            _mmPaper = _settings.Paper.IsPixels ? CadPaper.Default : _settings.Paper;
+            Papers = PapersOf(_settings);
             Areas = Space.IsModel
                 ? new[] { new PlotAreaRow(CadPlotArea.Display, "what the view shows"), new PlotAreaRow(CadPlotArea.Extents, "every object"), new PlotAreaRow(CadPlotArea.Limits, "LIMMIN to LIMMAX"), new PlotAreaRow(CadPlotArea.Window, "two points") }
                 : new[] { new PlotAreaRow(CadPlotArea.Display, "what the view shows"), new PlotAreaRow(CadPlotArea.Extents, "every object"), new PlotAreaRow(CadPlotArea.Layout, "the sheet"), new PlotAreaRow(CadPlotArea.Window, "two points") };
@@ -131,6 +129,35 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             StyleTables = new[] { CadPlotStyleTable.Monochrome, CadPlotStyleTable.Grayscale, CadPlotStyleTable.None };
             Refresh();
         }
+
+        /// <summary>
+        /// Gets or sets how the window shows Custom Image Size, for the Custom… entry of a raster device's Paper size list:
+        /// true where OK was pressed. Null for none, when Custom… does nothing.
+        /// </summary>
+        public Func<CustomImageSizeViewModel, bool> ShowCustomSize { get; set; }
+
+        /// <summary>Raised when Custom Image Size made a size of the user's own, so that the window keeps it between sessions (<see cref="GlobalSettings.CustomPixelSizes"/>).</summary>
+        public event EventHandler<CadPaper> CustomSizeMade;
+
+        /// <summary>Gets whether the plotter is a raster device, GeometryHelper PNG or JPG: sizes in pixels, Plot to file always, the DPI grey.</summary>
+        public bool IsRaster => _settings.IsRaster;
+
+        /// <summary>Gets the unit of the offsets: "mm", or "pixels" for a raster device.</summary>
+        public string OffsetUnit => IsRaster ? "pixels" : "mm";
+
+        /// <summary>Gets the unit of the paper side of the scale: "mm =", or "pixels =" for a raster device.</summary>
+        public string ScaleUnit => IsRaster ? "pixels =" : "mm =";
+
+        /// <summary>Gets what the DPI box shows: 300 for the PDF plotter, 96 for a raster device, whose size is in pixels.</summary>
+        public string DpiText => IsRaster ? "96" : "300";
+
+        /// <summary>Gets the words under the shaded viewport options.</summary>
+        public string ShadeNote => IsRaster ? "Grey for a raster device: the image size is set in pixels, not by DPI." : "2D only: kept grey, as AutoCAD shows them for 2D Wireframe.";
+
+        /// <summary>Gets the words under the plot style table.</summary>
+        public string StyleNote => IsRaster
+            ? "The image is drawn on white, as the paper; colour 7 plots black. None keeps the colours."
+            : "Monochrome: every colour plots black (as monochrome.ctb). Grayscale: colours as greys. None: as displayed.";
 
         /// <summary>Gets the document.</summary>
         public CadDocument Document { get; }
@@ -168,51 +195,117 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
                 if (named != null)
                 {
-                    named.DeviceName = CadPlotSettings.PdfDevice;
+                    named.UseDevice(named.IsRaster ? named.DeviceName : CadPlotSettings.PdfDevice);
                     _settings = named;
-                    Refresh();
+                    RefreshDevice();
                 }
             }
         }
 
-        /// <summary>Gets the plotters of the Printer/plotter list: None and the printers of Windows greyed, GeometryHelper PDF the one chosen.</summary>
+        /// <summary>
+        /// Gets the plotters of the Printer/plotter list: None and the printers of Windows greyed, GeometryHelper PDF, PNG and
+        /// JPG to choose from.
+        /// </summary>
         public IReadOnlyList<PlotDeviceRow> Devices { get; }
 
-        /// <summary>Gets or sets the plotter chosen: only GeometryHelper PDF is taken.</summary>
+        /// <summary>
+        /// Gets or sets the plotter chosen, GeometryHelper PDF, PNG or JPG; a row greyed is not taken. A raster device starts
+        /// on 1920 by 1080 pixels, fitted and centred, with no plot style table; going back to the PDF one gives the sheet it
+        /// had.
+        /// </summary>
         public PlotDeviceRow Device
         {
-            get => Devices[1];
-            set => Raise(nameof(Device));
+            get => Devices.First(d => string.Equals(d.Name, _settings.DeviceName, StringComparison.OrdinalIgnoreCase));
+            set
+            {
+                if (value != null && value.IsEnabled && !string.Equals(value.Name, _settings.DeviceName, StringComparison.OrdinalIgnoreCase))
+                {
+                    bool wasRaster = _settings.IsRaster;
+                    _settings.UseDevice(value.Name);
+
+                    if (wasRaster && !_settings.IsRaster)
+                    {
+                        _settings.Paper = _mmPaper;
+                    }
+
+                    RefreshDevice();
+                }
+                else
+                {
+                    Raise(nameof(Device));
+                }
+            }
         }
 
-        /// <summary>Gets what the plotter is: "GeometryHelper PDF · vector, built in".</summary>
-        public string PlotterText => CadPlotSettings.PdfDevice + " · vector, built in";
+        /// <summary>Gets what the plotter is: "GeometryHelper PDF · vector, built in", "GeometryHelper PNG · raster, built in".</summary>
+        public string PlotterText => _settings.DeviceName + (IsRaster ? " · raster, built in" : " · vector, built in");
 
         /// <summary>Gets where it writes: File.</summary>
         public string WhereText => "File";
 
         /// <summary>Gets what it does.</summary>
-        public string DescriptionText => "Writes a PDF, one page per plot; text stays searchable.";
+        public string DescriptionText
+            => string.Equals(_settings.DeviceName, CadPlotSettings.PngDevice, StringComparison.OrdinalIgnoreCase) ? "Writes a PNG image, lossless, one file per plot."
+                : string.Equals(_settings.DeviceName, CadPlotSettings.JpgDevice, StringComparison.OrdinalIgnoreCase) ? "Writes a JPEG image, quality 90, one file per plot; no transparency."
+                : "Writes a PDF, one page per plot; text stays searchable.";
 
-        /// <summary>Gets the sheets of the Paper size list.</summary>
-        public IReadOnlyList<CadPaper> Papers { get; }
+        /// <summary>
+        /// Gets the entries of the Paper size list: the ISO and ANSI sheets for the PDF plotter; for a raster device the sizes
+        /// in pixels built in, those of the user's own, and Custom… last (<see cref="CadPaper.CustomPixelsChoice"/>).
+        /// </summary>
+        public IReadOnlyList<CadPaper> Papers { get; private set; }
 
-        /// <summary>Gets or sets the sheet chosen.</summary>
+        /// <summary>
+        /// Gets or sets the sheet chosen. Custom… shows Custom Image Size (<see cref="ShowCustomSize"/>): OK adds the size to
+        /// the list, chooses it and raises <see cref="CustomSizeMade"/>; Cancel keeps the size chosen before.
+        /// </summary>
         public CadPaper Paper
         {
             get => Papers.FirstOrDefault(p => p.IsSameAs(_settings.Paper)) ?? _settings.Paper;
             set
             {
-                if (value != null && !value.IsSameAs(_settings.Paper))
+                if (value == null || value.IsSameAs(_settings.Paper))
                 {
-                    _settings.Paper = value;
-                    Refresh();
+                    return;
                 }
+
+                if (value.IsCustomChoice)
+                {
+                    var custom = new CustomImageSizeViewModel(_settings.Paper);
+
+                    if (ShowCustomSize != null && ShowCustomSize(custom) && custom.CanOk)
+                    {
+                        CadPaper made = custom.Size;
+
+                        if (!CadPaper.PixelSizes.Contains(made))
+                        {
+                            _customSizes.RemoveAll(p => p.IsSameAs(made));
+                            _customSizes.Insert(0, made);
+                            CustomSizeMade?.Invoke(this, made);
+                        }
+
+                        _settings.Paper = made;
+                        Papers = PapersOf(_settings);
+                        Raise(nameof(Papers));
+                    }
+
+                    Refresh();
+                    return;
+                }
+
+                _settings.Paper = value;
+
+                if (!value.IsPixels)
+                {
+                    _mmPaper = value;
+                }
+
+                Refresh();
             }
         }
 
-        /// <summary>Gets the width of the sheet as it lies, over the small picture of it: "420 MM".</summary>
-        public string SheetWidthText => Whole(Page.SheetWidth) + " MM";
+        /// <summary>Gets the width of the sheet as it lies, over the small picture of it: "420 MM", or for an image "1920 PIXELS".</summary>
+        public string SheetWidthText => Whole(Page.SheetWidth) + (IsRaster ? " PIXELS" : " MM");
 
         /// <summary>Gets the height of the sheet as it lies, beside the picture: "297".</summary>
         public string SheetHeightText => Whole(Page.SheetHeight);
@@ -513,7 +606,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             get
             {
-                string name = System.IO.Path.GetFileNameWithoutExtension(Document.Title) + "-" + Space.Name + ".pdf";
+                string extension = string.Equals(_settings.DeviceName, CadPlotSettings.PngDevice, StringComparison.OrdinalIgnoreCase) ? ".png"
+                    : string.Equals(_settings.DeviceName, CadPlotSettings.JpgDevice, StringComparison.OrdinalIgnoreCase) ? ".jpg" : ".pdf";
+                string name = System.IO.Path.GetFileNameWithoutExtension(Document.Title) + "-" + Space.Name + extension;
 
                 foreach (char bad in System.IO.Path.GetInvalidFileNameChars())
                 {
@@ -535,8 +630,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public CadEditResult ApplyToLayout() => _settings.ApplyTo(Document, Space);
 
         /// <summary>
-        /// Plots to a PDF as OK does: the file written, and the page setup written into the layout first where Save changes to
-        /// layout is ticked.
+        /// Plots as OK does, to a PDF or, with a raster device, to a PNG or a JPEG of the size in pixels: the file written,
+        /// and the page setup written into the layout first where Save changes to layout is ticked.
         /// </summary>
         /// <param name="path">The file.</param>
         /// <returns>The plot as it was laid on its sheet.</returns>
@@ -554,18 +649,23 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 ApplyToLayout();
             }
 
-            return CadPdfWriter.Write(path, Document, Space, _settings, _job.Display);
+            return Write(path, Document, Space, _settings, _job.Display);
         }
+
+        /// <summary>A plot written by the writer of its device: the image writer for GeometryHelper PNG and JPG, else the PDF writer.</summary>
+        internal static CadPlotPage Write(string path, CadDocument document, CadSpace space, CadPlotSettings settings, DisplayBox display)
+            => settings.IsRaster ? CadRasterWriter.WritePlot(path, document, space, settings, display) : CadPdfWriter.Write(path, document, space, settings, display);
 
         /// <summary>Makes the preview of the plot as the dialog has it, as Preview… shows it.</summary>
         /// <returns>The preview.</returns>
         public PlotPreviewViewModel CreatePreview() => new PlotPreviewViewModel(Document, Space, _settings, _job.Display);
 
-        /// <summary>Hands the settings back to the command where the dialog closed to have a window picked.</summary>
-        internal void HandBack()
+        /// <summary>Hands the settings back to the command where the dialog closed to have a window picked, or with FILEDIA 0 for the command to ask the file.</summary>
+        internal void HandBack(bool asksFile = false)
         {
             _job.Settings = _settings.Clone();
             _job.PicksWindow = PicksWindow;
+            _job.AsksFile = asksFile;
         }
 
         private double PictureScale
@@ -575,6 +675,38 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 CadPlotPage page = Page;
                 return Math.Min(92.0 / page.SheetWidth, 66.0 / page.SheetHeight);
             }
+        }
+
+        /// <summary>The entries of the Paper size list for the settings' device.</summary>
+        private IReadOnlyList<CadPaper> PapersOf(CadPlotSettings settings)
+        {
+            var papers = new List<CadPaper>(settings.IsRaster ? CadPaper.PixelSizes.Concat(_customSizes) : CadPaper.Standard);
+
+            if (!papers.Any(p => p.IsSameAs(settings.Paper)))
+            {
+                papers.Add(settings.Paper);
+            }
+
+            if (settings.IsRaster)
+            {
+                papers.Add(CadPaper.CustomPixelsChoice);
+            }
+
+            return papers;
+        }
+
+        /// <summary>The plotter changed: the Paper size list made again for it, then every field.</summary>
+        private void RefreshDevice()
+        {
+            Papers = PapersOf(_settings);
+            Raise(nameof(Papers));
+
+            foreach (string name in new[] { nameof(Device), nameof(IsRaster), nameof(PlotterText), nameof(DescriptionText), nameof(OffsetUnit), nameof(ScaleUnit), nameof(DpiText), nameof(ShadeNote), nameof(StyleNote), nameof(SuggestedFileName) })
+            {
+                Raise(name);
+            }
+
+            Refresh();
         }
 
         /// <summary>Every field read again from the settings, the offsets and a fitted scale as the sheet now gives them.</summary>

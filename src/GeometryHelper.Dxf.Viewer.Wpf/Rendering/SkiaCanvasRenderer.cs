@@ -100,7 +100,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <param name="page">The plot laid on its sheet.</param>
         /// <param name="settings">How it is plotted.</param>
         /// <param name="sheetToCanvas">From the sheet's millimetres, Y upward from its lower left corner, to the canvas.</param>
-        internal void RenderPlot(SKCanvas canvas, CadDocument document, CadSpace space, CadPlotPage page, CadPlotSettings settings, Affine2 sheetToCanvas)
+        /// <param name="lineweightScale">
+        /// Units of the canvas per millimetre of lineweight; the scale of <paramref name="sheetToCanvas"/> where 0. An image
+        /// sized in pixels gives 96 / 25.4, its lines as wide as at 96 dots an inch.
+        /// </param>
+        internal void RenderPlot(SKCanvas canvas, CadDocument document, CadSpace space, CadPlotPage page, CadPlotSettings settings, Affine2 sheetToCanvas, double lineweightScale = 0.0)
         {
             if (page.IsEmpty)
             {
@@ -130,7 +134,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             float y0 = (float)sheetToCanvas.Y(clip.MinX, clip.MinY);
             float x1 = (float)sheetToCanvas.X(clip.MaxX, clip.MaxY);
             float y1 = (float)sheetToCanvas.Y(clip.MaxX, clip.MaxY);
-            double perMillimetre = sheetToCanvas.Scale;
+            double perMillimetre = lineweightScale > 0.0 ? lineweightScale : sheetToCanvas.Scale;
             _plot = new PlotRules(settings.EffectiveStyleTable, settings.PlotLineweights ? perMillimetre * (settings.ScaleLineweights ? page.Scale : 1.0) : 0.0);
             canvas.Save();
 

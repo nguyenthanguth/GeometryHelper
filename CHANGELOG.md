@@ -6,6 +6,13 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** PLOT and -PLOT plot to images: GeometryHelper PNG (lossless) and GeometryHelper JPG (quality 90) beside
+GeometryHelper PDF. Their sizes are in pixels, 1280 x 720 to 3840 x 2160, and Custom… makes one of 16 to 8 000 pixels a
+side, kept between sessions; a raster device starts fitted and centred on white, with no plot style table and colour 7
+black, and always plots to a file, asked on OK or with FILEDIA 0 on the command line. Model space fitted to 1920 x 1080 is
+a PNG of exactly 1920 by 1080 pixels. New API: `CadPaper.PixelSizes`, `CadPaper.Pixels`, `CadPlotSettings.PngDevice`,
+`JpgDevice`, `UseDevice`, `GlobalSettings.CustomPixelSizes` and `CadRasterWriter.WritePlot`.
+
 **CHANGED.** Dynamic input in the presenter works at the cursor as AutoCAD 2021's. At the Command prompt the text typed
 shows in a box 18 pixels right of the crosshair and 14 below it, with the AutoComplete list under it; the command line's
 own list stays closed while DYN is on. In a command the box shows the prompt as AutoCAD words it, "Specify next point or",
