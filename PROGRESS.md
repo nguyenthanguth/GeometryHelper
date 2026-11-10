@@ -183,9 +183,12 @@ the ones wanted.
       grip rotate and scale tested on their own (S)
 - [x] Snapping: a handle-less R12 DXF gave no object snaps (now given handles on opening, as AutoCAD does); the snap
       order was already AutoCAD's and is pinned by a test (S)
-- [ ] Snapping: the presenter starts with SNAP on, AutoCAD's SNAPMODE default is 0 (S)
-- [ ] Tests: DisplayPatchSpeedTests still fails about 1 run in 6 under other builds' load (layer on 0.73 of whole); take
-      each phase as the best of a few runs instead of one, limits unchanged (S)
+- [x] Snapping: SNAP now starts off (SNAPMODE 0) and POLAR on (AUTOSNAP 63), as AutoCAD 2021 (S)
+- [ ] Status bar per drawing: read SNAPMODE/GRIDMODE from the `*Active` VPORT and ORTHOMODE from the header when a file
+      opens, as AutoCAD does (needs core to expose the active VPORT's snap and grid); GRID and LWDISPLAY defaults wait
+      on the user (S)
+- [x] Tests: DisplayPatchSpeedTests flaky under load: each phase best of 3 after a full GC inside a no-GC region;
+      0 of 20 failed under load (was 5 of 20), limits unchanged (S)
 - [ ] COPYVIEW (not in AutoCAD): the view as an image on the clipboard, also on the canvas right-click menu (optional)
 - [ ] Tables: the cell right-click menu, column letters and row numbers, autofill and width grips, drag-select a range
 - [ ] Tables (running): rows grow for wrapped text; Tab in the last cell adds a row; first/second/other row cell styles
