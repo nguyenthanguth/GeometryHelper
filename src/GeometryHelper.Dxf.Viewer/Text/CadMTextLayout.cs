@@ -91,8 +91,70 @@ namespace GeometryHelper.Dxf.Viewer
         internal static CadMTextLayout Of(DxfMText text, CadMTextContent content, Func<CadMTextLook, CadFontFace> faceOf, double styleWidth, double styleOblique)
         {
             var layout = new CadMTextLayout();
-            new Builder(layout, text, content, faceOf, styleWidth, styleOblique).Build();
+            new Builder(layout, text, content, faceOf, styleWidth, styleOblique, false).Build();
             return layout;
+        }
+
+        /// <summary>
+        /// Lays out the words of an MTEXT being edited as <see cref="Of"/> does, and finds where each place of the editor
+        /// (<see cref="CadMTextEditor"/>: a letter, a symbol or a stack one, a paragraph break one) stands: <see cref="Places"/>.
+        /// An empty paragraph at the end is a line of its own here, for the caret after the last break to stand on.
+        /// </summary>
+        internal static CadMTextLayout OfEditor(DxfMText text, CadMTextContent content, Func<CadMTextLook, CadFontFace> faceOf, double styleWidth, double styleOblique)
+        {
+            var layout = new CadMTextLayout();
+            new Builder(layout, text, content, faceOf, styleWidth, styleOblique, true).Build();
+            return layout;
+        }
+
+        /// <summary>Where each place of the words stands; null but for a layout made by <see cref="OfEditor"/>.</summary>
+        internal PlaceMap Places { get; private set; }
+
+        /// <summary>
+        /// Where each place of the words being edited stands, in the frame of the layout: the left and the right of its letter,
+        /// and its line. A place the layout does not set, a space dropped at a break or a paragraph break, stands after the
+        /// place before it on that place's line, or at the left of its paragraph's first line. The place after the last is
+        /// one more, where the caret stands at the end.
+        /// </summary>
+        internal sealed class PlaceMap
+        {
+            internal PlaceMap(int count)
+            {
+                X = new double[count + 1];
+                Right = new double[count + 1];
+                Line = new int[count + 1];
+
+                for (int i = 0; i <= count; i++)
+                {
+                    Line[i] = -1;
+                }
+            }
+
+            internal double[] X { get; }
+
+            internal double[] Right { get; }
+
+            internal int[] Line { get; }
+
+            internal List<LineBox> Lines { get; } = new List<LineBox>();
+        }
+
+        /// <summary>A line of the words being edited: its baseline, the top of its letters and the foot of its cell, where an empty line's caret stands, and its column.</summary>
+        internal sealed class LineBox
+        {
+            internal double Baseline { get; set; }
+
+            internal double Top { get; set; }
+
+            internal double Bottom { get; set; }
+
+            internal double Left { get; set; }
+
+            internal int Column { get; set; }
+
+            internal double ColumnLeft { get; set; }
+
+            internal double ColumnRight { get; set; }
         }
 
         /// <summary>A run of letters of one look on a line: where its pen starts on its baseline, and how it is drawn.</summary>
@@ -171,6 +233,10 @@ namespace GeometryHelper.Dxf.Viewer
             public bool Joins;
             public int Letters;
 
+            // The editor's place of its first letter; the whole atom one place where Single (a stack, a symbol).
+            public int Place;
+            public bool Single;
+
             // From the pen at its start, on the baseline, upright.
             public double Advance;
             public double Left;
@@ -247,10 +313,14 @@ namespace GeometryHelper.Dxf.Viewer
             private readonly double _h;
             private readonly double _width;
             private readonly bool _columns;
+            private readonly bool _editing;
             private readonly List<Line> _lines = new List<Line>();
+            private readonly List<int> _paragraphPlace = new List<int>();
+            private readonly List<int> _paragraphLine = new List<int>();
 
-            public Builder(CadMTextLayout layout, DxfMText text, CadMTextContent content, Func<CadMTextLook, CadFontFace> faceOf, double styleWidth, double styleOblique)
+            public Builder(CadMTextLayout layout, DxfMText text, CadMTextContent content, Func<CadMTextLook, CadFontFace> faceOf, double styleWidth, double styleOblique, bool editing)
             {
+                _editing = editing;
                 _layout = layout;
                 _text = text;
                 _content = content;
@@ -269,20 +339,35 @@ namespace GeometryHelper.Dxf.Viewer
                 int down = attach >= 1 && attach <= 9 ? (attach - 1) / 3 : 0;
                 var format = new Format();
                 int count = _content.Paragraphs.Count;
+                int place = 0;
 
                 for (int p = 0; p < count; p++)
                 {
                     CadMTextParagraph paragraph = _content.Paragraphs[p];
                     format = Read(format, paragraph.Codes);
+                    _paragraphPlace.Add(place);
+                    _paragraphLine.Add(_lines.Count);
 
-                    // An empty paragraph at the end is no line: "ABC\P" is one line, "ABC\P\P" two.
-                    if (p == count - 1 && p > 0 && paragraph.Runs.Count == 0)
+                    // An empty paragraph at the end is no line: "ABC\P" is one line, "ABC\P\P" two; in the editor it is the caret's.
+                    if (p == count - 1 && p > 0 && paragraph.Runs.Count == 0 && !_editing)
                     {
                         break;
                     }
 
                     char align = paragraph.Alignment == '\0' ? "lcr"[across] : paragraph.Alignment;
-                    Wrap(Atoms(paragraph), format, align, paragraph.StartsColumn);
+                    Wrap(Atoms(paragraph, place), format, align, paragraph.StartsColumn);
+
+                    foreach (CadMTextRun run in paragraph.Runs)
+                    {
+                        place += run.Code != null ? 1 : run.Text.Length;
+                    }
+
+                    place++;
+                }
+
+                if (_editing)
+                {
+                    _layout.Places = new PlaceMap(Math.Max(0, place - 1));
                 }
 
                 // The box the lines are set across: the width, or with none the widest line and its indents.
@@ -405,8 +490,8 @@ namespace GeometryHelper.Dxf.Viewer
                 return double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out number) && !double.IsNaN(number) && !double.IsInfinity(number);
             }
 
-            /// <summary>The atoms of a paragraph, measured.</summary>
-            private List<Atom> Atoms(CadMTextParagraph paragraph)
+            /// <summary>The atoms of a paragraph, measured, each given the editor's place of its first letter, the paragraph's first at <paramref name="place"/>.</summary>
+            private List<Atom> Atoms(CadMTextParagraph paragraph, int place)
             {
                 var atoms = new List<Atom>();
                 int previous = ' ';
@@ -415,11 +500,16 @@ namespace GeometryHelper.Dxf.Viewer
                 {
                     CadMTextLook look = run.Look;
                     string code = run.Code;
+                    int runPlace = place;
+                    int firstAtom = atoms.Count;
+                    place += code != null ? 1 : run.Text.Length;
 
                     if (code != null && code.Length > 3 && code.StartsWith("\\S", StringComparison.Ordinal) && code[code.Length - 1] == ';')
                     {
                         Atom stack = Stack(look, code.Substring(2, code.Length - 3));
                         stack.Joins = previous != ' ' && previous != '\t';
+                        stack.Place = runPlace;
+                        stack.Single = true;
                         atoms.Add(stack);
                         previous = '1';
                         continue;
@@ -478,6 +568,16 @@ namespace GeometryHelper.Dxf.Viewer
                         Measure(word);
                         atoms.Add(word);
                         previous = last;
+                    }
+
+                    // A symbol is one place however many letters it shows; plain letters a place each.
+                    int at = 0;
+
+                    for (int n = firstAtom; n < atoms.Count; n++)
+                    {
+                        atoms[n].Place = code != null ? runPlace : runPlace + at;
+                        atoms[n].Single = code != null;
+                        at += atoms[n].Text.Length;
                     }
                 }
 
@@ -1095,6 +1195,12 @@ namespace GeometryHelper.Dxf.Viewer
                     double lineHigh = exactly ? _h : line.Top;
                     Write(line, n, x, y, lineHigh);
 
+                    if (_editing)
+                    {
+                        double columnLeft = left + (line.Column * (box + gutter));
+                        Map(line, n, x, y, columnLeft, columnLeft + box);
+                    }
+
                     if (line.Atoms.Count > 0)
                     {
                         inkLeft = Math.Min(inkLeft, x + line.Left);
@@ -1126,6 +1232,104 @@ namespace GeometryHelper.Dxf.Viewer
                 _layout.Ink = new[] { inkLeft, inkBottom, inkRight, inkTop };
                 _layout.TextBox = new[] { left, top - (_columns && defined > 0.0 ? defined : actualHigh), left + total, top };
                 _layout.Box = new[] { left, boxTop - high, left + total, boxTop };
+
+                if (_editing)
+                {
+                    Fill();
+                }
+            }
+
+            /// <summary>Sets where the places of a line's atoms stand, letter by letter, as <see cref="Write"/> sets the letters.</summary>
+            private void Map(Line line, int number, double x, double y, double columnLeft, double columnRight)
+            {
+                PlaceMap map = _layout.Places;
+                map.Lines.Add(new LineBox
+                {
+                    Baseline = y,
+                    Top = y + line.Top,
+                    Bottom = y - Math.Max(line.Depth, _h / 3.0),
+                    Left = x + line.Left,
+                    Column = line.Column,
+                    ColumnLeft = columnLeft,
+                    ColumnRight = columnRight,
+                });
+
+                foreach (Atom a in line.Atoms)
+                {
+                    double ax = x + a.X;
+
+                    if (a.Single || a.Kind == Kind.Tab)
+                    {
+                        double end = ax + a.Advance + (a.Kind == Kind.Tab ? 0.0 : a.Letters * a.Spread);
+
+                        if (map.Line[a.Place] < 0)
+                        {
+                            Set(map, a.Place, ax, end, number);
+                        }
+                        else
+                        {
+                            map.Right[a.Place] = Math.Max(map.Right[a.Place], end);
+                        }
+
+                        continue;
+                    }
+
+                    double pen = ax;
+                    int i = 0;
+
+                    while (i < a.Text.Length)
+                    {
+                        int from = i;
+                        CadTextInk.Letter letter = a.Ink.Next(a.Text, ref i);
+                        double step = letter.Advance * a.H * a.Wf * a.Track;
+
+                        for (int k = from; k < i && a.Place + k < map.Line.Length; k++)
+                        {
+                            Set(map, a.Place + k, k == from ? pen : pen + step, pen + step + a.Spread, number);
+                        }
+
+                        pen += step + a.Spread;
+                    }
+                }
+            }
+
+            private static void Set(PlaceMap map, int place, double x, double right, int line)
+            {
+                map.X[place] = x;
+                map.Right[place] = right;
+                map.Line[place] = line;
+            }
+
+            /// <summary>Puts each place the lines did not set after the place before it, or at the left of its paragraph's first line.</summary>
+            private void Fill()
+            {
+                PlaceMap map = _layout.Places;
+                int end = map.Line.Length;
+
+                for (int p = 0; p < _paragraphPlace.Count; p++)
+                {
+                    int first = _paragraphPlace[p];
+                    int last = p + 1 < _paragraphPlace.Count ? _paragraphPlace[p + 1] - 1 : end - 1;
+
+                    for (int q = first; q <= last && q < end; q++)
+                    {
+                        if (map.Line[q] >= 0)
+                        {
+                            continue;
+                        }
+
+                        if (q > first)
+                        {
+                            Set(map, q, map.Right[q - 1], map.Right[q - 1], map.Line[q - 1]);
+                        }
+                        else
+                        {
+                            int line = Math.Min(_paragraphLine[p], map.Lines.Count - 1);
+                            double x = line >= 0 ? map.Lines[line].Left : 0.0;
+                            Set(map, q, x, x, Math.Max(0, line));
+                        }
+                    }
+                }
             }
 
             /// <summary>

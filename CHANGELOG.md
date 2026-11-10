@@ -6,6 +6,18 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**CHANGED.** The presenter's MTEXT editor lays out its words as the canvas draws them, as AutoCAD 2021's in-place
+editor does. It used to set each paragraph on one line, 1.25 times its tallest letters below the last, in WPF's own
+measure, with stacks written inline. It now wraps at the width and spaces its lines at least or exactly as the MTEXT says,
+with its stacks stacked, its tabs, indents, paragraph spacing and columns set and its mask and frame drawn, all by the
+display's own layout and fonts. "Pipe {\H2x;BIG} size 1\S1/2; inch" 40 wide in Arial 2.5 high breaks and stands in the
+editor where the drawn MTEXT does. The caret and the selection follow the wrapped lines: a word typed past the width takes
+the caret to the next line, and Home, End, the arrows up and down and a click work on the lines as drawn. The new
+[`CadMTextEditorLayout`](xref:GeometryHelper.Dxf.Viewer.CadMTextEditorLayout) gives the parts and the place of each
+letter, and `CadMTextEditBox` takes the `Document` whose fonts set them. Typing in an MTEXT of 2 000 letters costs about
+1.5 ms a key, the layout 0.5 ms and the drawing 1 ms. The ruler still shows no paragraph indents or tab stops, and the
+columns cannot be dragged.
+
 **FIXED.** The fields of dynamic input in the presenter followed the raw cursor while OSNAP, ortho or polar held the
 rubber band elsewhere. They now measure to the point the band ends at, as AutoCAD's do, and stand by that band. With the
 cursor 4 pixels off the end (4 000, 0) of a wall, LINE's next point from (1 000, 1 000) showed 3 185.00; it shows
