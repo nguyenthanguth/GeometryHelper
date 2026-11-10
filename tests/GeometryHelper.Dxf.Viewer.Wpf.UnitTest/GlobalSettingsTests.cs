@@ -41,6 +41,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         }
 
         [Fact]
+        public void AViewModelMadeInATest_KeepsItsSettingsInAFileOfTheTests_NotTheUsers()
+        {
+            var model = new MainViewModel();
+
+            Assert.NotEqual(GlobalSettings.DefaultPath, model.SettingsPath);
+            Assert.StartsWith(Path.GetTempPath(), model.SettingsPath);
+        }
+
+        [Fact]
         public void AFileWrittenReadsBackTheSameSettings()
         {
             var settings = new GlobalSettings

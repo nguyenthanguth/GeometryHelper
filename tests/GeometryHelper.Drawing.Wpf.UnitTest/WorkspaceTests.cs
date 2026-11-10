@@ -29,6 +29,15 @@ namespace GeometryHelper.Drawing.Wpf.UnitTest
         }
 
         [Fact]
+        public void ThePresenterOfATest_KeepsItsSettingsInAFileOfTheTests_NotTheUsers()
+        {
+            var bench = new Bench();
+
+            Assert.NotEqual(GlobalSettings.DefaultPath, bench.Model.SettingsPath);
+            Assert.StartsWith(System.IO.Path.GetTempPath(), bench.Model.SettingsPath);
+        }
+
+        [Fact]
         public void TheStartScreenOfGeometryHelperDrawing_KeepsNewDrawingFromAModel_AndCtrlNAsksForIt()
         {
             var bench = new Bench();
