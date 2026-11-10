@@ -24,6 +24,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             using (var folder = new TestFolder())
             {
                 MainViewModel model = Room(folder, out string bottom, out _);
+                model.Toggles.Single(t => t.Name == "SNAP").IsOn = true;
                 model.PickAt(1000, 0, 5, false);
 
                 model.StartCommand("MOVE");
@@ -151,6 +152,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 MainViewModel model = Room(folder, out _, out _);
                 StatusToggleViewModel ortho = model.Toggles.Single(t => t.Name == "ORTHO");
                 StatusToggleViewModel osnap = model.Toggles.Single(t => t.Name == "OSNAP");
+                model.Toggles.Single(t => t.Name == "SNAP").IsOn = true;
                 model.Execute("LINE");
                 model.Execute("1000,1000");
 

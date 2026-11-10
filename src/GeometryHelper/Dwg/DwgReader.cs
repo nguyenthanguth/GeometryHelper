@@ -11,9 +11,9 @@ namespace GeometryHelper.Dwg
     /// </summary>
     /// <remarks>
     /// <para>
-    /// DWG files of AC1015 (AutoCAD 2000), AC1018 (AutoCAD 2004), AC1024 (AutoCAD 2010), AC1027 (AutoCAD 2013) and AC1032
-    /// (AutoCAD 2018 and later) are read. A file of another version, AC1021 (AutoCAD 2007) among them, or one protected
-    /// by a password, is refused with a <see cref="NotSupportedException"/> that names the version.
+    /// DWG files of AC1015 (AutoCAD 2000), AC1018 (AutoCAD 2004), AC1021 (AutoCAD 2007), AC1024 (AutoCAD 2010), AC1027
+    /// (AutoCAD 2013) and AC1032 (AutoCAD 2018 and later) are read. A file of another version, R14 and older among them,
+    /// or one protected by a password, is refused with a <see cref="NotSupportedException"/> that names the version.
     /// </para>
     /// <para>
     /// The file is turned, in memory, into the DXF that says the same, record for record with the handles of the file:
@@ -27,7 +27,7 @@ namespace GeometryHelper.Dwg
     /// </para>
     /// <para>
     /// The check sums of the file are checked. A wrong one in the file header, the header variables, the classes or the
-    /// object map, or from AutoCAD 2004 in a page of the file, refuses the file with a <see cref="FormatException"/>, and
+    /// object map, or from AutoCAD 2004 in a page of the file (from AutoCAD 2007 to 2009 its CRCs of 64 bits), refuses the file with a <see cref="FormatException"/>, and
     /// so does a file cut short there; one object
     /// with a wrong check sum, or that cannot be decoded, is left out, the others are read, and a Warn line counts them.
     /// </para>

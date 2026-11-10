@@ -194,6 +194,43 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         [Fact]
+        public void TabInTheLastCell_AddsARowOfTheLastRowsStylesAndHeight_AndOpensItsFirstCell()
+        {
+            CadDocument document = Metric();
+            string handle = Schedule(document);
+            Assert.True(CadTableEditor.SetAlignment(document, handle, new DxfCellRange(5, 0, 5, 4), DxfCellAlignment.MiddleLeft).Succeeded);
+            Assert.True(CadTableEditor.SetText(document, handle, 5, 1, "HEA300 S355 with end plates both sides, galvanised").Succeeded);
+            double grown = Entity<DxfTable>(document, handle).RowHeight(5);
+            Assert.True(grown > 9.0);
+
+            // The last cell, E6, typed and left by Tab.
+            CadCommandSession session = Run(Session(document), "TABLEDIT", P(4 * 63.5 + 30, -50));
+            Assert.Equal(5, session.Prompt.InPlace.TableRow);
+            Assert.Equal(4, session.Prompt.InPlace.TableColumn);
+            session.Prompt.InPlace.Move = CadTableCellMove.Next;
+            Run(session, "12");
+
+            // A seventh row of data, as high as the sixth and of its looks, empty, its first cell open; as AutoCAD 2021's
+            // InsertRowsAndInherit gave a row put in after a row 60.43 high its 60.43 and its alignments.
+            var table = Entity<DxfTable>(document, handle);
+            Assert.Equal(7, table.NumRows);
+            Assert.Equal(6, session.Prompt.InPlace.TableRow);
+            Assert.Equal(0, session.Prompt.InPlace.TableColumn);
+            Assert.Equal(grown, table.RowHeight(6), 9);
+            Assert.Equal(DxfRowType.DataRow, table.RowType(6));
+            Assert.Equal(DxfCellAlignment.MiddleLeft, table.Alignment(6, 3));
+            Assert.Equal(string.Empty, table.TextString(6, 1));
+            Assert.Equal("12", table.TextString(5, 4));
+            Run(session, Esc);
+            Assert.False(session.IsRunning);
+
+            // The row is a step of its own after the cell's words.
+            Assert.True(document.Undo());
+            Assert.Equal(6, Entity<DxfTable>(document, handle).NumRows);
+            Assert.Equal("12", Entity<DxfTable>(document, handle).TextString(5, 4));
+        }
+
+        [Fact]
         public void TheCellEdits_AreEachOneUndoStep_AndDrawTheTableAnew()
         {
             CadDocument document = Metric();

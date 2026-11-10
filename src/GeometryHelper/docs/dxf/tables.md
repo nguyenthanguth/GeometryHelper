@@ -273,7 +273,12 @@ last cell only where the table holds its own there already; `HorizontalCellMargi
 `IsHeaderSuppressed` and `FlowDirection` read the table's own there too (`93 8` ... `96 0`, `40 3.0` before its
 heights), and a table scaled scales the text heights it gives its rows there. A table of no margin of its own takes its
 style's (the TABLESTYLE's 40 and 41), else that of AutoCAD's own Standard, 1.5 in a drawing of millimetres and 0.06 in
-one of inches, as AutoCAD 2021 reads it, read from the style once and kept until the drawing is changed. `SetFormula(row, column, 0, "=A2+B2")`, from R2004 on,
+one of inches, as AutoCAD 2021 reads it, read from the style once and kept until the drawing is changed. A table leaves
+its title or its header out where its own 280 or 281 says so or its style's does (`DxfTableStyle.IsTitleSuppressed`), as
+AutoCAD 2021 read it: a table of four rows of no flag of its own in a style that leaves the title out has its first row
+the header and the rest data (`RowType`, and the cell styles `_HEADER` and `_DATA` AutoCAD gave them), drawn by
+`RecomputeTableBlock` in the header's and the data's looks; one of its own `93 1`, `280 0` in that style was read the
+same, without its title, so a table's own 0 does not show what its style leaves out. `SetFormula(row, column, 0, "=A2+B2")`, from R2004 on,
 adds a FIELD of AutoCAD's expressions (AcExpr, field code `\AcExpr (A2+B2)`) owned by the table, written as [`DxfField`](xref:GeometryHelper.Dxf.DxfField)
 writes one with the class FIELD listed, and points the cell's 344 at it, after its turn (145) and before its 92, as
 AutoCAD 2021 wrote one, its value left for AutoCAD to work out; a field

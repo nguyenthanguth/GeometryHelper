@@ -92,8 +92,12 @@ namespace GeometryHelper.Dwg
                     _objects.Add(one);
                     _byHandle[one.Handle] = one;
                 }
-                catch (FormatException fault)
+                catch (Exception fault) when (fault is FormatException || fault is InvalidOperationException || fault is ArgumentException
+                    || fault is ArithmeticException || fault is IndexOutOfRangeException)
                 {
+                    // A decoder refuses broken bytes with a FormatException; the geometry it hands decoded values to may
+                    // refuse values no drawing has (a spline whose plane cannot be worked out) in its own way. Either is
+                    // one broken object.
                     broken++;
                     firstFault = firstFault ?? "the object " + entry.Key.ToString("X", CultureInfo.InvariantCulture) + ": " + fault.Message;
                 }

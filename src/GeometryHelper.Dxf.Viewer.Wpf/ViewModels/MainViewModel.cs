@@ -76,12 +76,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 GridY = 10.0,
                 PolarAngle = Math.PI / 2.0,
             };
+            // As AutoCAD 2021 starts: SNAPMODE 0 and ORTHOMODE 0, AUTOSNAP 63 (POLAR and OTRACK on), OSMODE 4133 (OSNAP on).
             Toggles = new ObservableCollection<StatusToggleViewModel>
             {
                 new StatusToggleViewModel("GRID", false),
-                new StatusToggleViewModel("SNAP", true),
+                new StatusToggleViewModel("SNAP", false),
                 new StatusToggleViewModel("ORTHO", false),
-                new StatusToggleViewModel("POLAR", false),
+                new StatusToggleViewModel("POLAR", true),
                 new StatusToggleViewModel("OTRACK", true),
                 new StatusToggleViewModel("OSNAP", true),
             };

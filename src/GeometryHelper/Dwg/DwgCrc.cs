@@ -74,6 +74,146 @@ namespace GeometryHelper.Dwg
             return (sum2 << 16) | (sum1 & 0xFFFF);
         }
 
+        /// <summary>
+        /// The order in which R2007 folds the bytes of a block of 1 to 8 into its sums and CRCs, as the Open Design
+        /// Specification gives it: entry n lists the indexes of a block of n bytes in the order they are taken.
+        /// </summary>
+        private static readonly int[][] Order21 =
+        {
+            new int[0],
+            new[] { 0 },
+            new[] { 0, 1 },
+            new[] { 0, 1, 2 },
+            new[] { 2, 3, 0, 1 },
+            new[] { 2, 3, 0, 1, 4 },
+            new[] { 2, 3, 0, 1, 4, 5 },
+            new[] { 2, 3, 0, 1, 4, 5, 6 },
+            new[] { 6, 7, 4, 5, 2, 3, 0, 1 },
+        };
+
+        private static readonly ulong[] Table64 = MakeTable64();
+
+        private static readonly ulong[] Table64Mirrored = MakeTable64Mirrored();
+
+        /// <summary>
+        /// The 64-bit CRC of R2007, of <paramref name="count"/> bytes from <paramref name="start"/>, begun from
+        /// <paramref name="seed"/>: the normal one (the polynomial of ECMA-182, inverted at the end) or the mirrored one
+        /// (bits shifted the other way, not inverted). The bytes are taken in blocks of eight, in the order of the
+        /// specification.
+        /// </summary>
+        public static ulong Of64(byte[] data, long start, long count, ulong seed, bool mirrored)
+        {
+            ulong crc = seed;
+            long at = start;
+            long end = start + count;
+
+            while (at < end)
+            {
+                int[] order = Order21[(int)Math.Min(8, end - at)];
+
+                for (int i = 0; i < order.Length; i++)
+                {
+                    byte b = data[at + order[i]];
+                    crc = mirrored ? Table64Mirrored[(crc ^ b) & 0xFF] ^ (crc >> 8) : Table64[(b ^ (crc >> 56)) & 0xFF] ^ (crc << 8);
+                }
+
+                at += order.Length;
+            }
+
+            return mirrored ? crc : ~crc;
+        }
+
+        /// <summary>The first way R2007 makes the seed of a 64-bit CRC from a seed and the length of the data.</summary>
+        public static ulong Seed1(ulong seed, long length)
+        {
+            seed = ((seed + (ulong)length) * 0x343FD) + 0x269EC3;
+            seed |= (seed * (0x343FDUL << 32)) + (0x269EC3UL << 32);
+            return ~seed;
+        }
+
+        /// <summary>The second way R2007 makes the seed of a 64-bit CRC from a seed and the length of the data.</summary>
+        public static ulong Seed2(ulong seed, long length)
+        {
+            seed = ((seed + (ulong)length) * 0x343FD) + 0x269EC3;
+            seed = (seed * ((1UL << 32) + 0x343FD)) + ((ulong)length + 0x269EC3);
+            return ~seed;
+        }
+
+        /// <summary>
+        /// The 32-bit check sum of a data page of R2007: the sums of <see cref="OfPage"/>, begun from a seed spread by the
+        /// length, with the bytes of each block of eight taken in the order of the specification.
+        /// </summary>
+        public static uint OfPage21(byte[] data, long start, long count, ulong seed)
+        {
+            seed = ((seed + (ulong)count) * 0x343FD) + 0x269EC3;
+            uint sum1 = (uint)(seed & 0xFFFF);
+            uint sum2 = (uint)((seed >> 16) & 0xFFFF);
+            long at = start;
+
+            while (count > 0)
+            {
+                long chunk = Math.Min(0x15B0, count);
+                count -= chunk;
+                long chunkEnd = at + chunk;
+
+                while (at < chunkEnd)
+                {
+                    int[] order = Order21[(int)Math.Min(8, chunkEnd - at)];
+
+                    for (int i = 0; i < order.Length; i++)
+                    {
+                        sum1 += data[at + order[i]];
+                        sum2 += sum1;
+                    }
+
+                    at += order.Length;
+                }
+
+                sum1 %= 0xFFF1;
+                sum2 %= 0xFFF1;
+            }
+
+            return (sum2 << 16) | (sum1 & 0xFFFF);
+        }
+
+        private static ulong[] MakeTable64()
+        {
+            var table = new ulong[256];
+
+            for (ulong i = 0; i < 256; i++)
+            {
+                ulong value = i << 56;
+
+                for (int bit = 0; bit < 8; bit++)
+                {
+                    value = (value & (1UL << 63)) != 0 ? (value << 1) ^ 0x42F0E1EBA9EA3693 : value << 1;
+                }
+
+                table[i] = value;
+            }
+
+            return table;
+        }
+
+        private static ulong[] MakeTable64Mirrored()
+        {
+            var table = new ulong[256];
+
+            for (ulong i = 0; i < 256; i++)
+            {
+                ulong value = i;
+
+                for (int bit = 0; bit < 8; bit++)
+                {
+                    value = (value & 1) != 0 ? (value >> 1) ^ 0x95AC9329AC4BC9B5 : value >> 1;
+                }
+
+                table[i] = value;
+            }
+
+            return table;
+        }
+
         private static uint[] MakeTable32()
         {
             var table = new uint[256];

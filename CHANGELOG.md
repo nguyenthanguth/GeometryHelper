@@ -48,6 +48,49 @@ under DIMATFIT 0 to 2 a radius's words go where the fit puts them however far ou
 standing 8.75 from the centre. Of 512 new pictures in ghsimplex, in Arial narrowed and slanted and in ghsimplex widened,
 499 match AutoCAD's where 425 did; the 1 522 of earlier rounds match as before (1 443).
 
+**CHANGED.** The presenter's status bar starts with SNAP off and POLAR on, as AutoCAD 2021 starts: SNAPMODE is 0 and
+AUTOSNAP 63, whose bit 8 is polar tracking. With SNAP on from the start, a click away from any object snap went to the
+nearest point of the 10 by 10 grid; it is now taken where it is, and AUTOSNAP reads 63, not 55. GRID, ORTHO, OTRACK,
+OSNAP and DYN start as before, which is AutoCAD's start too, GRID aside: AutoCAD keeps GRIDMODE in each drawing, and the
+presenter reads none from the file.
+
+**FIXED.** `DxfTable.IsTitleSuppressed` and `IsHeaderSuppressed` read only the table's own 280 and 281, so a table of no
+flag of its own in a table style that leaves the title or the header out was drawn and read with a title and a header it
+does not have. They now read the title or header left out where the table's own flag or its style's says so, as AutoCAD
+2021 reads a table, and `RowType`, `RecomputeTableBlock`, the row kinds rows put in and taken out keep and the presenter
+all follow. A table of four rows in a style that leaves the title out has its first row the header and the rest data,
+"R1" in its second row drawn 3 high at the bottom centre at (45, -28.5) as the data, not 5 high at the middle right as a
+header; AutoCAD 2021 gave the same rows `_HEADER` and `_DATA` and drew "R1" there. A table's own `280 0` does not show a
+title its style leaves out: AutoCAD read one of its own `93 1`, `280 0` in that style without its title.
+
+**NEW.** Tab in the last cell of a table in the presenter adds a row, as AutoCAD 2021's table editor does. The new row goes
+under the last, empty, with the cell styles, alignments and height of the last row, and its first cell opens for typing;
+the row is an undo step of its own after the cell's words. AutoCAD's `InsertRowsAndInherit` gave a row added under a row
+60.43 high a height of 60.43 and the alignments of the row above, and the presenter's row is the same.
+
+**CHANGED.** A table in the presenter grows its rows to hold their words, as AutoCAD 2021 lays a table out. A cell's text
+wraps at the cell's width less its margins, laid out as an MTEXT of that width by the presenter's own MTEXT layout, and its
+row becomes as high as its tallest cell needs: the words' actual height and the margins above and below, one line of four
+thirds of the text height at least. A row is never made lower than it was. This happens whenever the presenter draws a
+table anew: a cell typed, Find and Replace, a table style changed or matched, and a table made by TABLE. In AutoCAD's
+Standard in ghsimplex, with columns 30 wide, the title "Bill of steel members for the north frame of the hall" makes its
+row 39.29 high, "Section and grade" the header's 24.21 and "HEA300 S355 with end plates both sides" its row 45.43, and
+each text stands where AutoCAD 2021 put it, all within 1E-5 of AutoCAD's numbers. An MTEXT line also takes a word whose
+ink ends exactly on the width, as AutoCAD does: "with end" 27 wide in ghsimplex 4.5 high is one line, where it broke in two.
+
+**FIXED.** The presenter could not snap to, pick or select the entities of a DXF file that writes no handles, as one of
+R12 written by hand with neither header nor tables: the pick index holds an entity by its handle, and they had none.
+With SNAP and OSNAP on, LINE's next point near the corner (4 000, 3 000) of such a room went to the grid point
+(3 990, 2 990) instead of the endpoint. `CadDocument` now gives each entity of such a file a handle on opening it, as
+AutoCAD does: the next above every handle of the file, in its order, with `$HANDSEED` above them and `$HANDLING` 1, a
+header made where it has none, and reads the drawing anew with them. They are written, so that an undo, which reads the
+drawing back from its saved bytes, finds each entity under the same handle, and the drawing is saved with them, as
+AutoCAD saves it. The corner snaps as an endpoint, 3 905.12 from (1 000, 500), the column's rim gives its quadrant and
+centre, and a wall erased, undone and redone is picked as the same wall. A file with handles opens as before; the snap at
+the cursor on the 100 000-entity drawing costs about 1.1 µs either way. The presenter's order was AutoCAD 2021's already
+and is now pinned by a test: a point typed is taken as typed, and an object snap under the aperture beats object snap
+tracking, which beats polar tracking or ortho, which beat the grid.
+
 **FIXED.** The presenter draws a layer switched off or frozen in a third of the time it took. An entity on a layer that
 is not shown is passed over before its own visibility is read from its groups, which cost near a microsecond each, and
 a display list made again after an edit is sized as the one before, not grown by doubling. In a drawing of 100 000
@@ -64,6 +107,26 @@ a drawing of 1 000 000 entities, medians of five, the undo of a one-line MOVE an
 undo of an ERASE of 10 000 objects takes 0.8 s where it took 3.0 s, and finding an entity by its handle after an undo 0 ms
 where it took 0.2 s. Every drawing an undo or a redo gives is the one saved at that step, byte for byte. The read-ahead
 holds up to three more drawings, each about 330 MB at that size, so the peak working set rose from about 3.2 GB to 3.7 GB.
+
+**NEW.** [`DwgReader`](xref:GeometryHelper.Dwg.DwgReader) reads DWG files of AutoCAD 2007, 2008 and 2009 (AC1021),
+which it refused by name until now. Their container is read: the file header and the pages coded by Reed-Solomon, the
+compression of R2007 and its CRCs of 64 bits, each checked. The eight test drawings of AutoCAD 2021 in AC1021, a drawing
+of anonymous blocks and one of 100 000 lines compare with AutoCAD's DXF of them record for record; a drawing of tilted
+splines differs only in the two spline normals the other versions differ in. The drawing of 100 000 lines reads in
+750 ms, its AC1018 copy in 747 ms in the same runs.
+
+**FIXED.** [`DwgReader`](xref:GeometryHelper.Dwg.DwgReader), in every version: an object whose decoded values the
+library's geometry refuses, such as a damaged SPLINE whose plane cannot be worked out, is left out with the Warn line of
+broken objects, the others read. It refused the whole file with a `FormatException` before. Found by the fuzz of the
+AC1021 reader, 2 of 8 000 changed files.
+
+**CHANGED.** The colours of [`DxfColor`](xref:GeometryHelper.Dxf.DxfColor) by index are AutoCAD 2021's, as its
+`Color.FromColorIndex(ColorMethod.ByAci, i).ColorValue` gives them, where they were ezdxf's table. 197 of the 255
+indexes change: the darker shades of each hue (12 was 0xA50000 and is 0xCC0000, 14 was 0x7F0000 and is 0x990000), a few
+entries of ezdxf's table that were wrong (109 was 0x135817 and is 0x264C2F), and the greys 250 to 254, which are
+0x333333, 0x5B5B5B, 0x848484, 0xADADAD and 0xD6D6D6 (250 was black). The presenter draws these colours, and the nearest
+index of a true colour is found among them: 0x333333 is 250, RGB 10, 200, 30 is 102. The indexes 1 to 11, the two
+brightest of each hue (10 and 11, 20 and 21, and on) and 255 are unchanged.
 
 **CHANGED.** The presenter's MTEXT editor lays out its words as the canvas draws them, as AutoCAD 2021's in-place
 editor does. It used to set each paragraph on one line, 1.25 times its tallest letters below the last, in WPF's own
