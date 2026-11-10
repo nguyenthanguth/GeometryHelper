@@ -98,7 +98,7 @@ the ones wanted.
       Extend for arc ends in a fuzz join (S)
 - [ ] REVCLOUD: the 2021 approximate arc length (REVCLOUDARCVARIANCE), REVCLOUDPROPERTIES, a Freehand preview, Modify on
       more than closed polylines (S)
-- [ ] Layouts: twisted viewports entered; one undo step per wheel or pan gesture; a ZOOM Previous list per viewport;
+- [ ] Layouts (running): twisted viewports entered; one undo step per wheel or pan gesture; a ZOOM Previous list per viewport;
       SCALELISTEDIT (Custom… runs VPSCALE now); Rename and Isolate in the Layer manager; New VP Freeze on viewports made
       through the core's API, not only MVIEW (S)
 - [ ] Styles: MLEADER with no style makes Standard; Block and None content of multileader styles; the scale options
@@ -106,7 +106,7 @@ the ones wanted.
 - [x] Associative dimensions round 3: flag 32 written so a plain MOVE takes the picture; copies get their own picture and
       stay tied to copied objects; intersection snaps; ties from DIM, QDIM, DIMCONTINUE, DIMBASELINE, ordinate, angular
 - [x] Associative dimensions: PERpendicular and TANgent snaps tied with AutoCAD's "last point" reference
-- [ ] Associative dimensions: PER and TAN at a first origin, on polylines, for angular and ordinate; AUDIT of a drawing
+- [ ] Associative dimensions (running): PER and TAN at a first origin, on polylines, for angular and ordinate; AUDIT of a drawing
       with PER/TAN ties (S)
 - [x] Dimension pictures: radius, diameter and angular laid out by DIMTAD, DIMJUST and the fit rules; every line from the
       back of its arrowhead; DIMTVP; the box of DIMGAP below zero (526 AutoCAD pictures compared, 511 match)
