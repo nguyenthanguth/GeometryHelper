@@ -138,6 +138,50 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         }
 
         [Fact]
+        public void ALengthLockedHoldsThePointOfAClick_WhereItHoldsThePreview()
+        {
+            OnCanvas((model, canvas, column) =>
+            {
+                canvas.HeldAt = (at, taken) => model.HoldDynamicInput(at);
+                model.Execute("LINE");
+                model.Execute("1000,1000");
+                model.CommandText = "300";
+                Assert.True(model.TabDynamicInput());
+
+                // What the canvas draws the rubber band and the preview to, with the cursor at (1 300, 1 400).
+                GeoPoint2 held = model.HoldDynamicInput(new GeoPoint2(1300, 1400)).Value;
+                Assert.Equal(300.0, (held - new GeoPoint2(1000, 1000)).Length, 9);
+
+                CanvasMouseTests.Click(canvas, At(canvas, 1300, 1400));
+
+                // The click lands within a pixel of the cursor, so the end within a few units of the held point.
+                DxfLine line = LastLine(model);
+                Assert.Equal(300.0, (line.EndPoint - line.StartPoint).Length, 6);
+                Assert.InRange(line.EndPoint.X - held.X, -5.0, 5.0);
+                Assert.InRange(line.EndPoint.Y - held.Y, -5.0, 5.0);
+            });
+        }
+
+        [Fact]
+        public void AGripStretched_IsDimensionalInput_TheLengthAndTheAngleFromTheGrip()
+        {
+            OnCanvas((model, canvas, column) =>
+            {
+                // The bottom wall picked, then the grip at its end (4 000, 0).
+                CanvasMouseTests.Click(canvas, At(canvas, 3000, 0));
+                canvas.RenderNow();
+                CanvasMouseTests.Click(canvas, At(canvas, 4000, 0));
+
+                Assert.True(model.Session.IsGripEditing);
+                Cursor(model, 4300, 400);
+
+                Assert.True(model.IsDynamicInputPolar);
+                Assert.Equal("500.00", model.DynamicInputFirst);
+                Assert.Equal("53.1", model.DynamicInputSecond);
+            });
+        }
+
+        [Fact]
         public void WithNoBasePoint_TheFieldsAreXAndY_AnXTypedTakesTheCursorsY_AndAWholeCoordinateGoesAsOnTheCommandLine()
         {
             using (var folder = new TestFolder())

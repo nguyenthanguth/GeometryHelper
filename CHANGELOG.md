@@ -119,6 +119,15 @@ text fitted between two points gives the box as long as they are apart. At "Ente
 typed so far in their style, height, rotation and justification, by the code that then makes the line
 (`CadPreview.Typed`, which the window sets from the command line).
 
+**NEW.** Dimensional input at the cursor beyond LINE and PLINE. The length and the angle from the first point show at
+the second point of ARC, CIRCLE's 2P, ELLIPSE's axis, POLYGON's edge, XLINE, RAY, MOVE, COPY, STRETCH and OFFSET's
+distance by two points, and at a grip stretched or moved, with Tab locking a field as before. A prompt for a distance
+from a known point shows the length field alone (the radius of CIRCLE and POLYGON, ELLIPSE's other axis), and one for an
+angle the angle field alone (ROTATE); RECTANG's other corner keeps X and Y, its two sizes, and SCALE's factor the one
+box. A field that holds a number now holds the rubber band, the preview and a click: 300 locked as a line's length from
+(1 000, 1 000) with the cursor at (1 300, 1 400) ends the preview and the line at (1 180, 1 240). New API:
+`MainViewModel.IsDynamicInputLength`, `IsDynamicInputAngle`, `IsDynamicInputDimensional` and `HoldDynamicInput`.
+
 **FIXED.** ROTATE's ghost in a UCS turned from the world's now turns by the angle the objects are turned: in a UCS turned
 30 degrees it turned 30 degrees more than the result.
 

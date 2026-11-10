@@ -1267,6 +1267,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
         }
 
+        /// <summary>
+        /// Gets or sets what holds the point of a prompt in place of the cursor, as the fields of dynamic input do once one
+        /// holds a number: given the cursor, snapped, and whether a click takes the point now, the point held, or null to
+        /// leave the cursor free. Null for none.
+        /// </summary>
+        internal Func<GeoPoint2, bool, GeoPoint2?> HeldAt { get; set; }
+
         /// <summary>Gets or sets where a mouse event happened; null for the mouse itself. A test sets it, having no mouse to move.</summary>
         internal Func<MouseEventArgs, Point> Pointer { get; set; }
 
@@ -2136,7 +2143,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return;
             }
 
-            if (CadPicking.Click(document, WorkSpace, Session, Snap, at, aperture, shift, (Keyboard.Modifiers & ModifierKeys.Control) != 0))
+            // A field of dynamic input that holds a number gives the point, the click its direction or its distance.
+            bool control = (Keyboard.Modifiers & ModifierKeys.Control) != 0;
+            GeoPoint2? fields = HeldAt != null && CadPicking.WantsPoint(Session)
+                ? HeldAt(CadPicking.Snap(document, WorkSpace, Snap, at, aperture, Session.Prompt.BasePoint)?.Point ?? at, true)
+                : null;
+
+            if (fields.HasValue ? Session.Feed(fields.Value, false, control) : CadPicking.Click(document, WorkSpace, Session, Snap, at, aperture, shift, control))
             {
                 SelectionChanged?.Invoke(this, EventArgs.Empty);
             }
@@ -3056,6 +3069,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             // Without the magnet (AUTOSNAP 4) the rubber band and the ghost stay at the cursor while an object snap is shown.
             bool held = _snapped != null && (Snap == null || Snap.Magnet || !IsObjectSnap(_snapped.Kind));
             GeoPoint2 target = held ? _snapped.Point : _cursor.Value;
+
+            // A field of dynamic input that holds a number holds the rubber band and the preview with it.
+            target = HeldAt?.Invoke(target, false) ?? target;
             Point to = ToScreen(view, target, scale);
             GeoPoint2? basePoint = session.Prompt.BasePoint;
             DrawGhost(dc, view, scale, target);

@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using GeometryHelper.Dxf;
 using GeometryHelper.Geometry;
@@ -208,15 +209,131 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 Assert.Equal(0.0, LastLine(model).EndPoint.X, 9);
                 Assert.Equal(0.0, LastLine(model).EndPoint.Y, 9);
 
-                // Another command's point with a base point is no dimensional input: MOVE's second point has X and Y.
+                // RECTANG's other corner is no dimensional input: it has X and Y, its two sizes.
                 model.Escape();
-                model.Execute("MOVE");
-                model.Execute("ALL");
-                model.Execute(string.Empty);
+                model.Execute("RECTANG");
                 model.Execute("0,0");
 
                 Assert.True(model.IsDynamicInputFields);
                 Assert.False(model.IsDynamicInputPolar);
+                Assert.False(model.IsDynamicInputDimensional);
+            }
+        }
+
+        [Theory]
+        [InlineData("CIRCLE|2P|1000,1000")]
+        [InlineData("ARC|1000,1000")]
+        [InlineData("ELLIPSE|1000,1000")]
+        [InlineData("POLYGON|4|E|1000,1000")]
+        [InlineData("XLINE|1000,1000")]
+        [InlineData("RAY|1000,1000")]
+        [InlineData("PLINE|1000,1000")]
+        [InlineData("MOVE|ALL||1000,1000")]
+        [InlineData("COPY|ALL||1000,1000")]
+        [InlineData("OFFSET|1000,1000")]
+        [InlineData("STRETCH|4100,-100|3900,100||1000,1000")]
+        public void TheSecondPointOfACommand_IsDimensionalInput_TheLengthAndTheAngleFromTheFirst(string typed)
+        {
+            using (var folder = new TestFolder())
+            {
+                MainViewModel model = Room(folder);
+
+                foreach (string line in typed.Split('|'))
+                {
+                    model.Execute(line);
+                }
+
+                Cursor(model, 1300, 1400);
+
+                Assert.True(model.IsCommandRunning);
+                Assert.True(model.IsDynamicInputPolar);
+                Assert.True(model.IsDynamicInputLength);
+                Assert.True(model.IsDynamicInputAngle);
+                Assert.Equal("500.00", model.DynamicInputFirst);
+                Assert.Equal("53.1", model.DynamicInputSecond);
+
+                // The length locked holds the cursor 300 from the first point, towards it.
+                model.CommandText = "300";
+                Assert.True(model.TabDynamicInput());
+
+                GeoPoint2 held = model.HoldDynamicInput(new GeoPoint2(1300, 1400)).Value;
+                Assert.Equal(1180.0, held.X, 9);
+                Assert.Equal(1240.0, held.Y, 9);
+            }
+        }
+
+        [Fact]
+        public void TheRadiusOfACircle_IsTheLengthFieldAlone_ANumberTypedHoldsTheCursorAndEnterTakesIt()
+        {
+            using (var folder = new TestFolder())
+            {
+                MainViewModel model = Room(folder);
+                model.Execute("CIRCLE");
+                model.Execute("1000,1000");
+                Cursor(model, 1300, 1400);
+
+                Assert.True(model.IsDynamicInputLength);
+                Assert.False(model.IsDynamicInputAngle);
+                Assert.False(model.IsDynamicInputPolar);
+                Assert.False(model.IsDynamicInputFields);
+                Assert.True(model.IsDynamicInputFirstActive);
+                Assert.Equal("500.00", model.DynamicInputFirst);
+                Assert.False(model.IsDynamicInputFirstLocked);
+                Assert.Null(model.HoldDynamicInput(new GeoPoint2(1300, 1400)));
+
+                model.CommandText = "250";
+
+                Assert.Equal("250", model.DynamicInputFirst);
+                Assert.True(model.IsDynamicInputFirstLocked);
+                GeoPoint2 held = model.HoldDynamicInput(new GeoPoint2(1300, 1400)).Value;
+                Assert.Equal(1150.0, held.X, 9);
+                Assert.Equal(1200.0, held.Y, 9);
+
+                // Tab is not the field's: there is no other to go to.
+                Assert.False(model.TabDynamicInput());
+
+                model.SubmitCommand();
+
+                DxfCircle circle = model.Document.Database.ModelSpace.Cast<DxfEntity>().OfType<DxfCircle>().Last();
+                Assert.Equal(250.0, circle.Radius, 9);
+            }
+        }
+
+        [Fact]
+        public void TheAngleOfRotate_IsTheAngleFieldAlone_AndTheScaleFactorHasNoField()
+        {
+            using (var folder = new TestFolder())
+            {
+                MainViewModel model = Room(folder);
+                model.Execute("ROTATE");
+                model.Execute("ALL");
+                model.Execute(string.Empty);
+                model.Execute("1000,1000");
+                Cursor(model, 1000, 1500);
+
+                Assert.True(model.IsDynamicInputAngle);
+                Assert.False(model.IsDynamicInputLength);
+                Assert.True(model.IsDynamicInputSecondActive);
+                Assert.Equal("90.0", model.DynamicInputSecond);
+
+                // 30 typed holds the cursor on the line at 30 degrees, at its distance of 500.
+                model.CommandText = "30";
+
+                Assert.Equal("30", model.DynamicInputSecond);
+                GeoPoint2 held = model.HoldDynamicInput(new GeoPoint2(1000, 1500)).Value;
+                Assert.Equal(1000.0 + 500.0 * Math.Cos(Math.PI / 6.0), held.X, 9);
+                Assert.Equal(1250.0, held.Y, 9);
+
+                model.CommandText = string.Empty;
+                model.Escape();
+                model.Execute("SCALE");
+                model.Execute("ALL");
+                model.Execute(string.Empty);
+                model.Execute("1000,1000");
+                Cursor(model, 1000, 1500);
+
+                Assert.False(model.IsDynamicInputDimensional);
+                Assert.False(string.IsNullOrEmpty(model.DynamicInputValue));
             }
         }
     }
