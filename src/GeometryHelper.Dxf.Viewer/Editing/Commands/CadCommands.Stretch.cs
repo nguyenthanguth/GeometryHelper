@@ -143,8 +143,42 @@ namespace GeometryHelper.Dxf.Viewer
 
             c.ClearsSelection = true;
             var move = new Ref<GeoVector2?>();
+            Func<GeoPoint3, bool> inside = p => InAny(boxes, polygons, p);
 
-            foreach (CadPrompt prompt in Displacement(c, move))
+            // The objects as the displacement to the cursor would leave them: copies moved whole or stretched by the points the
+            // windows hold, as AutoCAD 2021 drags them; those of the model that cannot be stretched left out.
+            IEnumerable<DxfEntity> Stretched(GeoVector2 by)
+            {
+                var copies = new List<DxfEntity>();
+
+                foreach (string handle in handles)
+                {
+                    DxfEntity entity = c.Document.FindEntity(handle);
+                    bool[] held = single.Contains(handle) ? null : Held(entity, inside);
+
+                    if ((held != null && !Array.Exists(held, h => h)) || (held != null && !Array.TrueForAll(held, h => h) && c.Document.Owners.GetEditRule(entity) != CadEditRule.Free))
+                    {
+                        continue;
+                    }
+
+                    var copy = (DxfEntity)entity.Clone();
+
+                    if (held == null || Array.TrueForAll(held, h => h))
+                    {
+                        copy.TransformBy(GeoTransform3.Translation(new GeoVector3(by.X, by.Y, 0.0)));
+                    }
+                    else
+                    {
+                        StretchPoints(copy, held, by);
+                    }
+
+                    copies.Add(copy);
+                }
+
+                return copies;
+            }
+
+            foreach (CadPrompt prompt in Displacement(c, move, Stretched))
             {
                 yield return prompt;
             }
@@ -155,7 +189,6 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             GeoVector2 by = move.Value.Value;
-            Func<GeoPoint3, bool> inside = p => InAny(boxes, polygons, p);
             var planned = new List<CadEditRecord>();
             var stretched = new List<KeyValuePair<string, bool[]>>();
 
