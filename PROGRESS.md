@@ -200,8 +200,11 @@ the ones wanted.
       side choice), radius 3 circles under DIMTMOVE 1/2 with the point inside (28 pictures); DIMTEDIT Left/Right and
       DIMTOH on slanted lines unprobed (M)
 - [x] MTEXT: word wrap at the width, stacked fractions, columns; line spacing 5/3 as AutoCAD (check first)
-- [ ] MTEXT follow-ups (running: the in-place editor): the in-place editor wraps and spaces lines as the drawn MTEXT (it keeps one line per paragraph,
-      pitch 1.25); paragraph, column and tab dialogs and ribbon controls (need design); triangle width/height grips;
+- [x] MTEXT in-place editor lays out with the drawn MTEXT's layout (wrap, spacing, stacks, columns, mask, frame)
+- [ ] Speed (running): DisplayPatchSpeedTests "layer on" at 0.78 of a whole draw, limit 2/3 (fails 2 runs in 3 since
+      about 5fd333f1); find the commit and fix (S)
+- [ ] MTEXT follow-ups: the editor's ruler (indents, tab stops), column drag, `\W1.2x;` in a style of width not 1, the
+      caret at a soft break between ideographs; paragraph, column and tab dialogs and ribbon controls (need design); triangle width/height grips;
       parked: `\pxsm2` with tall runs (0.048 h), flow direction 3, `\pxsa` first line, `\M+` codes, mask with a taller
       defined height, manual columns at bottom or middle attachment, column grips; EXPLODE keeping run fonts and colours;
       TEXT draws %%U/%%O/%%K lines; warm display cost of 10 000 MTEXTs 290 -> 430 ms (a per-entity cache?) (M)
