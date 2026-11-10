@@ -54,6 +54,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private AppMenuViewModel _appMenu;
         private MainViewModel _model;
         private Point _dynamicAt;
+        private GeoPoint2 _bandAt;
         private bool _fieldsPlaced;
         private Rect _lengthOtherSide;
         private DateTime _lastAutosave = DateTime.UtcNow;
@@ -66,7 +67,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             DataContextChanged += OnDataContextChanged;
             CanvasView.CursorMoved += (s, e) =>
             {
-                _model?.SetCursor(e.X, e.Y);
+                _bandAt = new GeoPoint2(e.BandX, e.BandY);
+                _model?.SetCursor(e.X, e.Y, _bandAt);
                 PlaceDynamicInput(e.X, e.Y);
             };
             CanvasView.HeldAt = (at, taken) =>
@@ -872,8 +874,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             view.DrawingToPixel(x, y, out double px, out double py);
             px /= scale;
             py /= scale;
-            // The dimensions run to the point a field holds, the box stays at the cursor.
-            GeoPoint2 held = _model.HoldDynamicInput(new GeoPoint2(x, y)) ?? new GeoPoint2(x, y);
+            // The dimensions run to the point a field holds, else to where the rubber band ends, snapped; the box stays at the cursor.
+            GeoPoint2 held = _model.HoldDynamicInput(_bandAt) ?? _bandAt;
             view.DrawingToPixel(held.X, held.Y, out double hx, out double hy);
             PlaceDimensionalInput(view, scale, new Point(hx / scale, hy / scale));
 

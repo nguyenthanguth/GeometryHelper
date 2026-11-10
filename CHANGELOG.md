@@ -6,6 +6,14 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** The fields of dynamic input in the presenter followed the raw cursor while OSNAP, ortho or polar held the
+rubber band elsewhere. They now measure to the point the band ends at, as AutoCAD's do, and stand by that band. With the
+cursor 4 pixels off the end (4 000, 0) of a wall, LINE's next point from (1 000, 1 000) showed 3 185.00; it shows
+3 162.28 and 341.6, the length and the angle to the end. A distance typed alone goes along the band as well: with ortho
+on and the cursor at (1 300, 1 700), 200 typed from (1 000, 1 300) ends the line at (1 000, 1 500), straight up, where
+it went towards the cursor before. `CadCursorEventArgs` gives the band's end as `BandX` and `BandY`, and
+`MainViewModel.SetCursor` takes it.
+
 **CHANGED.** The dynamic input of the presenter shows the length and the angle in their fields alone, with no dimension
 line, extension lines, angle arc or dashed base line drawn under them. That is every prompt with these fields: the
 second point of LINE, PLINE, ARC, CIRCLE's 2P, ELLIPSE's axis, POLYGON's edge, XLINE, RAY, MOVE, COPY, STRETCH, OFFSET

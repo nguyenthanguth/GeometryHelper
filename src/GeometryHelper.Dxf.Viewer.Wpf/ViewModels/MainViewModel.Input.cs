@@ -58,7 +58,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         private bool _commandLineShown = true;
         private IReadOnlyList<DynamicInputOptionViewModel> _dynamicOptions = Array.Empty<DynamicInputOptionViewModel>();
-        private GeoPoint2 _cursorAt;
+        private GeoPoint2 _bandAt;
         private bool _absolute;
         private string _lockedFirst;
         private string _lockedSecond;
@@ -163,11 +163,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 // In the current UCS: its coordinates, and the angle counted from its X axis turned by ANGBASE, by ANGDIR.
                 if (!prompt.BasePoint.HasValue)
                 {
-                    GeoPoint2 shown = Ucs.ToUcs(_cursorAt);
+                    GeoPoint2 shown = Ucs.ToUcs(_bandAt);
                     return _settings.FormatNumber(shown.X, _settings.CoordinateDecimals) + ", " + _settings.FormatNumber(shown.Y, _settings.CoordinateDecimals);
                 }
 
-                GeoVector2 way = Ucs.ToUcs(_cursorAt - prompt.BasePoint.Value);
+                GeoVector2 way = Ucs.ToUcs(_bandAt - prompt.BasePoint.Value);
                 double dx = way.X;
                 double dy = way.Y;
                 double degrees = Session.CountAngle(Math.Atan2(dy, dx)) * 180.0 / Math.PI;
@@ -614,7 +614,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return true;
             }
 
-            Session.Feed(FieldPoint(first, second, polar, absolute, _cursorAt));
+            Session.Feed(FieldPoint(first, second, polar, absolute, _bandAt));
             SyncHistory();
             RunAfterCommand();
             return true;
@@ -725,7 +725,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             if (!from.HasValue)
             {
-                GeoPoint2 shown = Ucs.ToUcs(_cursorAt);
+                GeoPoint2 shown = Ucs.ToUcs(_bandAt);
                 return _settings.FormatNumber(second ? shown.Y : shown.X, _settings.CoordinateDecimals);
             }
 
@@ -734,14 +734,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return Measured(second, from.Value);
             }
 
-            GeoVector2 way = Ucs.ToUcs(_cursorAt - from.Value);
+            GeoVector2 way = Ucs.ToUcs(_bandAt - from.Value);
             return _settings.FormatNumber(second ? way.Y : way.X, _settings.CoordinateDecimals);
         }
 
         /// <summary>The length to the cursor from a point, or its angle from the X axis of the UCS in degrees, 0 to 360, as a field shows it.</summary>
         private string Measured(bool angle, GeoPoint2 from)
         {
-            GeoVector2 way = Ucs.ToUcs(_cursorAt - from);
+            GeoVector2 way = Ucs.ToUcs(_bandAt - from);
             double dx = way.X;
             double dy = way.Y;
 
