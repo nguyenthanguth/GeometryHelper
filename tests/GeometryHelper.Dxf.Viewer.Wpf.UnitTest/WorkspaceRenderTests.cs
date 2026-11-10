@@ -25,7 +25,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             using (var folder = new TestFolder())
             {
                 string room = folder.Write("room.dxf", TestFiles.Room(out _, out _));
-                string png = Path.Combine(Path.GetTempPath(), "gk", "drawing", "wpf-tests", "workspace.png");
+                string png = Path.Combine(folder.FullPath, "workspace.png");
                 byte[] pixels = null;
                 Rect canvas = Rect.Empty;
                 Exception failure = null;

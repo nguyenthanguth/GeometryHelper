@@ -1,10 +1,60 @@
 using System;
 using System.IO;
+using System.Runtime.CompilerServices;
 using GeometryHelper.Dxf;
 using GeometryHelper.Geometry;
 
+// One test at a time: WPF keeps the XAML of a control as one part for the whole process and hands out its stream through
+// a list it does not lock, so two tests building a workspace on two threads at once break that list, and every workspace
+// built afterwards fails in PackagePart.CleanUpRequestedStreamsList.
+[assembly: Xunit.CollectionBehavior(DisableTestParallelization = true)]
+
+namespace System.Runtime.CompilerServices
+{
+    /// <summary>Marks the method the compiler runs when the assembly is loaded; .NET Framework has no such attribute of its own.</summary>
+    [AttributeUsage(AttributeTargets.Method, Inherited = false)]
+    internal sealed class ModuleInitializerAttribute : Attribute
+    {
+    }
+}
+
 namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
 {
+    /// <summary>
+    /// The settings file of the view models the tests make: one of this run's own under %TEMP%\gk\drawing\wpf-tests, set
+    /// before any test runs and deleted at the end, so that no test reads or writes the user's settings and two runs at once
+    /// share no file.
+    /// </summary>
+    internal static class TestSettings
+    {
+        private static readonly string Folder = Path.Combine(Path.GetTempPath(), "gk", "drawing", "wpf-tests", "settings-" + Guid.NewGuid().ToString("N"));
+
+        [ModuleInitializer]
+        internal static void Use()
+        {
+            MainViewModel.DefaultSettingsPath = Path.Combine(Folder, "settings.json");
+            AppDomain.CurrentDomain.DomainUnload += (s, e) => Delete();
+            AppDomain.CurrentDomain.ProcessExit += (s, e) => Delete();
+        }
+
+        private static void Delete()
+        {
+            try
+            {
+                if (Directory.Exists(Folder))
+                {
+                    Directory.Delete(Folder, true);
+                }
+            }
+            catch (IOException)
+            {
+            }
+            catch (UnauthorizedAccessException)
+            {
+            }
+        }
+    }
+
     /// <summary>A folder of its own under %TEMP%\gk\drawing\wpf-tests for the files of one test, deleted after it.</summary>
     internal sealed class TestFolder : IDisposable
     {

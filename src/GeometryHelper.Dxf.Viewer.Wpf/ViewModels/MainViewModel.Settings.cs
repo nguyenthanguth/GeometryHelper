@@ -65,8 +65,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Gets the settings in use; change them through <see cref="ApplySettings"/>, which takes a copy.</summary>
         public GlobalSettings Settings => _settings;
 
+        /// <summary>
+        /// Gets or sets the file a new view model keeps its settings in until its <see cref="SettingsPath"/> is set: the user's
+        /// own. The tests set a file of their own before they make a view model, so that none of them writes the user's.
+        /// </summary>
+        internal static string DefaultSettingsPath { get; set; } = GlobalSettings.DefaultPath;
+
         /// <summary>Gets or sets the file the settings are saved to by the dialog's OK: <see cref="GlobalSettings.DefaultPath"/> until set.</summary>
-        public string SettingsPath { get; set; } = GlobalSettings.DefaultPath;
+        public string SettingsPath { get; set; } = DefaultSettingsPath;
 
         /// <summary>Gets or sets the model sources Global settings › Data sources lists, as a host that makes drawings from a model gives them.</summary>
         public IReadOnlyList<CadSourceInfo> SettingsSources
