@@ -159,6 +159,81 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             });
         }
 
+        [Fact]
+        public void GripRotate_ShowsTheAngleFieldAloneByTheGrip_AndGripScaleTheBoxAlone_EachTakingWhatIsTyped()
+        {
+            OnWorkspace((model, workspace) =>
+            {
+                model.Snap.IsOn = true;
+                model.Snap.Modes = CadSnapModes.Endpoint;
+                CadCanvas canvas = workspace.DrawingCanvas;
+                double unit = 1.0 / canvas.View.PixelsPerUnit * (canvas.PixelWidth / canvas.ActualWidth);
+
+                // The bottom wall picked, its grip at (4 000, 0) made hot; Enter twice: ** ROTATE **.
+                CanvasMouseTests.Click(canvas, OnScreen(canvas, 3000, 0));
+                Lay(workspace);
+                CanvasMouseTests.Click(canvas, OnScreen(canvas, 4000, 0));
+                Assert.True(model.Session.IsGripEditing);
+                model.Enter();
+                model.Enter();
+                Assert.StartsWith("Specify rotation angle", model.Session.Prompt.Message);
+
+                // The cursor 4 pixels off the top wall's end (4 000, 3 000): the angle to the end, 90, alone by the grip.
+                Move(workspace, 4000 + 4.0 * unit, 3000 - 3.0 * unit);
+
+                Assert.True(model.IsDynamicInputAngle);
+                Assert.False(model.IsDynamicInputLength);
+                Assert.Equal("90.0", model.DynamicInputSecond);
+                Assert.Equal(Visibility.Visible, workspace.DimensionalInput.Visibility);
+                Assert.Equal(Visibility.Visible, workspace.AngleField.Visibility);
+                Assert.NotEqual(Visibility.Visible, workspace.LengthField.Visibility);
+                Point grip = OnScreen(canvas, 4000, 0);
+                Assert.True((Centre(workspace.AngleField, canvas) - grip).Length < 90.0, "angle " + (Centre(workspace.AngleField, canvas) - grip).Length);
+                Rect box = new Rect(workspace.DynamicInputBox.TranslatePoint(new Point(0, 0), canvas), new Size(workspace.DynamicInputBox.ActualWidth, workspace.DynamicInputBox.ActualHeight));
+                Rect angle = new Rect(workspace.AngleField.TranslatePoint(new Point(0, 0), canvas), new Size(workspace.AngleField.ActualWidth, workspace.AngleField.ActualHeight));
+                Assert.False(box.IntersectsWith(angle), box + " " + angle);
+
+                // 30 typed: shown in the field, Enter turns the wall 30 degrees about the grip.
+                model.CommandText = "30";
+                Lay(workspace);
+
+                Assert.Equal("30", model.DynamicInputSecond);
+                Assert.True(model.IsDynamicInputSecondLocked);
+
+                model.SubmitCommand();
+
+                Assert.False(model.IsCommandRunning);
+                DxfLine wall = model.Document.Database.ModelSpace.Cast<DxfEntity>().OfType<DxfLine>().First();
+                Assert.Equal(4000.0 - 4000.0 * Math.Cos(Math.PI / 6.0), wall.StartPoint.X, 6);
+                Assert.Equal(-2000.0, wall.StartPoint.Y, 6);
+
+                // The grip again, Enter three times: ** SCALE **, the box alone with the factor at the cursor, no field.
+                CanvasMouseTests.Click(canvas, OnScreen(canvas, 4000, 0));
+                Assert.True(model.Session.IsGripEditing);
+                model.Enter();
+                model.Enter();
+                model.Enter();
+                Assert.StartsWith("Specify scale factor", model.Session.Prompt.Message);
+                Move(workspace, 4000, 500);
+
+                Assert.False(model.IsDynamicInputDimensional);
+                Assert.Equal(Visibility.Visible, workspace.DynamicInputBox.Visibility);
+                Assert.False(string.IsNullOrEmpty(model.DynamicInputValue));
+
+                // 0.5 typed shows in the box; Enter halves the wall about the grip.
+                model.CommandText = "0.5";
+
+                Assert.Equal("0.5", model.DynamicInputValue);
+
+                model.SubmitCommand();
+
+                Assert.False(model.IsCommandRunning);
+                wall = model.Document.Database.ModelSpace.Cast<DxfEntity>().OfType<DxfLine>().First();
+                Assert.Equal(2000.0, (wall.EndPoint - wall.StartPoint).Length, 6);
+                Assert.Equal(4000.0, wall.EndPoint.X, 6);
+            });
+        }
+
         private static void Cursor(MainViewModel model, double x, double y)
         {
             model.Session.Cursor = new GeoPoint2(x, y);
