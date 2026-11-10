@@ -162,7 +162,11 @@ the ones wanted.
       in dimension and ellipse Properties rows, DIMEDIT oblique, -STYLE obliquing, MEASUREGEOM angle, the `<45` override;
       ATTSYNC by Select on a block with no definitions and its extended data (AutoCAD unchecked: no ATTSYNC in
       accoreconsole); GhDialogButton dimmed twice when disabled (S)
-- [ ] Command line and Recent (running): AutoComplete inside a running command; Search Content; an EXPORT command (S)
+- [x] Command line and Recent: Search Content; EXPORT and -EXPORT (AutoComplete inside a running command dropped: AutoCAD
+      2021 has none) (S)
+- [ ] Command line follow-ups: Input Search Options dialog, collapsible content section, hatch thumbnail on hover, visual
+      styles (need design); EXPORT writers for Metafile and the other refused types if wanted; -EXPORT Dwf/dwfX and All
+      layouts (S)
 - [ ] Dxf.App: an app icon, file association for .dxf (installer or registry), `--tab Home` in screenshot mode
 - [x] Images of an area: PNG and JPG devices in PLOT and -PLOT ("GeometryHelper PNG", "GeometryHelper JPG", as AutoCAD's
       PublishToWeb PNG/JPG), plot area Window, Extents, Display or Layout, size in pixels (1920 x 1080, 3840 x 2160 or
