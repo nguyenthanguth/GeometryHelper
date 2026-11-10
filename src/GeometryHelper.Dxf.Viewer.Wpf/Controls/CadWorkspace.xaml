@@ -2405,6 +2405,12 @@
                             </Style>
                         </TextBlock.Style>
                     </TextBlock>
+                    <!-- A drawing opening in the background: how far it has got, and a button that stops it, as Esc does. -->
+                    <StackPanel Orientation="Horizontal" Margin="0,0,12,0" VerticalAlignment="Center" Visibility="{Binding IsOpening, Converter={StaticResource Shown}}">
+                        <TextBlock Text="{Binding OpeningText}" Foreground="{StaticResource GhText}" VerticalAlignment="Center" />
+                        <Button Style="{StaticResource GhFlatButton}" Content="Stop" Command="{Binding CancelOpeningCommand}" Margin="6,0,0,0" Padding="6,0"
+                                Focusable="False" ToolTip="Stop opening the drawing (Esc)" />
+                    </StackPanel>
                     <TextBlock Text="{Binding CursorText}" Width="170" TextAlignment="Right" FontFamily="{StaticResource GhMonoFont}" FontSize="12"
                                FontWeight="Normal" Margin="0,0,12,0" VerticalAlignment="Center" />
                     <!-- MODEL/PAPER: on the Model tab a label; in a layout a button, as AutoCAD's, raised on the paper (a click runs

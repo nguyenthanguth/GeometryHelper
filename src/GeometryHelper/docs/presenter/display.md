@@ -46,6 +46,12 @@ and kept. It holds [`DisplayItem2`](xref:GeometryHelper.Dxf.Viewer.DisplayItem2)
 back, and the box that holds them all. Each item carries the handle of the entity it came from, its layer, and a
 [`DisplayStyle`](xref:GeometryHelper.Dxf.Viewer.DisplayStyle): colour, line weight and dashes, already worked out.
 
+`PrepareDisplay(space, progress, cancellationToken)` makes the list and the pick index of a space ahead, item for item the
+list `GetDisplay` makes, telling `progress` the share of the space's entities drawn every 4 096 of them and stopping, with
+an `OperationCanceledException`, when the token is cancelled; a list stopped is not kept, and is made whole when next
+asked for. The window calls it on a worker thread for a drawing it opens. A document is not safe to use from two threads
+at once, so nothing else may use it until it returns.
+
 | Item | What it is |
 |---|---|
 | [`DisplayPolyline2`](xref:GeometryHelper.Dxf.Viewer.DisplayPolyline2) | a chain of points, open or closed: a line is one of two points; an ellipse and a spline are sampled into one |

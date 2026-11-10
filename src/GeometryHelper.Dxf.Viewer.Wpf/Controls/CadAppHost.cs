@@ -167,6 +167,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             model.UsePlugins(plugins, loadAtStart: true);
             string file = args.FirstOrDefault(a => !a.StartsWith("--", StringComparison.Ordinal));
 
+            // The window answers while a drawing is read and drawn; the drawing given here is shown once the window runs.
+            model.OpensInBackground = true;
+
             if (file != null)
             {
                 model.Open(file);

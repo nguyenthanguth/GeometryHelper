@@ -81,6 +81,20 @@ newest the first. `BackupsKept` copies are kept, 3 by default and 0 to 50: the l
 The user's file itself is never written. A drawing with a command running, or with no file yet, is left for the next time,
 and the copies are not listed in the file list.
 
+## Opening a drawing
+
+The app's window opens a drawing in the background (`MainViewModel.OpensInBackground`, set by the window; `OpenAsync`
+opens one so whatever it says): the file is read and its display list and pick index made on a worker thread, and the
+drawing is shown once they are made. Meanwhile the status bar says how far it has got, "Opening plan.dxf: drawing 45 %",
+with a Stop button, and the window answers: the view shown pans and zooms, another drawing open is shown from the file
+list, and Esc or Stop stops the opening, the command line saying "Opening plan.dxf stopped." A command typed or started
+meanwhile is not run, so that none runs on a drawing half drawn: "LINE not run: plan.dxf is still opening. Run it again once
+it is shown, or press Esc to stop opening it." One drawing opens at a time; another asked for meanwhile is refused, and the
+same one asked again waits with it. The extensions are told of the drawing, and its fonts set, on the window's thread
+between the reading and the drawing, as before. A drawing of 1 000 000 entities that held the window for 15 s, its first
+frame included, holds it now for 0.2 s at most while it opens, then 0.8 s for its first frame. A test or a screenshot opens
+the drawing before `Open` returns, as before.
+
 ## Closing a drawing
 
 A drawing is closed by CLOSE on the command line or the x on its row in the file list. A command cannot close its own
