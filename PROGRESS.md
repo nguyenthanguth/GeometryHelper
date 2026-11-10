@@ -105,7 +105,7 @@ the ones wanted.
 - [ ] Associative dimensions (running): an aligned dimension with one end stretched (AutoCAD moves its line), a line and its dimension
       copied together stay tied, intersection and other snaps tied, ties from DIM, QDIM, DIMCONTINUE, DIMBASELINE, ordinate
       and two-line angular; check whether a plain MOVE leaves a presenter-made dimension's picture behind (flag 32) (M)
-- [ ] Blocks: BEDIT, the Block Editor (L, design first) (design running)
+- [ ] Blocks: BEDIT, the Block Editor (L) (running; designed in v107)
 - [ ] Blocks: dynamic blocks in use: custom grips (visibility, lookup, stretch, flip, rotate, array) and their Properties
       rows (L)
 
