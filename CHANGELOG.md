@@ -6,6 +6,15 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** The presenter measures a dimension's words with the MTEXT layout the canvas draws them with, the letters by
+their ink, and fits them as AutoCAD 2021 does. Words in the canvas's own ghsimplex were taken as 0.7 of their height a
+letter; "100" of ghsimplex widened 1.5 times is now 9.107 wide, as AutoCAD lays it out. Words on a linear dimension's
+line (DIMTAD 0) need two gaps more each side to stand between the arrowheads, so "9" of ghsimplex, 1.548 wide, moves out
+of a dimension of 9; under DIMATFIT 3 words wider than the arrowheads' room stay inside and the arrowheads go out; and
+under DIMATFIT 0 to 2 a radius's words go where the fit puts them however far out its line was put, "R20" put 35 out
+standing 8.75 from the centre. Of 512 new pictures in ghsimplex, in Arial narrowed and slanted and in ghsimplex widened,
+499 match AutoCAD's where 425 did; the 1 522 of earlier rounds match as before (1 443).
+
 **FIXED.** The presenter draws a layer switched off or frozen in a third of the time it took. An entity on a layer that
 is not shown is passed over before its own visibility is read from its groups, which cost near a microsecond each, and
 a display list made again after an edit is sized as the one before, not grown by doubling. In a drawing of 100 000

@@ -177,7 +177,10 @@ not both fit, DIMTIX, DIMSOXD, DIMATFIT and DIMTOFL say what moves outside, DIMT
 level. With ISO-25's sizes a dimension of 100 has its words "100" in the middle, one of 5 its words inside and its
 arrowheads outside, and one of 7 its arrowheads inside and its words 3.9 past the second extension line. The line starts
 at the back of each arrowhead, 2.5 in from its tip, but for the ticks, Dot small, Dot small blank, Integral and None,
-which take no room and never move out. DIMTVP lifts the words of DIMTAD 0 by that many times their height, the line
+which take no room and never move out. Words on the line (DIMTAD 0) fit between the arrowheads with two gaps each side:
+"9" of ghsimplex, 1.548 wide, moves out of a dimension of 9. Under DIMATFIT 3 words wider than the arrowheads' room stay
+inside and the arrowheads go out: "12" of ghsimplex widened 1.5 times, 5.536 wide, stays between extension lines 12
+apart. DIMTVP lifts the words of DIMTAD 0 by that many times their height, the line
 broken about them below 0.7; a DIMGAP below nought draws a box round the words, the gap clear of them.
 
 DIMTMOVE says where words go that the fit moves out or DIMTEDIT puts by hand. Under 0 they stand beside the line, which
@@ -194,7 +197,8 @@ has its arrowhead outside the rim, its line from the back of it on under the wor
 rim by DIMTOFL, or with DIMTOFL off the centre mark of DIMCEN (centre lines too where DIMCEN is below nought); put 8 from
 the centre, the arrowhead stands inside and the line runs in past the words. Inside a small circle DIMATFIT 3 keeps the
 words where they are put, no nearer the rim than two arrowheads and the gap; 0 to 2 put them in the middle of the line
-where they fit, else outside past the rim. A diameter's words on its line (DIMTAD 0) take a gap each side and, with
+where they fit, else outside past the rim next to it, however far out the line was put: "R20" put 35 out stands 8.75 from
+the centre. On the line (DIMTAD 0) a radius's words take the arrowhead and two gaps more to fit. A diameter's words on its line (DIMTAD 0) take a gap each side and, with
 the arrowheads inside, the arrowheads' room too: "%%c6" 4.357 wide fits a diameter of 6 under DIMATFIT 1, the line
 through the circle broken a gap clear of it. An angle's extension lines run from DIMEXO off its points to DIMEXE past
 the arc wherever that is any length: points 20 out and the arc 20.3 out give lines from 20.625 to 21.55. An angle of 60
@@ -208,9 +212,11 @@ on the arc, which then runs through the point given, under DIMTMOVE 0 ("60°" mo
 out, above the arc as it reads), level past a leader from the middle of the arc under 1, and turned along the arc under
 2. Those of a radius or a diameter slide along its line, which stays, to where the point falls on it under 0 and 1, and
 stand at the point under 2; a radius made under 1 or 2 keeps its line through the point the circle was picked at.
-The words are measured in the font of the dimension's text style, as AutoCAD measures them: "R20" of arial.ttf 2.5 high
-is 5.965 wide and 2.553 high. A TrueType font is read from the Fonts folders of Windows, an SHX font where the fonts set
-on the document find it; words of a font not found take 0.7 of their height a letter. DIMARC (DAR) dimensions the
+The words are measured in the font of the dimension's text style, laid out as the canvas lays out an MTEXT, as AutoCAD
+measures them: "R20" of arial.ttf 2.5 high is 5.965 wide and 2.553 high, "100" of ghsimplex 6.071 wide and widened 1.5
+times 9.107. A TrueType font is read from the Fonts folders of Windows, an SHX font where the fonts set on the document
+find it, the canvas's own ghsimplex wherever fonts are on; the style's width factor and oblique angle count. Words of a
+font not found take 0.7 of their height a letter. DIMARC (DAR) dimensions the
 length of an arc: below 90 degrees of sweep its extension lines run along the middle of the arc, from 90 up from the
 centre; the arc symbol stands before the words (DIMARCSYM 0), over them (1) or nowhere (2); Partial measures between two
 points of the arc, and Leader, offered past 90 degrees, draws a leader from the words' arc to the arc measured. A point

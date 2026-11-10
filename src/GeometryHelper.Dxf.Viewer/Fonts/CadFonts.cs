@@ -356,6 +356,9 @@ namespace GeometryHelper.Dxf.Viewer
             return found;
         }
 
+        /// <summary>The face a text style is drawn in, found as <see cref="Resolve"/> finds it, a font not found left unsaid.</summary>
+        internal CadFontFace FaceOf(string fileName, string bigFontFileName, string typeface, string drawingFolder) => Face(fileName, bigFontFileName, typeface, drawingFolder, out _, out _);
+
         /// <summary>
         /// The face a text style is drawn in, and its font and big font where they are not found: a font not found drawn in
         /// the first half of <see cref="Replacement"/>, a big font not found in its half after the comma, else its letters as

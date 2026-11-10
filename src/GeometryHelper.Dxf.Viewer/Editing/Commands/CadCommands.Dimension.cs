@@ -915,7 +915,7 @@ namespace GeometryHelper.Dxf.Viewer
             double half = Chord(width, height, gap, inside - angle);
             double needText = centred ? 2.0 * half : width;
             double needArrows = ticks ? 0.0 : 2.0 * arrow + gap;
-            double needBoth = centred ? needText + (ticks ? 0.0 : 2.0 * arrow) : Math.Max(needText, needArrows);
+            double needBoth = centred ? needText + (ticks ? 0.0 : 2.0 * (arrow + gap)) : Math.Max(needText, needArrows);
             bool textInside;
             bool arrowsInside;
 
@@ -946,7 +946,7 @@ namespace GeometryHelper.Dxf.Viewer
                         arrowsInside = needArrows <= length;
                         break;
                     default:
-                        arrowsInside = needArrows <= length;
+                        arrowsInside = needArrows <= length && !(needText > needArrows && needText <= length);
                         textInside = !arrowsInside && needText <= length;
                         break;
                 }

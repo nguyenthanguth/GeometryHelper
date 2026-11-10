@@ -800,5 +800,89 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.True((P2(Words(dimension).Location) - P(0, 0)).Length > 4.0);
             Near(At30(6.5), Back(ArrowAt(dimension, At30(4))), 1E-3);
         }
+
+        [Fact]
+        public void WordsOfTheCanvasFontWidened_AreMeasuredByTheFont_AsAutoCadMeasuresThem()
+        {
+            // "100" of ghsimplex widened 1.5 times is 9.1071 wide, as AutoCAD 2021 lays it out from ghsimplex.shx: the line on
+            // which the words stand is broken 9.1071 / 2 + 0.625 either side of them.
+            CadCommandSession session = Metric(s => s.Dimtad = 0);
+            CadDocument document = session.Document;
+            document.Database.TextStyleTable.Add(new DxfTextStyleTableRecord { Name = "GHSWIDE", FileName = CadFonts.BuiltInName, XScale = 1.5 });
+            document.Database.DimStyleTable["Standard"].Dimtxsty = document.Database.TextStyleTable["GHSWIDE"];
+            document.Fonts = new CadFonts(null, CadFonts.BuiltInName, null);
+
+            try
+            {
+                Run(session, "DLI", P(0, 0), P(100, 0), P(50, -20));
+                DxfDimension dimension = Made(session);
+                HasLine(dimension, P(2.5, -20), P(50 - 5.1786, -20), 1E-3);
+                HasLine(dimension, P(97.5, -20), P(50 + 5.1786, -20), 1E-3);
+            }
+            finally
+            {
+                // The fonts a dimension is measured in are those last given any document: put them off again.
+                document.Fonts = new CadFonts(null, null, null);
+            }
+        }
+
+        [Fact]
+        public void WordsOnALinearLine_TakeAGapMoreEachSideToFitBetweenTheArrowheads()
+        {
+            // "9", 1.75 wide here, on the line (DIMTAD 0) of a dimension 9 long: with the arrowheads it takes 1.75 + 4 gaps + 5
+            // = 9.25, and both go out under DIMATFIT 0, as AutoCAD 2021 moves "9" of ghsimplex, 1.548 wide, out of 9.
+            CadCommandSession session = Metric(s => { s.Dimtad = 0; s.Dimatfit = 0; });
+            Run(session, "DLI", P(0, 0), P(9, 0), P(4.5, -20));
+            DxfDimension dimension = Made(session);
+            Near(P(-2.5, -20), Back(ArrowAt(dimension, P(0, -20))), 1E-3);
+            Near(P(9 + 2 * Arrow + Gap + Letter / 2, -20), P2(Words(dimension).Location), 1E-9);
+
+            // "11", 3.5 wide, just fits 11: the words in the middle, the arrowheads inside.
+            session = Metric(s => { s.Dimtad = 0; s.Dimatfit = 0; });
+            Run(session, "DLI", P(0, 0), P(11, 0), P(5.5, -20));
+            dimension = Made(session);
+            Near(P(5.5, -20), P2(Words(dimension).Location), 1E-9);
+            Near(P(2.5, -20), Back(ArrowAt(dimension, P(0, -20))), 1E-3);
+        }
+
+        [Fact]
+        public void UnderBestFit_WordsWiderThanTheArrowheadsStayInside_AndTheArrowheadsGoOut()
+        {
+            // "1200", 7 wide here, on the line of a dimension 12 long: with the arrowheads they do not fit, but alone they take
+            // 7 + 1.25, more than the arrowheads' 5.625, so DIMATFIT 3 keeps them in and moves the arrowheads out, as AutoCAD
+            // 2021 keeps "12" of ghsimplex widened 1.5 times, 5.536 wide, between extension lines 12 apart.
+            CadCommandSession session = Metric(s => { s.Dimtad = 0; s.Dimlfac = 100; });
+            Run(session, "DLI", P(0, 0), P(12, 0), P(6, -20));
+            DxfDimension dimension = Made(session);
+            Assert.Equal("1200", Words(dimension).Contents);
+            Near(P(6, -20), P2(Words(dimension).Location), 1E-9);
+            Near(P(-2.5, -20), Back(ArrowAt(dimension, P(0, -20))), 1E-3);
+
+            // "8", 1.75 wide, takes less than the arrowheads: they stay in and the words go out.
+            session = Metric(s => s.Dimtad = 0);
+            Run(session, "DLI", P(0, 0), P(8, 0), P(4, -20));
+            dimension = Made(session);
+            Near(P(2.5, -20), Back(ArrowAt(dimension, P(0, -20))), 1E-3);
+            Assert.True(P2(Words(dimension).Location).X > 8.0);
+        }
+
+        [Fact]
+        public void ARadiusPutOutsideUnderDimatfitNought_HasItsWordsWhereTheFitPutsThem()
+        {
+            // "R20" put 45 out: the words fit inside, so they stand in the middle of the line from the centre to the back of
+            // the arrowhead, above it, as AutoCAD 2021 draws "R20" put 35 out under DIMATFIT 0.
+            CadCommandSession session = Metric(s => s.Dimatfit = 0);
+            Run(session, "DRA", new[] { Circle(session, 20) }, At30(45));
+            DxfDimension dimension = Made(session);
+            Near(At30(8.75, Lift), P2(Words(dimension).Location), 1E-9);
+            Near(At30(17.5), Back(ArrowAt(dimension, At30(20))), 1E-3);
+
+            // "R8", 3.5 wide, on the line (DIMTAD 0) takes the arrowhead and two gaps more: 3.5 + 4 gaps + 2.5 = 8.5, more
+            // than the radius, so the words go out next to the rim, as AutoCAD 2021 moves "R8" of ghsimplex out of 8.
+            session = Metric(s => { s.Dimatfit = 0; s.Dimtad = 0; });
+            Run(session, "DRA", new[] { Circle(session, 8) }, At30(45));
+            dimension = Made(session);
+            Near(At30(8 + 2 * Arrow + Gap + Letter), P2(Words(dimension).Location), 1E-9);
+        }
     }
 }

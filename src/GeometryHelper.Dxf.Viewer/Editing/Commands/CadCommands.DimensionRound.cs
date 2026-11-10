@@ -62,7 +62,11 @@ namespace GeometryHelper.Dxf.Viewer
             bool textOut;
             double at;
 
-            if (along > radius + 1E-9)
+            // Under DIMATFIT 0 to 2 a radius's words go where the fit puts them however far out the line was put, as AutoCAD 2021
+            // draws them: "R20" put 35 out stands in the middle of the radius.
+            bool fitted = !placed && !diameter && !style.Dimtix && style.Dimatfit != 3;
+
+            if (along > radius + 1E-9 && !fitted)
             {
                 arrowOut = true;
                 textOut = true;
@@ -92,7 +96,7 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 // The words fit where the radius takes them and a gap each side, the arrowhead not counted, as AutoCAD 2021 fits
                 // "R6" 4.03 wide in a radius of 6 and not "R5" in one of 5; DIMATFIT 2 keeps the arrowhead in where it and a gap fit.
-                textOut = radius < width + 2.0 * gap;
+                textOut = radius < width + 2.0 * gap + (words2.On(style.Dimtih) ? trim + 2.0 * gap : 0.0);
                 arrowOut = textOut && !(style.Dimatfit == 2 && radius >= trim + gap);
                 at = !textOut ? (radius - trim) / 2.0 : radius + (arrowOut ? 2.0 * arrow : trim) + words2.Beside;
             }
