@@ -6,6 +6,29 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** `DxfPolyline2d.CurveFit` (PEDIT Fit) now gives AutoCAD 2021's arcs, vertex by vertex to 1E-11 on 60 polylines
+fitted in its console. The tangent between the ends of an open polyline, and everywhere round a closed one, is AutoCAD's
+blend of the two segments at the vertex weighted by the turns either side, not the circle through the vertex and its
+neighbours: on (0, 0), (100, 0), (100, 50), (0, 80) the tangent at (100, 0) is 64.41 degrees, not 63.43, and a closed
+triangle takes the bisector at each corner. The arcs of a segment meet where the curve runs along the chord, or for an
+S-shaped segment with radii as the sines of the tangents' angles to it, not at equal tangent lengths. A segment whose
+tangent at either end is within a millionth of a radian of its line, and a polyline of two vertices, stay straight with
+no vertex added; two vertices on one point split the curve in two there; the vertex added after one given a tangent
+keeps its direction (group 50), as AutoCAD writes it.
+
+**FIXED.** `DxfPolyline3d.SplineFit` keeps the vertices of the curve after the first vertex of the frame, the rest of the
+frame after them, as AutoCAD 2021 stores them and as the polyline of the plane already did.
+
+**NEW.** A drawing whose CLASSES section lists no DICTIONARYVAR, as one the library makes new and the presenter's NEW
+template, is given the class as AutoCAD 2021 lists it (AcDbDictionaryVar, ObjectDBX Classes, proxy flags 0, counted once
+from R2004 on) when its first variable kept out of the header is set, where before the variable was refused. Set Current
+of the presenter's multileader and table styles now works in a new drawing; AutoCAD 2021 audits such a drawing with no
+error and reads CMLEADERSTYLE and CTABLESTYLE as set.
+
+**NEW.** `Annotative` of a multileader style is set, as group 296 with no extended data, as AutoCAD 2021 writes the style
+it makes annotative; the Annotative box of the presenter's Modify Multileader Style is enabled, and a new style started
+from an annotative one is annotative.
+
 **FIXED.** The presenter's -GROUP on a DXF of R2000 written without its OBJECTS section said "Object reference not set to
 an instance of an object."; the drawing is now given the named object dictionary AutoCAD makes on opening it, and the
 group goes in, one undo taking both back.

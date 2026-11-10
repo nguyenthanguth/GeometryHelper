@@ -134,7 +134,11 @@ AcDbVariableDictionary: `Cannoscale` (a scale of the drawing's list of scales), 
 440 holds, as AutoCAD 2021 reads it: the alpha 127 is 33554559, and a per cent written before reads BYLAYER), `Tablestyle`, `MLeaderstyle`, `DetailViewStyle` and `SectionViewStyle` (by name, one of the drawing's),
 `MLeaderscale`, `AnnoAllVisible`, `MsLtScale`, `MsOleScale`, `LayerEval`, `LightingUnits`, `LightsInBlocks`,
 `TStackAlign`, `TstackSize`, `HpInherit`, `Isolines`, `Facetres`, `PdfFrame` and `PlineEllipse`; AutoCAD's default where the
-drawing gives none, as a drawing of ezdxf, to which a variable set adds the dictionary of variables. `ThumbnailBitmap` reads
+drawing gives none, as a drawing of ezdxf, to which a variable set adds the dictionary of variables. A drawing whose
+CLASSES section lists no DICTIONARYVAR, as one the library makes new with `new DxfDatabase("AC1027")`, is given the class
+as AutoCAD 2021 lists it when its first variable is set (`AcDbDictionaryVar` of ObjectDBX Classes, proxy flags 0, counted
+once from R2004 on), so that `db.MLeaderstyle = "GH_NOTES"` in a new drawing is read by AutoCAD as CMLEADERSTYLE GH_NOTES;
+a drawing with no CLASSES section, as one of R12, has none to set. `ThumbnailBitmap` reads
 the bytes of the THUMBNAILIMAGE section.
 
 The drawing's properties are `db.SummaryInfo`, set as AutoCAD sets them:

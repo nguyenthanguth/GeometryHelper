@@ -205,7 +205,7 @@ namespace GeometryHelper.UnitTest.Dxf
         [Fact]
         public void AMultileaderAdded_TakesAStyleMadeInCode_AndItsValuesFromIt()
         {
-            // A drawing the library makes has no class DICTIONARYVAR for CMLEADERSTYLE: the multileader takes Standard.
+            // CMLEADERSTYLE is not set in the drawing: the multileader takes Standard.
             DxfDatabase db = Drawing();
             db.MLeaderStyleDictionary.SetAt("Standard", new DxfMLeaderStyle { TextHeight = 2.5, ArrowSize = 2.5, LandingGap = 2, DoglegLength = 8 });
             db.MLeaderStyleDictionary.SetAt("GH_NOTES", new DxfMLeaderStyle { TextHeight = 3.5, ArrowSize = 3 });
