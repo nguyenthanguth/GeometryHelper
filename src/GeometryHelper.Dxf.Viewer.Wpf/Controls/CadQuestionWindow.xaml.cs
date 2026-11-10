@@ -166,6 +166,34 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             return question.ShowDialog() == true;
         }
 
+        /// <summary>
+        /// Asks whether to purge one object, as AutoCAD's Confirm Purge asks with Confirm each item to be purged: "Purge layer
+        /// "TMP"?", then Purge this item, Skip this item and Cancel.
+        /// </summary>
+        /// <param name="owner">The window it is shown over; null for none.</param>
+        /// <param name="question">The question, "Purge layer "TMP"?".</param>
+        /// <returns>True to purge it, false to keep it, null to stop the purge.</returns>
+        public static bool? ConfirmPurgeItem(Window owner, string question)
+        {
+            var dialog = new CadQuestionWindow(question, "Purge removes the item from the drawing; U takes the whole purge back.", string.Empty, "Purge this item", "Skip this item");
+            dialog.ThirdButton.Content = "Cancel";
+            dialog.ThirdButton.Visibility = Visibility.Visible;
+            dialog.NoButton.IsCancel = false;
+            dialog.ThirdButton.IsCancel = true;
+
+            if (owner != null && owner.IsVisible)
+            {
+                dialog.Owner = owner;
+            }
+            else
+            {
+                dialog.WindowStartupLocation = WindowStartupLocation.CenterScreen;
+            }
+
+            dialog.ShowDialog();
+            return dialog.Answer == CadSaveChoice.Save ? true : dialog.Answer == CadSaveChoice.DontSave ? (bool?)false : null;
+        }
+
         private void OnYes(object sender, RoutedEventArgs e)
         {
             Answer = CadSaveChoice.Save;

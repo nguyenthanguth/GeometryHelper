@@ -123,7 +123,7 @@ x = 40, is attached top right at (80, 0). At 1 they are mirrored with the rest.
 
 ### The commands
 
-[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 165 commands, named as AutoCAD names them, and of the system variables SETVAR sets:
+[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 167 commands, named as AutoCAD names them, and of the system variables SETVAR sets:
 
 | Group | Commands |
 |---|---|
@@ -134,12 +134,12 @@ x = 40, is attached top right at (80, 0). At 1 they are mirrored with the rest.
 | layers | LAYOFF, LAYON, LAYFRZ, LAYTHW, LAYLCK, LAYULK, LAYISO, LAYUNISO, VPLAYER (?, Freeze, Thaw, Reset, Newfrz, Vpvisdflt), LAYVPI |
 | utilities | SELECTALL, UNITS, -UNITS, SCRIPT, SETVAR (?) |
 | modify | TRIM, EXTEND, BREAK, BREAKATPOINT, JOIN, LENGTHEN, PEDIT (Close, Open, Join, Width, Edit vertex, Fit, Spline, Decurve, Ltype gen, Reverse, Undo; Multiple), OFFSET, FILLET, CHAMFER, STRETCH, ARRAY, ARRAYRECT, ARRAYPOLAR, -ARRAY, ALIGN |
-| blocks | BLOCK, -BLOCK, INSERT, -INSERT, WBLOCK, -WBLOCK, ATTDEF, -ATTDEF, EATTEDIT, ATTEDIT, -ATTEDIT, ATTSYNC (?, Name, Select), BASE, BEDIT, -BEDIT (?), BSAVE, BSAVEAS, BCLOSE (Save, Discard, Cancel), BAUTHORPALETTE |
+| blocks | BLOCK, -BLOCK, INSERT, -INSERT, WBLOCK, -WBLOCK, ATTDEF, -ATTDEF, EATTEDIT, ATTEDIT, -ATTEDIT, ATTSYNC (?, Name, Select), BATTMAN, BASE, BEDIT, -BEDIT (?), BSAVE, BSAVEAS, BCLOSE (Save, Discard, Cancel), BAUTHORPALETTE |
 | text and clipboard | TEXTEDIT, MTEDIT, COPYCLIP, CUTCLIP, COPYBASE, PASTECLIP, PASTEBLOCK, PASTEORIG, PASTESPEC |
 | plot | PLOT, -PLOT, PREVIEW, PAGESETUP, PNGOUT, JPGOUT, BMPOUT ([Plotting](plot.md)) |
 | dimension | DIM (Angular, Baseline, Continue, Ordinate, aLign, Distribute, LAyer, Undo), DIMLINEAR, DIMALIGNED, DIMRADIUS, DIMDIAMETER, DIMANGULAR, DIMORDINATE (Xdatum, Ydatum, Mtext, Text, Angle), DIMCONTINUE, DIMBASELINE, QDIM, DIMEDIT, DIMTEDIT, DIMSPACE, DIMBREAK, DIMJOGLINE (Remove), DIMREASSOCIATE (Select object), DIMDISASSOCIATE, -DIMDISASSOCIATE |
 | tables | TABLE, -TABLE (Style, Width, Height), TABLESTYLE, TABLEDIT |
-| selection | QSELECT, FIND, DRAWORDER (Above objects, Under objects, Front, Back), TEXTTOFRONT, GROUP, -GROUP (?, Order, Add, Remove, Explode, REName, Selectable, Create), UNGROUP |
+| selection | QSELECT, FIND, DRAWORDER (Above objects, Under objects, Front, Back), TEXTTOFRONT, GROUP, -GROUP (?, Order, Add, Remove, Explode, REName, Selectable, Create), UNGROUP, CLASSICGROUP |
 | housekeeping | PURGE, -PURGE (Blocks, Dimstyles, LAyers, LTypes, MUltileaderstyles, Plotstyles, SHapes, textSTyles, Tablestyles, Visualstyles, Regapps, Zero-length geometry, Empty text objects, All) |
 | references and images | XATTACH, IMAGEATTACH, XREF, EXTERNALREFERENCES, IMAGE, -XREF (?, Bind, Detach, Path, pathType, Unload, Reload, Overlay, Attach), -IMAGE (?, Detach, Path, Reload, Unload, Attach), IMAGECLIP (ON, OFF, Delete, New boundary), TRANSPARENCY |
 
@@ -243,7 +243,16 @@ ACAD_GROUP dictionary, named with Name, unnamed (`*A1`) without; with PICKSTYLE 
 takes the whole of a selectable group, and Ctrl+Shift+A switches that off and on (`<Group off>`). -PURGE never deletes
 what AutoCAD keeps: layer 0 and Defpoints, the linetypes ByLayer, ByBlock and Continuous, the styles Standard and the
 current ones, the blocks of the spaces, the plot style Normal and every visual style; with "Verify each name to be
-purged?" Yes it asks `Purge layer "EMPTY1"? [Yes/No] <No>:` of each. With SELECTIONCYCLING 2, AutoCAD's default, a
+purged?" Yes it asks `Purge layer "EMPTY1"? [Yes/No] <No>:` of each. It purges pass after pass until nothing more is
+unused, so that a block OUTER inserted nowhere, holding the only INSERT of INNER, takes INNER with it, and the layer only
+INNER's circle was on; a name answered No is not asked again. PURGE shows the Purge dialog where there is a window (the
+typed form otherwise): the named objects nothing uses by kind, with Confirm each item, Purge nested items, the geometry
+of no length and the empty texts; and in Find Non-Purgeable Items the objects in use with the reasons, `Layer WALLS is the
+current layer.`, `Used by 2 objects in model space and 0 in layouts.`, `Referenced by block GB.`. Each purge is one undo
+step. CLASSICGROUP shows AutoCAD's Object Grouping dialog (GROUP being the command-line form in AutoCAD 2021): New, Add,
+Remove, Find Name and Highlight ask on the command line and bring the dialog back; Rename, Description, Explode,
+Selectable and Re-Order change the group at once; OK keeps every change as one undo step and Cancel takes them back.
+With SELECTIONCYCLING 2, AutoCAD's default, a
 click where two lines cross shows the list of both near the cursor, the one drawn on top first, `Line · 0` and
 `Line · WALLS`, and the row chosen is taken as a click on that line alone; with 1 or 2, Shift+Space arms cycling, and each
 click at the crossing then takes the other line in place of the one before. A plain click there takes the line on top, as
@@ -269,6 +278,16 @@ IMAGEFRAME 1 or 2, its transparent pixels showing what is under it with TRANSPAR
 its file's name. A drawing of 100 000 entities shown as a reference is read and drawn in 0.90 s, where opening it alone
 takes 0.87 s (.NET Framework 4.8). AutoCAD 2021 reads no DXF as an external reference ("Unable to load"): it keeps the
 block and the INSERTs of a drawing the presenter saved, AUDIT finds no error, and its -XREF ? lists them.
+
+BATTMAN shows the Block Attribute Manager of the block of an INSERT selected, else of the first block with attributes:
+its attribute definitions in the block's order, the modes as AutoCAD's letters (I invisible, C constant, V verify, P
+preset, L lock position, M multiple lines), a tag given twice in red. Move Up, Move Down, Edit (tag, prompt, default,
+modes, text options and properties) and Remove change the list; Apply and OK write it into the block, each one undo step,
+and the INSERTs keep their attributes until Sync runs ATTSYNC's logic on every one of them, or at once with "Apply changes
+to existing references" in its Settings. A block GB of GRID, LEVEL and REV with LEVEL moved up and synced gives each INSERT
+LEVEL then GRID, their values kept. AutoCAD has no command-line form of BATTMAN, and with no window it says so. ATTDIA 1
+makes INSERT and -INSERT ask the values of the attributes in the Edit Attributes dialog, eight a page in the block's
+order, the constant ones left out and a value to be verified asked once; Cancel places the defaults.
 
 BEDIT (BE) opens a block in the Block Editor, as AutoCAD 2021's: the Edit Block Definition dialog lists
 `<Current Drawing>` (model space itself) and the named blocks, no layout, external reference or anonymous block, and a
@@ -310,7 +329,7 @@ and set where the presenter keeps it, listed in [`CadCommandRegistry.Variables`]
 | Kept in | Variables | A change |
 |---|---|---|
 | the header of the drawing, written as AutoCAD writes it | CLAYER, CECOLOR, CELTYPE, CELWEIGHT, CELTSCALE, LTSCALE, PSLTSCALE, MSLTSCALE, DIMSCALE, DIMASSOC, TEXTSIZE, TEXTSTYLE, FILLETRAD, CHAMFERA, CHAMFERB, PDMODE, PDSIZE, MIRRTEXT, SORTENTS, IMAGEFRAME, CANNOSCALE, INSBASE, LIMMIN, LIMMAX | one undo step |
-| the document or the session | PICKSTYLE, SELECTIONCYCLING, PICKFIRST, PICKADD, ATTREQ, OFFSETDIST, TILEMODE (the space shown) | at once, no undo step |
+| the document or the session | PICKSTYLE, SELECTIONCYCLING, PICKFIRST, PICKADD, ATTREQ, ATTDIA, OFFSETDIST, TILEMODE (the space shown) | at once, no undo step |
 | the window: the status bar, the snaps and Global settings | OSMODE, ORTHOMODE, SNAPMODE, GRIDMODE, POLARANG, AUTOSNAP, DYNMODE, PICKBOX, APERTURE, LWDISPLAY | at once, no undo step; kept in the settings file |
 | read only | DIMSTYLE, EXTMIN, EXTMAX, UCSNAME, UCSORG, DWGNAME, DWGPREFIX, DATE, CDATE | |
 
@@ -321,10 +340,11 @@ and writes ORTHO switched into the drawing's `$ORTHOMODE` too, as AutoCAD saves 
 PICKFIRST 0 makes a command that works on objects ask `Select objects:` whatever is selected before it: with a line
 selected, MOVE asks for objects rather than its base point. PICKADD 0 makes what is picked last the selection, Shift
 adding to it, at `Select objects:` and on the canvas: a click on line A, then on line B, leaves B alone; 1, the default,
-and 2 add, Shift taking out. ATTREQ 0 makes INSERT give each attribute its default without asking. DYNMODE keeps -3 to
+and 2 add, Shift taking out. ATTREQ 0 makes INSERT give each attribute its default without asking; ATTDIA 1, 0 by
+default, makes it ask them in the Edit Attributes dialog where there is a window. DYNMODE keeps -3 to
 3, negative while DYN is off, so that F12 brings the same value back; the one box of dynamic input shows both pointer and
 dimensional input whichever of 1 to 3 is set. The window keeps PICKBOX, APERTURE, LWDISPLAY and POLARANG in
-the settings file as it keeps DYN and the snaps, POLARANG 30 written `"polarAngle": 30`. POLARMODE, ATTDIA, FILEDIA and
+the settings file as it keeps DYN and the snaps, POLARANG 30 written `"polarAngle": 30`. POLARMODE, FILEDIA and
 CMDDIA are not variables of the presenter yet.
 CECOLOR, CELTYPE and LTSCALE typed alone ask their own prompts, as before (`Enter new object color [Truecolor/COlorbook]
 <BYLAYER>:`); SETVAR asks them in its words, a text in quotes, `<"ByLayer">`. A window adds its own with

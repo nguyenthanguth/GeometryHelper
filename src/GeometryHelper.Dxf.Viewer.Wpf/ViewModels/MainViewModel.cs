@@ -1452,6 +1452,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 case "REDEFINE":
                     OnBlockRequested(e);
                     break;
+                case "BATTMAN":
+                case "ATTDIA":
+                case "PURGE":
+                case "PURGEITEM":
+                case "CLASSICGROUP":
+                    OnManagerRequested(e);
+                    break;
                 case "PASTESPEC":
                     OnPasteSpecialRequested(e);
                     break;
