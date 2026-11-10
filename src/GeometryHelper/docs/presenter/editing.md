@@ -478,13 +478,16 @@ and set where the presenter keeps it, listed in [`CadCommandRegistry.Variables`]
 |---|---|---|
 | the header of the drawing, written as AutoCAD writes it | CLAYER, CECOLOR, CELTYPE, CELWEIGHT, CELTSCALE, LTSCALE, PSLTSCALE, MSLTSCALE, DIMSCALE, DIMASSOC, TEXTSIZE, TEXTSTYLE, FILLETRAD, CHAMFERA, CHAMFERB, PDMODE, PDSIZE, MIRRTEXT, SORTENTS, IMAGEFRAME, CANNOSCALE, INSBASE, LIMMIN, LIMMAX | one undo step |
 | the document or the session | PICKSTYLE, SELECTIONCYCLING, PICKFIRST, PICKADD, ATTREQ, ATTDIA, FILEDIA, CMDDIA, OFFSETDIST, TILEMODE (the space shown) | at once, no undo step |
-| the window: the status bar, the snaps and Global settings | OSMODE, ORTHOMODE, SNAPMODE, GRIDMODE, POLARANG, POLARMODE, AUTOSNAP, DYNMODE, PICKBOX, APERTURE, LWDISPLAY | at once, no undo step; kept in the settings file |
+| the window: the status bar, the snaps and Global settings | OSMODE, POLARANG, POLARMODE, AUTOSNAP, DYNMODE, PICKBOX, APERTURE | at once, no undo step; kept in the settings file |
+| the window's toggles of the drawing shown | ORTHOMODE, SNAPMODE, GRIDMODE, LWDISPLAY | at once, no undo step; written into the drawing, as AutoCAD saves them there |
 | read only | DIMSTYLE, EXTMIN, EXTMAX, UCSNAME, UCSORG, DWGNAME, DWGPREFIX, DATE, CDATE | |
 
 FILLETRAD 5 writes `$FILLETRAD` 40 `5` into the header and U takes it back to 10. OSMODE 4133 ticks Endpoint, Center,
 Intersection and Extension, and 16391 ticks Endpoint, Midpoint and Center with OSNAP off. With no window, ORTHOMODE and
-LWDISPLAY are the drawing's `$ORTHOMODE` and `$LWDISPLAY`; the window answers them with its ORTHO and its lineweights,
-and writes ORTHO switched into the drawing's `$ORTHOMODE` too, as AutoCAD saves it with the drawing.
+LWDISPLAY are the drawing's `$ORTHOMODE` and `$LWDISPLAY`; the window answers them, and SNAPMODE and GRIDMODE, with the
+toggles of the drawing shown, and writes each switched into that drawing: ORTHO into `$ORTHOMODE`, the lineweights into
+`$LWDISPLAY`, SNAP and GRID into its `*Active` viewport, as AutoCAD saves them with the drawing (see the status bar in
+[the app](app.md)).
 PICKFIRST 0 makes a command that works on objects ask `Select objects:` whatever is selected before it: with a line
 selected, MOVE asks for objects rather than its base point. PICKADD 0 makes what is picked last the selection, Shift
 adding to it, at `Select objects:` and on the canvas: a click on line A, then on line B, leaves B alone; 1, the default,

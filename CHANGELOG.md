@@ -31,6 +31,22 @@ in it reads the same in other programs, and one slanted elsewhere draws at its a
 [`DxfAlignedDimension.Oblique`](xref:GeometryHelper.Dxf.DxfAlignedDimension.Oblique) said the angle ran from the square
 of the dimension line; it runs from the line, nought standing for none.
 
+**NEW.** The snap and grid a drawing keeps. `db.ViewportTable` holds the tiled viewports of model space as AutoCAD's
+`ViewportTable`, each a [`DxfViewportTableRecord`](xref:GeometryHelper.Dxf.DxfViewportTableRecord), and
+`db.ViewportTable["*Active"]` gives SNAPMODE, GRIDMODE, SNAPUNIT, GRIDUNIT, SNAPBASE, SNAPANG, SNAPSTYL, SNAPISOPAIR,
+GRIDDISPLAY and GRIDMAJOR as `SnapEnabled`, `GridEnabled`, `SnapIncrements`, `GridIncrements`, `SnapBase`, `SnapAngle`,
+`IsometricSnapEnabled`, `SnapPair`, `GridDisplay` and `GridMajor`, read from the groups 75, 76, 14 and 24, 15 and 25, 13
+and 23, 50, 77, 78, 60 and 61, as AutoCAD 2021 opened a drawing whose `*Active` has a snap of 2.5 by 5 and a grid of 10
+by 20 with SNAPUNIT (2.5, 5) and GRIDUNIT (10, 20). Each is set in place and kept by a save, bit for bit.
+
+**CHANGED.** The presenter's SNAP, GRID, ORTHO and lineweights follow each drawing, as AutoCAD 2021's do. A drawing
+opened shows SNAP and GRID with their spacing from its `*Active` viewport, ORTHO from `$ORTHOMODE` and its lineweights
+from `$LWDISPLAY`, and its tab shows them again when it is shown; a drawing with none of them takes the window's, as
+before: SNAP and ORTHO off, GRID and the lineweights of Global settings, a spacing of 10. Switching one, or setting the
+snap spacing, writes it into the drawing shown, so that a save keeps it; LWDISPLAY set with a drawing open no longer
+changes Global settings. The snaps step by the drawing's SNAPUNIT and the grid is drawn at its GRIDUNIT, 10 across and
+20 up for a GRIDUNIT of (10, 20). POLAR, OTRACK, OSNAP and DYN stay the window's.
+
 **FIXED.** The plane the DXF editing model finds for a 3D polyline or a spline no longer throws on points it cannot
 place. Points a nanometre off one line, as (0, 0, 0), (1 000, 0, 0) and (2 000, 1E-9, 0), or a normal given of length
 1E-7, threw "Cannot normalize a zero-length vector" out of `DxfPolyline3d.GetOffsetCurves`, the offsets of

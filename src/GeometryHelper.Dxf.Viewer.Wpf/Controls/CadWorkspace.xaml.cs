@@ -836,7 +836,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             CanvasView.Options.Paper = settings.Paper;
             CanvasView.Options.BlockEditorBackground = settings.BlockEditorBackground;
             CanvasView.Options.SelectionColor = settings.Selection;
-            CanvasView.Options.ShowLineWeights = settings.ShowLineWeights;
+            CanvasView.Options.ShowLineWeights = _model.ShowLineWeights;
             CanvasView.Options.FontName = settings.DrawingFont;
             CanvasView.WheelZoomFactor = settings.WheelZoomFactor;
             CanvasView.PickboxPixels = settings.PickboxPixels;
@@ -1189,6 +1189,21 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                             PlaceDynamicInput(_dynamicAt.X, _dynamicAt.Y);
                         }
                     }), System.Windows.Threading.DispatcherPriority.Loaded);
+                    return;
+                case nameof(MainViewModel.ShowLineWeights):
+                    // The drawing shown draws its own LWDISPLAY.
+                    if (CanvasView.Options.ShowLineWeights != _model.ShowLineWeights)
+                    {
+                        CanvasView.Options.ShowLineWeights = _model.ShowLineWeights;
+
+                        if (CanvasView.PixelWidth > 0 && CanvasView.PixelHeight > 0)
+                        {
+                            CanvasView.RenderNow();
+                        }
+
+                        CanvasView.InvalidateVisual();
+                    }
+
                     return;
             }
 

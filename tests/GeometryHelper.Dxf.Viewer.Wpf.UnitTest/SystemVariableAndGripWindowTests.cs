@@ -197,9 +197,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
 
             Assert.Equal(8, model.Settings.PickboxPixels);
             Assert.Equal(12, model.Settings.AperturePixels);
-            Assert.False(model.Settings.ShowLineWeights);
-            Assert.Equal(3, applied);
+            Assert.Equal(2, applied);
             Assert.False(model.Document.CanUndo);
+
+            // LWDISPLAY with a drawing open is the drawing's, kept in its $LWDISPLAY as AutoCAD keeps it, not in the settings.
+            Assert.True(model.Settings.ShowLineWeights);
+            Assert.False(model.ShowLineWeights);
+            Assert.Equal("0", model.Document.Database.GetHeader("$LWDISPLAY").Single().Value.Trim());
         }
 
         [Fact]
@@ -227,14 +231,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             Assert.Equal("Value must be at most 360.", model.History.Last());
             model.Execute("30");
 
-            // Four values set, and each of the four names typed counted as a command used, which the settings file keeps too.
-            Assert.Equal(8, raised);
+            // Three values of the settings set, and each of the four names typed counted as a command used, which the settings
+            // file keeps too; LWDISPLAY with a drawing open goes into the drawing, not the settings.
+            Assert.Equal(7, raised);
             Assert.Equal(1, model.Settings.CommandUses["POLARANG"]);
             Assert.Equal(Math.PI / 6.0, model.Snap.PolarAngle, 12);
             GlobalSettings saved = GlobalSettings.Load(model.SettingsPath);
             Assert.Equal(9, saved.PickboxPixels);
             Assert.Equal(14, saved.AperturePixels);
-            Assert.False(saved.ShowLineWeights);
+            Assert.True(saved.ShowLineWeights);
             Assert.Equal(30.0, saved.PolarAngle);
 
             // Read back by a new window, the polar increment is the snaps' again; Drafting Settings' increment is kept the same way.
