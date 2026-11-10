@@ -87,6 +87,8 @@ namespace GeometryHelper.UnitTest.Dwg
         [InlineData("hatch_AC1032")]
         [InlineData("leaders_AC1015")]
         [InlineData("leaders_AC1032")]
+        [InlineData("images_AC1015")]
+        [InlineData("images_AC1032")]
         public void ADrawingOfTheTypesOfW4_ReadFromItsDwg_IsTheDxfAutoCadWroteOfIt(string drawing)
         {
             // Made by probe GhDwg4 in all six versions; the repository holds the oldest and the newest of each.
@@ -152,6 +154,22 @@ namespace GeometryHelper.UnitTest.Dwg
             List<DxfMLeader> multileaders = database.ModelSpace.OfType<DxfMLeader>().ToList();
             Assert.Equal(new[] { DxfContentType.MTextContent, DxfContentType.MTextContent, DxfContentType.BlockContent }, multileaders.Select(m => m.ContentType));
             Assert.Equal("Multi\\Pleader", multileaders[0].MText.Contents);
+        }
+
+        [Theory]
+        [InlineData("images_AC1015")]
+        [InlineData("images_AC1032")]
+        public void TheImages_AndWipeouts_AreRead_WithTheirDefinitionAndClipBoundary(string drawing)
+        {
+            DxfDatabase database = DwgReader.Open(new MemoryStream(DwgAnswerKey.Dwg(drawing), false));
+
+            // Two images of one PNG of 16 by 8 pixels, the second clipped by a triangle; two wipeouts.
+            List<DxfRasterImage> images = database.ModelSpace.OfType<DxfRasterImage>().Where(i => !(i is DxfWipeout)).ToList();
+            Assert.Equal(2, images.Count);
+            Assert.All(images, image => Assert.EndsWith("gh.png", image.Path, StringComparison.Ordinal));
+            Assert.True(images[1].IsClipped);
+            Assert.Equal(4, images[1].GetClipBoundary().Count);
+            Assert.Equal(2, database.ModelSpace.OfType<DxfWipeout>().Count());
         }
 
         [Fact]

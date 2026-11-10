@@ -771,6 +771,10 @@ namespace GeometryHelper.Dwg
                 case "HATCH": ReadHatch(); return true;
                 case "MULTILEADER": ReadMultiLeader(); return true;
                 case "MLEADERSTYLE": ReadMultiLeaderStyle(); return true;
+                case "IMAGE": ReadRasterImage("AcDbRasterImage"); return true;
+                case "WIPEOUT": ReadRasterImage("AcDbWipeout"); return true;
+                case "IMAGEDEF": ReadImageDefinition(); return true;
+                case "IMAGEDEF_REACTOR": ReadImageDefinitionReactor(); return true;
                 default: return false;
             }
         }

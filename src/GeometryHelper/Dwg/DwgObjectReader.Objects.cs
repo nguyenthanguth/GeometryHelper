@@ -34,6 +34,32 @@ namespace GeometryHelper.Dwg
             }
         }
 
+        /// <summary>An IMAGEDEF: the file of a raster image, its size in pixels, whether it is loaded, its units and the size of a pixel.</summary>
+        private void ReadImageDefinition()
+        {
+            int version = _data.BitLong();
+            double[] size = _data.RawPoint2();
+            byte[] file = T();
+            bool loaded = _data.Bit();
+            int units = _data.RawChar();
+            double[] pixel = _data.RawPoint2();
+            _object.Add(100, "AcDbRasterImageDef");
+            _object.Add(90, version);
+            _object.Add(1, file);
+            _object.AddPoint(10, size);
+            _object.AddPoint(11, pixel);
+            _object.Add(280, loaded ? 1 : 0);
+            _object.Add(281, units);
+        }
+
+        /// <summary>An IMAGEDEF_REACTOR: its class version, then its image, its owner, which DXF writes again.</summary>
+        private void ReadImageDefinitionReactor()
+        {
+            _object.Add(100, "AcDbRasterImageDefReactor");
+            _object.Add(90, _data.BitLong());
+            _object.Add(330, _object.Owner);
+        }
+
         private void ReadDictionaryVariable()
         {
             int schema = _data.RawChar();

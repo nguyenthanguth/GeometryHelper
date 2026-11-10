@@ -1383,6 +1383,78 @@ namespace GeometryHelper.Dwg
             }
         }
 
+        /// <summary>
+        /// An IMAGE or a WIPEOUT (<paramref name="subclass"/>): its corner and pixel vectors, its size, its display flags and
+        /// levels, and its clip boundary, two corners or a polygon. A wipeout names no image definition and no reactor, and
+        /// DXF writes both as 0.
+        /// </summary>
+        private void ReadRasterImage(string subclass)
+        {
+            int version = _data.BitLong();
+            double[] insertion = _data.Point3();
+            double[] u = _data.Point3();
+            double[] v = _data.Point3();
+            double[] size = _data.RawPoint2();
+            int flags = _data.BitShort();
+            bool clipped = _data.Bit();
+            int brightness = _data.RawChar();
+            int contrast = _data.RawChar();
+            int fade = _data.RawChar();
+            bool inside = R2010Plus && _data.Bit();
+            int clipType = _data.BitShort();
+            var vertices = new List<double[]>();
+
+            if (clipType == 1)
+            {
+                vertices.Add(_data.RawPoint2());
+                vertices.Add(_data.RawPoint2());
+            }
+            else if (clipType == 2)
+            {
+                int count = Count(_data.BitLong());
+
+                for (int i = 0; i < count; i++)
+                {
+                    vertices.Add(_data.RawPoint2());
+                }
+
+                // The file keeps the polygon open; DXF closes it with its first vertex again.
+                if (count > 0 && (vertices[0][0] != vertices[count - 1][0] || vertices[0][1] != vertices[count - 1][1]))
+                {
+                    vertices.Add(vertices[0]);
+                }
+            }
+
+            ulong definition = H();
+            ulong reactor = H();
+            _object.Add(100, subclass);
+            _object.Add(90, version);
+            _object.AddPoint(10, insertion);
+            _object.AddPoint(11, u);
+            _object.AddPoint(12, v);
+            _object.AddPoint(13, size);
+            _object.Add(340, definition);
+            _object.Add(70, flags);
+            _object.Add(280, clipped ? 1 : 0);
+            _object.Add(281, brightness);
+            _object.Add(282, contrast);
+            _object.Add(283, fade);
+
+            if (R2010Plus)
+            {
+                _object.Add(290, inside ? 1 : 0);
+            }
+
+            _object.Add(360, reactor);
+            _object.Add(71, clipType);
+            _object.Add(91, vertices.Count);
+
+            foreach (double[] vertex in vertices)
+            {
+                _object.AddPoint(14, vertex);
+            }
+        }
+
         private void ReadDimension(int type)
         {
             int version = R2010Plus ? _data.RawChar() : 0;
