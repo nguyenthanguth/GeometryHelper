@@ -29,6 +29,22 @@ error and reads CMLEADERSTYLE and CTABLESTYLE as set.
 it makes annotative; the Annotative box of the presenter's Modify Multileader Style is enabled, and a new style started
 from an annotative one is annotative.
 
+**NEW.** The presenter lays out radius, diameter and angular dimensions as AutoCAD 2021 does: the words by DIMTAD, DIMTVP,
+DIMJUST, DIMTIH and DIMTOH, what moves out where they do not fit by DIMATFIT, DIMTIX, DIMSOXD and DIMTOFL, the centre
+mark and centre lines of DIMCEN, and an angle's words moved by DIMTEDIT under DIMTMOVE 1 (a leader and a landing) and 2.
+A radius of 20 put 45 from its centre has its arrowhead outside the rim and the line from its back; an angle of 8 degrees
+has its words and arrowheads outside past its first ray. Checked against 526 pictures AutoCAD 2021 drew of the same
+inputs: 511 agree but for the width of the words, which AutoCAD measures by the font, and AUDIT finds no error.
+
+**NEW.** The presenter's DIMTVP lifts the words of DIMTAD 0 by that many times their height (the line broken about them
+below 0.7, as AutoCAD 2021), and a DIMGAP below nought draws a box round the words, words above the line standing clear
+of it by the gap again.
+
+**FIXED.** The dimension line of the presenter's dimensions ran to the tips of the arrowheads; it now starts at the back
+of each, as AutoCAD 2021 draws it: a dimension of 100 with arrowheads of 2.5 has its line from 2.5 to 97.5, closed
+filled ones too. The ticks, Dot small, Dot small blank, Integral and None run to the tip and, as AutoCAD's, never move
+outside a short dimension.
+
 **FIXED.** The presenter's -GROUP on a DXF of R2000 written without its OBJECTS section said "Object reference not set to
 an instance of an object."; the drawing is now given the named object dictionary AutoCAD makes on opening it, and the
 group goes in, one undo taking both back.

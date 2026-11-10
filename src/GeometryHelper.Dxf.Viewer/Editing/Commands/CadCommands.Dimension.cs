@@ -540,58 +540,6 @@ namespace GeometryHelper.Dxf.Viewer
             far = Math.Max(0.0, Math.Max(s, e));
         }
 
-        /// <summary>
-        /// The picture of an angular dimension: the arc of the dimension line about the vertex, an arrowhead at each end, the
-        /// extension lines from the objects out to the arc (or in to it), and the words outside the arc at its middle.
-        /// </summary>
-        internal static List<DxfEntity> Angular(DxfDimStyleTableRecord style, double textHeight, GeoPoint2 vertex, double radius, double from, double sweep, double[] near, double[] far, string words)
-        {
-            Sizes(style, textHeight, out double scale, out double arrow, out double height, out double gap, out double offset, out double beyond);
-            var picture = new List<DxfEntity>();
-            double to = from + sweep;
-            picture.Add(Lined(new DxfArc(P3(vertex), radius, Turned(from), Turned(to)), style.Dimclrd, style.Dimlwd));
-            bool[] suppressed = { style.Dimse1, style.Dimse2 };
-
-            for (int i = 0; i < 2; i++)
-            {
-                double angle = i == 0 ? from : to;
-                var ray = new GeoVector2(Math.Cos(angle), Math.Sin(angle));
-
-                if (suppressed[i])
-                {
-                    continue;
-                }
-
-                if (radius > far[i] + offset)
-                {
-                    picture.Add(Lined(new DxfLine(P3(vertex + ray * (far[i] + offset)), P3(vertex + ray * (radius + beyond))), style.Dimclre, style.Dimlwe));
-                }
-                else if (radius < near[i] - offset)
-                {
-                    picture.Add(Lined(new DxfLine(P3(vertex + ray * (near[i] - offset)), P3(vertex + ray * Math.Max(0.0, radius - beyond))), style.Dimclre, style.Dimlwe));
-                }
-            }
-
-            GeoPoint2 start = vertex + new GeoVector2(Math.Cos(from), Math.Sin(from)) * radius;
-            GeoPoint2 end = vertex + new GeoVector2(Math.Cos(to), Math.Sin(to)) * radius;
-            AddArrow(picture, style, DxfDimArrowFlag.FirstArrow, start, new GeoVector2(Math.Sin(from), -Math.Cos(from)), arrow);
-            AddArrow(picture, style, DxfDimArrowFlag.SecondArrow, end, new GeoVector2(-Math.Sin(to), Math.Cos(to)), arrow);
-            double middle = from + sweep / 2.0;
-            double angleOfWords = Math.Atan2(Math.Cos(middle), -Math.Sin(middle));
-
-            if (angleOfWords > Math.PI / 2.0 + 1E-9 || angleOfWords <= -Math.PI / 2.0 + 1E-9)
-            {
-                angleOfWords += Math.PI;
-            }
-
-            GeoPoint2 at = vertex + new GeoVector2(Math.Cos(middle), Math.Sin(middle)) * (radius + gap + height / 2.0);
-            picture.Add(Words(style, at, angleOfWords, height, words, scale));
-            picture.Add(Definition(vertex));
-            picture.Add(Definition(start));
-            picture.Add(Definition(end));
-            return picture;
-        }
-
         private static double Turned(double angle)
         {
             angle -= Math.Floor(angle / (2.0 * Math.PI)) * 2.0 * Math.PI;
@@ -700,7 +648,8 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             DxfEntity text = Words(style, default, angle, height, words, scale);
-            LinearLayout layout = LayOut(style, p1, p2, q1, q2, along, angle, WordsWidth(new List<DxfEntity> { text }, words, height), height, gap, arrow, beyond, placed);
+            double width = WordsWidth(new List<DxfEntity> { text }, words, height);
+            LinearLayout layout = LayOut(style, p1, p2, q1, q2, along, angle, width, height, gap, arrow, beyond, placed);
             bool[] suppressed = { style.Dimse1, style.Dimse2 };
             int side = 0;
 
@@ -725,7 +674,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (layout.ArrowsInside || style.Dimtofl)
             {
-                DimensionLine(segments, style, q1, q2, along, scale);
+                DimensionLine(segments, style, q1, q2, along, scale, layout.ArrowsInside ? arrow : 0.0);
             }
 
             if (layout.Break > 0.0)
@@ -773,6 +722,7 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             picture.Add(text);
+            AddFrame(picture, style, layout.At, mtext.Rotation, width, height, gap);
             picture.Add(Definition(p1));
             picture.Add(Definition(p2));
             picture.Add(Definition(q2));
@@ -817,14 +767,16 @@ namespace GeometryHelper.Dxf.Viewer
         /// arrowheads do not both fit between the extension lines, DIMTIX keeps the words inside (DIMSOXD then leaves out
         /// arrowheads that do not fit), else DIMATFIT moves both out (0), the arrowheads first (1), the words first (2), or (3)
         /// the words where the arrowheads fit, else the arrowheads; words outside stand past the second extension line (the
-        /// first for DIMJUST 1), the line run on to them, and words kept level by DIMTOH stand on a level landing.
+        /// first for DIMJUST 1), the line run on to them, and words kept level by DIMTOH stand on a level landing. DIMTVP with
+        /// DIMTAD 0 lifts the words by that many times their height, off the line as DIMTAD 1 puts them from 0.7 up; a DIMGAP
+        /// below nought, the box round the words, keeps words above the line clear of it by the gap again.
         /// </summary>
         /// <remarks>
         /// With arrowheads of 2.5 and DIMGAP 0.625, a dimension of 100 has its words "100", 5.3 wide, in the middle; of 5, its
         /// words "5" inside and its arrowheads outside on lines 2.5 long; of 7, under DIMATFIT 3, its arrowheads inside and its
         /// words 3.9 past the second extension line, as AutoCAD 2021 draws them. Words need their width between the extension
-        /// lines, and DIMGAP each side where the line is broken for them; the arrowheads two lengths and DIMGAP; ticks never
-        /// move out.
+        /// lines, and DIMGAP each side where the line is broken for them; the arrowheads two lengths and DIMGAP; ticks, and the
+        /// other arrowheads that take no room (<see cref="CadArrowheads.TakesNoRoom"/>), never move out.
         /// </remarks>
         private static LinearLayout LayOut(DxfDimStyleTableRecord style, GeoPoint2 p1, GeoPoint2 p2, GeoPoint2 q1, GeoPoint2 q2, GeoVector2 along, double angle, double width, double height, double gap, double arrow, double beyond, bool placed)
         {
@@ -832,7 +784,19 @@ namespace GeometryHelper.Dxf.Viewer
             double length = (q2 - q1).Length;
             int tad = style.Dimtad;
             int just = style.Dimjust;
-            bool ticks = CadArrowheads.IsTick(ArrowOf(style, DxfDimArrowFlag.FirstArrow)) && CadArrowheads.IsTick(ArrowOf(style, DxfDimArrowFlag.SecondArrow));
+            bool box = style.Dimgap < 0.0;
+
+            // DIMTVP with DIMTAD 0 lifts the words by that many times their height: from 0.7 up they stand off the line as
+            // DIMTAD 1 puts them, below that on it, the line broken about them.
+            double raised = tad == 0 ? style.Dimtvp * height : 0.0;
+
+            if (tad == 0 && Math.Abs(style.Dimtvp) >= 0.7)
+            {
+                tad = 1;
+                raised = 0.0;
+            }
+
+            bool ticks = CadArrowheads.TakesNoRoom(ArrowOf(style, DxfDimArrowFlag.FirstArrow)) && CadArrowheads.TakesNoRoom(ArrowOf(style, DxfDimArrowFlag.SecondArrow));
             double inside = style.Dimtih ? 0.0 : angle;
             bool level = Parallel(inside, angle);
             bool centred = tad == 0 || (!level && (tad == 1 || tad == 4));
@@ -882,7 +846,9 @@ namespace GeometryHelper.Dxf.Viewer
             var readable = new GeoVector2(Math.Cos(angle), Math.Sin(angle));
             var above = new GeoVector2(-readable.Y, readable.X);
             var middle = new GeoPoint2((q1.X + q2.X) / 2.0, (q1.Y + q2.Y) / 2.0);
-            double lift = gap + height / 2.0;
+
+            // Words above the line stand clear of it by the gap, and a box round them (DIMGAP below nought) by the gap again.
+            double lift = tad != style.Dimtad ? style.Dimtvp * height : gap + height / 2.0 + (box ? gap : 0.0);
             int outerSide = just == 1 ? 1 : 2;
 
             for (int end = 1; end <= 2 && arrowsOut; end++)
@@ -935,7 +901,7 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (centred)
                 {
-                    layout.At = on;
+                    layout.At = level ? on + above * raised : on;
 
                     // Words forced inside that do not fit leave the line whole.
                     if (needText <= length)
@@ -967,7 +933,7 @@ namespace GeometryHelper.Dxf.Viewer
                 GeoPoint2 bend = start + away * clear;
                 var flat = new GeoVector2(away.X < -1E-9 ? -1.0 : 1.0, 0.0);
                 var up2 = new GeoVector2(0.0, 1.0);
-                double landing = tad == 0 ? arrow : width + gap;
+                double landing = tad == 0 ? arrow : width + gap + (box ? gap : 0.0);
 
                 if (clear > (arrowsOut ? arrow : 0.0))
                 {
@@ -982,7 +948,7 @@ namespace GeometryHelper.Dxf.Viewer
             bool onLine = tad == 0;
             double centre = clear + width / 2.0 + gap;
             double reach = onLine ? clear : centre + width / 2.0 + gap;
-            layout.At = start + away * centre + (onLine ? new GeoVector2(0.0, 0.0) : above * (Side(tad, above, p1, p2, middle) * lift));
+            layout.At = start + away * centre + (onLine ? above * raised : above * (Side(tad, above, p1, p2, middle) * lift));
             layout.Outside.Add(new KeyValuePair<GeoPoint2, GeoPoint2>(start + away * (arrowsOut ? arrow : 0.0), start + away * reach));
             return layout;
         }
@@ -1056,47 +1022,6 @@ namespace GeometryHelper.Dxf.Viewer
             return kept;
         }
 
-        /// <summary>The picture of a radius or a diameter: the line to the words, the arrowheads on the rim, the words, a centre mark.</summary>
-        internal static List<DxfEntity> Radial(DxfDimStyleTableRecord style, double textHeight, GeoPoint2 center, double radius, GeoPoint2 chord, GeoPoint2 far, GeoPoint2 location, bool diameter, string words)
-        {
-            Sizes(style, textHeight, out double scale, out double arrow, out double height, out double gap, out _, out _);
-            var picture = new List<DxfEntity>();
-            GeoVector2 outward = (chord - center) / radius;
-            bool outside = (location - center).Length > radius;
-
-            // Outside the rim, the line runs from the rim to the words; inside, from the centre (or the far rim) to the rim.
-            GeoPoint2 from = outside ? location : diameter ? far : center;
-            picture.Add(Lined(new DxfLine(P3(from), P3(chord)), style.Dimclrd, style.Dimlwd));
-            AddArrow(picture, style, DxfDimArrowFlag.FirstArrow, chord, outside ? -outward : outward, arrow);
-
-            if (diameter)
-            {
-                AddArrow(picture, style, DxfDimArrowFlag.SecondArrow, far, -outward, arrow);
-            }
-
-            double angle = Math.Atan2(outward.Y, outward.X);
-
-            if (angle > Math.PI / 2.0 + 1E-9 || angle <= -Math.PI / 2.0 + 1E-9)
-            {
-                angle += Math.PI;
-            }
-
-            var readable = new GeoVector2(Math.Cos(angle), Math.Sin(angle));
-            var above = new GeoVector2(-readable.Y, readable.X);
-            picture.Add(Words(style, location + above * (gap + height / 2.0), angle, height, words, scale));
-            double mark = Math.Abs(style.Dimcen) * scale;
-
-            if (mark > 0.0 && !diameter)
-            {
-                picture.Add(Lined(new DxfLine(P3(center + new GeoVector2(-mark, 0.0)), P3(center + new GeoVector2(mark, 0.0))), style.Dimclrd, style.Dimlwd));
-                picture.Add(Lined(new DxfLine(P3(center + new GeoVector2(0.0, -mark)), P3(center + new GeoVector2(0.0, mark))), style.Dimclrd, style.Dimlwd));
-            }
-
-            picture.Add(Definition(diameter ? far : center));
-            picture.Add(Definition(chord));
-            return picture;
-        }
-
         private static void Sizes(DxfDimStyleTableRecord style, double textHeight, out double scale, out double arrow, out double height, out double gap, out double offset, out double beyond)
         {
             scale = style.Dimscale > 0.0 ? style.Dimscale : 1.0;
@@ -1151,13 +1076,16 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// The dimension line between its two ends: whole, or the half of each end DIMSD1 or DIMSD2 leaves; run on past an end
-        /// by DIMDLE where that end is a tick, as AutoCAD runs it.
+        /// by DIMDLE where that end is a tick, as AutoCAD runs it. Where the arrowheads stand inside, the line starts at the back
+        /// of each, <paramref name="arrow"/> in from its tip, but for one that takes no room (<see cref="CadArrowheads.TakesNoRoom"/>).
         /// </summary>
-        private static void DimensionLine(List<KeyValuePair<GeoPoint2, GeoPoint2>> segments, DxfDimStyleTableRecord style, GeoPoint2 q1, GeoPoint2 q2, GeoVector2 along, double scale)
+        private static void DimensionLine(List<KeyValuePair<GeoPoint2, GeoPoint2>> segments, DxfDimStyleTableRecord style, GeoPoint2 q1, GeoPoint2 q2, GeoVector2 along, double scale, double arrow)
         {
             double dle = Math.Max(0.0, style.Dimdle) * scale;
-            GeoPoint2 a = CadArrowheads.IsTick(ArrowOf(style, DxfDimArrowFlag.FirstArrow)) && dle > 0.0 ? q1 - along * dle : q1;
-            GeoPoint2 b = CadArrowheads.IsTick(ArrowOf(style, DxfDimArrowFlag.SecondArrow)) && dle > 0.0 ? q2 + along * dle : q2;
+            string firstName = ArrowOf(style, DxfDimArrowFlag.FirstArrow);
+            string secondName = ArrowOf(style, DxfDimArrowFlag.SecondArrow);
+            GeoPoint2 a = CadArrowheads.IsTick(firstName) && dle > 0.0 ? q1 - along * dle : CadArrowheads.TakesNoRoom(firstName) ? q1 : q1 + along * arrow;
+            GeoPoint2 b = CadArrowheads.IsTick(secondName) && dle > 0.0 ? q2 + along * dle : CadArrowheads.TakesNoRoom(secondName) ? q2 : q2 - along * arrow;
             bool first = !style.Dimsd1;
             bool second = !style.Dimsd2;
             var middle = new GeoPoint2((q1.X + q2.X) / 2.0, (q1.Y + q2.Y) / 2.0);

@@ -175,10 +175,14 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Equal(Math.PI / 4.0, dimension.Measurement, 9);
             Assert.StartsWith("Dimension text = 45", session.History.Last(), StringComparison.Ordinal);
             Assert.True(dimension.DimBlock.IsAnonymous);
-            DxfArc arc = dimension.DimBlock.OfType<DxfArc>().Single();
-            Assert.Equal(Math.Sqrt(40 * 40 + 15 * 15), arc.Radius, 9);
-            Assert.Equal(0.0, arc.StartAngle, 9);
-            Assert.Equal(Math.PI / 4.0, arc.EndAngle, 9);
+            // The arc from the back of one arrowhead to the back of the other, broken about the words of DIMTAD 0, as AutoCAD 2021 draws it.
+            double radius = Math.Sqrt(40 * 40 + 15 * 15);
+            double back = 2 * Math.Asin(dimension.GetDimstyleData().Dimasz / (2 * radius));
+            List<DxfArc> arcs = dimension.DimBlock.OfType<DxfArc>().OrderBy(a => a.StartAngle).ToList();
+            Assert.Equal(2, arcs.Count);
+            Assert.All(arcs, a => Assert.Equal(radius, a.Radius, 9));
+            Assert.Equal(back, arcs[0].StartAngle, 9);
+            Assert.Equal(Math.PI / 4.0 - back, arcs[1].EndAngle, 9);
             AssertReopens(document);
         }
 
@@ -194,9 +198,11 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
             DxfPoint3AngularDimension dimension = Assert.Single(All<DxfPoint3AngularDimension>(document.ModelSpace));
             Assert.StartsWith("Dimension text = 270", session.History.Last(), StringComparison.Ordinal);
-            DxfArc arc = dimension.DimBlock.OfType<DxfArc>().Single();
-            Assert.Equal(Math.PI / 2.0, arc.StartAngle, 9);
-            Assert.Equal(0.0, arc.EndAngle, 9);
+            double back = 2 * Math.Asin(dimension.GetDimstyleData().Dimasz / (2 * Math.Sqrt(50)));
+            List<DxfArc> arcs = dimension.DimBlock.OfType<DxfArc>().OrderBy(a => a.StartAngle).ToList();
+            Assert.Equal(2, arcs.Count);
+            Assert.Equal(Math.PI / 2.0 + back, arcs[0].StartAngle, 9);
+            Assert.Equal(2.0 * Math.PI - back, arcs[1].EndAngle, 9);
         }
 
         [Fact]
@@ -234,11 +240,13 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.True(dimensions[0].DimBlock.IsAnonymous);
             Assert.Equal("Standard", dimensions[0].DimensionStyleName);
 
-            // The block draws the dimension line 30 below, two arrowheads and the words 300 above it.
+            // The block draws the dimension line 30 below from the back of one arrowhead to the back of the other, the two
+            // arrowheads, and the words 300 above it.
             DisplayList2 shown = document.GetDisplay(document.ModelSpace);
+            double arrow = dimensions[0].GetDimstyleData().Dimasz;
             Assert.Contains(shown.Items.OfType<DisplayText2>(), t => t.Handle == dimensions[0].Handle && t.Text == words && t.Y > -30);
             Assert.Equal(2, shown.Items.OfType<DisplayFill2>().Count(f => f.Handle == dimensions[0].Handle));
-            Assert.Contains(shown.Items.OfType<DisplayPolyline2>(), l => l.Handle == dimensions[0].Handle && l.Count == 2 && Math.Abs(l.Xy[0]) < 1E-9 && Math.Abs(l.Xy[1] + 30) < 1E-9 && Math.Abs(l.Xy[2] - 300) < 1E-9 && Math.Abs(l.Xy[3] + 30) < 1E-9);
+            Assert.Contains(shown.Items.OfType<DisplayPolyline2>(), l => l.Handle == dimensions[0].Handle && l.Count == 2 && Math.Abs(l.Xy[0] - arrow) < 1E-9 && Math.Abs(l.Xy[1] + 30) < 1E-9 && Math.Abs(l.Xy[2] - (300 - arrow)) < 1E-9 && Math.Abs(l.Xy[3] + 30) < 1E-9);
             AssertReopens(document);
         }
 

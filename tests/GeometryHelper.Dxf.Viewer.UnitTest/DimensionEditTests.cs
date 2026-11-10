@@ -124,10 +124,13 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Equal(2, dimensions.Count);
             Assert.Equal(Math.PI / 4.0, dimensions[1].Measurement, 9);
             Near(new GeoPoint3(0, 0, 0), dimensions[1].CenterPoint);
-            DxfArc arc = dimensions[1].DimBlock.OfType<DxfArc>().Single();
-            Assert.Equal(Math.Sqrt(40 * 40 + 15 * 15), arc.Radius, 9);
-            Assert.Equal(Math.PI / 4.0, arc.StartAngle, 9);
-            Assert.Equal(Math.PI / 2.0, arc.EndAngle, 9);
+            // On the same arc, from the back of one arrowhead to the back of the other, broken about the words.
+            double radius = Math.Sqrt(40 * 40 + 15 * 15);
+            double back = 2 * Math.Asin(dimensions[1].GetDimstyleData().Dimasz / (2 * radius));
+            List<DxfArc> arcs = dimensions[1].DimBlock.OfType<DxfArc>().OrderBy(a => a.StartAngle).ToList();
+            Assert.All(arcs, a => Assert.Equal(radius, a.Radius, 9));
+            Assert.Equal(Math.PI / 4.0 + back, arcs[0].StartAngle, 9);
+            Assert.Equal(Math.PI / 2.0 - back, arcs.Last().EndAngle, 9);
             AssertReopens(document);
         }
 
