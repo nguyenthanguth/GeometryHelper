@@ -440,8 +440,13 @@ namespace GeometryHelper.Dxf.Viewer
         /// degrees centred 51.9 out); for 2 the words' own point, turned along the arc; for 1 the words' point too, level, with a
         /// leader from the middle of the arc and a landing an arrowhead long.
         /// </para>
+        /// <para>
+        /// An arc length dimension draws by it too (<see cref="ArcLength"/>): <paramref name="before"/> is the room its arc
+        /// symbol takes before the words as they read, which the words need to fit and the arc is broken for, and
+        /// <paramref name="turned"/> the angle its words were given (Angle), at which they stand on the arc, broken about them.
+        /// </para>
         /// </remarks>
-        internal static List<DxfEntity> Angular(DxfDimStyleTableRecord style, double dimscale, double textHeight, GeoPoint2 vertex, double radius, double from, double sweep, double[] near, double[] far, string words, GeoPoint2? placed = null)
+        internal static List<DxfEntity> Angular(DxfDimStyleTableRecord style, double dimscale, double textHeight, GeoPoint2 vertex, double radius, double from, double sweep, double[] near, double[] far, string words, GeoPoint2? placed = null, double before = 0.0, double? turned = null)
         {
             Sizes(style, dimscale, textHeight, out double scale, out double arrow, out double height, out double gap, out double offset, out double beyond);
             var picture = new List<DxfEntity>();
@@ -486,7 +491,7 @@ namespace GeometryHelper.Dxf.Viewer
             var round = new RoundWords(style, scale, height, gap, width);
             bool levelInside = style.Dimtih;
             bool onInside = round.On(levelInside);
-            double needText = width + 2.0 * gap + (onInside ? 2.0 * gap : 0.0);
+            double needText = width + before + 2.0 * gap + (onInside ? 2.0 * gap : 0.0);
             double needArrows = noRoom ? 0.0 : 2.0 * arrow;
             double needBoth = needText + needArrows;
             bool textInside;
@@ -603,7 +608,12 @@ namespace GeometryHelper.Dxf.Viewer
                 var up = new GeoVector2(-Math.Sin(tangent), Math.Cos(tangent));
                 double upSide = tad == 4 ? -1.0 : tad == 2 ? Sign(Dot(up, away)) : 1.0;
 
-                if (levelInside)
+                if (turned.HasValue)
+                {
+                    textAngle = turned.Value;
+                    at = point;
+                }
+                else if (levelInside)
                 {
                     textAngle = 0.0;
                     double off = (width / 2.0 + gap) * Math.Abs(Math.Sin(tangent)) + (height / 2.0 + gap) * Math.Abs(Math.Cos(tangent));
@@ -615,9 +625,11 @@ namespace GeometryHelper.Dxf.Viewer
                     at = onInside ? point + up * onOffset : point + up * (upSide * lift);
                 }
 
-                if (onInside && arrowsInside)
+                // The arc broken about the words on it, and about the symbol before them.
+                if ((onInside || turned.HasValue) && arrowsInside)
                 {
-                    LevelBreak(vertex, radius, at, textAngle, width, height, gap, theta, out breakFrom, out breakTo);
+                    GeoPoint2 middleOfAll = at - Heading(textAngle) * (before / 2.0);
+                    LevelBreak(vertex, radius, middleOfAll, textAngle, width + before, height, gap, theta, out breakFrom, out breakTo);
                 }
             }
             else

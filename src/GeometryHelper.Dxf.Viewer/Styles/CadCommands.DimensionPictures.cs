@@ -15,7 +15,7 @@ namespace GeometryHelper.Dxf.Viewer
     {
         /// <summary>
         /// Draws a dimension's block anew from its points and the variables it reads now (its overrides, else its style's): a
-        /// linear, aligned, ordinate, radius, diameter or angular dimension whose block is its own anonymous one, a linear one's
+        /// linear, aligned, ordinate, radius, diameter, angular or arc length dimension whose block is its own anonymous one, a linear one's
         /// jog of DIMJOGLINE with it. The entities of the block
         /// are erased and the new picture appended. False, and nothing changed, for another kind or a block not its own.
         /// </summary>
@@ -70,7 +70,7 @@ namespace GeometryHelper.Dxf.Viewer
             // Words moved by DIMTEDIT stand where they were put, and words turned by DIMEDIT or DIMTEDIT read at their angle. Those
             // of a radius, a diameter or an angle are put by their picture about the point, which may be one of its line or arc.
             DxfMText words = picture.OfType<DxfMText>().FirstOrDefault();
-            bool round = dimension is DxfRadialDimension || dimension is DxfDiametricDimension || dimension is DxfPoint3AngularDimension || dimension is DxfLineAngularDimension2;
+            bool round = dimension is DxfRadialDimension || dimension is DxfDiametricDimension || dimension is DxfPoint3AngularDimension || dimension is DxfLineAngularDimension2 || dimension is DxfArcDimension;
 
             if (words != null && !dimension.UsingDefaultTextPosition && !round)
             {
@@ -120,6 +120,8 @@ namespace GeometryHelper.Dxf.Viewer
                     return RadialPicture(dimension, style, textHeight, new GeoPoint2((chord.X + far.X) / 2.0, (chord.Y + far.Y) / 2.0), chord, true);
                 case DxfPoint3AngularDimension three:
                     return AngularPicture(dimension, style, textHeight, null, null, P2(three.CenterPoint), new[] { P2(three.XLine1Point), P2(three.XLine2Point) }, P2(three.ArcPoint));
+                case DxfArcDimension arcLength:
+                    return ArcLengthPicture(arcLength, style, textHeight);
                 case DxfLineAngularDimension2 two:
                     var first = new DxfLine(two.XLine1Start, two.XLine1End);
                     var second = new DxfLine(two.XLine2Start, two.XLine2End);

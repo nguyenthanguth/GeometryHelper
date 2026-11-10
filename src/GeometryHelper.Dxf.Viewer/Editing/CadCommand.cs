@@ -103,6 +103,7 @@ namespace GeometryHelper.Dxf.Viewer
                 ["DRA"] = "DIMRADIUS",
                 ["DDI"] = "DIMDIAMETER",
                 ["DAN"] = "DIMANGULAR",
+                ["DAR"] = "DIMARC",
                 ["DCO"] = "DIMCONTINUE",
                 ["DIMCONT"] = "DIMCONTINUE",
                 ["DBA"] = "DIMBASELINE",

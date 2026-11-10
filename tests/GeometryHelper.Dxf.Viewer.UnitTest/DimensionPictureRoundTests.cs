@@ -656,5 +656,84 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             HasLine(dimension, new GeoPoint2(15.1554, 8.75), new GeoPoint2(10.1943, 5.8857));
             Assert.Equal(2, Solids(dimension).Count);
         }
+
+        /// <summary>An arc of 30 about the origin between two angles, in degrees; its handle.</summary>
+        private static string Arc(CadCommandSession session, double from, double to)
+        {
+            Run(session, "ARC", "C", P(0, 0), Polar(from, 30), Polar(to, 30));
+            return session.Document.ModelSpace.Block.Cast<DxfEntity>().Last().Handle;
+        }
+
+        private static List<DxfArc> SymbolArcs(DxfDimension dimension) => Arcs(dimension).Where(a => a.Radius < 3.0).ToList();
+
+        [Fact]
+        public void DimArcOfLessThan90Degrees_RunsItsExtensionLinesAlongTheBisector_TheSymbolBeforeTheWords()
+        {
+            CadCommandSession session = Arial(s => s.Dimarcsym = 0);
+            Run(session, "DIMARC", new[] { Arc(session, 20, 60) }, Polar(40, 40));
+            var dimension = Assert.IsType<DxfArcDimension>(Made(session));
+
+            // AutoCAD 2021: the extension lines along 40 degrees, the arc 40 out between them, "21" 1.88 above it at 40 degrees,
+            // half a circle of 2.008 before it.
+            Assert.Equal(30 * 40 * Math.PI / 180, dimension.Measurement, 9);
+            Near(Polar(20, 30), P2(dimension.XLine1Point), 1E-9);
+            Near(Polar(60, 30), P2(dimension.XLine2Point), 1E-9);
+            HasLine(dimension, new GeoPoint2(28.6696, 10.6623), new GeoPoint2(37.1695, 17.7946));
+            HasLine(dimension, new GeoPoint2(15.4788, 26.3825), new GeoPoint2(23.9787, 33.5148));
+            HasArc(dimension, 40, 28.717, 51.280);
+            Assert.Equal("21", Words(dimension).Contents);
+            Near(new GeoPoint2(32.082, 26.92), P2(Words(dimension).Location), 1E-3);
+            DxfArc symbol = Assert.Single(SymbolArcs(dimension));
+            Near(new GeoPoint2(28.6897, 29.4007), P2(symbol.Center), 1E-3);
+            Assert.Equal(2.0082, symbol.Radius, 3);
+
+            // Nearer the centre than the arc: an arc as big as the arc, moved in along the bisector through the point.
+            session = Arial(s => s.Dimarcsym = 0);
+            Run(session, "DIMARC", new[] { Arc(session, 20, 60) }, Polar(40, 20));
+            DxfArc moved = Assert.Single(Arcs(Made(session)), a => Math.Abs(a.Radius - 30) < 1E-9);
+            Near(new GeoPoint2(-7.6604, -6.4279), P2(moved.Center), 1E-3);
+            HasLine(Made(session), new GeoPoint2(27.712, 9.8589), new GeoPoint2(19.5728, 3.0292));
+        }
+
+        [Fact]
+        public void DimArcFrom90DegreesUp_RunsItsExtensionLinesFromTheCentre_AndLeaderDrawsOneToTheArc()
+        {
+            CadCommandSession session = Arial(s => s.Dimarcsym = 1);
+            Run(session, "DIMARC", new[] { Arc(session, 20, 140) }, Polar(80, 20));
+            DxfDimension dimension = Made(session);
+
+            // AutoCAD 2021: the extension lines from 29.375 in to 18.75, the arc 20 out, "63" with the arc symbol over it.
+            HasLine(dimension, new GeoPoint2(27.6035, 10.0468), new GeoPoint2(17.6192, 6.4129));
+            HasLine(dimension, new GeoPoint2(-22.5026, 18.8819), new GeoPoint2(-14.3633, 12.0523));
+            HasArc(dimension, 20, 27.164, 132.835);
+            Near(new GeoPoint2(3.8033, 21.5695), P2(Words(dimension).Location), 1E-3);
+            Assert.Equal(2.7781, Assert.Single(SymbolArcs(dimension)).Radius, 3);
+
+            session = Arial(s => s.Dimarcsym = 0);
+            Run(session, "DIMARC", new[] { Arc(session, 10, 150) }, "L", Polar(80, 50));
+            var led = (DxfArcDimension)Made(session);
+            Assert.True(led.HasLeader);
+            HasLine(led, new GeoPoint2(8.6824, 49.2404), new GeoPoint2(5.2094, 29.5442));
+            Assert.Contains(Solids(led), s => Same(P2(s.GetPointAt(0)), new GeoPoint2(5.2094, 29.5442), 1E-3));
+        }
+
+        [Fact]
+        public void DimArcPartialAndOutsideTheSweep_MeasureThePartAndTheRestOfTheCircle()
+        {
+            CadCommandSession session = Arial(s => s.Dimarcsym = 0);
+            Run(session, "DIMARC", new[] { Arc(session, 20, 80) }, "P", Polar(30, 30), Polar(60, 30), Polar(45, 40));
+            var partial = (DxfArcDimension)Made(session);
+            Assert.True(partial.IsPartial);
+            Assert.Equal("16", Words(partial).Contents);
+            HasLine(partial, new GeoPoint2(26.4227, 15.4419), new GeoPoint2(34.1205, 23.1398));
+
+            // AutoCAD 2021: a point at 110 degrees, outside 20 to 80, dimensions the 300 degrees from 80 round to 20.
+            session = Arial(s => s.Dimarcsym = 0);
+            Run(session, "DIMARC", new[] { Arc(session, 20, 80) }, Polar(110, 40));
+            DxfDimension rest = Made(session);
+            Assert.Equal("157", Words(rest).Contents);
+            HasArc(rest, 40, 83.583, 16.421);
+            Near(new GeoPoint2(-24.4893, -29.1852), P2(Words(rest).Location), 1E-3);
+        }
     }
 }
