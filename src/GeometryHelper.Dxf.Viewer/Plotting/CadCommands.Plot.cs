@@ -53,6 +53,23 @@ namespace GeometryHelper.Dxf.Viewer
                     yield break;
                 }
 
+                if (job.AsksFile)
+                {
+                    // FILEDIA 0: OK of the dialog leaves the file to the command line, as AutoCAD asks it.
+                    string extension = PlotExtension(job.Settings.DeviceName);
+                    string offered = Path.ChangeExtension(PlotFileName(c.Document, space), extension);
+                    yield return CadPrompt.ForString("Enter file name", offered);
+                    string file = c.Input.Kind == CadInputKind.Text && c.Input.Text.Trim().Length > 0 ? c.Input.Text.Trim().Trim('"') : offered;
+                    file = file.EndsWith(extension, StringComparison.OrdinalIgnoreCase) ? file : file + extension;
+
+                    if (c.Session.Request("-PLOT", c.Document, new CadPlotJob(space, job.Settings, job.Display, file)))
+                    {
+                        c.Write("Plot written to " + file + ".");
+                    }
+
+                    yield break;
+                }
+
                 if (!job.PicksWindow)
                 {
                     yield break;
@@ -139,26 +156,38 @@ namespace GeometryHelper.Dxf.Viewer
                 }
             }
 
+            // The page setup's own device where it is one of the presenter's, else the PDF one.
+            string device = settings.IsRaster ? settings.DeviceName : CadPlotSettings.PdfDevice;
+
             while (true)
             {
-                yield return CadPrompt.ForKeywordOrText("Enter an output device name or", new[] { "?" }, CadPlotSettings.PdfDevice);
+                yield return CadPrompt.ForKeywordOrText("Enter an output device name or", new[] { "?" }, device);
 
                 if (c.Input.Is("?"))
                 {
                     c.Write(CadPlotSettings.PdfDevice);
+                    c.Write(CadPlotSettings.PngDevice);
+                    c.Write(CadPlotSettings.JpgDevice);
                     continue;
                 }
 
-                if (c.Input.Kind == CadInputKind.Text && !string.Equals(c.Input.Text.Trim(), CadPlotSettings.PdfDevice, StringComparison.OrdinalIgnoreCase))
+                if (c.Input.Kind == CadInputKind.Text)
                 {
-                    c.Write("Printer/plotter \"" + c.Input.Text.Trim() + "\" not found: the presenter plots with " + CadPlotSettings.PdfDevice + ".");
-                    continue;
+                    string typed = c.Input.Text.Trim();
+
+                    if (!string.Equals(typed, CadPlotSettings.PdfDevice, StringComparison.OrdinalIgnoreCase) && !CadPlotSettings.IsRasterDevice(typed))
+                    {
+                        c.Write("Printer/plotter \"" + typed + "\" not found: the presenter plots with " + CadPlotSettings.PdfDevice + ", " + CadPlotSettings.PngDevice + " or " + CadPlotSettings.JpgDevice + ".");
+                        continue;
+                    }
+
+                    device = typed;
                 }
 
                 break;
             }
 
-            settings.DeviceName = CadPlotSettings.PdfDevice;
+            settings.UseDevice(device);
 
             if (detailed)
             {
@@ -168,13 +197,14 @@ namespace GeometryHelper.Dxf.Viewer
                 }
             }
 
-            string offered = PlotFileName(c.Document, space);
+            string extension = PlotExtension(settings.DeviceName);
+            string offered = Path.ChangeExtension(PlotFileName(c.Document, space), extension);
             yield return CadPrompt.ForString("Enter file name", offered);
             string file = c.Input.Kind == CadInputKind.Text && c.Input.Text.Trim().Length > 0 ? c.Input.Text.Trim().Trim('"') : offered;
 
-            if (!file.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
+            if (!file.EndsWith(extension, StringComparison.OrdinalIgnoreCase))
             {
-                file += ".pdf";
+                file += extension;
             }
 
             yield return CadPrompt.ForKeyword("Save changes to page setup", PlotYesNo, "No");
@@ -203,11 +233,11 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (!c.Session.Request("-PLOT", c.Document, new CadPlotJob(space, settings, display, file)))
             {
-                c.Write("Plotting to a file needs the window's PDF writer: nothing was written.");
+                c.Write("Plotting to a file needs the window's " + (settings.IsRaster ? "image" : "PDF") + " writer: nothing was written.");
                 yield break;
             }
 
-            c.Write("Effective plotting area:  " + Mm(page.Area.Width * page.Scale) + " wide by " + Mm(page.Area.Height * page.Scale) + " high");
+            c.Write("Effective plotting area:  " + Mm(page.Area.Width * page.Scale) + " wide by " + Mm(page.Area.Height * page.Scale) + " high" + (settings.IsRaster ? " (pixels)" : string.Empty));
             c.Write("Plot written to " + file + ".");
         }
 
@@ -220,7 +250,7 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (c.Input.Is("?"))
                 {
-                    foreach (CadPaper each in CadPaper.Standard)
+                    foreach (CadPaper each in settings.IsRaster ? CadPaper.PixelSizes : CadPaper.Standard)
                     {
                         c.Write(each.Label);
                     }
@@ -230,7 +260,8 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (c.Input.Kind == CadInputKind.Text)
                 {
-                    CadPaper paper = PaperNamed(c.Input.Text.Trim());
+                    // A raster device takes an image's size, the listed ones or the user's own "2480 x 1754".
+                    CadPaper paper = settings.IsRaster ? PixelsNamed(c.Input.Text.Trim()) : PaperNamed(c.Input.Text.Trim());
 
                     if (paper == null)
                     {
@@ -244,8 +275,12 @@ namespace GeometryHelper.Dxf.Viewer
                 break;
             }
 
-            yield return CadPrompt.ForKeyword("Enter paper units", new[] { "Inches", "Millimeters" }, "Millimeters");
+            // An image is measured in pixels alone, as AutoCAD's raster devices are.
+            yield return settings.IsRaster
+                ? CadPrompt.ForKeyword("Enter paper units", new[] { "Pixels" }, "Pixels")
+                : CadPrompt.ForKeyword("Enter paper units", new[] { "Inches", "Millimeters" }, "Millimeters");
             bool inches = c.Input.Is("Inches");
+            string units = settings.IsRaster ? "Pixels" : inches ? "Inches" : "Millimeters";
             yield return CadPrompt.ForKeyword("Enter drawing orientation", new[] { "Portrait", "Landscape" }, settings.Landscape ? "Landscape" : "Portrait");
             settings.Landscape = c.Input.IsNone ? settings.Landscape : c.Input.Is("Landscape");
             yield return CadPrompt.ForKeyword("Plot upside down?", PlotYesNo, settings.UpsideDown ? "Yes" : "No");
@@ -277,7 +312,7 @@ namespace GeometryHelper.Dxf.Viewer
             while (true)
             {
                 string scale = settings.FitToPaper ? "Fit" : Number(settings.PaperUnits / unit) + "=" + Number(settings.DrawingUnits);
-                yield return CadPrompt.ForKeywordOrText("Enter plot scale (Plotted " + (inches ? "Inches" : "Millimeters") + "=Drawing Units) or", new[] { "Fit" }, scale);
+                yield return CadPrompt.ForKeywordOrText("Enter plot scale (Plotted " + units + "=Drawing Units) or", new[] { "Fit" }, scale);
 
                 if (c.Input.Is("Fit"))
                 {
@@ -408,6 +443,37 @@ namespace GeometryHelper.Dxf.Viewer
                 {
                     return paper;
                 }
+            }
+
+            return null;
+        }
+
+        /// <summary>The extension of a plotter's file: .png, .jpg or .pdf.</summary>
+        internal static string PlotExtension(string device)
+            => string.Equals(device, CadPlotSettings.PngDevice, StringComparison.OrdinalIgnoreCase) ? ".png"
+                : string.Equals(device, CadPlotSettings.JpgDevice, StringComparison.OrdinalIgnoreCase) ? ".jpg" : ".pdf";
+
+        /// <summary>
+        /// The size of an image typed at -PLOT's paper size: a listed one by its label or name, or the user's own as
+        /// "2480 x 1754", "2480x1754" or "2480 x 1754 Pixels", each side 16 to 8 000; null for none.
+        /// </summary>
+        private static CadPaper PixelsNamed(string typed)
+        {
+            foreach (CadPaper paper in CadPaper.PixelSizes)
+            {
+                if (string.Equals(typed, paper.Label, StringComparison.OrdinalIgnoreCase) || string.Equals(typed, paper.Name, StringComparison.OrdinalIgnoreCase))
+                {
+                    return paper;
+                }
+            }
+
+            string[] sides = typed.Replace("Pixels", string.Empty).Replace("pixels", string.Empty).Split(new[] { 'x', 'X' }, StringSplitOptions.None);
+
+            if (sides.Length == 2 && int.TryParse(sides[0].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int width)
+                && int.TryParse(sides[1].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int height)
+                && width >= CadPaper.MinPixels && width <= CadPaper.MaxPixels && height >= CadPaper.MinPixels && height <= CadPaper.MaxPixels)
+            {
+                return CadPaper.Pixels(width, height);
             }
 
             return null;

@@ -25,6 +25,27 @@ there, above it as they read; a radius's or a diameter's words slide along its l
 1, and stand at the point under 2. A radius or a diameter made under DIMTMOVE 1 or 2 keeps its line through the point
 the circle was picked at, as AutoCAD 2021 does. The grips drag the words as before.
 
+**NEW.** PLOT and -PLOT plot to images: GeometryHelper PNG (lossless) and GeometryHelper JPG (quality 90) beside
+GeometryHelper PDF. Their sizes are in pixels, 1280 x 720 to 3840 x 2160, and Custom… makes one of 16 to 8 000 pixels a
+side, kept between sessions; a raster device starts fitted and centred on white, with no plot style table and colour 7
+black, and always plots to a file, asked on OK or with FILEDIA 0 on the command line. Model space fitted to 1920 x 1080 is
+a PNG of exactly 1920 by 1080 pixels. New API: `CadPaper.PixelSizes`, `CadPaper.Pixels`, `CadPlotSettings.PngDevice`,
+`JpgDevice`, `UseDevice`, `GlobalSettings.CustomPixelSizes` and `CadRasterWriter.WritePlot`.
+
+**CHANGED.** Dynamic input in the presenter works at the cursor as AutoCAD 2021's. At the Command prompt the text typed
+shows in a box 18 pixels right of the crosshair and 14 below it, with the AutoComplete list under it; the command line's
+own list stays closed while DYN is on. In a command the box shows the prompt as AutoCAD words it, "Specify next point or",
+with a ↓ that opens the prompt's options one per row, Esc closing the menu alone. The X and Y fields are relative to the
+base point, as DYNPIFORMAT 0, # making them absolute: RECTANG's other corner shows 1 200.00 and 800.00 for a corner
+1 200 by 800 from the first, and "500,300" typed there is a corner 500 by 300 from it. LINE's and PLINE's next point
+show the length on a dimension line beside the rubber band and the angle on an arc from the X axis.
+`MainViewModel.DynamicInputPrompt` no longer carries the options and the colon: "Specify next point or".
+
+**CHANGED.** The presenter's Order Group dialog follows its board: the groups in a Group Name list, and the three boxes
+labelled with the ranges the group allows, a group of twelve moved from 3 to 0 reading (0-11), (0-11) and (1-9).
+Highlight < now steps through the members on the canvas one at a time, `Object 0 of 11 [Next/Previous/eXit]:`, Enter
+bringing Object Grouping back; Object Grouping's own Highlight still shows the whole group at once.
+
 **NEW.** The presenter previews the object a prompt is about to make, as AutoCAD 2021 drags it: `CadPrompt.Preview`
 (`CadPreview`) gives the display items of what a point picked at the cursor would make, made by the command's own code,
 and the canvas draws them in the current layer's colour. RECTANG asking its other corner draws the rectangle, not a dashed

@@ -31,6 +31,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// with the drawing open, 1 600 by 960 unless <c>--size</c> says otherwise, and exits: 0 when written, 2 for arguments or a
     /// file it cannot read. <c>--run</c> types lines on the command line, parted by semicolons, an empty part being Enter;
     /// <c>--cursor</c> puts the cursor on a point of the drawing, showing the snap and the rubber band of the prompt waiting;
+    /// <c>--type REC</c> types text and leaves it unsent, the AutoComplete list shown for it, and <c>--type {Down}</c> opens
+    /// the options menu of dynamic input; <c>--dialog plot:png</c>, <c>plot:jpg</c> and <c>plot-custom</c> draw PLOT's
+    /// dialog on a raster device and its Custom Image Size;
     /// <c>--toggle</c> switches status toggles, as GRID or DYN; <c>--tab</c> shows a ribbon tab (Insert, Annotate, View,
     /// Plugins, Settings or the header of a tab a host adds); <c>--plugin</c> loads a command plugin, every file trusted.
     /// <c>--layers</c> draws the Layer manager instead, and <c>--dialog</c> one of the presenter's dialogs or menus:
@@ -82,7 +85,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// Gets the line written to the error output when the arguments of <c>--screenshot</c> do not read: the options the
         /// presenter knows, after the name of the program.
         /// </summary>
-        protected virtual string Usage => "Usage: " + (Assembly.GetEntryAssembly()?.GetName().Name ?? "app") + " --screenshot out.png [file.dxf] [--size 1600 960] [--space \"Layout1\"] [--select H1,H2] [--run \"MOVE;0,0\"] [--cursor x,y] [--toggle GRID,SNAP] [--layers] [--tab Insert|Annotate|View|Plugins|Settings] [--dialog save-changes|options|settings:Category|plugins|plugin-settings|plugin-untrusted|color|truecolor|truecolor-rgb|dsettings[:Tab]|osnap-menu|snap-menu|drawings-menu|scale-menu|missing-shx|missing-shx-replace|ptype|linetype|linetype-load|select-linetype|hatch|hatch-gradient|hatch-user|hatch-solid|hatch-file|block|insert|wblock|attdef|eattedit[:Tab]|battman|battman-edit[:Tab]|battman-settings|attdia|purge|purge-nonpurgeable|classicgroup|group-order|style|style-new|dimstyle|dimstyle-new|dimstyle-modify[:Tab]|dimstyle-override[:Tab]|dimstyle-compare[:Other]|mleaderstyle|mleaderstyle-modify[:Tab]|matchprop|pastespec|app-menu[:Item]|cmdline-menu|input-settings-menu|recent-commands-menu|autocomplete:Text] [--recent \"a.dxf|*b.dxf\"] [--plugin path.dll]";
+        protected virtual string Usage => "Usage: " + (Assembly.GetEntryAssembly()?.GetName().Name ?? "app") + " --screenshot out.png [file.dxf] [--size 1600 960] [--space \"Layout1\"] [--select H1,H2] [--run \"MOVE;0,0\"] [--cursor x,y] [--type REC|{Down}] [--toggle GRID,SNAP] [--layers] [--tab Insert|Annotate|View|Plugins|Settings] [--dialog save-changes|options|settings:Category|plugins|plugin-settings|plugin-untrusted|color|truecolor|truecolor-rgb|dsettings[:Tab]|osnap-menu|snap-menu|drawings-menu|scale-menu|missing-shx|missing-shx-replace|ptype|linetype|linetype-load|select-linetype|hatch|hatch-gradient|hatch-user|hatch-solid|hatch-file|block|insert|wblock|attdef|eattedit[:Tab]|battman|battman-edit[:Tab]|battman-settings|attdia|purge|purge-nonpurgeable|classicgroup|group-order|plot:png|plot:jpg|plot-custom|style|style-new|dimstyle|dimstyle-new|dimstyle-modify[:Tab]|dimstyle-override[:Tab]|dimstyle-compare[:Other]|mleaderstyle|mleaderstyle-modify[:Tab]|matchprop|pastespec|app-menu[:Item]|cmdline-menu|input-settings-menu|recent-commands-menu|autocomplete:Text] [--recent \"a.dxf|*b.dxf\"] [--plugin path.dll]";
 
         /// <summary>
         /// Runs the app on the STA thread of its entry point: the window until it is closed, or the screenshot where the first
@@ -263,6 +266,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             string spaceName = null;
             string run = null;
             double[] cursor = null;
+            string typed = null;
             bool layers = false;
             string tab = null;
             string dialogName = null;
@@ -297,6 +301,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 else if (string.Equals(arg, "--cursor", StringComparison.OrdinalIgnoreCase) && i + 1 < args.Length)
                 {
                     cursor = args[++i].Split(',').Select(v => double.Parse(v, CultureInfo.InvariantCulture)).ToArray();
+                }
+                else if (string.Equals(arg, "--type", StringComparison.OrdinalIgnoreCase) && i + 1 < args.Length)
+                {
+                    typed = args[++i];
                 }
                 else if (string.Equals(arg, "--toggle", StringComparison.OrdinalIgnoreCase) && i + 1 < args.Length)
                 {
@@ -452,6 +460,28 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 window = dialog;
                 width = (int)dialog.Width;
                 height = (int)dialog.Height;
+            }
+            else if (dialogName != null && model.Document != null && (dialogName.StartsWith("plot:", StringComparison.OrdinalIgnoreCase) || string.Equals(dialogName, "plot-custom", StringComparison.OrdinalIgnoreCase)))
+            {
+                // PLOT's dialog on a raster device, --dialog plot:png or plot:jpg, and its Custom Image Size, --dialog plot-custom.
+                var job = new CadPlotJob(model.Space, CadPlotSettings.Read(model.Document, model.Space), DisplayBox.Empty, null);
+                job.Settings.UseDevice(dialogName.EndsWith("jpg", StringComparison.OrdinalIgnoreCase) ? CadPlotSettings.JpgDevice : CadPlotSettings.PngDevice);
+                job.Settings.Area = CadPlotArea.Extents;
+                var plot = new PlotDialogViewModel(model.Document, job, false, null, model.Settings.CustomPixelSizes);
+
+                if (string.Equals(dialogName, "plot-custom", StringComparison.OrdinalIgnoreCase))
+                {
+                    var custom = new CustomImageSizeWindow(new CustomImageSizeViewModel(CadPaper.Pixels(2480, 1754)));
+                    (window, root) = (custom, custom.Body);
+                }
+                else
+                {
+                    var dialog = new PlotWindow(plot);
+                    (window, root) = (dialog, dialog.Body);
+                }
+
+                width = (int)window.Width;
+                height = (int)window.Height;
             }
             else if (dialogName != null && dialogName.EndsWith("-menu", StringComparison.OrdinalIgnoreCase) && !dialogName.StartsWith("app-menu", StringComparison.OrdinalIgnoreCase))
             {
@@ -735,6 +765,22 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             if (cursor != null && root is CadWorkspace workspace)
             {
                 workspace.DrawingCanvas.MoveCursorTo(cursor[0], cursor[1]);
+                Layout(root, width, height);
+            }
+
+            if (typed != null && root is CadWorkspace)
+            {
+                // What is typed and not yet sent, the AutoComplete list shown for it; {Down} opens the options menu of the prompt.
+                if (typed == "{Down}")
+                {
+                    model.OpenDynamicInputMenu();
+                }
+                else
+                {
+                    model.CommandText = typed;
+                    model.ShowSuggestions();
+                }
+
                 Layout(root, width, height);
             }
 

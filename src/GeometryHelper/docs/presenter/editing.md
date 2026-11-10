@@ -289,6 +289,10 @@ current layer.`, `Used by 2 objects in model space and 0 in layouts.`, `Referenc
 step. CLASSICGROUP shows AutoCAD's Object Grouping dialog (GROUP being the command-line form in AutoCAD 2021): New, Add,
 Remove, Find Name and Highlight ask on the command line and bring the dialog back; Rename, Description, Explode,
 Selectable and Re-Order change the group at once; OK keeps every change as one undo step and Cancel takes them back.
+Re-Order… opens Order Group: the groups in a list, and Remove from position, Enter new position and Number of objects
+labelled with the ranges the group allows, so a group of twelve moved from 3 to 0 reads (0-11), (0-11) and (1-9). Its
+Highlight < hides both dialogs and steps through the members on the canvas one at a time, `Object 0 of 11
+[Next/Previous/eXit]:`, Next and Previous going round; eXit or Enter brings Object Grouping back.
 With SELECTIONCYCLING 2, AutoCAD's default, a
 click where two lines cross shows the list of both near the cursor, the one drawn on top first, `Line · 0` and
 `Line · WALLS`, and the row chosen is taken as a click on that line alone; with 1 or 2, Shift+Space arms cycling, and each

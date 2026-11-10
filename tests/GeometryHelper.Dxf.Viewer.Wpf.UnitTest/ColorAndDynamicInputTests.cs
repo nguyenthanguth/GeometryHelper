@@ -322,7 +322,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 model.Execute("1000,1000");
                 model.SetCursor(1300, 1400);
 
-                Assert.Equal("Specify next point or [Undo]:", model.DynamicInputPrompt);
+                // The box words it as AutoCAD's tooltip: the options are left to the ↓ menu.
+                Assert.Equal("Specify next point or", model.DynamicInputPrompt);
                 Assert.Equal("500.00 < 53.1°", model.DynamicInputValue);
 
                 model.SetCursor(1000, 500);
@@ -336,7 +337,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
 
                 model.SubmitCommand();
 
-                Assert.Equal("Specify next point or [Undo]:", model.DynamicInputPrompt);
+                Assert.Equal("Specify next point or", model.DynamicInputPrompt);
 
                 // DYN off: nothing is shown while the command runs.
                 model.DynamicInput.IsOn = false;

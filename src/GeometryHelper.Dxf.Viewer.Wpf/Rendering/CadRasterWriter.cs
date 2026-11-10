@@ -50,6 +50,69 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>
+        /// Writes a plot of a space to an image, as PLOT and -PLOT do with GeometryHelper PNG or JPG: the image as large as
+        /// the settings' size in pixels, on white, the plot laid on it as on a sheet whose units are pixels, colours through
+        /// the plot style table (colour 7 black), each line at its lineweight as at 96 dots an inch. A PNG is lossless, a JPEG
+        /// of quality 90. Model space fitted to 1920 by 1080 pixels is a PNG of exactly that size.
+        /// </summary>
+        /// <param name="path">The file, replaced where there is one.</param>
+        /// <param name="document">The document.</param>
+        /// <param name="space">The space plotted.</param>
+        /// <param name="settings">How it is plotted: a raster device and a size in pixels.</param>
+        /// <param name="display">What the view shows, in drawing units, for a plot of the display; empty for the extents.</param>
+        /// <returns>The plot as it was laid on the image.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when an argument is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the settings are not of a raster device in pixels.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when there is nothing to plot.</exception>
+        /// <exception cref="IOException">Thrown when the file cannot be written.</exception>
+        public static CadPlotPage WritePlot(string path, CadDocument document, CadSpace space, CadPlotSettings settings, DisplayBox display)
+        {
+            if (path == null)
+            {
+                throw new ArgumentNullException(nameof(path));
+            }
+
+            if (settings == null)
+            {
+                throw new ArgumentNullException(nameof(settings));
+            }
+
+            if (!settings.IsRaster || !settings.Paper.IsPixels)
+            {
+                throw new ArgumentException("An image is plotted by " + CadPlotSettings.PngDevice + " or " + CadPlotSettings.JpgDevice + " on a size in pixels.", nameof(settings));
+            }
+
+            CadPlotPage page = CadPlotPage.Compute(document ?? throw new ArgumentNullException(nameof(document)), space ?? throw new ArgumentNullException(nameof(space)), settings, display);
+
+            if (page.IsEmpty)
+            {
+                throw new InvalidOperationException("Nothing to plot: the plot area of " + space.Name + " is empty.");
+            }
+
+            int width = (int)Math.Round(page.SheetWidth);
+            int height = (int)Math.Round(page.SheetHeight);
+            bool jpeg = string.Equals(settings.DeviceName, CadPlotSettings.JpgDevice, StringComparison.OrdinalIgnoreCase);
+
+            using (var picture = new SKBitmap(new SKImageInfo(width, height, SKColorType.Bgra8888, SKAlphaType.Premul)))
+            {
+                using (SKSurface surface = SKSurface.Create(picture.Info, picture.GetPixels(), picture.RowBytes))
+                using (var renderer = new SkiaCanvasRenderer())
+                {
+                    surface.Canvas.Clear(SKColors.White);
+
+                    // The sheet's pixels, Y upward from its lower left corner, to the image's rows from the top.
+                    renderer.RenderPlot(surface.Canvas, document, space, page, settings, new Affine2(1.0, 0.0, 0.0, -1.0, 0.0, height), 96.0 / 25.4);
+                    surface.Canvas.Flush();
+                }
+
+                File.WriteAllBytes(path, Encode(picture, jpeg ? CadImageFormat.Jpeg : CadImageFormat.Png));
+            }
+
+            GeometryHelperLog.Info("CadRasterWriter: " + space.Name + " plotted to " + path + ", " + width.ToString(System.Globalization.CultureInfo.InvariantCulture) + " by " + height.ToString(System.Globalization.CultureInfo.InvariantCulture) + " pixels.");
+            return page;
+        }
+
+        /// <summary>
         /// A view drawn into a new picture of its size, as the canvas keeps its scene: blue, green, red and alpha, every pixel
         /// opaque. With handles, only their entities are drawn.
         /// </summary>

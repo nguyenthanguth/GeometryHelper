@@ -128,6 +128,57 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>The name of the presenter's own plotter, which writes a PDF: "GeometryHelper PDF".</summary>
         public const string PdfDevice = "GeometryHelper PDF";
 
+        /// <summary>The name of the presenter's raster device that writes a PNG, lossless: "GeometryHelper PNG".</summary>
+        public const string PngDevice = "GeometryHelper PNG";
+
+        /// <summary>The name of the presenter's raster device that writes a JPEG at a quality of 90: "GeometryHelper JPG".</summary>
+        public const string JpgDevice = "GeometryHelper JPG";
+
+        /// <summary>Gets whether the plotter is one of the raster devices, GeometryHelper PNG or JPG, whose sheet is an image sized in pixels.</summary>
+        public bool IsRaster => IsRasterDevice(DeviceName);
+
+        /// <summary>Gets whether a plotter's name is one of the raster devices, either case.</summary>
+        /// <param name="name">The name, as "GeometryHelper PNG".</param>
+        /// <returns>True for GeometryHelper PNG and GeometryHelper JPG.</returns>
+        public static bool IsRasterDevice(string name)
+            => string.Equals(name, PngDevice, StringComparison.OrdinalIgnoreCase) || string.Equals(name, JpgDevice, StringComparison.OrdinalIgnoreCase);
+
+        /// <summary>
+        /// Chooses the plotter, as the Name list of the Plot dialog does. A raster device moving from the PDF one starts on
+        /// 1920 by 1080 pixels, fitted, centred, with no offset and no plot style table, colours as displayed on white, colour 7
+        /// black; the PDF one moving from a raster device goes back to ISO A3 and the monochrome table. Moving between PNG and
+        /// JPG keeps everything.
+        /// </summary>
+        /// <param name="name">The plotter: <see cref="PdfDevice"/>, <see cref="PngDevice"/> or <see cref="JpgDevice"/>.</param>
+        /// <exception cref="ArgumentException">Thrown when the name is none of the three.</exception>
+        public void UseDevice(string name)
+        {
+            bool raster = IsRasterDevice(name);
+
+            if (!raster && !string.Equals(name, PdfDevice, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new ArgumentException("The presenter plots with " + PdfDevice + ", " + PngDevice + " or " + JpgDevice + ".", nameof(name));
+            }
+
+            if (raster && !_paper.IsPixels)
+            {
+                _paper = CadPaper.DefaultPixels;
+                FitToPaper = true;
+                Centered = true;
+                OffsetX = 0.0;
+                OffsetY = 0.0;
+                StyleTable = CadPlotStyleTable.None;
+                Landscape = true;
+            }
+            else if (!raster && _paper.IsPixels)
+            {
+                _paper = CadPaper.Default;
+                StyleTable = CadPlotStyleTable.Monochrome;
+            }
+
+            DeviceName = raster ? (string.Equals(name, JpgDevice, StringComparison.OrdinalIgnoreCase) ? JpgDevice : PngDevice) : PdfDevice;
+        }
+
         private CadPaper _paper = CadPaper.Default;
         private double _paperUnits = 1.0;
         private double _drawingUnits = 1.0;
@@ -347,7 +398,16 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 GeoPoint2 size = layout.PlotPaperSize;
                 DxfExtents2d margins = layout.PlotPaperMargins;
-                CadPaper paper = CadPaper.FromLayout(layout.CanonicalMediaName, size.X, size.Y, margins.MinPoint.X, margins.MinPoint.Y, margins.MaxPoint.X, margins.MaxPoint.Y);
+                // A raster device's plot settings keep the image's size in pixels (group 72 = 2), as AutoCAD's PublishToWeb PNG.
+                bool pixels = layout.PlotPaperUnits == DxfPlotPaperUnit.Pixels && IsRasterDevice(layout.PlotConfigurationName);
+                CadPaper paper = pixels
+                    ? CadPaper.Pixels((int)Math.Round(size.X), (int)Math.Round(size.Y))
+                    : CadPaper.FromLayout(layout.CanonicalMediaName, size.X, size.Y, margins.MinPoint.X, margins.MinPoint.Y, margins.MaxPoint.X, margins.MaxPoint.Y);
+
+                if (pixels)
+                {
+                    settings.DeviceName = string.Equals(layout.PlotConfigurationName, JpgDevice, StringComparison.OrdinalIgnoreCase) ? JpgDevice : PngDevice;
+                }
 
                 if (paper != null)
                 {
@@ -513,7 +573,7 @@ namespace GeometryHelper.Dxf.Viewer
             CadPaper paper = Paper;
             bool turned = Landscape != (paper.Width >= paper.Height);
             layout.PlotConfigurationName = DeviceName ?? PdfDevice;
-            layout.PlotPaperUnits = DxfPlotPaperUnit.Millimeters;
+            layout.PlotPaperUnits = paper.IsPixels ? DxfPlotPaperUnit.Pixels : DxfPlotPaperUnit.Millimeters;
 
             // The margins first, checked against the sheet the layout has, then the sheet: margins of 5 fit any sheet listed.
             var margins = new DxfExtents2d(new GeoPoint2(paper.MarginLeft, paper.MarginBottom), new GeoPoint2(paper.MarginRight, paper.MarginTop));

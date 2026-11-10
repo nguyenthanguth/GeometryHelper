@@ -800,9 +800,18 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Selects nothing.</summary>
         public void ClearSelection() => _current?.Document.Selection.Clear();
 
-        /// <summary>Esc: ends the command running, saying *Cancel*; with none running, clears the selection.</summary>
+        /// <summary>
+        /// Esc: ends the command running, saying *Cancel*; with none running, clears the selection. With the options menu of
+        /// dynamic input open it closes the menu alone, and the command goes on.
+        /// </summary>
         public void Escape()
         {
+            if (IsDynamicInputMenuOpen)
+            {
+                CloseDynamicInputMenu();
+                return;
+            }
+
             // Esc throws away what is typed on the command line, the AutoComplete list with it, as AutoCAD's does.
             CommandText = string.Empty;
             CloseSuggestions();

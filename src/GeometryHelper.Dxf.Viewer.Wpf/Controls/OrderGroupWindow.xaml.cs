@@ -5,9 +5,10 @@ using System.Windows.Input;
 namespace GeometryHelper.Dxf.Viewer.Wpf
 {
     /// <summary>
-    /// AutoCAD's Order Group dialog of Object Grouping: the group, Remove from position, Enter new position and Number of
-    /// objects; Re-Order, Highlight and Reverse Order. Highlight closes it, and Object Grouping with it, for the command line
-    /// to show the objects. Its logic is <see cref="OrderGroupViewModel"/>.
+    /// AutoCAD's Order Group dialog of Object Grouping (design OrderGroup): the Group Name list, the description, Remove from
+    /// position, Enter new position and Number of objects with their ranges; Re-Order, Highlight and Reverse Order. Highlight
+    /// closes it, and Object Grouping with it, for the command line to step through the members on the canvas, "Object 0 of
+    /// 11 [Next/Previous/eXit]:". Its logic is <see cref="OrderGroupViewModel"/>.
     /// </summary>
     public partial class OrderGroupWindow : Window
     {

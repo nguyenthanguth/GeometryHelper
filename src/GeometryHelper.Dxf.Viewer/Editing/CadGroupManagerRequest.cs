@@ -70,8 +70,9 @@ namespace GeometryHelper.Dxf.Viewer
         public bool NewUnnamed { get; set; }
 
         /// <summary>
-        /// Gets or sets the button ending in &lt; the dialog was closed with: Find Name, Highlight, New, Remove or Add; for
-        /// Highlight from Order Group, the objects from <see cref="HighlightFrom"/> on, <see cref="HighlightCount"/> of them.
+        /// Gets or sets the button ending in &lt; the dialog was closed with: Find Name, Highlight, New, Remove or Add, or Order
+        /// Highlight for Order Group's Highlight, which steps through the members of the group chosen on the canvas one at a
+        /// time, "Object 0 of 11 [Next/Previous/eXit]:", until eXit or Enter.
         /// </summary>
         public string Pick { get; set; }
 

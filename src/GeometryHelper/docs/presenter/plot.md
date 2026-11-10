@@ -116,7 +116,7 @@ at once lost the map of their text in 3 to 6 of 64.
 
 | Command | What it does |
 |---|---|
-| PLOT, Ctrl+P | the Plot dialog, expanded, on the space's page setup; OK asks for the file and writes the PDF; with no window, -PLOT's prompts |
+| PLOT, Ctrl+P | the Plot dialog, expanded, on the space's page setup; OK asks for the file and writes the PDF, or the PNG or JPEG of a raster device; with no window, -PLOT's prompts |
 | PAGESETUP | the same dialog titled Page Setup; OK writes the page setup to the layout |
 | PREVIEW | the plot preview of the space's page setup over the whole window; its Plot asks for the file and writes the PDF |
 | -PLOT | AutoCAD's plot on the command line |
@@ -161,6 +161,39 @@ Without the detailed configuration it asks the layout, a page setup's name, the 
 area offers Layout in place of Limits, and the last prompts are Scale lineweights, Plot paper space first and Hide
 paperspace objects; the last two, like the shade plot, change nothing in a 2D plot. View is not offered: the presenter has
 no named views. The file is written by the window, which holds the PDF writer.
+
+## Plotting to an image
+
+PLOT and -PLOT offer two raster devices beside GeometryHelper PDF: GeometryHelper PNG, which writes a PNG, lossless, and
+GeometryHelper JPG, which writes a JPEG at a quality of 90. Their Paper size list holds sizes in pixels rather than
+sheets: 1280 x 720 (HD), 1600 x 1200 (UXGA), 1920 x 1080 (Full HD), 2560 x 1440 (QHD) and 3840 x 2160 (4K UHD), then the
+sizes of your own, then Custom…, which asks a width and a height of 16 to 8 000 pixels each in Custom Image Size and adds
+the size to the list as `2480 x 1754 Pixels (Custom)`. The ten newest sizes of your own are kept in the settings file
+from one session to the next.
+
+Choosing a raster device starts on 1920 x 1080, fitted to the image and centred, with no plot style table: the image is
+drawn on white, as the paper, every colour as displayed except colour 7, which plots black. The whole image is printable,
+the offset and the scale read in pixels (Fit to paper off, the scale is pixels per drawing unit), and each line is as wide
+as its lineweight at 96 dots an inch, 0.5 mm being 1.9 pixels. The DPI box is grey, the size being set in pixels. The
+plot is always to a file: OK asks for it through Browse for Plot File, offered as `plan-level2-Model.png`, or with FILEDIA
+0 on the command line, `Enter file name <C:\Plans\plan-level2-Model.png>:`. Model space fitted to 1920 x 1080 is a PNG of
+exactly 1920 by 1080 pixels. Going back to GeometryHelper PDF gives back the sheet chosen before.
+
+-PLOT takes the device by its name, and then the size as listed or as `2480 x 1754`; its units are pixels alone:
+
+```text
+Enter an output device name or [?] <GeometryHelper PDF>: GeometryHelper PNG
+Enter paper size or [?] <1920 x 1080 Pixels (Full HD)>: 2480 x 1754
+Enter paper units [Pixels] <Pixels>:
+...
+Enter plot scale (Plotted Pixels=Drawing Units) or [Fit] <Fit>:
+...
+Enter file name <C:\Plans\plan-level2-Model.png>:
+```
+
+A page setup saved with a raster device keeps the device's name and the size, its units written as pixels (group 72 = 2),
+and is read back as that image. `CadRasterWriter.WritePlot(path, document, space, settings, display)` writes the image
+where there is no window.
 
 ## Images of the drawing area
 
