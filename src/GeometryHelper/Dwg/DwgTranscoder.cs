@@ -107,6 +107,7 @@ namespace GeometryHelper.Dwg
             Broken = broken;
             NumberPaperSpaces();
             NumberViewports();
+            FillLeaderBoxes();
 
             if (broken > 0)
             {
@@ -245,6 +246,33 @@ namespace GeometryHelper.Dwg
             {
                 bool off = (Int(order[i], 90) & 0x20000) != 0;
                 _viewportNumbers[order[i].Handle] = new[] { i + 1, off ? 0 : _version < 1018 ? -1 : i + 1 };
+            }
+        }
+
+        /// <summary>
+        /// From R2010 a LEADER keeps no box of its text, and AutoCAD writes the extents of the MTEXT it annotates (groups 40
+        /// and 41), which the reader left as NaN; they are 0 where the annotation is no MTEXT.
+        /// </summary>
+        private void FillLeaderBoxes()
+        {
+            foreach (DwgObject leader in _objects)
+            {
+                if (leader.Type != 0x2D)
+                {
+                    continue;
+                }
+
+                double[] extents = Find(leader.Annotation)?.TextExtents ?? new[] { 0.0, 0.0 };
+
+                for (int i = 0; i < leader.Body.Count; i++)
+                {
+                    DwgGroup group = leader.Body[i];
+
+                    if ((group.Code == 40 || group.Code == 41) && group.Value is double value && double.IsNaN(value))
+                    {
+                        leader.Body[i] = new DwgGroup(group.Code, extents[group.Code - 40]);
+                    }
+                }
             }
         }
 
@@ -566,6 +594,11 @@ namespace GeometryHelper.Dwg
             _dxf.Write(8, NameOf(entity.Layer) ?? new byte[] { (byte)'0' });
             Write(entity.Common);
 
+            if (entity.ProxyGraphics != null)
+            {
+                WriteBinary(_version >= 1024 ? 160 : 92, entity.ProxyGraphics);
+            }
+
             if (entity.Type == 0x04)
             {
                 DwgObject header = Find(owner);
@@ -599,6 +632,25 @@ namespace GeometryHelper.Dwg
             if (end != null && end.IsEntity)
             {
                 WriteEntity(end, entity.Handle, paper, true);
+            }
+        }
+
+        /// <summary>A run of bytes as DXF writes it: its length under <paramref name="sizeCode"/>, then pieces of 127 bytes in hex under 310.</summary>
+        private void WriteBinary(int sizeCode, byte[] bytes)
+        {
+            _dxf.Write(sizeCode, bytes.Length);
+            var hex = new StringBuilder(254);
+
+            for (int at = 0; at < bytes.Length; at += 127)
+            {
+                hex.Clear();
+
+                for (int i = at; i < Math.Min(at + 127, bytes.Length); i++)
+                {
+                    hex.Append(bytes[i].ToString("X2", CultureInfo.InvariantCulture));
+                }
+
+                _dxf.Write(310, hex.ToString());
             }
         }
 

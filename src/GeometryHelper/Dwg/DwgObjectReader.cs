@@ -341,7 +341,8 @@ namespace GeometryHelper.Dwg
                     throw new FormatException("The proxy graphics of the entity run past its end.");
                 }
 
-                _data.Position += graphics * 8L;
+                // DXF carries it too (groups 92 or 160, then 310), where AutoCAD saved it: the newer entities in an older file.
+                _object.ProxyGraphics = _data.Bytes((int)graphics);
             }
 
             _object.EntityMode = _data.Bits2();
@@ -477,11 +478,13 @@ namespace GeometryHelper.Dwg
 
             if (!R2004Plus)
             {
+                colour.Raw = colour.Index == 256 ? unchecked((int)0xC0000000) : colour.Index == 0 ? unchecked((int)0xC1000000) : unchecked((int)0xC3000000) | (colour.Index & 0xFF);
                 return colour;
             }
 
             int rgb = _data.BitLong();
             int names = _data.RawChar();
+            colour.Raw = rgb;
 
             switch ((rgb >> 24) & 0xFF)
             {
@@ -726,6 +729,8 @@ namespace GeometryHelper.Dwg
                 case 0x29: ReadRay("AcDbXline"); return true;
                 case 0x2A: ReadDictionary(false); return true;
                 case 0x2C: ReadMText(); return true;
+                case 0x2D: ReadLeader(); return true;
+                case 0x2E: ReadTolerance(); return true;
                 case 0x30:
                 case 0x32:
                 case 0x34:
@@ -764,6 +769,8 @@ namespace GeometryHelper.Dwg
                 case "XRECORD": ReadXRecord(); return true;
                 case "LWPOLYLINE": ReadLwPolyline(); return true;
                 case "HATCH": ReadHatch(); return true;
+                case "MULTILEADER": ReadMultiLeader(); return true;
+                case "MLEADERSTYLE": ReadMultiLeaderStyle(); return true;
                 default: return false;
             }
         }

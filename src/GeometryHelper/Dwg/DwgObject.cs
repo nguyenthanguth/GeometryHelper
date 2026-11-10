@@ -91,6 +91,13 @@ namespace GeometryHelper.Dwg
         /// <summary>The transparency as group 440 carries it; -1 for none, which is by layer.</summary>
         public int Transparency = -1;
 
+        /// <summary>
+        /// Of a colour of a style (CMC): the value DXF writes where it gives the colour as one number, as a multileader does:
+        /// the high byte 0xC0 by layer, 0xC1 by block, 0xC2 a true colour in the low three bytes, 0xC3 an index in the low
+        /// byte. Before R2004, where the file holds the index alone, made from it.
+        /// </summary>
+        public int Raw;
+
         /// <summary>Whether the colour is one of a book, whose DBCOLOR object the handles name.</summary>
         public bool HasBook;
 
@@ -186,6 +193,15 @@ namespace GeometryHelper.Dwg
 
         /// <summary>Of a block header: the groups of the BLOCK entity that the header keeps (base point, path of the reference).</summary>
         public List<DwgGroup> BlockBody;
+
+        /// <summary>Of an entity: the picture of it kept for programs that cannot draw it (proxy graphics); null for none.</summary>
+        public byte[] ProxyGraphics;
+
+        /// <summary>Of an MTEXT: the height and the width of the extents of its text; null for another type.</summary>
+        public double[] TextExtents;
+
+        /// <summary>Of a LEADER: the handle of its annotation; 0 for none.</summary>
+        public ulong Annotation;
 
         /// <summary>Of a layout from R2004: its viewports in their order; null before R2004.</summary>
         public List<ulong> Viewports;

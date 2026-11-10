@@ -423,8 +423,7 @@ namespace GeometryHelper.Dwg
             double height = _data.BitDouble();
             int attachment = _data.BitShort();
             int flow = _data.BitShort();
-            _data.BitDouble();
-            _data.BitDouble();
+            _object.TextExtents = new[] { _data.BitDouble(), _data.BitDouble() };
             byte[] text = T();
             int spacingStyle = _data.BitShort();
             double spacing = _data.BitDouble();
@@ -1279,6 +1278,108 @@ namespace GeometryHelper.Dwg
                     break;
                 default:
                     throw new FormatException("The hatch has an edge of the unknown kind " + kind + ".");
+            }
+        }
+
+        /// <summary>
+        /// A LEADER: the kind of its annotation and path, its points, its plane and offsets, the size of the box of its
+        /// text, its hook line and arrow, and the handles of its annotation and dimension style. DXF leaves the arrow out
+        /// where it is on, the path where it is straight, the annotation kind and the box where there is none.
+        /// </summary>
+        private void ReadLeader()
+        {
+            _data.Bit();
+            int annotation = _data.BitShort();
+            int path = _data.BitShort();
+            int count = Count(_data.BitLong());
+            var points = new List<double[]>(Math.Min(count, 1024));
+
+            for (int i = 0; i < count; i++)
+            {
+                points.Add(_data.Point3());
+            }
+
+            _data.Point3();
+            double[] normal = _data.Point3();
+            double[] horizontal = _data.Point3();
+            double[] blockOffset = _data.Point3();
+            double[] annotationOffset = _data.Point3();
+            // From R2010 the box of the text is not kept; AutoCAD writes the extents its MTEXT keeps, which the transcoder
+            // puts in place of these.
+            double boxHeight = R2010Plus ? double.NaN : _data.BitDouble();
+            double boxWidth = R2010Plus ? double.NaN : _data.BitDouble();
+            _data.Bit();
+            bool arrow = _data.Bit();
+            _data.BitShort();
+            _data.Bit();
+            _data.Bit();
+            ulong annotationHandle = H();
+            ulong style = H();
+            _object.Annotation = annotationHandle;
+            _object.Add(100, "AcDbLeader");
+            _object.Add(3, new DwgName(style, "Standard"));
+
+            if (!arrow)
+            {
+                _object.Add(71, 0);
+            }
+
+            AddNonZero(72, path);
+
+            if (annotation != 3)
+            {
+                _object.Add(73, annotation);
+                _object.Add(40, boxHeight);
+                _object.Add(41, boxWidth);
+            }
+
+            _object.Add(76, count);
+
+            foreach (double[] point in points)
+            {
+                _object.AddPoint(10, point);
+            }
+
+            if (annotationHandle != 0)
+            {
+                _object.Add(340, annotationHandle);
+            }
+
+            AddExtrusion(normal);
+
+            if (horizontal[0] != 1.0 || horizontal[1] != 0.0 || horizontal[2] != 0.0)
+            {
+                _object.AddPoint(211, horizontal);
+            }
+
+            if (blockOffset[0] != 0.0 || blockOffset[1] != 0.0 || blockOffset[2] != 0.0)
+            {
+                _object.AddPoint(212, blockOffset);
+            }
+
+            if (annotationOffset[0] != 0.0 || annotationOffset[1] != 0.0 || annotationOffset[2] != 0.0)
+            {
+                _object.AddPoint(213, annotationOffset);
+            }
+        }
+
+        /// <summary>A TOLERANCE, a feature control frame: its point, direction, plane and text, and its dimension style.</summary>
+        private void ReadTolerance()
+        {
+            double[] insertion = _data.Point3();
+            double[] direction = _data.Point3();
+            double[] normal = _data.Point3();
+            byte[] text = T();
+            ulong style = H();
+            _object.Add(100, "AcDbFcf");
+            _object.Add(3, new DwgName(style, "Standard"));
+            _object.AddPoint(10, insertion);
+            _object.Add(1, text);
+            AddExtrusion(normal);
+
+            if (direction[0] != 1.0 || direction[1] != 0.0 || direction[2] != 0.0)
+            {
+                _object.AddPoint(11, direction);
             }
         }
 

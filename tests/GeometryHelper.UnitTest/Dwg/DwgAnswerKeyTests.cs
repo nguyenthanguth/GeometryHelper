@@ -19,8 +19,7 @@ namespace GeometryHelper.UnitTest.Dwg
         /// <summary>The types the reader does not read yet, which a comparison may find missing.</summary>
         private static readonly string[] NotReadYet =
         {
-            "ACDBDETAILVIEWSTYLE", "ACDBSECTIONVIEWSTYLE", "CELLSTYLEMAP", "LEADER", "MATERIAL", "MLEADERSTYLE",
-            "TABLESTYLE", "VISUALSTYLE",
+            "ACDBDETAILVIEWSTYLE", "ACDBSECTIONVIEWSTYLE", "CELLSTYLEMAP", "MATERIAL", "TABLESTYLE", "VISUALSTYLE",
         };
 
         private readonly List<(GeometryHelperLogLevel Level, string Message)> _written = new List<(GeometryHelperLogLevel Level, string Message)>();
@@ -86,6 +85,8 @@ namespace GeometryHelper.UnitTest.Dwg
         [InlineData("vports_AC1032")]
         [InlineData("hatch_AC1015")]
         [InlineData("hatch_AC1032")]
+        [InlineData("leaders_AC1015")]
+        [InlineData("leaders_AC1032")]
         public void ADrawingOfTheTypesOfW4_ReadFromItsDwg_IsTheDxfAutoCadWroteOfIt(string drawing)
         {
             // Made by probe GhDwg4 in all six versions; the repository holds the oldest and the newest of each.
@@ -133,6 +134,24 @@ namespace GeometryHelper.UnitTest.Dwg
 
             // R2000 has no gradient: AutoCAD saves the gradient as a solid fill.
             Assert.Equal(gradients, hatches[3].IsGradient);
+        }
+
+        [Theory]
+        [InlineData("leaders_AC1015")]
+        [InlineData("leaders_AC1032")]
+        public void TheLeaders_Multileaders_AndFeatureControlFrames_AreRead(string drawing)
+        {
+            DxfDatabase database = DwgReader.Open(new MemoryStream(DwgAnswerKey.Dwg(drawing), false));
+
+            // A leader of three points annotated by an MTEXT and a spline leader of four; two frames.
+            List<DxfLeader> leaders = database.ModelSpace.OfType<DxfLeader>().ToList();
+            Assert.Equal(new[] { 3, 4 }, leaders.Select(l => l.NumVertices));
+            Assert.Equal(2, database.ModelSpace.OfType<DxfUnknownEntity>().Count(e => e.DxfName == "TOLERANCE"));
+
+            // Two multileaders of text and one of the block GhTag under the style GhBlock.
+            List<DxfMLeader> multileaders = database.ModelSpace.OfType<DxfMLeader>().ToList();
+            Assert.Equal(new[] { DxfContentType.MTextContent, DxfContentType.MTextContent, DxfContentType.BlockContent }, multileaders.Select(m => m.ContentType));
+            Assert.Equal("Multi\\Pleader", multileaders[0].MText.Contents);
         }
 
         [Fact]
@@ -237,8 +256,8 @@ namespace GeometryHelper.UnitTest.Dwg
             DwgReader.ToDxf(DwgAnswerKey.Dwg("later"));
 
             string skipped = Assert.Single(_written, line => line.Level == GeometryHelperLogLevel.Debug && line.Message.StartsWith("DwgReader:", StringComparison.Ordinal)).Message;
-            Assert.DoesNotContain("HATCH", skipped);
-            Assert.Contains("LEADER 1", skipped);
+            Assert.DoesNotContain(" HATCH ", skipped);
+            Assert.DoesNotContain(" LEADER ", skipped);
             Assert.Contains("MATERIAL 3", skipped);
 
             string summary = Assert.Single(_written, line => line.Level == GeometryHelperLogLevel.Info && line.Message.StartsWith("DwgReader:", StringComparison.Ordinal)).Message;

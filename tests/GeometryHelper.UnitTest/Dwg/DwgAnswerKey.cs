@@ -303,12 +303,22 @@ namespace GeometryHelper.UnitTest.Dwg
                 }
                 string fault = groups.Count != a.Groups.Count ? "the key has " + a.Groups.Count + " groups, the reader " + groups.Count : null;
 
+                bool graphics = false;
+
                 for (int i = 0; i < Math.Min(a.Groups.Count, groups.Count); i++)
                 {
                     int code = a.Groups[i].Key;
                     string v1 = a.Groups[i].Value;
                     string v2 = groups[i].Value;
                     bool same = code == groups[i].Key;
+                    graphics = code == 310 ? graphics : (code == 92 || code == 160) && a.Section != "OBJECTS";
+
+                    if (same && graphics && code == 310 && v1.Length == v2.Length)
+                    {
+                        // The proxy graphics of an entity: AutoCAD draws them anew as it writes the DXF, and the padding
+                        // after a text in them holds whatever its memory held. Compared by size.
+                        continue;
+                    }
 
                     if (same && IsNumber(code))
                     {
