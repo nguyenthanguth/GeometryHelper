@@ -191,7 +191,9 @@ the ones wanted.
       0 of 20 failed under load (was 5 of 20), limits unchanged (S)
 - [ ] COPYVIEW (not in AutoCAD): the view as an image on the clipboard, also on the canvas right-click menu (optional)
 - [ ] Tables: the cell right-click menu, column letters and row numbers, autofill and width grips, drag-select a range
-- [ ] Tables (running): rows grow for wrapped text; Tab in the last cell adds a row; first/second/other row cell styles
+- [x] Tables: rows grow for wrapped text; Tab in the last cell adds a row; first/second/other row cell styles
+- [ ] Tables follow-ups: the row growing live while a cell is typed (the canvas must redraw the table during the edit);
+      a block merged across rows (shortfall to the last row, unprobed); the table's own per-kind looks (S)
 
 - [ ] Ribbon: check drop-downs and the Insert block gallery at 125 % and 150 % display scaling; pin and Esc by hand
 - [ ] Ribbon: Home panels a few pixels wider than their design widths
