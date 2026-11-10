@@ -106,8 +106,10 @@ the ones wanted.
       stay tied to copied objects; intersection snaps; ties from DIM, QDIM, DIMCONTINUE, DIMBASELINE, ordinate, angular
 - [ ] Associative dimensions (running): PERpendicular and TANgent snaps tied (AutoCAD writes a second "last point" reference after
       one of 75 = 1, which the core's DIMASSOC neither reads apart nor writes) (S)
-- [ ] Dimension pictures (running): radius, diameter and angular follow DIMTAD, DIMJUST and the fit rules; the line from the back of
-      an open arrowhead (_CLOSED, _CLOSEDBLANK); DIMTVP; DIMGAP below zero (box round the words) (M)
+- [x] Dimension pictures: radius, diameter and angular laid out by DIMTAD, DIMJUST and the fit rules; every line from the
+      back of its arrowhead; DIMTVP; the box of DIMGAP below zero (526 AutoCAD pictures compared, 511 match)
+- [ ] Dimensions: words measured by the drawing's fonts in the pictures (the main gap left); DIMTEDIT on angular and
+      radius with DIMTMOVE 0 as AutoCAD; DIMARC; radial dimensions made under DIMTMOVE 1/2 (S)
 - [ ] Blocks (running): dynamic blocks in use: custom grips (visibility, lookup, stretch, flip, rotate, array) and their Properties
       rows (L)
 
@@ -116,7 +118,7 @@ the ones wanted.
 - [ ] Previews as AutoCAD draws them while a command asks for a point (the maintainer saw RECTANG preview a diagonal
       line): audit every command's rubber band and ghost (RECTANG rectangle, CIRCLE circle by each option, ARC, ELLIPSE,
       POLYGON, DONUT, XLINE/RAY, PLINE arcs, OFFSET, FILLET, ARRAY, STRETCH, SCALE/ROTATE reference, DIM* lines, MLEADER,
-      TEXT box, MTEXT frame, HATCH boundary, REVCLOUD…) and draw each as AutoCAD does (M) (next free slot)
+      TEXT box, MTEXT frame, HATCH boundary, REVCLOUD…) and draw each as AutoCAD does (M) (running)
 - [ ] Tests: the Wpf suite and a parallel run share the global settings file and fail together; give tests their own
       settings path (S)
 - [ ] Layer States Manager, View Manager with New View, Drawing Units with Direction Control (designed in v110) (M)
