@@ -22,6 +22,9 @@ namespace GeometryHelper.UnitTest.Dwg
             "ACDBDETAILVIEWSTYLE", "ACDBSECTIONVIEWSTYLE", "CELLSTYLEMAP", "MATERIAL", "TABLESTYLE", "VISUALSTYLE",
             "ACDBASSOCPERSSUBENTMANAGER", "SHAPE",
 
+            // The content of a table as R2010 and later keep it, which an R2000 or R2004 file keeps for round trips.
+            "ACDBDATATABLE", "DATATABLE", "TABLECONTENT", "TABLEGEOMETRY",
+
             // The records of the ACDSDATA section of R2013 and later, which holds the ACIS data of the solids.
             "ACDSRECORD", "ACDSSCHEMA",
         };
@@ -99,6 +102,8 @@ namespace GeometryHelper.UnitTest.Dwg
         [InlineData("solids_AC1032")]
         [InlineData("meshes_AC1015")]
         [InlineData("meshes_AC1032")]
+        [InlineData("table_AC1015")]
+        [InlineData("table_AC1018")]
         public void ADrawingOfTheTypesOfW4_ReadFromItsDwg_IsTheDxfAutoCadWroteOfIt(string drawing)
         {
             // Made by probe GhDwg4 in all six versions; the repository holds the oldest and the newest of each.
@@ -195,6 +200,23 @@ namespace GeometryHelper.UnitTest.Dwg
             Assert.Equal(3, database.ModelSpace.OfType<DxfUnknownEntity>().Count(e => e.DxfName == "MLINE"));
             DwgAnswerKey.Record style = Assert.Single(records, r => r.Type == "MLINESTYLE" && r.Groups.Any(g => g.Key == 2 && g.Value == "GH3"));
             Assert.Equal(new[] { "Continuous", "BYLAYER", "BYBLOCK" }, style.Groups.Where(g => g.Key == 6).Select(g => g.Value));
+        }
+
+        [Theory]
+        [InlineData("table_AC1015")]
+        [InlineData("table_AC1018")]
+        public void TheTablesOfR2000AndR2004_AreRead_WithTheirCellsAndStyles(string drawing)
+        {
+            DxfDatabase database = DwgReader.Open(new MemoryStream(DwgAnswerKey.Dwg(drawing), false));
+            List<DxfTable> tables = database.ModelSpace.OfType<DxfTable>().ToList();
+
+            // A table of 3 by 3 under Standard, and one of 2 by 4 under GhTables with two cells merged.
+            Assert.Equal(2, tables.Count);
+            Assert.Equal(3, tables[0].NumRows);
+            Assert.Equal("Title", tables[0].GetTextString(0, 0, 0));
+            Assert.Equal("12.5", tables[0].GetTextString(2, 2, 0));
+            Assert.Equal(2, tables[1].NumRows);
+            Assert.Equal("x", tables[1].GetTextString(1, 3, 0));
         }
 
         [Fact]

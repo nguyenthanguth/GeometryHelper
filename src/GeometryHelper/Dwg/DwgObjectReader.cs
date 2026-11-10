@@ -485,11 +485,14 @@ namespace GeometryHelper.Dwg
         /// colour in the low three bytes, 0xC3 an index in the low byte), and a byte saying a colour name and a book name
         /// follow as texts.
         /// </summary>
-        private DwgColour ReadColour()
+        private DwgColour ReadColour() => ReadColour(R2004Plus);
+
+        /// <summary>A CMC colour, of the form of R2004 where <paramref name="later"/> is set, as a type newer than R2004 keeps it in an older file.</summary>
+        private DwgColour ReadColour(bool later)
         {
             var colour = new DwgColour { Index = _data.BitShort() };
 
-            if (!R2004Plus)
+            if (!later)
             {
                 colour.Raw = colour.Index == 256 ? unchecked((int)0xC0000000) : colour.Index == 0 ? unchecked((int)0xC1000000) : unchecked((int)0xC3000000) | (colour.Index & 0xFF);
                 return colour;
@@ -793,6 +796,8 @@ namespace GeometryHelper.Dwg
                 case "IMAGEDEF": ReadImageDefinition(); return true;
                 case "IMAGEDEF_REACTOR": ReadImageDefinitionReactor(); return true;
                 case "DBCOLOR": ReadBookColour(); return true;
+                case "ACAD_TABLE": return ReadTable();
+                case "TABLESTYLE": return ReadTableStyle();
                 default: return false;
             }
         }

@@ -78,6 +78,15 @@ namespace GeometryHelper.Dwg
             _version = DwgContainer.NumberOf(_container.Version);
             _header = DwgHeaderVariables.Read(_container);
             _classes = DwgClass.ReadAll(_container.Classes, _container.Version);
+
+            foreach (DwgClass one in _classes)
+            {
+                // AutoCAD 2021 names the class of a table's data DATATABLE in a DWG of R2000 and ACDBDATATABLE in its DXF.
+                if (_version < 1018 && Encoding.ASCII.GetString(one.DxfName) == "DATATABLE")
+                {
+                    one.DxfName = Encoding.ASCII.GetBytes("ACDBDATATABLE");
+                }
+            }
             string page = _container.CodePage;
 
             _doubleByte = page == "ANSI_932" || page == "ANSI_936" || page == "ANSI_949" || page == "ANSI_950";

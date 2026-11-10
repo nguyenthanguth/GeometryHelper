@@ -78,6 +78,63 @@ namespace GeometryHelper.Dwg
             AddColour(_object.Body, _object.BookColour, false);
         }
 
+        /// <summary>
+        /// A TABLESTYLE before R2010: its description, flow, margins and what it suppresses, then the styles of the data,
+        /// title and header rows, each a text style, height, alignment, colours, from R2007 a data format, and six borders.
+        /// False from R2010, whose styles are cell styles, not read yet.
+        /// </summary>
+        private bool ReadTableStyle()
+        {
+            if (R2010Plus)
+            {
+                return false;
+            }
+
+            _object.Add(100, "AcDbTableStyle");
+            _object.Add(3, T());
+            _object.Add(70, _data.BitShort());
+            _object.Add(71, _data.BitShort());
+            _object.Add(40, _data.BitDouble());
+            _object.Add(41, _data.BitDouble());
+            _object.Add(280, _data.Bit() ? 1 : 0);
+            _object.Add(281, _data.Bit() ? 1 : 0);
+
+            for (int row = 0; row < 3; row++)
+            {
+                ulong textStyle = H();
+
+                if (textStyle != 0)
+                {
+                    _object.Add(7, new DwgName(textStyle, "Standard"));
+                }
+
+                _object.Add(140, _data.BitDouble());
+                _object.Add(170, _data.BitShort());
+                _object.Add(62, ReadColour(true).Index);
+                _object.Add(63, ReadColour(true).Index);
+                _object.Add(283, _data.Bit() ? 1 : 0);
+                var borders = new List<DwgGroup>();
+
+                for (int i = 0; i < 6; i++)
+                {
+                    borders.Add(new DwgGroup(274 + i, _data.BitShort()));
+                    borders.Add(new DwgGroup(284 + i, _data.Bit() ? 1 : 0));
+                    borders.Add(new DwgGroup(64 + i, ReadColour(true).Index));
+                }
+
+                if (R2007Plus)
+                {
+                    _object.Add(90, _data.BitLong());
+                    _object.Add(91, _data.BitLong());
+                    _object.Add(1, T());
+                }
+
+                _object.Body.AddRange(borders);
+            }
+
+            return true;
+        }
+
         private void ReadDictionaryVariable()
         {
             int schema = _data.RawChar();

@@ -1792,6 +1792,291 @@ namespace GeometryHelper.Dwg
             }
         }
 
+        /// <summary>
+        /// An ACAD_TABLE before R2007: a block reference to its anonymous block, then its flags, direction, rows and columns
+        /// with their sizes, its style, its cells (a text or a block each, with overrides) and the overrides of the whole
+        /// table. DXF writes the overrides' flags (93 to 96) before the sizes. False from R2007, whose cells carry values,
+        /// and from R2010, whose content is a TABLECONTENT of its own; neither is read yet.
+        /// </summary>
+        private bool ReadTable()
+        {
+            if (R2007Plus)
+            {
+                return false;
+            }
+
+            double[] insertion = _data.Point3();
+            double[] scale = { 1.0, 1.0, 1.0 };
+
+            switch (_data.Bits2())
+            {
+                case 0:
+                    scale[0] = _data.RawDouble();
+                    scale[1] = _data.BitDoubleDefault(scale[0]);
+                    scale[2] = _data.BitDoubleDefault(scale[0]);
+                    break;
+                case 1:
+                    scale[1] = _data.BitDoubleDefault(1.0);
+                    scale[2] = _data.BitDoubleDefault(1.0);
+                    break;
+                case 2:
+                    scale[0] = _data.RawDouble();
+                    scale[1] = scale[0];
+                    scale[2] = scale[0];
+                    break;
+            }
+
+            double rotation = _data.BitDouble();
+            double[] extrusion = _data.Point3();
+            bool attributes = _data.Bit();
+            int owned = R2004Plus && attributes ? Count(_data.BitLong()) : 0;
+            ulong block = H();
+
+            if (attributes)
+            {
+                ReadOwnedHandles(owned);
+                _object.SeqEnd = H();
+            }
+
+            int flags = _data.BitShort();
+            double[] direction = _data.Point3();
+            int columns = Count(_data.BitLong());
+            int rows = Count(_data.BitLong());
+            var widths = new double[columns];
+            var heights = new double[rows];
+
+            for (int i = 0; i < columns; i++)
+            {
+                widths[i] = _data.BitDouble();
+            }
+
+            for (int i = 0; i < rows; i++)
+            {
+                heights[i] = _data.BitDouble();
+            }
+
+            if ((long)rows * columns > _data.Remaining)
+            {
+                throw new FormatException("The table names more cells than it has room for.");
+            }
+
+            ulong style = H();
+            var cells = new List<DwgGroup>();
+
+            for (int i = 0; i < rows * columns; i++)
+            {
+                ReadTableCell(cells);
+            }
+
+            var overrides = new List<DwgGroup>();
+            int tableOverrides = _data.Bit() ? ReadTableOverrides(overrides) : 0;
+            int borderColours = _data.Bit() ? ReadBorderOverrides(overrides, 0) : 0;
+            int borderWeights = _data.Bit() ? ReadBorderOverrides(overrides, 1) : 0;
+            int borderVisibility = _data.Bit() ? ReadBorderOverrides(overrides, 2) : 0;
+
+            _object.Add(100, "AcDbBlockReference");
+
+            if (attributes)
+            {
+                _object.Add(66, 1);
+            }
+
+            _object.Add(2, new DwgName(block));
+            _object.AddPoint(10, insertion);
+
+            for (int i = 0; i < 3; i++)
+            {
+                if (scale[i] != 1.0)
+                {
+                    _object.Add(41 + i, scale[i]);
+                }
+            }
+
+            AddNonZero(50, Degrees(rotation));
+            AddExtrusion(extrusion);
+            _object.Add(100, "AcDbTable");
+            _object.Add(342, style);
+            _object.Add(343, block);
+            _object.AddPoint(11, direction);
+            _object.Add(90, flags);
+            _object.Add(91, rows);
+            _object.Add(92, columns);
+            _object.Add(93, tableOverrides);
+            _object.Add(94, borderColours);
+            _object.Add(95, borderWeights);
+            _object.Add(96, borderVisibility);
+
+            foreach (double height in heights)
+            {
+                _object.Add(141, height);
+            }
+
+            foreach (double width in widths)
+            {
+                _object.Add(142, width);
+            }
+
+            _object.Body.AddRange(cells);
+            _object.Body.AddRange(overrides);
+            return true;
+        }
+
+        /// <summary>One cell of a table before R2007: its kind, edges, merging and size, its overrides, and its text or block.</summary>
+        private void ReadTableCell(List<DwgGroup> groups)
+        {
+            int type = _data.BitShort();
+            int edges = _data.RawChar();
+            bool merged = _data.Bit();
+            bool autoFit = _data.Bit();
+            int width = _data.BitLong();
+            int height = _data.BitLong();
+            double rotation = _data.BitDouble();
+            ulong value = H();
+            var content = new List<DwgGroup>();
+
+            if (type == 1 && value == 0)
+            {
+                content.Add(new DwgGroup(1, T()));
+            }
+            else if (type == 1)
+            {
+                content.Add(new DwgGroup(344, value));
+            }
+            else if (type == 2)
+            {
+                content.Add(new DwgGroup(340, value));
+                content.Add(new DwgGroup(144, _data.BitDouble()));
+
+                if (_data.Bit())
+                {
+                    int definitions = _data.BitShort();
+
+                    if (definitions < 0 || definitions > _data.Remaining)
+                    {
+                        throw new FormatException("The table cell names more attribute definitions than it has room for.");
+                    }
+
+                    content.Add(new DwgGroup(179, definitions));
+
+                    for (int i = 0; i < definitions; i++)
+                    {
+                        content.Add(new DwgGroup(331, H()));
+                        _data.BitShort();
+                        content.Add(new DwgGroup(300, T()));
+                    }
+                }
+            }
+
+            groups.Add(new DwgGroup(171, type));
+            groups.Add(new DwgGroup(172, edges));
+            groups.Add(new DwgGroup(173, merged ? 1 : 0));
+            groups.Add(new DwgGroup(174, autoFit ? 1 : 0));
+            groups.Add(new DwgGroup(175, width));
+            groups.Add(new DwgGroup(176, height));
+
+            if (_data.Bit())
+            {
+                // Bit 0x40000 is of a later release, which keeps it here and has no value for it; DXF leaves it out.
+                int flags = _data.BitLong();
+                groups.Add(new DwgGroup(177, flags & 0x3FFFF));
+                groups.Add(new DwgGroup(178, (int)_data.RawChar()));
+                ReadFlagged(groups, flags, 0x01, 170, 'S');
+                ReadFlagged(groups, flags, 0x02, 283, 'B');
+                ReadFlagged(groups, flags, 0x04, 63, 'C');
+                ReadFlagged(groups, flags, 0x08, 64, 'C');
+                ReadFlagged(groups, flags, 0x10, 7, 'H');
+                ReadFlagged(groups, flags, 0x20, 140, 'D');
+                ReadFlagged(groups, flags, 0x40, 69, 'C');
+                ReadFlagged(groups, flags, 0x400, 279, 'S');
+                ReadFlagged(groups, flags, 0x400, 289, 'S');
+                ReadFlagged(groups, flags, 0x80, 65, 'C');
+                ReadFlagged(groups, flags, 0x800, 275, 'S');
+                ReadFlagged(groups, flags, 0x800, 285, 'S');
+                ReadFlagged(groups, flags, 0x100, 66, 'C');
+                ReadFlagged(groups, flags, 0x1000, 276, 'S');
+                ReadFlagged(groups, flags, 0x1000, 286, 'S');
+                ReadFlagged(groups, flags, 0x200, 68, 'C');
+                ReadFlagged(groups, flags, 0x2000, 278, 'S');
+                ReadFlagged(groups, flags, 0x2000, 288, 'S');
+            }
+            else
+            {
+                groups.Add(new DwgGroup(177, 0));
+                groups.Add(new DwgGroup(178, 0));
+            }
+
+            groups.Add(new DwgGroup(145, rotation));
+            groups.AddRange(content);
+        }
+
+        /// <summary>
+        /// A value present where <paramref name="bit"/> is set in <paramref name="flags"/>, under <paramref name="code"/>:
+        /// <c>S</c> a bit short, <c>B</c> a bit, <c>C</c> a CMC colour (its index), <c>H</c> a handle, <c>D</c> a bit double.
+        /// </summary>
+        private void ReadFlagged(List<DwgGroup> groups, int flags, int bit, int code, char kind)
+        {
+            if ((flags & bit) == 0)
+            {
+                return;
+            }
+
+            switch (kind)
+            {
+                case 'S': groups.Add(new DwgGroup(code, _data.BitShort())); break;
+                case 'B': groups.Add(new DwgGroup(code, _data.Bit() ? 1 : 0)); break;
+                case 'C': groups.Add(new DwgGroup(code, ReadColour(true).Index)); break;
+                case 'H': groups.Add(new DwgGroup(code, H())); break;
+                default: groups.Add(new DwgGroup(code, _data.BitDouble())); break;
+            }
+        }
+
+        /// <summary>The overrides of a whole table before R2007; returns their flags.</summary>
+        private int ReadTableOverrides(List<DwgGroup> groups)
+        {
+            int flags = _data.BitLong();
+            ReadFlagged(groups, flags, 0x01, 280, 'B');
+            ReadFlagged(groups, flags, 0x04, 70, 'S');
+            ReadFlagged(groups, flags, 0x08, 40, 'D');
+            ReadFlagged(groups, flags, 0x10, 41, 'D');
+            ReadFlagged(groups, flags, 0x20, 64, 'C');
+            ReadFlagged(groups, flags, 0x40, 64, 'C');
+            ReadFlagged(groups, flags, 0x80, 64, 'C');
+            ReadFlagged(groups, flags, 0x100, 283, 'B');
+            ReadFlagged(groups, flags, 0x200, 283, 'B');
+            ReadFlagged(groups, flags, 0x400, 283, 'B');
+            ReadFlagged(groups, flags, 0x800, 63, 'C');
+            ReadFlagged(groups, flags, 0x1000, 63, 'C');
+            ReadFlagged(groups, flags, 0x2000, 63, 'C');
+            ReadFlagged(groups, flags, 0x4000, 170, 'S');
+            ReadFlagged(groups, flags, 0x8000, 170, 'S');
+            ReadFlagged(groups, flags, 0x10000, 170, 'S');
+            ReadFlagged(groups, flags, 0x20000, 7, 'H');
+            ReadFlagged(groups, flags, 0x40000, 7, 'H');
+            ReadFlagged(groups, flags, 0x80000, 7, 'H');
+            ReadFlagged(groups, flags, 0x100000, 140, 'D');
+            ReadFlagged(groups, flags, 0x200000, 140, 'D');
+            ReadFlagged(groups, flags, 0x400000, 140, 'D');
+            return flags;
+        }
+
+        /// <summary>
+        /// The border overrides of a whole table before R2007, 18 borders by flag: <paramref name="kind"/> 0 colours, 1
+        /// lineweights, 2 visibilities. Returns their flags.
+        /// </summary>
+        private int ReadBorderOverrides(List<DwgGroup> groups, int kind)
+        {
+            int[] colourCodes = { 64, 65, 66, 63, 68, 69 };
+            int flags = _data.BitLong();
+
+            for (int i = 0; i < 18; i++)
+            {
+                int code = kind == 0 ? colourCodes[i % 6] : kind == 1 ? 274 + (i % 6) : 284 + (i % 6);
+                ReadFlagged(groups, flags, 1 << i, code, kind == 0 ? 'C' : 'S');
+            }
+
+            return flags;
+        }
+
         private void ReadDimension(int type)
         {
             int version = R2010Plus ? _data.RawChar() : 0;
