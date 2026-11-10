@@ -111,8 +111,41 @@ the ones wanted.
 - [ ] Blocks (running): dynamic blocks in use: custom grips (visibility, lookup, stretch, flip, rotate, array) and their Properties
       rows (L)
 
-### To do
-- [ ] Layer States Manager, View Manager with New View, Drawing Units with Direction Control (designed in v110) (M)- [ ] AutoLISP: the interpreter and the drawing functions (entget, entmod, entmake, ssget, tblsearch, getvar, command,      getpoint…, defun c:), APPLOAD and acaddoc.lsp, then DCL dialogs, then vl- and vlax- functions (L; asked about,      waiting for the maintainer's go-ahead)
+### AutoLISP
+
+Measured on the maintainer's 22 routines (`D:\Autodesk\AutoCAD\AutoCAD 2021\Support\AutoLisp`, read only, never copied
+into the repository): 282 different functions; the most used are setq, defun, command (112 calls: LAYER, -DIMSTYLE, UCS,
+UNDO, PEDIT, REVCLOUD, RECTANG, COPY, ZOOM, -PURGE, AUDIT…), if, assoc, cdr, cons, car, ssget (44), entget (44), setvar,
+mapcar, lambda, vl-position, getpoint, polar, entmod; 25 files' worth of vla-/vlax- calls (get/put-property,
+invoke-method, ename->vla-object, ActiveDocument, Blocks, Layers, TextString, TrueColor, StartUndoMark/EndUndoMark,
+GetAttributes, EffectiveName, SelectionSets); 2 files with DCL dialogs (E1, FDVAL); 1 file driving Excel by COM
+(TE_TableExport). Each stage is done when the routines that need only that stage run in the presenter as in AutoCAD.
+
+- [ ] L1 The interpreter: AutoLISP's reader (comments, strings, quote, dotted pairs), evaluation, defun with local
+      variables after /, lambda, setq, if/cond/while/repeat/foreach/progn/and/or/not, the list, number and string
+      functions (car..cadddr, cons, list, append, assoc, subst, nth, member, reverse, length, mapcar, apply, +..sqrt, fix,
+      float, rtos, atof, atoi, itoa, distof, angtos, strcat, substr, strlen, strcase, wcmatch, chr, ascii, read, type,
+      eq/equal/=), princ/prin1/print/prompt/alert, *error*, the LOAD and APPLOAD commands, (L)
+- [ ] L2 The drawing: entget/entmod/entmake/entdel/entupd/entnext/entlast/entsel/nentsel, handent, the selection sets
+      (ssget with W, C, X, P, L, :S, _:L, filters with -4 groups; ssadd, ssdel, sslength, ssname, ssmemb, sssetfirst,
+      ssgetfirst), tblsearch/tblnext/tblobjname, namedobjdict/dictsearch/dictnext, getvar/setvar for the SETVAR table,
+      getpoint/getcorner/getdist/getangle/getreal/getint/getstring/getkword with initget, polar/angle/distance/inters/
+      trans/osnap, command and command-s and vl-cmdf through the session (pause, "" for Enter), defun c:NAME as a command,
+      acaddoc.lsp loaded with each drawing, undo grouping of a routine's run (L)
+- [ ] L3 Visual LISP functions: vl-load-com, vl-position, vl-sort, vl-remove(-if/-if-not), vl-string-search,
+      vl-string->list, vl-list->string, vl-princ-to-string, vl-consp, vl-catch-all-apply/-error-p/-error-message,
+      vl-filename-mktemp, vl-file-delete, file I/O (open, read-line, write-line, close, findfile) (M)
+- [ ] L4 ActiveX in LISP: vlax-ename->vla-object and back, vlax-get/put-property, vlax-invoke-method, vlax-for,
+      vlax-make-variant, vlax-3d-point, vlax-safearray->list, vlax-get-acad-object, vla-get-ActiveDocument, and the
+      vla- members the routines use (Blocks, Layers, Item, TextString, TrueColor, ColorIndex, Layer, Name, ObjectName,
+      EffectiveName, GetAttributes, TagString, GetBoundingBox, Delete, StartUndoMark/EndUndoMark, SelectionSets), mapped
+      onto the presenter's objects (L)
+- [ ] L5 DCL: load_dialog/new_dialog/start_dialog/done_dialog/unload_dialog, set_tile/get_tile/action_tile/mode_tile,
+      start_list/add_list/end_list, the DCL file read and drawn as a dark WPF dialog (design first) (M)
+- [ ] L6 Trust and safety: a trusted folders list (as AutoCAD's TRUSTEDPATHS and SECURELOAD), a warning before loading
+      a routine from elsewhere, no COM to other programs (vlax-get-or-create-object "Excel.Application" refused with a
+      message) (S)
+### To do- [ ] Layer States Manager, View Manager with New View, Drawing Units with Direction Control (designed in v110) (M)
 - [ ] Command line and Recent: AutoComplete inside a running command; Search Content; an EXPORT command (S)
 - [ ] Dxf.App: an app icon, file association for .dxf (installer or registry), `--tab Home` in screenshot mode
 - [ ] Images of an area: PNG and JPG devices in PLOT and -PLOT ("GeometryHelper PNG", "GeometryHelper JPG", as AutoCAD's
