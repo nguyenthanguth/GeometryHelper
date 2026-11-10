@@ -145,6 +145,16 @@ dimensions (DIMLINEAR, DIMALIGNED, DIMRADIUS, DIMDIAMETER, DIMANGULAR, DIMORDINA
 dimension at the cursor) do the same. The preview is made by the code that makes the object, so it is what a click there
 gives; where AutoCAD shows a radius or an angle with it, as CIRCLE does, the rubber band is drawn too.
 
+The commands that change objects preview the change at the object under the cursor. FILLET and CHAMFER, hovering the
+second object, draw both objects trimmed and the arc or line between them: two lines crossing at the origin, filleted with
+a radius of 12, show the arc from (0, 12) to (12, 0). TRIM in Quick mode draws the piece a pick would cut away faded over
+the object, and EXTEND the object run on to its edge. LENGTHEN DYnamic draws the object with its end at the cursor, BREAK
+the piece its second point would take out, faded as TRIM's. HATCH, at "Pick internal point", draws the hatch Enter would
+make of the areas picked so far and the one under the cursor. TEXT draws a square of the height on the baseline while
+its height and rotation are asked, TABLE the outline of the table at the cursor, MLEADER the leader and its landing, QDIM
+the whole row of dimensions. ROTATE and SCALE by Reference Points move the ghost at the second point, -ARRAY's unit cell
+shows every copy, and ALIGN moves the ghost by its first pair and turns it by its second.
+
 ### The command line
 
 With a drawing open and no command running, the command line lists what matches the letters typed once no key has come

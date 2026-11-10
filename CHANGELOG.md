@@ -16,6 +16,16 @@ DIMBASELINE do the same. ROTATE and SCALE move their ghost by a Reference too, a
 copy while their options are offered. A preview costs 6 to 26 microseconds for a circle or a rectangle, 0.2 ms for a
 linear dimension.
 
+**NEW.** The commands that change objects preview the change too, made by the code that makes it. FILLET and CHAMFER,
+hovering the second object, draw both objects trimmed and the arc or line between them; TRIM in Quick mode draws the
+piece a pick would cut away faded (`CadPreview.Fades`), EXTEND the object run on to its edge, BREAK the piece its second
+point takes out; LENGTHEN DYnamic draws the object with its end at the cursor. HATCH draws the hatch of the areas picked
+and the one under the cursor, the area kept while the cursor stays in it; TEXT a square of the height while its height
+and rotation are asked, TABLE the table's outline, MLEADER the leader and landing, QDIM the whole row. ROTATE and SCALE by
+Reference Points, -ARRAY's unit cell and ALIGN move the ghost as the objects move. A preview at a prompt for one object is
+of the object under the cursor, and writes nothing into the history. A FILLET of two lines costs 38 microseconds, a TRIM
+26, a hatch of a square with an island 0.1 ms, a QDIM row of three dimensions 0.76 ms.
+
 **FIXED.** ROTATE's ghost in a UCS turned from the world's now turns by the angle the objects are turned: in a UCS turned
 30 degrees it turned 30 degrees more than the result.
 

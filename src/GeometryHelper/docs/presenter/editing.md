@@ -99,6 +99,13 @@ Reference or an array's copies; `ShowsBand` says whether the rubber band is draw
 corner, first corner (0, 0), previews at (30, 20) one closed polyline through (0, 0), (30, 0), (30, 20) and (0, 20), the
 rectangle a pick there adds.
 
+At a prompt for one object, `Items(cursor)` is what picking the object under the cursor would give, as FILLET's second
+object gives both objects trimmed and the arc. The objects a command changes are previewed as they would be, copies of
+them made by the command's own code; nothing is written to the drawing or to the history while a preview is made. Where
+`Fades` is true the items are pieces the pick would take out rather than objects it makes, as TRIM in Quick mode and
+BREAK give them: a line from (-50, 0) to (100, 0) crossed at the origin, hovered at (-25, 0), previews the 50 from
+(-50, 0) to (0, 0), drawn faded.
+
 "Select objects:" takes the options of AutoCAD 2021, each by its capital letters:
 
 | Option | Takes |
