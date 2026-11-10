@@ -633,7 +633,8 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// Puts the words of a linear dimension along its line next to the extension line on the left or the right as they
-        /// read: two arrowheads in from it, plus half their width, above the line by the gap where DIMTAD puts them there.
+        /// read (the top of a vertical line): an arrowhead and a gap in from it, plus half their width and a gap, above the line
+        /// by the gap where DIMTAD puts them there; level under DIMTIH, centred on the line.
         /// </summary>
         private static void WordsToSide(DxfDimension dimension, bool left)
         {
@@ -667,17 +668,26 @@ namespace GeometryHelper.Dxf.Viewer
             GeoPoint2 q2 = Foot(p2, onLine, along, oblique);
             double readable = Readable(angle);
             var reads = new GeoVector2(Math.Cos(readable), Math.Sin(readable));
-            bool firstLeft = (q2 - q1).X * reads.X + (q2 - q1).Y * reads.Y >= 0.0;
+            // Left of a vertical line is its top, as AutoCAD 2021 takes it, though the words read up it.
+            GeoVector2 leftward = Math.Abs(readable - Math.PI / 2.0) <= 1E-9 ? -reads : reads;
+            bool firstLeft = (q2 - q1).X * leftward.X + (q2 - q1).Y * leftward.Y >= 0.0;
             GeoPoint2 end = left == firstLeft ? q1 : q2;
+            GeoPoint2 other = left == firstLeft ? q2 : q1;
+            GeoVector2 inward = (other - end).Length > 1E-12 ? (other - end) / (other - end).Length : reads;
             List<DxfEntity> picture = dimension.DimBlock?.ToList() ?? new List<DxfEntity>();
             string words = picture.OfType<DxfMText>().FirstOrDefault()?.Contents ?? dimension.DimensionText;
-            double inset = 2.0 * data.Dimasz * scale + WordsWidth(data, words, height, out double tall) / 2.0;
+
+            // An arrowhead and a gap in from the extension line, then the words with a gap about them, measured along the line
+            // (level words under DIMTIH across it): "100" of Arial on a line at 30 degrees stands 6.733 in, 6.895 kept level.
+            double gap = Math.Abs(data.Dimgap) * scale;
+            double width = WordsWidth(data, words, height, out double tall);
+            double inset = data.Dimasz * scale + gap + Chord(width, tall, gap, (data.Dimtih ? 0.0 : readable) - readable);
             var above = new GeoVector2(-reads.Y, reads.X);
 
             // The text's point on the line, about which the picture stands the words as DIMTAD says (above it for 1), but under
             // DIMTMOVE 2, where the point is the words' middle itself.
-            double lift = data.Dimtmove == 2 ? Math.Abs(data.Dimgap) * scale + tall / 2.0 : 0.0;
-            dimension.TextPosition = P3(end + reads * (left ? inset : -inset) + above * lift);
+            double lift = data.Dimtmove == 2 ? gap + tall / 2.0 : 0.0;
+            dimension.TextPosition = P3(end + inward * inset + above * lift);
         }
 
         /// <summary>The angle words along a direction are turned to, so that they read from the left or from below, as AutoCAD turns them.</summary>

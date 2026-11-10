@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.IO;
 using GeometryHelper.Dxf;
 using GeometryHelper.Geometry;
 
@@ -9,25 +8,25 @@ namespace GeometryHelper.Dxf.Viewer
 {
     /// <summary>
     /// The words of a dimension's picture measured as AutoCAD 2021 measures them to lay the picture out: as wide as their
-    /// MTEXT's <c>ActualWidth</c> and as high as its <c>ActualHeight</c>, in the font of the dimension's text style, read by the
-    /// library (<see cref="DxfDatabase.FontSearchPath"/>) from the font's file. "R20" of arial.ttf 2.5 high is 5.965 wide and
-    /// 2.553 high, as AutoCAD's own picture has it, its digits reaching past the top of the A a text's height stands for.
+    /// MTEXT's <c>ActualWidth</c> and as high as its <c>ActualHeight</c>, laid out as the canvas lays out an MTEXT
+    /// (<see cref="CadMTextLayout"/>) in the font of the dimension's text style, its letters measured by their ink
+    /// (<see cref="CadTextInk"/>). "R20" of arial.ttf 2.5 high is 5.965 wide and 2.553 high, as AutoCAD's own picture has it,
+    /// its digits reaching past the top of the A a text's height stands for.
     /// </summary>
     /// <remarks>
-    /// A TrueType font is read from the Fonts folders of Windows, by its file (arial.ttf) or, for a style that names a typeface
-    /// alone, by the file of that typeface's regular face (<see cref="CadTrueTypeFonts.FileOf"/>). An SHX font, and its big
-    /// font, is read from where the fonts last given a document (<see cref="CadDocument.Fonts"/>) find it, the folder of that
-    /// document's drawing first. Words of a font not found, or of a style the library does not measure (wider or narrower
-    /// than high, slanted), are not measured: the picture then takes a letter as 0.7 of the height wide, as before. The
-    /// measurements are kept by font, words and height, at most 4096 at once.
+    /// The style's font is found as the canvas finds it to draw the words: an SHX font, and its big font, where the fonts last
+    /// given a document (<see cref="CadDocument.Fonts"/>) find it, the folder of that document's drawing first, the canvas's
+    /// own ghsimplex wherever fonts are on; a TrueType font from the Fonts folders of Windows. The style's width factor and
+    /// oblique angle are measured too. Words of a face whose letters are not read (an SHX font with the fonts off or not
+    /// found, a TrueType font with no file), or that the layout gives no width, are not measured: the picture then takes a letter as 0.7 of the
+    /// height wide, as before. The measurements are kept by font, words and height, at most 4096 at once.
     /// </remarks>
     internal static class CadDimensionWords
     {
         private const int MostKept = 4096;
 
         private static readonly object Gate = new object();
-        private static readonly Dictionary<string, DxfDatabase> Measurers = new Dictionary<string, DxfDatabase>(StringComparer.OrdinalIgnoreCase);
-        private static readonly Dictionary<string, string> StyleNames = new Dictionary<string, string>(StringComparer.Ordinal);
+        private static readonly CadFonts Off = new CadFonts(null, null, null);
         private static readonly Dictionary<string, KeyValuePair<double, double>> Kept = new Dictionary<string, KeyValuePair<double, double>>(StringComparer.Ordinal);
         private static CadFonts _fonts;
         private static string _fontFolder;
@@ -48,7 +47,7 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// Measures words of a text style as AutoCAD lays out a dimension's MTEXT of them: their width and their height; false,
-        /// and nothing measured, where the style is null, its font is not found or the library does not measure it.
+        /// and nothing measured, where the style is null or the layout gives the words no width.
         /// </summary>
         internal static bool TryMeasure(DxfTextStyleTableRecord style, string words, double height, out double width, out double tall)
         {
@@ -79,9 +78,8 @@ namespace GeometryHelper.Dxf.Viewer
                 return false;
             }
 
-            string look = file + "|" + bigFile + "|" + font.TypeFace + "|" + (font.Bold ? "b" : string.Empty) + (font.Italic ? "i" : string.Empty)
-                + "|" + xscale.ToString("R", CultureInfo.InvariantCulture) + "|" + oblique.ToString("R", CultureInfo.InvariantCulture);
-            string key = look + "|" + height.ToString("R", CultureInfo.InvariantCulture) + "|" + words;
+            string key = file + "|" + bigFile + "|" + font.TypeFace + "|" + xscale.ToString("R", CultureInfo.InvariantCulture) + "|" + oblique.ToString("R", CultureInfo.InvariantCulture)
+                + "|" + height.ToString("R", CultureInfo.InvariantCulture) + "|" + words;
 
             lock (Gate)
             {
@@ -92,7 +90,7 @@ namespace GeometryHelper.Dxf.Viewer
                     return width > 0.0;
                 }
 
-                Measure(file, bigFile, font, xscale, oblique, look, words, height, out width, out tall);
+                Measure(file, bigFile, font.TypeFace, xscale, oblique, words, height, out width, out tall);
 
                 if (Kept.Count >= MostKept)
                 {
@@ -104,89 +102,38 @@ namespace GeometryHelper.Dxf.Viewer
             }
         }
 
-        private static void Measure(string file, string bigFile, DxfFontDescriptor font, double xscale, double oblique, string look, string words, double height, out double width, out double tall)
+        private static void Measure(string file, string bigFile, string typeface, double xscale, double oblique, string words, double height, out double width, out double tall)
         {
             width = 0.0;
             tall = 0.0;
-            string extension = Path.GetExtension(file).ToLowerInvariant();
-            bool trueType = extension == ".ttf" || extension == ".ttc" || extension == ".otf" || (file.Length == 0 && font.TypeFace.Length > 0);
-            var folders = new List<string>();
-            string fileName;
-            string bigName = string.Empty;
-
-            if (trueType)
-            {
-                fileName = Path.GetFileName(file.Length > 0 ? file : CadTrueTypeFonts.FileOf(font.TypeFace));
-                string path = TrueTypePath(fileName);
-
-                if (path == null)
-                {
-                    return;
-                }
-
-                folders.Add(Path.GetDirectoryName(path));
-            }
-            else
-            {
-                CadFonts fonts = _fonts;
-
-                if (fonts == null || file.Length == 0 || CadFonts.IsBuiltIn(file))
-                {
-                    return;
-                }
-
-                string path = fonts.Locate(file, _fontFolder);
-
-                if (path == null)
-                {
-                    return;
-                }
-
-                fileName = Path.GetFileName(path);
-                folders.Add(Path.GetDirectoryName(path));
-
-                if (bigFile.Length > 0)
-                {
-                    string big = fonts.Locate(bigFile, _fontFolder);
-
-                    if (big != null)
-                    {
-                        bigName = Path.GetFileName(big);
-                        folders.Add(Path.GetDirectoryName(big));
-                    }
-                }
-            }
-
-            string search = string.Join(";", folders);
-
-            if (!Measurers.TryGetValue(search, out DxfDatabase database))
-            {
-                database = new DxfDatabase("AC1032") { FontSearchPath = search };
-                Measurers[search] = database;
-            }
-
-            // Each look a text style of its own in the measuring drawing, named by the order the looks were first met in.
-            if (!StyleNames.TryGetValue(search + "|" + look, out string name))
-            {
-                name = "W" + StyleNames.Count.ToString(CultureInfo.InvariantCulture);
-                StyleNames[search + "|" + look] = name;
-                var record = new DxfTextStyleTableRecord { Name = name, FileName = fileName, BigFontFileName = bigName, XScale = xscale, ObliquingAngle = oblique };
-
-                if (font.TypeFace.Length > 0)
-                {
-                    record.Font = font;
-                }
-
-                database.TextStyleTable.Add(record);
-            }
-
-            var text = new DxfMText { Location = new GeoPoint3(0.0, 0.0, 0.0), TextHeight = height, Attachment = DxfAttachmentPoint.MiddleCenter, Contents = words, TextStyleName = name };
-            database.ModelSpace.AppendEntity(text);
+            CadFonts fonts = _fonts ?? Off;
+            string folder = _fontFolder;
+            double factor = xscale > 0.0 && !double.IsInfinity(xscale) ? xscale : 1.0;
 
             try
             {
-                double measured = text.ActualWidth;
-                double high = text.ActualHeight;
+                CadFontFace face = fonts.FaceOf(file, bigFile, typeface, folder);
+
+                // A face whose letters are not read (an SHX font not found, though another is drawn for it, a TrueType font with no
+                // file) is left to the estimate.
+                string extension = System.IO.Path.GetExtension(file).ToLowerInvariant();
+                bool trueType = extension == ".ttf" || extension == ".ttc" || extension == ".otf" || (file.Length == 0 && typeface.Length > 0);
+
+                if ((!trueType && (face.Shx == null || (!CadFonts.IsBuiltIn(file) && fonts.Locate(file, folder) == null))) || !CadTextInk.Of(face, false, false).IsRead)
+                {
+                    return;
+                }
+
+                var text = new DxfMText { Location = new GeoPoint3(0.0, 0.0, 0.0), TextHeight = height, Attachment = DxfAttachmentPoint.MiddleCenter, Contents = words };
+                CadMTextContent content = CadMTextContent.Parse(words, height, factor);
+                CadMTextLayout layout = CadMTextLayout.Of(
+                    text,
+                    content,
+                    look => look.Font == null ? face : look.IsShx ? fonts.FaceOf(look.Font, null, null, folder) : fonts.FaceOf(null, null, look.Font, folder),
+                    factor,
+                    oblique);
+                double measured = layout.ActualWidth;
+                double high = layout.ActualHeight;
 
                 if (measured > 0.0 && high > 0.0 && !double.IsInfinity(measured) && !double.IsInfinity(high))
                 {
@@ -196,44 +143,8 @@ namespace GeometryHelper.Dxf.Viewer
             }
             catch (Exception exception) when (exception is InvalidOperationException || exception is ArgumentException)
             {
-                GeometryHelperLog.Debug("CadDimensionWords: the words " + words + " of " + fileName + " were not measured (" + exception.Message + ").");
+                GeometryHelperLog.Debug("CadDimensionWords: the words " + words + " of " + (file.Length > 0 ? file : typeface) + " were not measured (" + exception.Message + ").");
             }
-            finally
-            {
-                text.Erase();
-            }
-        }
-
-        /// <summary>A TrueType file in the Fonts folder of Windows or of the user's; null where neither has it.</summary>
-        private static string TrueTypePath(string fileName)
-        {
-            if (fileName.Length == 0)
-            {
-                return null;
-            }
-
-            foreach (string folder in new[]
-            {
-                Environment.GetFolderPath(Environment.SpecialFolder.Fonts),
-                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Microsoft", "Windows", "Fonts"),
-            })
-            {
-                try
-                {
-                    string path = string.IsNullOrEmpty(folder) ? null : Path.Combine(folder, fileName);
-
-                    if (path != null && File.Exists(path))
-                    {
-                        return path;
-                    }
-                }
-                catch (ArgumentException)
-                {
-                    return null;
-                }
-            }
-
-            return null;
         }
     }
 }

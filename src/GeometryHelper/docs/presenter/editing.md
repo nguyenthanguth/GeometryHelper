@@ -150,7 +150,7 @@ x = 40, is attached top right at (80, 0). At 1 they are mirrored with the rest.
 
 ### The commands
 
-[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 175 commands, named as AutoCAD names them, and of the system variables SETVAR sets:
+[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 176 commands, named as AutoCAD names them, and of the system variables SETVAR sets:
 
 | Group | Commands |
 |---|---|
@@ -164,7 +164,7 @@ x = 40, is attached top right at (80, 0). At 1 they are mirrored with the rest.
 | blocks | BLOCK, -BLOCK, INSERT, -INSERT, WBLOCK, -WBLOCK, ATTDEF, -ATTDEF, EATTEDIT, ATTEDIT, -ATTEDIT, ATTSYNC (?, Name, Select), BATTMAN, BASE, BEDIT, -BEDIT (?), BSAVE, BSAVEAS, BCLOSE (Save, Discard, Cancel), BAUTHORPALETTE, RESETBLOCK |
 | text and clipboard | TEXTEDIT, MTEDIT, COPYCLIP, CUTCLIP, COPYBASE, PASTECLIP, PASTEBLOCK, PASTEORIG, PASTESPEC |
 | plot | PLOT, -PLOT, PREVIEW, PAGESETUP, PNGOUT, JPGOUT, BMPOUT, EXPORT, -EXPORT (Dwf, dwfX, Pdf) ([Plotting](plot.md)) |
-| dimension | DIM (Angular, Baseline, Continue, Ordinate, aLign, Distribute, LAyer, Undo), DIMLINEAR, DIMALIGNED, DIMRADIUS, DIMDIAMETER, DIMANGULAR, DIMARC (Mtext, Text, Angle, Partial, Leader), DIMORDINATE (Xdatum, Ydatum, Mtext, Text, Angle), DIMCONTINUE, DIMBASELINE, QDIM, DIMEDIT, DIMTEDIT, DIMSPACE, DIMBREAK, DIMJOGLINE (Remove), DIMREASSOCIATE (Select object), DIMDISASSOCIATE, -DIMDISASSOCIATE |
+| dimension | DIM (Angular, Baseline, Continue, Ordinate, aLign, Distribute, LAyer, Undo), DIMLINEAR, DIMALIGNED, DIMRADIUS, DIMDIAMETER, DIMANGULAR, DIMARC (Mtext, Text, Angle, Partial, Leader), DIMORDINATE (Xdatum, Ydatum, Mtext, Text, Angle), DIMCONTINUE, DIMBASELINE, QDIM, DIMEDIT, DIMTEDIT, DIMSPACE, DIMBREAK, DIMJOGLINE (Remove), DIMJOGGED (Mtext, Text, Angle), DIMREASSOCIATE (Select object), DIMDISASSOCIATE, -DIMDISASSOCIATE |
 | tables | TABLE, -TABLE (Style, Width, Height), TABLESTYLE, TABLEDIT |
 | selection | QSELECT, FIND, DRAWORDER (Above objects, Under objects, Front, Back), TEXTTOFRONT, GROUP, -GROUP (?, Order, Add, Remove, Explode, REName, Selectable, Create), UNGROUP, CLASSICGROUP |
 | housekeeping | PURGE, -PURGE (Blocks, Dimstyles, Groups, LAyers, LTypes, MUltileaderstyles, Plotstyles, SHapes, textSTyles, Tablestyles, Visualstyles, Regapps, Zero-length geometry, Empty text objects, All) |
@@ -177,7 +177,10 @@ not both fit, DIMTIX, DIMSOXD, DIMATFIT and DIMTOFL say what moves outside, DIMT
 level. With ISO-25's sizes a dimension of 100 has its words "100" in the middle, one of 5 its words inside and its
 arrowheads outside, and one of 7 its arrowheads inside and its words 3.9 past the second extension line. The line starts
 at the back of each arrowhead, 2.5 in from its tip, but for the ticks, Dot small, Dot small blank, Integral and None,
-which take no room and never move out. DIMTVP lifts the words of DIMTAD 0 by that many times their height, the line
+which take no room and never move out. Words on the line (DIMTAD 0) fit between the arrowheads with two gaps each side:
+"9" of ghsimplex, 1.548 wide, moves out of a dimension of 9. Under DIMATFIT 3 words wider than the arrowheads' room stay
+inside and the arrowheads go out: "12" of ghsimplex widened 1.5 times, 5.536 wide, stays between extension lines 12
+apart. DIMTVP lifts the words of DIMTAD 0 by that many times their height, the line
 broken about them below 0.7; a DIMGAP below nought draws a box round the words, the gap clear of them.
 
 DIMTMOVE says where words go that the fit moves out or DIMTEDIT puts by hand. Under 0 they stand beside the line, which
@@ -188,13 +191,17 @@ read): "4" moved out of a dimension of 4 stands 5.9375 below the middle of its l
 point. Under 1 the same place is a leader's end, the leader from the middle of the line a third as far along again, and
 a landing on to the words; DIMTEDIT draws a leader to words further from the line than DIMGAP and half the heights of
 the words and the arrowheads, 3.15 with ISO-25's sizes, the words starting at the point, and none to words nearer.
+DIMTEDIT Left and Right put the words an arrowhead and a gap in from the extension line on that side as they read (the
+top of a vertical line is its left), with a gap about them: "100" of Arial on a line at 30 degrees stands 6.733 in. Under
+DIMTIH they stand level, centred on the line, which is broken about them: 6.895 in on that line.
 
 Radius, diameter and angular dimensions follow the same variables. A radius of 20 with its line put 45 from the centre
 has its arrowhead outside the rim, its line from the back of it on under the words, and a line from the centre to the
 rim by DIMTOFL, or with DIMTOFL off the centre mark of DIMCEN (centre lines too where DIMCEN is below nought); put 8 from
 the centre, the arrowhead stands inside and the line runs in past the words. Inside a small circle DIMATFIT 3 keeps the
 words where they are put, no nearer the rim than two arrowheads and the gap; 0 to 2 put them in the middle of the line
-where they fit, else outside past the rim. A diameter's words on its line (DIMTAD 0) take a gap each side and, with
+where they fit, else outside past the rim next to it, however far out the line was put: "R20" put 35 out stands 8.75 from
+the centre. On the line (DIMTAD 0) a radius's words take the arrowhead and two gaps more to fit. A diameter's words on its line (DIMTAD 0) take a gap each side and, with
 the arrowheads inside, the arrowheads' room too: "%%c6" 4.357 wide fits a diameter of 6 under DIMATFIT 1, the line
 through the circle broken a gap clear of it. An angle's extension lines run from DIMEXO off its points to DIMEXE past
 the arc wherever that is any length: points 20 out and the arc 20.3 out give lines from 20.625 to 21.55. An angle of 60
@@ -208,9 +215,14 @@ on the arc, which then runs through the point given, under DIMTMOVE 0 ("60°" mo
 out, above the arc as it reads), level past a leader from the middle of the arc under 1, and turned along the arc under
 2. Those of a radius or a diameter slide along its line, which stays, to where the point falls on it under 0 and 1, and
 stand at the point under 2; a radius made under 1 or 2 keeps its line through the point the circle was picked at.
-The words are measured in the font of the dimension's text style, as AutoCAD measures them: "R20" of arial.ttf 2.5 high
-is 5.965 wide and 2.553 high. A TrueType font is read from the Fonts folders of Windows, an SHX font where the fonts set
-on the document find it; words of a font not found take 0.7 of their height a letter. DIMARC (DAR) dimensions the
+A radius put inside under 1 keeps its words as DIMATFIT 3 does, whatever DIMATFIT; under 2, words on its line over its
+centre or its rim put its arrowhead outside, pointing in, and its line runs whole from the centre to the rim: "R20" put 1
+out. Put 8 out they leave the arrowhead inside and the line broken about them.
+The words are measured in the font of the dimension's text style, laid out as the canvas lays out an MTEXT, as AutoCAD
+measures them: "R20" of arial.ttf 2.5 high is 5.965 wide and 2.553 high, "100" of ghsimplex 6.071 wide and widened 1.5
+times 9.107. A TrueType font is read from the Fonts folders of Windows, an SHX font where the fonts set on the document
+find it, the canvas's own ghsimplex wherever fonts are on; the style's width factor and oblique angle count. Words of a
+font not found take 0.7 of their height a letter. DIMARC (DAR) dimensions the
 length of an arc: below 90 degrees of sweep its extension lines run along the middle of the arc, from 90 up from the
 centre; the arc symbol stands before the words (DIMARCSYM 0), over them (1) or nowhere (2); Partial measures between two
 points of the arc, and Leader, offered past 90 degrees, draws a leader from the words' arc to the arc measured. A point
@@ -219,7 +231,13 @@ in the sector the arc does not sweep dimensions the rest of its circle. DIMORDIN
 (300, 40) with its leader ending at (310, 80) is an X datum of 300, the leader jogged two arrowheads before its end.
 DIMCONTINUE, DIMBASELINE and QDIM's Ordinate go on from an ordinate dimension, each leader ending level with the last.
 DIMJOGLINE (DJL) puts a jog in the line of a linear dimension, kept as AutoCAD keeps it (ACAD_DSTYLE_DIMJAG_POSITION) and
-drawn 1.5 times the height of the words; Remove takes it out. DIM dimensions what is clicked: a line, then where its
+drawn 1.5 times the height of the words; Remove takes it out. DIMJOGGED (DJO, JOG) draws a jogged radius of an arc or a
+circle, its line from a centre put in place of one off the drawing: along the radius's parallel, across at DIMJOGANG and
+on to the rim, the jog half way between the two lines. A circle of 50 about the origin, its centre drawn at (0, -100),
+its words put at (30, 0) and its jog at (15, -50) has its lines from (0, -100) to (65, -100), on to (-35, 0) and on to the
+arrowhead at the rim. Words put on the other side of the rim from the foot of the centre drawn go three quarters of the
+way from that centre to the rim, as AutoCAD 2021 puts them: put 80 out at 14 degrees they stand at (36.38, -15.905). Its
+grips are the chord point, the centre drawn, the jog and the words. DIM dimensions what is clicked: a line, then where its
 dimension goes or a second line for the angle; a circle's diameter, an arc's radius; a click on nothing starts a linear
 dimension. Its options run the commands of their names, and LAyer puts the dimensions made next on a layer.
 A new dimension takes the drawing's current DIMSCALE, not its style's, and writes it as an override where the two

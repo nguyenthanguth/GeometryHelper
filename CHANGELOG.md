@@ -38,6 +38,48 @@ Everything a `Try` method answered before it answers bit for bit the same.
 `1-999…9/2` or `999…9d`, threw an `OverflowException` out of the prompt in .NET Framework, and `NaNg`, `NaNr` and
 `Infinityr` were read as angles of NaN and infinity. Each is now not read.
 
+**FIXED.** A radius dimension made in the presenter with its words put inside the circle under DIMTMOVE 1 or 2 is drawn
+as AutoCAD 2021 draws it. Under 1 its words stay where DIMATFIT 3 keeps them whatever DIMATFIT says: "R12" put 11 out
+under DIMATFIT 0 stands 3.4 out, not in the middle of the line. Under 2, words on the line over the centre or the rim put
+the arrowhead outside the rim, pointing in, and the line runs whole from the centre to the rim: "R20" put 1 out. Put 8 out
+they leave the arrowhead inside and the line broken about them, as before. Of 212 pictures of radii from 3 to 26 with
+their words put 0.5 to 11 out, 212 match AutoCAD's where 30 of the first 120 did; round 5's radius-3 cases now match too
+(154 of 192 there, from 140). The diameters of that round are left as they were.
+
+**FIXED.** DIMTEDIT Left and Right in the presenter put a linear dimension's words where AutoCAD 2021 puts them: an
+arrowhead and a gap in from the extension line, then the words with a gap about them, where they stood two arrowheads
+in. "100" of Arial on a line at 30 degrees stands 6.733 in from its end, not 7.983. The left of a vertical line is its top,
+as AutoCAD takes it, and under DIMTIH the words stand level, centred on the slanted line, which is broken about them.
+Of 336 pictures of aligned dimensions at six angles, Left and Right under DIMTAD 0 and 1 and DIMTIH 0 and 1, and words
+moved out under DIMTOH 0 and 1, 336 match AutoCAD's where 264 did; DIMTOH already matched.
+
+**NEW.** The presenter has DIMJOGGED (DJO, JOG), AutoCAD 2021's jogged radius, with its prompts word for word ("Select
+arc or circle:", "Specify center location override:", "Specify dimension line location or [Mtext/Text/Angle]:", "Specify
+jog location:", and "Object selected is not a circle or arc." for anything else). Its line runs from the centre drawn
+along the radius's parallel, across at DIMJOGANG and on to the arrowhead at the rim, the jog half way between the two
+lines: a circle of 50 about the origin, its centre drawn at (0, -100), its words at (30, 0) and its jog at (15, -50) has its
+lines from (0, -100) to (65, -100), on to (-35, 0) and on to (47.5, 0). Words put on the other side of the rim from the
+foot of the centre drawn go three quarters of the way from that centre to the rim, as AutoCAD puts them, which is the
+radius at -23.6 degrees round 5 could not explain. Its picture is drawn again when its style changes, and its grips are
+its chord point, the centre drawn, its jog (the new `CadGripKind.Jog`) and its words. Of 152 pictures drawn by AutoCAD,
+varying the words' place, the centre drawn, the jog and DIMJOGANG, 145 match; the seven left have a jog given past the
+rim or far off its middle line, DIMJOGANG 90, or words on the line pushed past the arrowhead.
+
+**FIXED.** `DxfRadialDimensionLarge` read and wrote its points under the wrong groups. AutoCAD 2021 writes the centre
+drawn as group 13, the jog as 14 and the chord point as 15, where the library took 13 for the chord point, 14 for the
+centre drawn and 15 for the jog, as ezdxf 1.4.5 does; a jogged radius AutoCAD made was read with its radius measured to
+its jog. `ChordPoint`, `OverrideCenter` and `JogPoint` now read and write AutoCAD's groups. AutoCAD writes nought for
+`JogAngle` (group 40) and draws the jog at the dimension's DIMJOGANG.
+
+**FIXED.** The presenter measures a dimension's words with the MTEXT layout the canvas draws them with, the letters by
+their ink, and fits them as AutoCAD 2021 does. Words in the canvas's own ghsimplex were taken as 0.7 of their height a
+letter; "100" of ghsimplex widened 1.5 times is now 9.107 wide, as AutoCAD lays it out. Words on a linear dimension's
+line (DIMTAD 0) need two gaps more each side to stand between the arrowheads, so "9" of ghsimplex, 1.548 wide, moves out
+of a dimension of 9; under DIMATFIT 3 words wider than the arrowheads' room stay inside and the arrowheads go out; and
+under DIMATFIT 0 to 2 a radius's words go where the fit puts them however far out its line was put, "R20" put 35 out
+standing 8.75 from the centre. Of 512 new pictures in ghsimplex, in Arial narrowed and slanted and in ghsimplex widened,
+499 match AutoCAD's where 425 did; the 1 522 of earlier rounds match as before (1 443).
+
 **CHANGED.** The presenter's status bar starts with SNAP off and POLAR on, as AutoCAD 2021 starts: SNAPMODE is 0 and
 AUTOSNAP 63, whose bit 8 is polar tracking. With SNAP on from the start, a click away from any object snap went to the
 nearest point of the 10 by 10 grid; it is now taken where it is, and AUTOSNAP reads 63, not 55. GRID, ORTHO, OTRACK,

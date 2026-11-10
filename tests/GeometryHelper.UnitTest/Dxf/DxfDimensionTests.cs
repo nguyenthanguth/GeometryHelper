@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.Linq;
 using GeometryHelper.Dxf;
 using GeometryHelper.Geometry;
@@ -84,9 +85,11 @@ namespace GeometryHelper.UnitTest.Dxf
 
             DxfRadialDimensionLarge jogged = Dim<DxfRadialDimensionLarge>(db, "E5");
             Assert.Equal(Bits(new GeoPoint3(300.0, -40.0, 0.0)), Bits(jogged.Center));
-            Assert.Equal(Bits(new GeoPoint3(317.67766952966366, -57.67766952966369, 0.0)), Bits(jogged.ChordPoint));
-            Assert.Equal(Bits(new GeoPoint3(305.0, -45.0, 0.0)), Bits(jogged.OverrideCenter));
-            Assert.Equal(Bits(new GeoPoint3(311.0, -52.0, 0.0)), Bits(jogged.JogPoint));
+            // The groups as AutoCAD 2021 writes them: 13 the override centre, 14 the jog, 15 the chord point; ezdxf 1.4.5 wrote
+            // them taking 13 for the chord point, 14 for the override centre and 15 for the jog.
+            Assert.Equal(Bits(new GeoPoint3(311.0, -52.0, 0.0)), Bits(jogged.ChordPoint));
+            Assert.Equal(Bits(new GeoPoint3(317.67766952966366, -57.67766952966369, 0.0)), Bits(jogged.OverrideCenter));
+            Assert.Equal(Bits(new GeoPoint3(305.0, -45.0, 0.0)), Bits(jogged.JogPoint));
             Assert.Equal(0.7853981633974483, jogged.JogAngle);
 
             Assert.Equal(11, db.ModelSpace.OfType<DxfDimension>().Count());
@@ -443,8 +446,32 @@ namespace GeometryHelper.UnitTest.Dxf
             jogged.TransformBy(GeoTransform3.Translation(new GeoVector3(1.0, 2.0, 3.0)));
 
             // ezdxf 1.4.5 leaves the jog point (its "Jog_point" a misspelled name in its transform()); the library moves it.
-            Assert.Equal(Bits(new GeoPoint3(312.0, -50.0, 3.0)), Bits(jogged.JogPoint));
+            Assert.Equal(Bits(new GeoPoint3(306.0, -43.0, 3.0)), Bits(jogged.JogPoint));
             Assert.Equal(Bits(new GeoPoint3(301.0, -38.0, 3.0)), Bits(jogged.Center));
+        }
+
+        [Fact]
+        public void AJoggedRadius_WritesItsOverrideCentreJogAndChordPointAsAutoCadDoes()
+        {
+            // AutoCAD 2021's DIMJOGGED of a circle of radius 50 about (1000, 700000), its centre drawn at (1000, 699900), gives
+            // in its entget 13 (1000, 699900), 14 (1016.39, 699950) and 15 (1050, 700000).
+            var db = new DxfDatabase("AC1032");
+            var jogged = new DxfRadialDimensionLarge(new GeoPoint3(1000, 700000, 0), new GeoPoint3(1050, 700000, 0), new GeoPoint3(1000, 699900, 0), new GeoPoint3(1016.39, 699950, 0), 0.0, string.Empty, null);
+            var block = new DxfBlockTableRecord { Name = "*D" };
+            db.BlockTable.Add(block);
+            jogged.DimBlock = block;
+            db.ModelSpace.AppendEntity(jogged);
+
+            DxfRadialDimensionLarge read = DxfDatabase.Parse(db.ToText()).ModelSpace.OfType<DxfRadialDimensionLarge>().Single();
+            string[] lines = db.ToText().Split('\n').Select(l => l.Trim()).ToArray();
+            int start = Array.IndexOf(lines, "AcDbRadialDimensionLarge");
+            Assert.Equal("13", lines[start + 1]);
+            Assert.Equal(1000.0, double.Parse(lines[start + 2], CultureInfo.InvariantCulture));
+            Assert.Equal(699900.0, double.Parse(lines[start + 4], CultureInfo.InvariantCulture));
+            Assert.Equal(Bits(new GeoPoint3(1050, 700000, 0)), Bits(read.ChordPoint));
+            Assert.Equal(Bits(new GeoPoint3(1000, 699900, 0)), Bits(read.OverrideCenter));
+            Assert.Equal(Bits(new GeoPoint3(1016.39, 699950, 0)), Bits(read.JogPoint));
+            Assert.Equal(50.0, read.Measurement, 9);
         }
 
         #endregion

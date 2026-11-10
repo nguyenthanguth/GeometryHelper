@@ -68,6 +68,7 @@ namespace GeometryHelper.Dxf.Viewer
             registry.Add(new CadCommand("DIMBREAK", DimBreak));
             registry.Add(new CadCommand("DIMORDINATE", DimOrdinate));
             registry.Add(new CadCommand("DIMJOGLINE", DimJogLine));
+            registry.Add(new CadCommand("DIMJOGGED", DimJogged));
             registry.Add(new CadCommand("DIM", Dim));
             AddDimensionAssociationTo(registry);
 

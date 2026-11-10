@@ -113,6 +113,8 @@ namespace GeometryHelper.Dxf.Viewer
                 ["DOR"] = "DIMORDINATE",
                 ["DIMORD"] = "DIMORDINATE",
                 ["DJL"] = "DIMJOGLINE",
+                ["DJO"] = "DIMJOGGED",
+                ["JOG"] = "DIMJOGGED",
                 ["MLD"] = "MLEADER",
                 ["MLS"] = "MLEADERSTYLE",
                 ["MV"] = "MVIEW",
