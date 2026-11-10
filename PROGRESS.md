@@ -112,6 +112,9 @@ the ones wanted.
       back of its arrowhead; DIMTVP; the box of DIMGAP below zero (526 AutoCAD pictures compared, 511 match)
 - [ ] Dimensions: words measured by the drawing's fonts in the pictures (the main gap left); DIMTEDIT on angular and
       radius with DIMTMOVE 0 as AutoCAD; DIMARC; radial dimensions made under DIMTMOVE 1/2 (S)
+- [x] Previews as AutoCAD draws them: RECTANG the rectangle, CIRCLE, ARC, ELLIPSE, POLYGON, DONUT, XLINE/RAY, PLINE with
+      widths and arcs, REVCLOUD, ROTATE/SCALE/MIRROR (Reference too), ARRAY, OFFSET, STRETCH, every dimension, the MTEXT
+      frame; each preview made by the same code as the result
 - [x] BATTMAN with Edit Attribute and Settings, the Edit Attributes dialog of ATTDIA, the PURGE dialog (nested purge in
       -PURGE too), Object Grouping (CLASSICGROUP), to the v110 boards
 - [x] Dynamic blocks in use: custom grips at AutoCAD's points (visibility, lookup, linear, flip, rotation, XY), the
@@ -138,10 +141,8 @@ the ones wanted.
 - [ ] Dynamic input at the cursor as AutoCAD's with DYN on: what is typed at the Command prompt shows in a box at the
       cursor with the AutoComplete list under it, the prompt and its options (the ▼ menu) at the cursor in a command,
       the command line keeping its own copy; with DYN off only the command line (M) (running; designed in v111)
-- [ ] Previews as AutoCAD draws them while a command asks for a point (the maintainer saw RECTANG preview a diagonal
-      line): audit every command's rubber band and ghost (RECTANG rectangle, CIRCLE circle by each option, ARC, ELLIPSE,
-      POLYGON, DONUT, XLINE/RAY, PLINE arcs, OFFSET, FILLET, ARRAY, STRETCH, SCALE/ROTATE reference, DIM* lines, MLEADER,
-      TEXT box, MTEXT frame, HATCH boundary, REVCLOUD…) and draw each as AutoCAD does (M) (running)
+- [ ] Previews left: FILLET and CHAMFER hovering the second object, TRIM and EXTEND Quick mode, LENGTHEN Dynamic,
+      HATCH pick points, TEXT, TABLE, MLEADER, QDIM, BREAK, ALIGN, the Points of ROTATE/SCALE Reference, -ARRAY (M)
 - [ ] Tests: the Wpf suite and a parallel run share the global settings file and fail together; give tests their own
       settings path (S)
 - [ ] Layer States Manager, View Manager with New View, Drawing Units with Direction Control (designed in v110) (M)
