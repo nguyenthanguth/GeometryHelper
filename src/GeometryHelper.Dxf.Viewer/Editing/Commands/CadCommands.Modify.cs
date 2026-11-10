@@ -678,7 +678,8 @@ namespace GeometryHelper.Dxf.Viewer
 
             c.Session.LastPoint = first;
 
-            // The part the second point at the cursor would take out, faded as TRIM's.
+            // The part the second point at the cursor would take out, faded as TRIM's. AutoCAD previews the outcome
+            // here too: its help for COMMANDPREVIEW names BREAK with TRIM, EXTEND and LENGTHEN.
             CadPreview Gap(GeoPoint2 from) => CadPreview.Fading(c, input =>
             {
                 var gone = new List<DxfEntity>();
