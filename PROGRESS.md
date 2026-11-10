@@ -215,8 +215,9 @@ the ones wanted.
       Mtext in the editor; parked: DIMJOGGED with the jog past the rim or far off its middle (4), DIMJOGANG 90 (2), words
       pushed past the arrowhead (1); slanted Arial in angular dimensions (13 of 512, 0.1-0.4 off); r5's 14 diameter and
       24 angle cases; angles whose arc runs through their points (float side choice) (M)
-- [ ] Try audit follow-ups: 21 spline intersections against tiny or huge circles, arcs, ellipses hang over 10 s
-      (D:/claude/scratch/try-audit/fuzz/out-finite2.txt); GetIntersections and GeoObb3.GetFaces/ToSolid still throw on
+- [x] Spline intersections against tiny or huge circles, arcs, ellipses no longer hang (21 cases, now 0.04-4.5 ms;
+      ordinary spline intersections 1.89 -> 1.51 s, bit-identical)
+- [ ] Try audit follow-ups: GetIntersections and GeoObb3.GetFaces/ToSolid still throw on
       flat boxes; Corner2/3.TryFilletAt say "chamfer distance" for a bad radius; NaN input passes through as NaN
       points on true (S-M)
 - [x] MTEXT: word wrap at the width, stacked fractions, columns; line spacing 5/3 as AutoCAD (check first)
