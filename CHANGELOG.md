@@ -6,6 +6,11 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** Tab in the last cell of a table in the presenter adds a row, as AutoCAD 2021's table editor does. The new row goes
+under the last, empty, with the cell styles, alignments and height of the last row, and its first cell opens for typing;
+the row is an undo step of its own after the cell's words. AutoCAD's `InsertRowsAndInherit` gave a row added under a row
+60.43 high a height of 60.43 and the alignments of the row above, and the presenter's row is the same.
+
 **CHANGED.** A table in the presenter grows its rows to hold their words, as AutoCAD 2021 lays a table out. A cell's text
 wraps at the cell's width less its margins, laid out as an MTEXT of that width by the presenter's own MTEXT layout, and its
 row becomes as high as its tallest cell needs: the words' actual height and the margins above and below, one line of four

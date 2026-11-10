@@ -279,7 +279,9 @@ redraws the side of a closed cloud picked along a new path. A metric drawing sta
 
 TABLE (TB) shows the Insert Table dialog ([`CadInsertTableRequest`](xref:GeometryHelper.Dxf.Viewer.CadInsertTableRequest)),
 asks `Specify insertion point:` (or two corners for Specify window) and opens the title for typing in the MTEXT editor:
-Tab goes to the next cell, Shift+Tab to the one before, Enter to the one below and Esc ends. Five columns 63.5 wide and
+Tab goes to the next cell, Shift+Tab to the one before, Enter to the one below and Esc ends. Tab in the last cell adds a
+row under it, as AutoCAD's table editor does, of the cell styles and the height of the last row and empty, and goes to its
+first cell; the row is an undo step of its own. Five columns 63.5 wide and
 four rows of data of AutoCAD's Standard make a table 317.5 wide and 56 high, its title 11 high and its other rows 9.
 -TABLE asks the columns, the rows of data and the point (Style, Width, Height) on the command line, and TABLEDIT a cell
 to type in; a double click or F2 on a cell runs it. TABLESTYLE (TS) shows the Table Style dialog

@@ -412,7 +412,9 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>
         /// Opens cells of a table for typing one after another, as AutoCAD's editor of a cell does: each in the MTEXT editor over
         /// its cell, its words written as one undo step, then the next cell along (Tab), the one before (Shift+Tab) or the one
-        /// below (Enter), a block of merged cells as its top left cell; the editing ends at Esc, a click away, or the table's end.
+        /// below (Enter), a block of merged cells as its top left cell; Tab in the last cell adds a row under it, of the cell
+        /// styles and height of the last row, and goes to its first cell. The editing ends at Esc, a click away, or Enter or
+        /// Shift+Tab past the table's end.
         /// </summary>
         internal static IEnumerable<CadPrompt> EditCells(CadCommandContext c, string handle, int row, int column)
         {
@@ -446,9 +448,33 @@ namespace GeometryHelper.Dxf.Viewer
                     yield break;
                 }
 
-                if (edit.Move == CadTableCellMove.None || !(c.Document.FindEntity(handle) is DxfTable moved) || !NextCell(moved, edit.Move, ref row, ref column))
+                if (edit.Move == CadTableCellMove.None || !(c.Document.FindEntity(handle) is DxfTable moved))
                 {
                     yield break;
+                }
+
+                if (!NextCell(moved, edit.Move, ref row, ref column))
+                {
+                    if (edit.Move != CadTableCellMove.Next)
+                    {
+                        yield break;
+                    }
+
+                    // Tab in the last cell adds a row under the last, of its cell styles and height, and goes to its first
+                    // cell, as AutoCAD's table editor does.
+                    int last = moved.NumRows - 1;
+                    c.OpenUndoStep();
+                    CadEditResult added = CadTableEditor.InsertRow(c.Document, handle, last, true);
+                    c.CloseUndoStep();
+
+                    if (!added.Succeeded)
+                    {
+                        c.Write(added.Message);
+                        yield break;
+                    }
+
+                    row = last + 1;
+                    column = 0;
                 }
             }
         }
