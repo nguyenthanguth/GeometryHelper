@@ -158,5 +158,86 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 Assert.Equal(1500.0, LastLine(model).EndPoint.Y, 6);
             });
         }
+
+        private static void Cursor(MainViewModel model, double x, double y)
+        {
+            model.Session.Cursor = new GeoPoint2(x, y);
+            model.SetCursor(x, y);
+        }
+
+        private static void Run(MainViewModel model, string typed)
+        {
+            foreach (string line in typed.Split('|'))
+            {
+                model.Execute(line);
+            }
+        }
+
+        [Theory]
+        [InlineData("MIRROR|ALL||1000,1000", "Specify second point of mirror line")]
+        [InlineData("ROTATE|ALL||0,0|R|1000,1000", "Specify second point")]
+        [InlineData("ROTATE|ALL||0,0|R|0|P|1000,1000", "Specify second point")]
+        [InlineData("SCALE|ALL||0,0|R|1000,1000", "Specify second point")]
+        [InlineData("ALIGN|ALL||1000,1000", "Specify first destination point")]
+        [InlineData("BREAK|2000,0|F|1000,0", "Specify second break point")]
+        [InlineData("DIST|1000,1000", "Specify second point")]
+        [InlineData("AREA|1000,1000", "Specify next point")]
+        [InlineData("MEASUREGEOM|A||1000,1000", "Specify first angle endpoint")]
+        [InlineData("TEXT|J|A|1000,1000", "Specify second endpoint of text baseline")]
+        [InlineData("DIMLINEAR|1000,1000", "Specify second extension line origin")]
+        [InlineData("DIMALIGNED|1000,1000", "Specify second extension line origin")]
+        [InlineData("DIMANGULAR||1000,1000", "Specify first angle endpoint")]
+        [InlineData("DIMLINEAR|0,-500|1000,-500|500,-900|DIMCONTINUE", "Specify a second extension line origin")]
+        [InlineData("DIMLINEAR|0,-500|1000,-500|500,-900|DIMBASELINE", "Specify a second extension line origin")]
+        [InlineData("REVCLOUD|P|1000,1000", "Specify next point")]
+        public void ASecondPointFromABasePoint_ShowsTheLengthAndTheAngle_AsAutoCadsPolarDefault(string typed, string asked)
+        {
+            using (var folder = new TestFolder())
+            {
+                MainViewModel model = Room(folder);
+                Run(model, typed);
+
+                Assert.True(model.IsCommandRunning);
+                Assert.Equal(asked, model.Session.Prompt.Message);
+                GeoPoint2 from = model.Session.Prompt.BasePoint.Value;
+                Cursor(model, from.X + 300, from.Y + 400);
+
+                Assert.True(model.IsDynamicInputPolar);
+                Assert.True(model.IsDynamicInputLength && model.IsDynamicInputAngle);
+                Assert.Equal("500.00", model.DynamicInputFirst);
+                Assert.Equal("53.1", model.DynamicInputSecond);
+
+                // 200 locked by Tab holds the cursor 200 from the base point, towards it.
+                model.CommandText = "200";
+                Assert.True(model.TabDynamicInput());
+                GeoPoint2 held = model.HoldDynamicInput(new GeoPoint2(from.X + 300, from.Y + 400)).Value;
+                Assert.Equal(from.X + 120.0, held.X, 9);
+                Assert.Equal(from.Y + 160.0, held.Y, 9);
+            }
+        }
+
+        [Theory]
+        [InlineData("RECTANG|1000,1000", "Specify other corner point")]
+        [InlineData("ZOOM|W|1000,1000", "Specify opposite corner")]
+        [InlineData("MTEXT|1000,1000", "Specify opposite corner")]
+        [InlineData("REVCLOUD|R|1000,1000", "Specify opposite corner")]
+        [InlineData("DIMLINEAR|0,-500|1000,-500", "Specify dimension line location")]
+        public void ACornerOrALocation_KeepsTheXAndTheYFromTheBasePoint(string typed, string asked)
+        {
+            using (var folder = new TestFolder())
+            {
+                MainViewModel model = Room(folder);
+                Run(model, typed);
+
+                Assert.Equal(asked, model.Session.Prompt.Message);
+                GeoPoint2 from = model.Session.Prompt.BasePoint.Value;
+                Cursor(model, from.X + 300, from.Y + 400);
+
+                Assert.True(model.IsDynamicInputFields);
+                Assert.False(model.IsDynamicInputPolar);
+                Assert.Equal("300.00", model.DynamicInputFirst);
+                Assert.Equal("400.00", model.DynamicInputSecond);
+            }
+        }
     }
 }
