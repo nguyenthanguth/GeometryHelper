@@ -6,6 +6,13 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** DIMTEDIT Left and Right in the presenter put a linear dimension's words where AutoCAD 2021 puts them: an
+arrowhead and a gap in from the extension line, then the words with a gap about them, where they stood two arrowheads
+in. "100" of Arial on a line at 30 degrees stands 6.733 in from its end, not 7.983. The left of a vertical line is its top,
+as AutoCAD takes it, and under DIMTIH the words stand level, centred on the slanted line, which is broken about them.
+Of 336 pictures of aligned dimensions at six angles, Left and Right under DIMTAD 0 and 1 and DIMTIH 0 and 1, and words
+moved out under DIMTOH 0 and 1, 336 match AutoCAD's where 264 did; DIMTOH already matched.
+
 **NEW.** The presenter has DIMJOGGED (DJO, JOG), AutoCAD 2021's jogged radius, with its prompts word for word ("Select
 arc or circle:", "Specify center location override:", "Specify dimension line location or [Mtext/Text/Angle]:", "Specify
 jog location:", and "Object selected is not a circle or arc." for anything else). Its line runs from the centre drawn

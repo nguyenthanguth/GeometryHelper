@@ -191,6 +191,9 @@ read): "4" moved out of a dimension of 4 stands 5.9375 below the middle of its l
 point. Under 1 the same place is a leader's end, the leader from the middle of the line a third as far along again, and
 a landing on to the words; DIMTEDIT draws a leader to words further from the line than DIMGAP and half the heights of
 the words and the arrowheads, 3.15 with ISO-25's sizes, the words starting at the point, and none to words nearer.
+DIMTEDIT Left and Right put the words an arrowhead and a gap in from the extension line on that side as they read (the
+top of a vertical line is its left), with a gap about them: "100" of Arial on a line at 30 degrees stands 6.733 in. Under
+DIMTIH they stand level, centred on the line, which is broken about them: 6.895 in on that line.
 
 Radius, diameter and angular dimensions follow the same variables. A radius of 20 with its line put 45 from the centre
 has its arrowhead outside the rim, its line from the back of it on under the words, and a line from the centre to the

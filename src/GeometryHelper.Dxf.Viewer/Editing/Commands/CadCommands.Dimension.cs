@@ -985,6 +985,19 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (placed.HasValue)
             {
+                // Words put between the extension lines under DIMTIH stand level on the line, which is broken a gap clear of
+                // them, as AutoCAD 2021 draws them after DIMTEDIT Left and Right on a slanted line.
+                double put = (placed.Value - q1).X * along.X + (placed.Value - q1).Y * along.Y;
+
+                if (style.Dimtmove == 0 && !level && put >= -1E-9 && put <= length + 1E-9)
+                {
+                    layout.Angle = inside;
+                    layout.At = q1 + along * put;
+                    layout.Middle = layout.At;
+                    layout.Break = half;
+                    return layout;
+                }
+
                 PlaceMoved(layout, style.Dimtmove, placed.Value, q1, q2, along, readable, above, middle, width, height, gap, arrow, tad == 0, offLine);
                 return layout;
             }

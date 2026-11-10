@@ -884,5 +884,35 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             dimension = Made(session);
             Near(At30(8 + 2 * Arrow + Gap + Letter), P2(Words(dimension).Location), 1E-9);
         }
+
+        [Fact]
+        public void DimteditLeftAndRight_PutTheWordsAnArrowheadAndTwoGapsIn_TheTopLeftOfAVerticalLine_LevelUnderDimtih()
+        {
+            // "100", 5.25 wide here, on a line at 30 degrees: Left puts its middle 2.5 + 0.625 + 2.625 + 0.625 = 6.375 in from
+            // the first end, as AutoCAD 2021 puts "100" of Arial 6.733 in.
+            CadCommandSession session = Metric(s => { });
+            Run(session, "DAL", P(0, 0), At30(100), At30(50, 20));
+            DxfDimension dimension = Made(session);
+            Run(session, "DIMTEDIT", new[] { dimension.Handle }, "L");
+            dimension = Made(session);
+            Near(At30(6.375, 20), P2(dimension.TextPosition), 1E-9);
+
+            // Left of a vertical line is its top.
+            session = Metric(s => { });
+            Run(session, "DAL", P(0, 0), P(0, 100), P(-20, 50));
+            dimension = Made(session);
+            Run(session, "DIMTEDIT", new[] { dimension.Handle }, "L");
+            Near(P(-20, 100 - 6.375), P2(Made(session).TextPosition), 1E-9);
+
+            // Under DIMTIH the words stand level, centred on the line at 30 degrees, an arrowhead, a gap and the half of the
+            // line through them in the box grown by the gap ((1.25 + 0.625) / sin 30 = 3.75) in, as AutoCAD 2021 draws them.
+            session = Metric(s => s.Dimtih = true);
+            Run(session, "DAL", P(0, 0), At30(100), At30(50, 20));
+            dimension = Made(session);
+            Run(session, "DIMTEDIT", new[] { dimension.Handle }, "L");
+            dimension = Made(session);
+            Near(At30(2.5 + Gap + 3.75, 20), P2(Words(dimension).Location), 1E-9);
+            Assert.Equal(0.0, Words(dimension).Rotation, 9);
+        }
     }
 }
