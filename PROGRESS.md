@@ -138,7 +138,7 @@ the ones wanted.
   - [ ] W2 follow-ups: the shared ACI palette (DxfColor) has 250 black where AutoCAD's 250-255 greys are 51, 80, 105,
         130, 190, 255 (worked round in the DWG reader only); test drawings with a colour-book colour (group 430) and an
         R2018 multi-line attribute; spline normal sign off XY (8 of 10 match; parked) (S)
-  - [ ] W3 R2007 (AC1021): its own layout, Reed-Solomon, Unicode strings (M-L)
+  - [ ] W3 (running) R2007 (AC1021): its own layout, Reed-Solomon, Unicode strings (M-L)
   - [ ] W4 Every entity and object: hatch, dimension, MTEXT, multileader, table, dynamic block data, xref, image,
         layouts; proxies kept as they are (L)
   - [ ] W5 Writing R2018 (AutoCAD 2021's own), then R2000-R2013 if wanted (L)
@@ -177,16 +177,18 @@ the ones wanted.
 - [x] Dynamic input: dimensional input (length and angle boxes) beyond LINE and PLINE (M)
 - [x] Dynamic input (user 2026-11-10): while drawing LINE and the other commands with length and
       angle fields, draw no dimension line, extension lines or angle arc; keep the length and angle values in their boxes (S)
-- [ ] Dynamic input: with OSNAP the fields follow the raw cursor, not the snapped point the band is drawn to (S)
-- [ ] Dynamic input follow-ups: MIRROR and other commands still on X and Y; CIRCLE 3P; angle field from a reference line;
+- [x] Dynamic input: with OSNAP the fields follow the raw cursor, not the snapped point the band is drawn to (S)
+- [x] Dynamic input follow-ups: MIRROR and other commands still on X and Y; CIRCLE 3P; angle field from a reference line;
       grip rotate and scale tested on their own (S)
+- [ ] Snapping: grid SNAP beats an object snap (3 174.93 to the grid instead of 3 162.28 to an endpoint; AutoCAD gives the
+      object snap precedence); a handle-less R12 DXF gives no object snaps (S)
 - [ ] COPYVIEW (not in AutoCAD): the view as an image on the clipboard, also on the canvas right-click menu (optional)
 - [ ] Tables: the cell right-click menu, column letters and row numbers, autofill and width grips, drag-select a range
 - [ ] Tables: rows grow for wrapped text; Tab in the last cell adds a row; first/second/other row cell styles
 
 - [ ] Ribbon: check drop-downs and the Insert block gallery at 125 % and 150 % display scaling; pin and Esc by hand
 - [ ] Ribbon: Home panels a few pixels wider than their design widths
-- [ ] Speed: undo without reloading the whole drawing (2.5 s at 1 000 000 entities): first the cheap wins (pack the undo state in parallel chunks, build the handle index lazily), then a core `DxfDatabase` fork that shares the read bytes (recommended over an in-place journal through the core)
+- [ ] Speed (running): undo without reloading the whole drawing (2.5 s at 1 000 000 entities): first the cheap wins (pack the undo state in parallel chunks, build the handle index lazily), then a core `DxfDatabase` fork that shares the read bytes (recommended over an in-place journal through the core)
 - [ ] Speed: draw the first display off the UI thread (10–13 s at 1 000 000 entities)
 - [ ] Speed: frame at extents at 1 000 000 entities (0.8–1.1 s, inside Skia); level of detail would change pixels (needs a decision)
 - [ ] Speed: highlight of 100 000 selected objects (1.2–1.6 s)
@@ -200,8 +202,11 @@ the ones wanted.
       side choice), radius 3 circles under DIMTMOVE 1/2 with the point inside (28 pictures); DIMTEDIT Left/Right and
       DIMTOH on slanted lines unprobed (M)
 - [x] MTEXT: word wrap at the width, stacked fractions, columns; line spacing 5/3 as AutoCAD (check first)
-- [ ] MTEXT follow-ups: the in-place editor wraps and spaces lines as the drawn MTEXT (it keeps one line per paragraph,
-      pitch 1.25); paragraph, column and tab dialogs and ribbon controls (need design); triangle width/height grips;
+- [x] MTEXT in-place editor lays out with the drawn MTEXT's layout (wrap, spacing, stacks, columns, mask, frame)
+- [ ] Speed (running): DisplayPatchSpeedTests "layer on" at 0.78 of a whole draw, limit 2/3 (fails 2 runs in 3 since
+      about 5fd333f1); find the commit and fix (S)
+- [ ] MTEXT follow-ups: the editor's ruler (indents, tab stops), column drag, `\W1.2x;` in a style of width not 1, the
+      caret at a soft break between ideographs; paragraph, column and tab dialogs and ribbon controls (need design); triangle width/height grips;
       parked: `\pxsm2` with tall runs (0.048 h), flow direction 3, `\pxsa` first line, `\M+` codes, mask with a taller
       defined height, manual columns at bottom or middle attachment, column grips; EXPLODE keeping run fonts and colours;
       TEXT draws %%U/%%O/%%K lines; warm display cost of 10 000 MTEXTs 290 -> 430 ms (a per-entity cache?) (M)

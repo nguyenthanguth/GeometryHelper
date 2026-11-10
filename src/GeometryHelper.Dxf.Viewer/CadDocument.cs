@@ -194,6 +194,12 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>The layout of an MTEXT's words as the display draws them, in the document's fonts.</summary>
         internal CadMTextLayout LayoutOf(DxfMText text) => _builder.LayoutOf(text);
 
+        /// <summary>The layout of the words of an MTEXT being edited, with where each place of the editor stands.</summary>
+        internal CadMTextLayout EditorLayoutOf(DxfMText text, CadMTextContent content) => _builder.EditorLayoutOf(text, content);
+
+        /// <summary>The parts of an MTEXT being edited as the canvas draws them, in the MTEXT's own frame.</summary>
+        internal List<DisplayItem2> EditorParts(DxfMText text, CadMTextLayout layout, int rgb, int layerRgb) => _builder.EditorParts(text, layout, rgb, layerRgb);
+
         private void ShowDatabase(DxfDatabase database)
         {
             ShownBy.Remove(database);

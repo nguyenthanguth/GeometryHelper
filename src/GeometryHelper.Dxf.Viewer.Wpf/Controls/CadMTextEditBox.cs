@@ -10,16 +10,25 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 {
     /// <summary>
     /// The MTEXT editor's frame on the canvas, as the design draws it: the ruler on top, its diamond at the right dragging the
-    /// frame's width, and under it the words in their own looks (font, bold, italic, height, colour, lines, width, slant) at the
-    /// size the canvas shows them, with the caret and the selection, in a dark box with a dashed border. It draws and takes keys
-    /// for a <see cref="TextEditorViewModel"/>; what the keys do is the editor's (<see cref="CadMTextEditor"/>).
+    /// frame's width, and under it the words where the canvas will draw them, at the size it shows them, with the caret and
+    /// the selection, in a dark box with a dashed border. It draws and takes keys for a <see cref="TextEditorViewModel"/>;
+    /// what the keys do is the editor's (<see cref="CadMTextEditor"/>).
     /// </summary>
     /// <remarks>
+    /// <para>
+    /// The words are laid out by the display's own layout (<see cref="CadMTextEditorLayout"/>), in the drawing's fonts: wrapped
+    /// at the width, their lines spaced at least or exactly as the MTEXT says, their stacks stacked, their tabs, indents,
+    /// paragraph spacing and columns set, the mask and the frame drawn, as AutoCAD's editor shows the words as they will look.
+    /// The frame holds the MTEXT's box and all that is drawn, and is put with the MTEXT's attachment point on its own
+    /// (<see cref="Anchor"/>). Nothing is drawn without a <see cref="Document"/>.
+    /// </para>
+    /// <para>
     /// Keys as AutoCAD's editor: letters type, Enter a new paragraph, Backspace and Delete, the arrows, Home and End (Shift
-    /// selecting), Ctrl+A, Ctrl+B, Ctrl+I, Ctrl+U, Ctrl+Z and Ctrl+Y, Ctrl+C, Ctrl+X and Ctrl+V as plain text, Ctrl+Enter
-    /// closes keeping the words, Esc asks (<see cref="EscapePressed"/>). Lines are 1.25 times their tallest letters apart, as
-    /// the canvas sets them. In a table cell, as AutoCAD's: Tab keeps the words and goes to the next cell, Shift+Tab to the
-    /// one before, Enter to the one below, and Alt+Enter starts a new paragraph.
+    /// selecting) along the lines as they wrap, Ctrl+A, Ctrl+B, Ctrl+I, Ctrl+U, Ctrl+Z and Ctrl+Y, Ctrl+C, Ctrl+X and Ctrl+V as
+    /// plain text, Ctrl+Enter closes keeping the words, Esc asks (<see cref="EscapePressed"/>). In a table cell, as AutoCAD's:
+    /// Tab keeps the words and goes to the next cell, Shift+Tab to the one before, Enter to the one below, and Alt+Enter starts
+    /// a new paragraph.
+    /// </para>
     /// </remarks>
     public sealed class CadMTextEditBox : FrameworkElement
     {
@@ -34,13 +43,24 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private static readonly Brush Dark = Freeze(new SolidColorBrush(Color.FromRgb(0x1A, 0x1E, 0x24)));
         private static readonly Brush Accent = Freeze(new SolidColorBrush(Color.FromRgb(0x3D, 0x9B, 0xFF)));
         private static readonly Brush Selection = Freeze(new SolidColorBrush(Color.FromArgb(0x99, 0x3D, 0x9B, 0xFF)));
+        private static readonly Brush MaskBack = Freeze(new SolidColorBrush(Color.FromRgb(0, 0, 0)));
         private static readonly Pen Border = FreezePen(new Pen(new SolidColorBrush(Color.FromRgb(0x9A, 0xA4, 0xB1)), 1.0) { DashStyle = DashStyles.Dash });
         private static readonly Pen Tick = FreezePen(new Pen(new SolidColorBrush(Color.FromRgb(0x1A, 0x1E, 0x24)), 1.0));
         private static readonly Pen Caret = FreezePen(new Pen(Brushes.White, 2.0));
 
-        private readonly List<LineLayout> _lines = new List<LineLayout>();
+        private readonly Dictionary<int, Brush> _brushes = new Dictionary<int, Brush>();
+        private readonly Dictionary<int, Pen> _pens = new Dictionary<int, Pen>();
+        private Dictionary<string, FormattedText> _lastFrame = new Dictionary<string, FormattedText>();
+        private Dictionary<string, FormattedText> _thisFrame = new Dictionary<string, FormattedText>();
         private TextEditorViewModel _model;
+        private CadDocument _document;
+        private CadMTextEditorLayout _layout;
+        private bool _stale = true;
+        private int _defaultRgb = 0xFFFFFF;
+        private int _layerRgb = 0xFFFFFF;
         private double _pixelsPerUnit = 1.0;
+        private double _left;
+        private double _top;
         private double _areaWidth;
         private double _textHeight;
         private bool _draggingWidth;
@@ -73,6 +93,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 }
 
                 _model = value;
+                _layout = null;
 
                 if (_model != null)
                 {
@@ -80,8 +101,32 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     _model.PropertyChanged += OnModelChanged;
                 }
 
-                InvalidateMeasure();
-                InvalidateVisual();
+                Restale();
+            }
+        }
+
+        /// <summary>Gets or sets the document the MTEXT is drawn in, whose fonts and layout the words are set by; null draws nothing.</summary>
+        public CadDocument Document
+        {
+            get => _document;
+            set
+            {
+                if (!ReferenceEquals(_document, value))
+                {
+                    _document = value;
+                    _layout = null;
+                    Restale();
+                }
+            }
+        }
+
+        /// <summary>Gets the layout of the words as the frame last set them, in the MTEXT's own frame and drawing units; null before there is one.</summary>
+        public CadMTextEditorLayout TextLayout
+        {
+            get
+            {
+                Relayout();
+                return _layout;
             }
         }
 
@@ -98,21 +143,40 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>Gets or sets the colour of letters of no colour of their own: the MTEXT's as the canvas draws it, 0xRRGGBB.</summary>
-        public int DefaultRgb { get; set; } = 0xFFFFFF;
+        public int DefaultRgb
+        {
+            get => _defaultRgb;
+            set
+            {
+                if (_defaultRgb != value)
+                {
+                    _defaultRgb = value;
+                    Restale();
+                }
+            }
+        }
 
         /// <summary>Gets or sets the colour of letters coded ByLayer: the layer's, 0xRRGGBB.</summary>
-        public int LayerRgb { get; set; } = 0xFFFFFF;
+        public int LayerRgb
+        {
+            get => _layerRgb;
+            set
+            {
+                if (_layerRgb != value)
+                {
+                    _layerRgb = value;
+                    Restale();
+                }
+            }
+        }
 
         /// <summary>Gets where, in the frame, the MTEXT's attachment point is: the frame is put so that this point is on it.</summary>
         public Point Anchor
         {
             get
             {
-                int attachment = _model?.Attachment ?? 1;
-                int column = (attachment - 1) % 3;
-                int row = (attachment - 1) / 3;
-                double top = Top;
-                return new Point(Pad + column * _areaWidth / 2.0, top + row * _textHeight / 2.0);
+                Relayout();
+                return new Point(PixelX(0.0), PixelY(0.0));
             }
         }
 
@@ -123,39 +187,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <returns>The place.</returns>
         public int PlaceAt(Point point)
         {
-            if (_lines.Count == 0)
-            {
-                return 0;
-            }
-
-            LineLayout line = _lines[_lines.Count - 1];
-
-            foreach (LineLayout candidate in _lines)
-            {
-                if (point.Y <= candidate.Baseline + candidate.Tallest * 0.25)
-                {
-                    line = candidate;
-                    break;
-                }
-            }
-
-            for (int i = 0; i < line.Cells.Count; i++)
-            {
-                CellLayout cell = line.Cells[i];
-
-                if (point.X < cell.X + cell.Width / 2.0)
-                {
-                    return cell.Index;
-                }
-            }
-
-            return line.End;
+            Relayout();
+            return _layout == null ? 0 : _layout.PlaceAt(UnitX(point.X), UnitY(point.Y));
         }
 
         /// <inheritdoc/>
         protected override Size MeasureOverride(Size availableSize)
         {
-            Layout();
+            Relayout();
             return new Size(_areaWidth + 2.0 * Pad, Top + _textHeight + Pad + 8.0);
         }
 
@@ -167,6 +206,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return;
             }
 
+            Relayout();
             double width = _areaWidth + 2.0 * Pad;
             double top = _model.IsRulerShown ? RulerHeight : 0.0;
             dc.DrawRectangle(Back, Border, new Rect(0.5, top + 0.5, width - 1.0, _textHeight + 2.0 * Pad));
@@ -176,30 +216,43 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 DrawRuler(dc, width);
             }
 
-            CadMTextEditor editor = _model.Editor;
-            int from = editor.SelectionStart;
-            int to = from + editor.SelectionLength;
-
-            foreach (LineLayout line in _lines)
+            if (_layout != null)
             {
-                foreach (CellLayout cell in line.Cells)
+                // The mask under everything, the selection over it, then the frame and the words as the canvas draws them.
+                foreach (DisplayItem2 part in _layout.Parts)
                 {
-                    if (cell.Index >= from && cell.Index < to)
+                    if (part is DisplayFill2 fill)
                     {
-                        dc.DrawRectangle(Selection, null, new Rect(cell.X, line.Baseline - line.Tallest, Math.Max(1.0, cell.Width), line.Tallest * 1.25));
+                        DrawFill(dc, fill);
                     }
                 }
 
-                foreach (RunLayout run in line.Runs)
-                {
-                    DrawRun(dc, run, line);
-                }
-            }
+                DrawSelection(dc);
 
-            if (IsKeyboardFocused && editor.SelectionLength == 0)
-            {
-                Point caret = CaretPoint(out double height);
-                dc.DrawLine(Caret, new Point(caret.X, caret.Y - height), new Point(caret.X, caret.Y + height * 0.25));
+                foreach (DisplayItem2 part in _layout.Parts)
+                {
+                    if (part is DisplayPolyline2 line)
+                    {
+                        DrawChain(dc, line.Xy, line.Closed, PenOf(line.Style.Rgb));
+                    }
+                    else if (part is DisplayText2 text)
+                    {
+                        DrawText(dc, text);
+                    }
+                }
+
+                Dictionary<string, FormattedText> drawn = _lastFrame;
+                _lastFrame = _thisFrame;
+                _thisFrame = drawn;
+                _thisFrame.Clear();
+
+                if (IsKeyboardFocused && _model.Editor.SelectionLength == 0)
+                {
+                    int caret = _model.Editor.Caret;
+                    int line = _layout.LineOfPlace(caret);
+                    double x = PixelX(_layout.XOf(caret));
+                    dc.DrawLine(Caret, new Point(x, PixelY(_layout.TopOf(line))), new Point(x, PixelY(_layout.BottomOf(line))));
+                }
             }
 
             // The arrow under the middle of the frame, which AutoCAD drags for the height of columns; drawn as the design has it.
@@ -244,7 +297,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             Point at = e.GetPosition(this);
 
-            if (_model.IsRulerShown && at.Y < RulerHeight && Math.Abs(at.X - (Pad + _areaWidth)) <= 8.0)
+            if (_model.IsRulerShown && at.Y < RulerHeight && Math.Abs(at.X - BoxRight) <= 8.0)
             {
                 _draggingWidth = true;
                 CaptureMouse();
@@ -277,16 +330,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             if (_draggingWidth)
             {
-                _model.Width = Math.Max(1.0, (at.X - Pad) / _pixelsPerUnit);
-                InvalidateMeasure();
-                InvalidateVisual();
+                double left = _layout != null ? PixelX(_layout.Box[0]) : Pad;
+                _model.Width = Math.Max(1.0, (at.X - left) / _pixelsPerUnit);
             }
             else if (_selecting && e.LeftButton == MouseButtonState.Pressed)
             {
                 _model.Editor.MoveTo(PlaceAt(at), true);
             }
 
-            Cursor = _model.IsRulerShown && at.Y < RulerHeight && Math.Abs(at.X - (Pad + _areaWidth)) <= 8.0 ? Cursors.SizeWE : Cursors.IBeam;
+            Cursor = _model.IsRulerShown && at.Y < RulerHeight && Math.Abs(at.X - BoxRight) <= 8.0 ? Cursors.SizeWE : Cursors.IBeam;
         }
 
         /// <inheritdoc/>
@@ -372,24 +424,37 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     editor.MoveTo(!shift && editor.SelectionLength > 0 ? editor.SelectionStart + editor.SelectionLength : editor.Caret + 1, shift);
                     return true;
                 case System.Windows.Input.Key.Home:
-                    editor.MoveTo(control ? 0 : LineOf(editor.Caret).Start, shift);
-                    return true;
                 case System.Windows.Input.Key.End:
-                    editor.MoveTo(control ? editor.Length : LineOf(editor.Caret).End, shift);
-                    return true;
                 case System.Windows.Input.Key.Up:
                 case System.Windows.Input.Key.Down:
+                    Relayout();
+
+                    if (_layout == null)
                     {
-                        int at = _lines.IndexOf(LineOf(editor.Caret)) + (key == System.Windows.Input.Key.Up ? -1 : 1);
-
-                        if (at >= 0 && at < _lines.Count)
-                        {
-                            Point caret = CaretPoint(out _);
-                            editor.MoveTo(PlaceAt(new Point(caret.X, _lines[at].Baseline)), shift);
-                        }
-
                         return true;
                     }
+
+                    int line = _layout.LineOfPlace(editor.Caret);
+
+                    if (key == System.Windows.Input.Key.Home)
+                    {
+                        editor.MoveTo(control ? 0 : _layout.LineStart(line), shift);
+                    }
+                    else if (key == System.Windows.Input.Key.End)
+                    {
+                        editor.MoveTo(control ? editor.Length : _layout.LineEnd(line), shift);
+                    }
+                    else
+                    {
+                        int at = line + (key == System.Windows.Input.Key.Up ? -1 : 1);
+
+                        if (at >= 0 && at < _layout.LineCount)
+                        {
+                            editor.MoveTo(_layout.PlaceOnLine(at, _layout.XOf(editor.Caret)), shift);
+                        }
+                    }
+
+                    return true;
             }
 
             if (!control)
@@ -440,11 +505,58 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
                     return true;
                 case System.Windows.Input.Key.Space when shift:
-                    editor.Type(" ");
+                    editor.Type(" ");
                     return true;
                 default:
                     return false;
             }
+        }
+
+        private double BoxRight => _layout != null ? PixelX(_layout.Box[2]) : Pad + _areaWidth;
+
+        private double PixelX(double x) => Pad + ((x - _left) * _pixelsPerUnit);
+
+        private double PixelY(double y) => Top + ((_top - y) * _pixelsPerUnit);
+
+        private double UnitX(double x) => _left + ((x - Pad) / _pixelsPerUnit);
+
+        private double UnitY(double y) => _top - ((y - Top) / _pixelsPerUnit);
+
+        private void Restale()
+        {
+            _stale = true;
+            InvalidateMeasure();
+            InvalidateVisual();
+        }
+
+        /// <summary>Lays the words out again where they or the box changed: the display's layout, the frame around all it draws.</summary>
+        private void Relayout()
+        {
+            if (_model == null || _document == null)
+            {
+                _layout = null;
+                _left = _top = 0.0;
+                _areaWidth = 40.0;
+                _textHeight = 0.0;
+                return;
+            }
+
+            if (_stale || _layout == null)
+            {
+                if (_layout == null)
+                {
+                    _layout = new CadMTextEditorLayout(_document, _model.Edit);
+                }
+
+                _layout.Update(_model.Editor, _model.Width, _model.Attachment, _model.LineSpacing, DefaultRgb, LayerRgb);
+                _stale = false;
+            }
+
+            double[] bounds = _layout.Bounds;
+            _left = bounds[0];
+            _top = bounds[3];
+            _areaWidth = Math.Max(40.0, (bounds[2] - bounds[0]) * _pixelsPerUnit);
+            _textHeight = Math.Max(0.0, (bounds[3] - bounds[1]) * _pixelsPerUnit);
         }
 
         private void SelectWord(int place)
@@ -481,7 +593,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             // The indents, first line above and paragraph below, at the left; the diamond of the width at the right.
             dc.DrawGeometry(Dark, null, Triangle(Pad, 1.0, Pad + 8.0, 1.0, Pad + 4.0, 7.0));
             dc.DrawGeometry(Dark, null, Triangle(Pad, RulerHeight - 1.0, Pad + 8.0, RulerHeight - 1.0, Pad + 4.0, RulerHeight - 7.0));
-            double right = Pad + _areaWidth;
+            double right = BoxRight;
             var diamond = new StreamGeometry();
 
             using (StreamGeometryContext g = diamond.Open())
@@ -510,239 +622,149 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             return geometry;
         }
 
-        private void DrawRun(DrawingContext dc, RunLayout run, LineLayout line)
+        /// <summary>The selection, place by place, each as high as its line's cell.</summary>
+        private void DrawSelection(DrawingContext dc)
         {
-            double rise = run.Look.Align == 1 ? (line.Tallest - run.Height) / 2.0 : run.Look.Align == 2 ? line.Tallest - run.Height : 0.0;
-            double baseline = line.Baseline - rise;
-            FormattedText text = Formatted(run.Text, run.Look, run.Height, RunBrush(run.Look));
-            double slant = run.Look.Oblique.HasValue ? Math.Tan(run.Look.Oblique.Value * Math.PI / 180.0) : 0.0;
-            dc.PushTransform(new MatrixTransform(new Matrix(run.WidthFactor, 0.0, -slant, 1.0, run.X + slant * baseline, 0.0)));
-            dc.DrawText(text, new Point(0.0, baseline - text.Baseline));
+            CadMTextEditor editor = _model.Editor;
+            int from = editor.SelectionStart;
+            int to = from + editor.SelectionLength;
+
+            for (int q = from; q < to; q++)
+            {
+                int line = _layout.LineOfPlace(q);
+                double x0 = PixelX(_layout.XOf(q));
+                double x1 = PixelX(_layout.RightOf(q));
+                double y0 = PixelY(_layout.TopOf(line));
+                double y1 = PixelY(_layout.BottomOf(line));
+                dc.DrawRectangle(Selection, null, new Rect(x0, y0, Math.Max(1.0, x1 - x0), Math.Max(1.0, y1 - y0)));
+            }
+        }
+
+        /// <summary>A mask: in the canvas's black where it takes the drawing's background, else in its colour.</summary>
+        private void DrawFill(DrawingContext dc, DisplayFill2 fill)
+        {
+            var geometry = new StreamGeometry { FillRule = FillRule.EvenOdd };
+
+            using (StreamGeometryContext g = geometry.Open())
+            {
+                foreach (double[] ring in fill.Rings)
+                {
+                    if (ring.Length < 6)
+                    {
+                        continue;
+                    }
+
+                    g.BeginFigure(new Point(PixelX(ring[0]), PixelY(ring[1])), true, true);
+
+                    for (int i = 2; i + 1 < ring.Length; i += 2)
+                    {
+                        g.LineTo(new Point(PixelX(ring[i]), PixelY(ring[i + 1])), false, false);
+                    }
+                }
+            }
+
+            dc.DrawGeometry(fill.IsMask ? MaskBack : BrushOf(fill.Style.Rgb, false), null, geometry);
+        }
+
+        private void DrawChain(DrawingContext dc, IReadOnlyList<double> xy, bool closed, Pen pen)
+        {
+            if (xy.Count < 4)
+            {
+                return;
+            }
+
+            var geometry = new StreamGeometry();
+
+            using (StreamGeometryContext g = geometry.Open())
+            {
+                g.BeginFigure(new Point(PixelX(xy[0]), PixelY(xy[1])), false, closed);
+
+                for (int i = 2; i + 1 < xy.Count; i += 2)
+                {
+                    g.LineTo(new Point(PixelX(xy[i]), PixelY(xy[i + 1])), true, false);
+                }
+            }
+
+            dc.DrawGeometry(null, pen, geometry);
+        }
+
+        /// <summary>A run of letters as the canvas draws it: an SHX font's strokes, or a TrueType font a capital's height high, as wide as its width factor says, slanted.</summary>
+        private void DrawText(DrawingContext dc, DisplayText2 text)
+        {
+            if (text.Strokes != null)
+            {
+                Pen pen = PenOf(text.Style.Rgb);
+
+                foreach (double[] stroke in text.Strokes)
+                {
+                    DrawChain(dc, stroke, false, pen);
+                }
+
+                return;
+            }
+
+            double size = text.Height * _pixelsPerUnit / 0.72;
+
+            if (!(size >= 0.5) || text.Text.Length == 0)
+            {
+                return;
+            }
+
+            // The runs of the lines a key did not change are drawn from the letters set for the last frame.
+            string family = text.FontName == null ? "Arial" : System.IO.Path.HasExtension(text.FontName) ? System.IO.Path.GetFileNameWithoutExtension(text.FontName) : text.FontName;
+            string key = string.Join("\u0001", text.Text, family, size.ToString("R", CultureInfo.InvariantCulture), text.IsBold ? "b" : string.Empty, text.IsItalic ? "i" : string.Empty, text.Style.Rgb.ToString(CultureInfo.InvariantCulture));
+
+            if (!_lastFrame.TryGetValue(key, out FormattedText formatted) && !_thisFrame.TryGetValue(key, out formatted))
+            {
+                var typeface = new Typeface(new FontFamily(family), text.IsItalic ? FontStyles.Italic : FontStyles.Normal, text.IsBold ? FontWeights.Bold : FontWeights.Normal, FontStretches.Normal);
+                formatted = new FormattedText(text.Text, CultureInfo.InvariantCulture, FlowDirection.LeftToRight, typeface, size, BrushOf(text.Style.Rgb, true), 1.0);
+            }
+
+            _thisFrame[key] = formatted;
+            double x = PixelX(text.X);
+            double baseline = PixelY(text.Y);
+            double slant = Math.Tan(text.Oblique);
+            dc.PushTransform(new MatrixTransform(new Matrix(text.WidthFactor, 0.0, -slant, 1.0, x - (text.WidthFactor * x) + (slant * baseline), 0.0)));
+            dc.DrawText(formatted, new Point(x, baseline - formatted.Baseline));
             dc.Pop();
         }
 
-        private Brush RunBrush(CadMTextLook look)
+        /// <summary>The brush of a colour; a colour too dark to read on the frame's black drawn white, as the canvas turns black to white.</summary>
+        private Brush BrushOf(int rgb, bool readable)
         {
-            int rgb = DefaultRgb;
-
-            if (look.TrueColor.HasValue)
-            {
-                rgb = look.TrueColor.Value;
-            }
-            else if (look.ColorIndex.HasValue && look.ColorIndex.Value >= 1 && look.ColorIndex.Value <= 255)
-            {
-                rgb = DxfColor.FromColorIndex(DxfColorMethod.ByAci, (short)look.ColorIndex.Value).ColorValue & 0xFFFFFF;
-            }
-            else if (look.ColorIndex == 256)
-            {
-                rgb = LayerRgb;
-            }
-
-            // A colour too dark to read on the frame's black is drawn white, as the canvas turns black to white.
-            if (((rgb >> 16) & 0xFF) + ((rgb >> 8) & 0xFF) + (rgb & 0xFF) < 60)
+            if (readable && ((rgb >> 16) & 0xFF) + ((rgb >> 8) & 0xFF) + (rgb & 0xFF) < 60)
             {
                 rgb = 0xFFFFFF;
             }
 
-            return Freeze(new SolidColorBrush(Color.FromRgb((byte)(rgb >> 16), (byte)(rgb >> 8), (byte)rgb)));
+            if (!_brushes.TryGetValue(rgb, out Brush brush))
+            {
+                brush = Freeze(new SolidColorBrush(Color.FromRgb((byte)(rgb >> 16), (byte)(rgb >> 8), (byte)rgb)));
+                _brushes[rgb] = brush;
+            }
+
+            return brush;
         }
 
-        private FormattedText Formatted(string text, CadMTextLook look, double height, Brush brush)
+        private Pen PenOf(int rgb)
         {
-            string family = look.Font != null && !look.IsShx ? look.Font : _model.StyleIsShx || _model.StyleFont == null ? "Arial" : _model.StyleFont;
-            var typeface = new Typeface(new FontFamily(family), look.Italic ? FontStyles.Italic : FontStyles.Normal, look.Bold ? FontWeights.Bold : FontWeights.Normal, FontStretches.Normal);
-
-            // Letters as high as the canvas sets them: a capital of a TrueType font is about 0.72 of the size.
-            var formatted = new FormattedText(text, CultureInfo.CurrentUICulture, FlowDirection.LeftToRight, typeface, Math.Max(1.0, height / 0.72), brush, 1.0);
-            var decorations = new TextDecorationCollection();
-
-            if (look.Underline)
+            if (!_pens.TryGetValue(rgb, out Pen pen))
             {
-                decorations.Add(TextDecorations.Underline);
+                pen = FreezePen(new Pen(BrushOf(rgb, true), 1.0));
+                _pens[rgb] = pen;
             }
 
-            if (look.Overline)
-            {
-                decorations.Add(TextDecorations.OverLine);
-            }
-
-            if (look.Strikethrough)
-            {
-                decorations.Add(TextDecorations.Strikethrough);
-            }
-
-            if (decorations.Count > 0)
-            {
-                formatted.SetTextDecorations(decorations);
-            }
-
-            return formatted;
+            return pen;
         }
 
-        /// <summary>Lays the words out: each paragraph a line, each run measured, each place given its left and width.</summary>
-        private void Layout()
-        {
-            _lines.Clear();
-
-            if (_model == null)
-            {
-                _areaWidth = 0.0;
-                _textHeight = 0.0;
-                return;
-            }
-
-            CadMTextEditor editor = _model.Editor;
-            double baseHeight = editor.Height * _pixelsPerUnit;
-            double spacing = _model.LineSpacing;
-            var line = new LineLayout { Start = 0 };
-            int i = 0;
-
-            while (true)
-            {
-                if (i >= editor.Length || editor.TextAt(i) == "\n")
-                {
-                    line.End = i;
-                    _lines.Add(line);
-
-                    if (i >= editor.Length)
-                    {
-                        break;
-                    }
-
-                    line = new LineLayout { Start = i + 1 };
-                    i++;
-                    continue;
-                }
-
-                // A run: the places of one look in a row, measured place by place.
-                CadMTextLook look = editor.LookAt(i);
-                int start = i;
-                var letters = new System.Text.StringBuilder();
-
-                while (i < editor.Length && editor.TextAt(i) != "\n" && editor.LookAt(i).Equals(look))
-                {
-                    letters.Append(editor.TextAt(i));
-                    i++;
-                }
-
-                double height = (look.Height ?? editor.Height) * _pixelsPerUnit;
-                double factor = look.WidthFactor ?? 1.0;
-                var run = new RunLayout { Text = letters.ToString(), Look = look, Height = height, WidthFactor = factor, X = line.Width };
-                double pen = line.Width;
-                int offset = 0;
-
-                for (int k = start; k < i; k++)
-                {
-                    string cell = editor.TextAt(k);
-                    offset += cell.Length;
-                    double reach = Formatted(run.Text.Substring(0, offset), look, height, Brushes.White).WidthIncludingTrailingWhitespace * factor;
-                    line.Cells.Add(new CellLayout { Index = k, X = pen, Width = line.Width + reach - pen });
-                    pen = line.Width + reach;
-                }
-
-                line.Runs.Add(run);
-                line.Width = pen;
-                line.Tallest = Math.Max(line.Tallest, height);
-            }
-
-            double y = 0.0;
-
-            for (int k = 0; k < _lines.Count; k++)
-            {
-                LineLayout each = _lines[k];
-                each.Tallest = each.Tallest > 0.0 ? each.Tallest : baseHeight;
-                y += k == 0 ? each.Tallest : 1.25 * spacing * each.Tallest;
-                each.Baseline = y;
-            }
-
-            double widest = 0.0;
-
-            foreach (LineLayout each in _lines)
-            {
-                widest = Math.Max(widest, each.Width);
-            }
-
-            _areaWidth = Math.Max(Math.Max(_model.Width * _pixelsPerUnit, widest), 40.0);
-            _textHeight = y + (_lines.Count > 0 ? _lines[_lines.Count - 1].Tallest * 0.25 : 0.0);
-            double top = Top;
-
-            // Each line put in the frame by its paragraph's alignment, and down below the ruler.
-            for (int k = 0; k < _lines.Count; k++)
-            {
-                LineLayout each = _lines[k];
-                char alignment = AlignmentOf(each.Start);
-                double shift = Pad + (alignment == 'c' ? (_areaWidth - each.Width) / 2.0 : alignment == 'r' ? _areaWidth - each.Width : 0.0);
-                each.Baseline += top;
-
-                foreach (CellLayout cell in each.Cells)
-                {
-                    cell.X += shift;
-                }
-
-                foreach (RunLayout run in each.Runs)
-                {
-                    run.X += shift;
-                }
-
-                each.Left = shift;
-            }
-        }
-
-        private char AlignmentOf(int place)
-        {
-            CadMTextEditor editor = _model.Editor;
-
-            // The editor gives the alignment of the paragraph of its caret; the frame asks it of each line's.
-            CadMTextContent content = editor.Content;
-            int paragraph = editor.ParagraphOf(place);
-            char alignment = paragraph < content.Paragraphs.Count ? content.Paragraphs[paragraph].Alignment : '\0';
-            return alignment == '\0' ? editor.DefaultAlignment : alignment;
-        }
-
-        private LineLayout LineOf(int place)
-        {
-            foreach (LineLayout line in _lines)
-            {
-                if (place >= line.Start && place <= line.End)
-                {
-                    return line;
-                }
-            }
-
-            return _lines.Count > 0 ? _lines[_lines.Count - 1] : new LineLayout();
-        }
-
-        private Point CaretPoint(out double height)
-        {
-            CadMTextEditor editor = _model.Editor;
-            LineLayout line = LineOf(editor.Caret);
-            height = line.Tallest;
-
-            foreach (CellLayout cell in line.Cells)
-            {
-                if (cell.Index == editor.Caret)
-                {
-                    return new Point(cell.X, line.Baseline);
-                }
-            }
-
-            double x = line.Cells.Count > 0 ? line.Cells[line.Cells.Count - 1].X + line.Cells[line.Cells.Count - 1].Width : line.Left;
-            return new Point(x, line.Baseline);
-        }
-
-        private void OnEditorChanged(object sender, EventArgs e)
-        {
-            InvalidateMeasure();
-            InvalidateVisual();
-        }
+        private void OnEditorChanged(object sender, EventArgs e) => Restale();
 
         private void OnModelChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
             if (e.PropertyName == nameof(TextEditorViewModel.IsRulerShown) || e.PropertyName == nameof(TextEditorViewModel.Attachment)
                 || e.PropertyName == nameof(TextEditorViewModel.LineSpacing) || e.PropertyName == nameof(TextEditorViewModel.Width))
             {
-                InvalidateMeasure();
-                InvalidateVisual();
+                Restale();
             }
         }
 
@@ -781,47 +803,6 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             pen.Freeze();
             return pen;
-        }
-
-        private sealed class LineLayout
-        {
-            public int Start { get; set; }
-
-            public int End { get; set; }
-
-            public double Width { get; set; }
-
-            public double Left { get; set; }
-
-            public double Tallest { get; set; }
-
-            public double Baseline { get; set; }
-
-            public List<CellLayout> Cells { get; } = new List<CellLayout>();
-
-            public List<RunLayout> Runs { get; } = new List<RunLayout>();
-        }
-
-        private sealed class CellLayout
-        {
-            public int Index { get; set; }
-
-            public double X { get; set; }
-
-            public double Width { get; set; }
-        }
-
-        private sealed class RunLayout
-        {
-            public string Text { get; set; }
-
-            public CadMTextLook Look { get; set; }
-
-            public double Height { get; set; }
-
-            public double WidthFactor { get; set; }
-
-            public double X { get; set; }
         }
     }
 }
