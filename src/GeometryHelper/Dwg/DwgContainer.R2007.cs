@@ -165,9 +165,16 @@ namespace GeometryHelper.Dwg
 
             var data = new byte[count];
 
-            for (long m = 0; m < count; m++)
+            long m = 0;
+
+            for (long j = 0; m < count; j++)
             {
-                data[m] = file[at + ((m % k) * blocks) + (m / k)];
+                long from = at + j;
+
+                for (int i = 0; i < k && m < count; i++, m++, from += blocks)
+                {
+                    data[m] = file[from];
+                }
             }
 
             return data;
