@@ -93,7 +93,14 @@ namespace GeometryHelper.Dxf.Viewer
                 }
 
                 double last = c.Remembered("circle", 0.0);
-                yield return CadPrompt.ForDistance("Specify radius of circle", touches[1].Pick, null, last > 0.0 ? Length(last) : null);
+
+                // The circle of the radius touching both, of the centres the shapes moved by it either way cross, the one whose
+                // points of touching lie nearest the picks, as FILLET finds its arc.
+                bool Touching(double r, out GeoPoint2 at)
+                    => Tangent(touches[0].Shape, touches[0].Pick, touches[1].Shape, touches[1].Pick, r, c.Session.Tolerance, out at, out _, out _);
+
+                yield return CadPrompt.ForDistance("Specify radius of circle", touches[1].Pick, null, last > 0.0 ? Length(last) : null)
+                    .Previewing(CadPreview.MakingOne(c, input => input.Number > 0.0 && Touching(input.Number, out GeoPoint2 at) ? MakeCircle(c, at, input.Number) : null, true));
                 radius = c.Input.Kind == CadInputKind.Number ? c.Input.Number : last;
 
                 if (radius <= 0.0)
@@ -102,9 +109,7 @@ namespace GeometryHelper.Dxf.Viewer
                     yield break;
                 }
 
-                // The circle of the radius touching both, of the centres the shapes moved by it either way cross, the one whose
-                // points of touching lie nearest the picks, as FILLET finds its arc.
-                if (!Tangent(touches[0].Shape, touches[0].Pick, touches[1].Shape, touches[1].Pick, radius, c.Session.Tolerance, out center, out _, out _))
+                if (!Touching(radius, out center))
                 {
                     c.Write("Circle does not exist.");
                     yield break;
@@ -120,7 +125,8 @@ namespace GeometryHelper.Dxf.Viewer
                 }
 
                 GeoPoint2 a = c.Input.Point;
-                yield return CadPrompt.ForPoint("Specify second end point of circle's diameter", a);
+                yield return CadPrompt.ForPoint("Specify second end point of circle's diameter", a)
+                    .Previewing(CadPreview.MakingOne(c, input => (input.Point - a).Length > 0.0 ? MakeCircle(c, new GeoPoint2((a.X + input.Point.X) / 2.0, (a.Y + input.Point.Y) / 2.0), (input.Point - a).Length / 2.0) : null));
 
                 if (!c.Input.IsPoint)
                 {
@@ -138,9 +144,16 @@ namespace GeometryHelper.Dxf.Viewer
                 var touches = new List<Touch>();
                 string[] messages = { "Specify first point on circle", "Specify second point on circle", "Specify third point on circle" };
 
+                // The circle of the two given and the third at the cursor, as it is made once the third is given.
+                DxfEntity Third(Touch third)
+                {
+                    var three = new List<Touch>(touches) { third };
+                    return CircleOf(three, c.Session.Tolerance, out GeoPoint2 at, out double r) && r > 0.0 ? MakeCircle(c, at, r) : null;
+                }
+
                 for (int i = 0; i < 3; i++)
                 {
-                    foreach (CadPrompt prompt in AskTouch(c, messages[i], i == 0 ? (GeoPoint2?)null : touches[i - 1].Pick, touches, false))
+                    foreach (CadPrompt prompt in AskTouch(c, messages[i], i == 0 ? (GeoPoint2?)null : touches[i - 1].Pick, touches, false, i == 2 ? Third : (Func<Touch, DxfEntity>)null))
                     {
                         yield return prompt;
                     }
@@ -156,10 +169,7 @@ namespace GeometryHelper.Dxf.Viewer
                     }
                 }
 
-                bool through = touches.TrueForAll(t => t.Shape == null);
-
-                if (through ? !CadGrips.CircleThrough(touches[0].Pick, touches[1].Pick, touches[2].Pick, out center, out radius)
-                    : !CircleTouching(touches, c.Session.Tolerance, out center, out radius))
+                if (!CircleOf(touches, c.Session.Tolerance, out center, out radius))
                 {
                     c.Write("Circle does not exist.");
                     yield break;
@@ -168,13 +178,16 @@ namespace GeometryHelper.Dxf.Viewer
             else if (c.Input.IsPoint)
             {
                 center = c.Input.Point;
+                GeoPoint2 at = center;
                 double last = c.Remembered("circle", 0.0);
                 string offered = last > 0.0 ? Length(last) : null;
-                yield return CadPrompt.ForDistance("Specify radius of circle", center, new[] { "Diameter" }, offered);
+                yield return CadPrompt.ForDistance("Specify radius of circle", center, new[] { "Diameter" }, offered)
+                    .Previewing(CadPreview.MakingOne(c, input => input.Number > 0.0 ? MakeCircle(c, at, input.Number) : null, true));
 
                 if (c.Input.Is("Diameter"))
                 {
-                    yield return CadPrompt.ForDistance("Specify diameter of circle", center, null, last > 0.0 ? Length(2.0 * last) : null);
+                    yield return CadPrompt.ForDistance("Specify diameter of circle", center, null, last > 0.0 ? Length(2.0 * last) : null)
+                        .Previewing(CadPreview.MakingOne(c, input => input.Number > 0.0 ? MakeCircle(c, at, input.Number / 2.0) : null, true));
                     radius = c.Input.Kind == CadInputKind.Number ? c.Input.Number / 2.0 : last;
                 }
                 else
@@ -194,10 +207,19 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             c.Remember("circle", radius);
-            GeoPoint2 at = center;
+            GeoPoint2 middle = center;
             double r = radius;
-            c.Apply(null, s => s.Append(c.Space, Current(c, new DxfCircle(P3(at), Up, r))));
+            c.Apply(null, s => s.Append(c.Space, MakeCircle(c, middle, r)));
         }
+
+        /// <summary>The circle CIRCLE makes, and previews, of a centre and a radius, in the current layer and colour.</summary>
+        private static DxfCircle MakeCircle(CadCommandContext c, GeoPoint2 center, double radius) => Current(c, new DxfCircle(P3(center), Up, radius));
+
+        /// <summary>The circle through three points, or through some and touching the objects of the others.</summary>
+        private static bool CircleOf(List<Touch> touches, Tolerance tolerance, out GeoPoint2 center, out double radius)
+            => touches.TrueForAll(t => t.Shape == null)
+                ? CadGrips.CircleThrough(touches[0].Pick, touches[1].Pick, touches[2].Pick, out center, out radius)
+                : CircleTouching(touches, tolerance, out center, out radius);
 
         private static IEnumerable<CadPrompt> Rectangle(CadCommandContext c)
         {
@@ -212,20 +234,40 @@ namespace GeometryHelper.Dxf.Viewer
             CadUcs ucs = c.Session.Ucs;
             GeoPoint2 first = c.Input.Point;
             GeoPoint2 a = ucs.ToUcs(first);
-            GeoPoint2 b;
+
+            // The rectangle of the other corner, as it is previewed and made; none where the corners lie in a line.
+            DxfPolyline Make(GeoPoint2 other)
+            {
+                GeoPoint2 b = ucs.ToUcs(other);
+
+                if (!(Math.Abs(b.X - a.X) > c.Session.Tolerance.EqualPoint && Math.Abs(b.Y - a.Y) > c.Session.Tolerance.EqualPoint))
+                {
+                    return null;
+                }
+
+                var rectangle = new DxfPolyline();
+                rectangle.AddVertexAt(0, ucs.ToWorld(a), 0.0, 0.0, 0.0);
+                rectangle.AddVertexAt(1, ucs.ToWorld(new GeoPoint2(b.X, a.Y)), 0.0, 0.0, 0.0);
+                rectangle.AddVertexAt(2, ucs.ToWorld(b), 0.0, 0.0, 0.0);
+                rectangle.AddVertexAt(3, ucs.ToWorld(new GeoPoint2(a.X, b.Y)), 0.0, 0.0, 0.0);
+                rectangle.Closed = true;
+                return Current(c, rectangle);
+            }
+
+            GeoPoint2 corner;
 
             while (true)
             {
-                yield return CadPrompt.ForPoint("Specify other corner point", first);
+                yield return CadPrompt.ForPoint("Specify other corner point", first).Previewing(CadPreview.MakingOne(c, input => Make(input.Point)));
 
                 if (!c.Input.IsPoint)
                 {
                     yield break;
                 }
 
-                b = ucs.ToUcs(c.Input.Point);
+                corner = c.Input.Point;
 
-                if (Math.Abs(b.X - a.X) > c.Session.Tolerance.EqualPoint && Math.Abs(b.Y - a.Y) > c.Session.Tolerance.EqualPoint)
+                if (Make(corner) != null)
                 {
                     break;
                 }
@@ -233,16 +275,7 @@ namespace GeometryHelper.Dxf.Viewer
                 c.Write("*Invalid* The corners lie in a line.");
             }
 
-            c.Apply(null, s =>
-            {
-                var rectangle = new DxfPolyline();
-                rectangle.AddVertexAt(0, ucs.ToWorld(a), 0.0, 0.0, 0.0);
-                rectangle.AddVertexAt(1, ucs.ToWorld(new GeoPoint2(b.X, a.Y)), 0.0, 0.0, 0.0);
-                rectangle.AddVertexAt(2, ucs.ToWorld(b), 0.0, 0.0, 0.0);
-                rectangle.AddVertexAt(3, ucs.ToWorld(new GeoPoint2(a.X, b.Y)), 0.0, 0.0, 0.0);
-                rectangle.Closed = true;
-                s.Append(c.Space, Current(c, rectangle));
-            });
+            c.Apply(null, s => s.Append(c.Space, Make(corner)));
         }
 
         /// <summary>
@@ -307,12 +340,41 @@ namespace GeometryHelper.Dxf.Viewer
                 yield break;
             }
 
-            yield return CadPrompt.ForDistance("Specify distance to other axis", center, new[] { "Rotation" });
+            // The ellipse of the other axis's half, from the start angle to the end angle about the first axis given, as it is
+            // previewed and made; none where the other axis has no length.
+            GeoPoint2 middle = center;
+            GeoVector2 first = half;
+            GeoVector2 given = axis;
+
+            DxfEllipse Make(double length, double from, double to, bool part)
+            {
+                if (!(length > c.Session.Tolerance.EqualPoint))
+                {
+                    return null;
+                }
+
+                // The longer half is the major axis; the shorter lies square to it.
+                GeoVector2 major = length > first.Length ? new GeoVector2(-first.Y, first.X) / first.Length * length : first;
+                double ratio = Math.Min(length, first.Length) / Math.Max(length, first.Length);
+
+                // The ellipse measures its angles from its major axis.
+                if (part)
+                {
+                    from += Math.Atan2(given.Y, given.X) - Math.Atan2(major.Y, major.X);
+                    to += Math.Atan2(given.Y, given.X) - Math.Atan2(major.Y, major.X);
+                }
+
+                return Current(c, new DxfEllipse(P3(middle), new GeoVector3(0.0, 0.0, 1.0), new GeoVector3(major.X, major.Y, 0.0), ratio, from, to));
+            }
+
+            yield return CadPrompt.ForDistance("Specify distance to other axis", center, new[] { "Rotation" })
+                .Previewing(CadPreview.MakingOne(c, input => Make(Math.Abs(input.Number), 0.0, 2.0 * Math.PI, false), true));
             double other;
 
             if (c.Input.Is("Rotation"))
             {
-                yield return CadPrompt.ForAngle("Specify rotation around major axis", center);
+                yield return CadPrompt.ForAngle("Specify rotation around major axis", center)
+                    .Previewing(CadPreview.MakingOne(c, input => Math.Abs(Math.Cos(input.Number)) < Math.Cos(89.4 * Math.PI / 180.0) ? null : Make(first.Length * Math.Abs(Math.Cos(input.Number)), 0.0, 2.0 * Math.PI, false), true));
 
                 // AutoCAD takes a rotation below 89.4 degrees, the other half the first's times its cosine.
                 if (c.Input.Kind != CadInputKind.Number || Math.Abs(Math.Cos(c.Input.Number)) < Math.Cos(89.4 * Math.PI / 180.0))
@@ -338,18 +400,15 @@ namespace GeometryHelper.Dxf.Viewer
                 yield break;
             }
 
-            // The longer half is the major axis; the shorter lies square to it.
-            GeoVector2 major = other > half.Length ? new GeoVector2(-half.Y, half.X) / half.Length * other : half;
-            double ratio = Math.Min(other, half.Length) / Math.Max(other, half.Length);
             double start = 0.0;
             double end = 2.0 * Math.PI;
 
             if (arc)
             {
                 // An angle typed is from the first axis end; one picked is the way to the point, made from that end too.
-                double from = Math.Atan2(axis.Y, axis.X);
-                double fromUcs = c.Session.Ucs.AngleToUcs(from);
-                yield return CadPrompt.ForAngle("Specify start angle", center);
+                double fromUcs = c.Session.Ucs.AngleToUcs(Math.Atan2(axis.Y, axis.X));
+                yield return CadPrompt.ForAngle("Specify start angle", center)
+                    .Previewing(CadPreview.MakingOne(c, input => Make(other, 0.0, 2.0 * Math.PI, false), true));
 
                 if (c.Input.Kind != CadInputKind.Number)
                 {
@@ -357,11 +416,14 @@ namespace GeometryHelper.Dxf.Viewer
                 }
 
                 start = Typed(c.Input) ? c.Input.Number : c.Input.Number - fromUcs;
-                yield return CadPrompt.ForAngle("Specify end angle", center, new[] { "Included angle" });
+                double begin = start;
+                yield return CadPrompt.ForAngle("Specify end angle", center, new[] { "Included angle" })
+                    .Previewing(CadPreview.MakingOne(c, input => Make(other, begin, input.Number - fromUcs, true), true));
 
                 if (c.Input.Is("Included angle"))
                 {
-                    yield return CadPrompt.ForAngle("Specify included angle for arc", center, null, "180");
+                    yield return CadPrompt.ForAngle("Specify included angle for arc", center, null, "180")
+                        .Previewing(CadPreview.MakingOne(c, input => Make(other, begin, input.Number - fromUcs, true), true));
                     end = c.Input.IsNone ? start + Math.PI : c.Input.Kind != CadInputKind.Number ? double.NaN : Typed(c.Input) ? start + c.Input.Number : c.Input.Number - fromUcs;
                 }
                 else
@@ -373,13 +435,9 @@ namespace GeometryHelper.Dxf.Viewer
                 {
                     yield break;
                 }
-
-                // The ellipse measures its angles from its major axis.
-                start += from - Math.Atan2(major.Y, major.X);
-                end += from - Math.Atan2(major.Y, major.X);
             }
 
-            c.Apply(null, s => s.Append(c.Space, Current(c, new DxfEllipse(P3(center), new GeoVector3(0.0, 0.0, 1.0), new GeoVector3(major.X, major.Y, 0.0), ratio, start, end))));
+            c.Apply(null, s => s.Append(c.Space, Make(other, start, end, arc)));
         }
 
         /// <summary>POINT: one point object where the point is given, drawn as the drawing's PDMODE says.</summary>
