@@ -129,6 +129,44 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Equal("Standard", CadTableStyleEditor.Current(document.Database));
         }
 
+        /// <summary>A new drawing of R2013 written without its OBJECTS section, as a program that writes only the tables, blocks and entities saves one.</summary>
+        private static CadDocument NoObjects()
+        {
+            string text = new DxfDatabase("AC1027").ToText().Replace("\r\n", "\n");
+            int objects = text.IndexOf("  0\nSECTION\n  2\nOBJECTS\n", StringComparison.Ordinal);
+            int end = text.IndexOf("  0\nENDSEC\n", objects, StringComparison.Ordinal) + "  0\nENDSEC\n".Length;
+            CadDocument document = CadDocument.From(DxfDatabase.Parse(text.Substring(0, objects) + text.Substring(end)), "noobjects.dxf");
+            Assert.Null(document.Database.NamedObjectsDictionary);
+            return document;
+        }
+
+        [Fact]
+        public void ATableStyleAdded_OnADrawingWithNoObjectsSection_MakesTheNamedObjectDictionary_AsAutoCadOpensOne()
+        {
+            CadDocument document = NoObjects();
+
+            Assert.True(CadTableStyleEditor.AddStandard(document).Succeeded);
+            Assert.True(CadTableStyleEditor.Add(document, "GH_SCHEDULE", "Standard").Succeeded);
+
+            Assert.Equal(new[] { "GH_SCHEDULE", "Standard" }, CadTableStyleEditor.Styles(document.Database).OrderBy(n => n, StringComparer.Ordinal));
+            AssertReopens(document);
+            Assert.True(document.Undo());
+            Assert.True(document.Undo());
+            Assert.Null(document.Database.TableStyleDictionary);
+        }
+
+        [Fact]
+        public void TableTyped_OnADrawingWithNoObjectsSection_MakesStandardInANewNamedObjectDictionary()
+        {
+            CadDocument document = NoObjects();
+            Run(Session(document), "-TABLE", "2", "1", P(0, 0));
+
+            DxfTable table = Assert.Single(All<DxfTable>(document.ModelSpace));
+            Assert.Equal("Standard", table.TableStyleName);
+            Assert.NotNull(CadTableStyleEditor.Find(document.Database, "Standard"));
+            AssertReopens(document);
+        }
+
         [Fact]
         public void TableEdit_PicksACell_AndEnterGoesDown_ShiftTabBack()
         {
