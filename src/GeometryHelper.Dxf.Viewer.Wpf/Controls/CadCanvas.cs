@@ -201,6 +201,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private bool _swallowUp;
         private Point? _pointDown;
         private GeoPoint2? _cursor;
+        private string _typed;
         private Point? _mouse;
         private double _crosshairPercent;
         private int _gripRgb = 0x3D9BFF;
@@ -1248,6 +1249,21 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             if (Session?.Prompt?.Preview != null)
             {
                 InvalidateVisual();
+            }
+        }
+
+        /// <summary>Gets or sets the text typed so far in the command line, which a preview of a line of text draws, as TEXT's at "Enter text".</summary>
+        internal string Typed
+        {
+            get => _typed;
+            set
+            {
+                _typed = value;
+
+                if (Session?.Prompt?.Kind == CadPromptKind.String && Session.Prompt.Preview != null)
+                {
+                    InvalidateVisual();
+                }
             }
         }
 
@@ -3015,6 +3031,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private void DrawPrompt(DrawingContext dc, CadView view, double scale)
         {
             CadCommandSession session = Session;
+
+            // A prompt for a line of text previews the words typed so far, wherever the cursor is.
+            if (session?.Prompt?.Kind == CadPromptKind.String && session.Prompt.Preview != null)
+            {
+                session.Prompt.Preview.Typed = Typed;
+                DrawPreview(dc, view, scale, _cursor ?? default(GeoPoint2));
+                return;
+            }
 
             // A prompt for objects previews what the object under the cursor would give, as FILLET its arc; a prompt for a
             // keyword what Enter would, as -ARRAY's copies while it asks whether to rotate them.

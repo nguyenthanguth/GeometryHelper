@@ -56,6 +56,13 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         public bool Shift { get; set; }
 
+        /// <summary>
+        /// Gets or sets the text typed so far at a prompt for a line of text, which a window sets before it asks for the
+        /// preview: the answer previewed is then that text, so that TEXT at "Enter text" previews the words typed where the
+        /// line will stand. Null or empty previews nothing there.
+        /// </summary>
+        public string Typed { get; set; }
+
         /// <summary>Gets the objects whose copies <see cref="Moves"/> places, in ordinal order; empty where the preview moves none.</summary>
         public IReadOnlyList<string> Handles { get; }
 
@@ -174,6 +181,11 @@ namespace GeometryHelper.Dxf.Viewer
                 {
                     return new CadInput(CadInputKind.Selection, cursor, 0.0, null, new[] { picked[0] });
                 }
+            }
+
+            if (prompt != null && prompt.Kind == CadPromptKind.String)
+            {
+                return new CadInput(CadInputKind.Text, cursor, 0.0, Typed ?? string.Empty, null);
             }
 
             if (prompt == null || (prompt.Kind != CadPromptKind.Distance && prompt.Kind != CadPromptKind.Angle) || !from.HasValue)

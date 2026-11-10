@@ -151,8 +151,10 @@ a radius of 12, show the arc from (0, 12) to (12, 0). TRIM, in Quick mode and in
 over the object, and EXTEND the object run on to its edge; while Shift is held each draws what the other would do, as a
 pick with Shift does. LENGTHEN DYnamic draws the object with its end at the cursor, BREAK
 the piece its second point would take out, faded as TRIM's. HATCH, at "Pick internal point", draws the hatch Enter would
-make of the areas picked so far and the one under the cursor. TEXT draws a square of the height on the baseline while
-its height and rotation are asked, TABLE the outline of the table at the cursor, MLEADER the leader and its landing, QDIM
+make of the areas picked so far and the one under the cursor. TEXT draws a square of the height while
+its height and rotation are asked, held at the point as the justification holds the text (on the baseline to the right
+of it for Left, half to each side for Center, about it for Middle, below it for the Top ones, as long as the two points
+are apart for Fit), and at "Enter text" the words typed so far where the line will stand. TABLE draws the outline of the table at the cursor, MLEADER the leader and its landing, QDIM
 the whole row of dimensions. ROTATE and SCALE by Reference Points move the ghost at the second point, -ARRAY's unit cell
 shows every copy, and ALIGN moves the ghost by its first pair and turns it by its second. -ARRAY shows its copies too
 while the distance between columns is shown by two points, and in a Polar array while the angle to fill and the angle

@@ -112,6 +112,13 @@ by their base point as the paste puts them, and drawn by the layers and blocks t
 text of another app is shown as the MTEXT it becomes. PASTEORIG asks no point and previews nothing. Nothing comes into
 the drawing until the point is picked.
 
+**NEW.** TEXT's preview follows the justification, and shows the words while they are typed. The square of the height
+is held at the point as the text will be: a height of 5 at (10, 10) gives the square from (10, 10) to (15, 15) for Left,
+from (7.5, 10) to (12.5, 15) for Center, from (7.5, 7.5) to (12.5, 12.5) for Middle, from (10, 5) to (15, 10) for TL; a
+text fitted between two points gives the box as long as they are apart. At "Enter text" the canvas draws the words
+typed so far in their style, height, rotation and justification, by the code that then makes the line
+(`CadPreview.Typed`, which the window sets from the command line).
+
 **FIXED.** ROTATE's ghost in a UCS turned from the world's now turns by the angle the objects are turned: in a UCS turned
 30 degrees it turned 30 degrees more than the result.
 

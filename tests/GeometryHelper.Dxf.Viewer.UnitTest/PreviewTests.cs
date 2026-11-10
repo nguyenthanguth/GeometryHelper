@@ -765,6 +765,59 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Equal(Math.PI / 2.0, text.Rotation, 9);
         }
 
+        [Theory]
+        [InlineData("C", "7.500000 10.000000 12.500000 10.000000 12.500000 15.000000 7.500000 15.000000")]
+        [InlineData("R", "5.000000 10.000000 10.000000 10.000000 10.000000 15.000000 5.000000 15.000000")]
+        [InlineData("M", "7.500000 7.500000 12.500000 7.500000 12.500000 12.500000 7.500000 12.500000")]
+        [InlineData("TL", "10.000000 5.000000 15.000000 5.000000 15.000000 10.000000 10.000000 10.000000")]
+        [InlineData("TR", "5.000000 5.000000 10.000000 5.000000 10.000000 10.000000 5.000000 10.000000")]
+        [InlineData("MC", "7.500000 7.500000 12.500000 7.500000 12.500000 12.500000 7.500000 12.500000")]
+        [InlineData("ML", "10.000000 7.500000 15.000000 7.500000 15.000000 12.500000 10.000000 12.500000")]
+        [InlineData("BR", "5.000000 10.000000 10.000000 10.000000 10.000000 15.000000 5.000000 15.000000")]
+        public void TextJustified_PreviewsTheBoxHeldAtThePointAsTheTextIs(string justify, string box)
+        {
+            CadCommandSession session = Started("TEXT", "J", justify, P(10, 10));
+            Assert.StartsWith("Specify height", session.PromptText);
+            Assert.Equal("DisplayPolyline2 closed " + box, Assert.Single(Shapes(session.Prompt.Preview.Items(P(10, 15)))));
+        }
+
+        [Fact]
+        public void TextFittedBetweenTwoPoints_PreviewsTheBoxAsLongAsTheyAreApart()
+        {
+            CadCommandSession session = Started("TEXT", "J", "F", P(10, 10), P(40, 10));
+            Assert.StartsWith("Specify height", session.PromptText);
+            Assert.Equal("DisplayPolyline2 closed 10.000000 10.000000 40.000000 10.000000 40.000000 15.000000 10.000000 15.000000", Assert.Single(Shapes(session.Prompt.Preview.Items(P(10, 15)))));
+        }
+
+        [Theory]
+        [InlineData("L")]
+        [InlineData("MC")]
+        public void TextAskingItsWords_PreviewsTheWordsTypedSoFar_AsTheLineIsThenMade(string justify)
+        {
+            CadCommandSession session = Started("TEXT", "J", justify, P(10, 10), "5", "30");
+            Assert.StartsWith("Enter text", session.PromptText);
+            CadPreview preview = session.Prompt.Preview;
+            Assert.Empty(preview.Items(P(0, 0)));
+
+            preview.Typed = "Steel S355";
+            int history = session.History.Count;
+            List<string> previewed = Shapes(preview.Items(P(0, 0)));
+            Assert.NotEmpty(previewed);
+            Assert.Equal(history, session.History.Count);
+            Assert.Empty(All<DxfDBText>(session.Document.ModelSpace));
+
+            Run(session, "Steel S355");
+            Assert.Equal(Shapes(session.Document.GetDisplay(session.Document.ModelSpace).Items), previewed);
+
+            // The next line is previewed below the first, where it is then written.
+            session.Prompt.Preview.Typed = "Bolts";
+            previewed = Shapes(session.Prompt.Preview.Items(P(0, 0)));
+            Run(session, "Bolts", Enter);
+            Assert.NotEmpty(previewed);
+            List<string> drawn = Shapes(session.Document.GetDisplay(session.Document.ModelSpace).Items);
+            Assert.Equal(drawn.Skip(drawn.Count - previewed.Count), previewed);
+        }
+
         [Fact]
         public void TableAskingItsInsertionPoint_PreviewsTheOutlineOfTheTable()
         {

@@ -1089,6 +1089,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return;
             }
 
+            CanvasView.Typed = _model.CommandText;
             _suggest.Stop();
 
             if (_model.CommandText.Length > 0 && !_model.IsSuggestionListOpen)
