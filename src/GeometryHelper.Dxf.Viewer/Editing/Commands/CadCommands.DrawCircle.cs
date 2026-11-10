@@ -13,13 +13,26 @@ namespace GeometryHelper.Dxf.Viewer
         /// tangent only or <c>_tan</c> was typed first, a point on a line, an arc or a circle, said so where it is on none. Adds
         /// what was given to the list, nothing where the command ends.
         /// </summary>
-        private static IEnumerable<CadPrompt> AskTouch(CadCommandContext c, string message, GeoPoint2? basePoint, List<Touch> touches, bool tangentOnly)
+        private static IEnumerable<CadPrompt> AskTouch(CadCommandContext c, string message, GeoPoint2? basePoint, List<Touch> touches, bool tangentOnly, Func<Touch, DxfEntity> preview = null)
         {
             bool tangent = tangentOnly;
 
             while (true)
             {
-                yield return tangent && !tangentOnly ? CadPrompt.ForPoint("to", basePoint) : CadPrompt.ForPoint(message, basePoint, null, null, !tangentOnly);
+                CadPrompt asked = tangent && !tangentOnly ? CadPrompt.ForPoint("to", basePoint) : CadPrompt.ForPoint(message, basePoint, null, null, !tangentOnly);
+
+                // The circle the point at the cursor would give, or the object under it where a tangent is asked.
+                if (preview != null)
+                {
+                    bool touching = tangent;
+                    asked.Previewing(CadPreview.MakingOne(c, input =>
+                    {
+                        DxfEntity under = touching ? TouchedAt(c, input.Point) : null;
+                        return touching && under == null ? null : preview(new Touch(message, input.Point, under));
+                    }));
+                }
+
+                yield return asked;
 
                 if (c.Input.Kind == CadInputKind.Text && !tangent)
                 {

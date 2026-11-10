@@ -115,9 +115,15 @@ namespace GeometryHelper.Dxf.Viewer
                 while (true)
                 {
                     string ask = through ? "Specify through point" : "Specify point on side to offset";
-                    yield return multiple
+                    string from = source;
+
+                    // The offset the point at the cursor would make, as AutoCAD 2021 drags it to the side the cursor is on.
+                    CadPreview shown = CadPreview.Making(c, input => OffsetCurves(c, from, input.Point, distance, true) is IReadOnlyList<DxfCurve> curves
+                        ? OffsetCopies(curves, current ? c.Database.Clayer : null)
+                        : null);
+                    yield return (multiple
                         ? CadPrompt.ForPoint(ask, null, new[] { "Exit", "Undo" }, "next object")
-                        : CadPrompt.ForPoint(ask, null, new[] { "Exit", "Multiple", "Undo" }, "Exit");
+                        : CadPrompt.ForPoint(ask, null, new[] { "Exit", "Multiple", "Undo" }, "Exit")).Previewing(shown);
 
                     if (c.Input.Is("Exit"))
                     {
@@ -216,7 +222,66 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         private static string OffsetOne(CadCommandContext c, string handle, GeoPoint2 side, double distance, bool erase, bool currentLayer)
         {
-            var curve = (DxfCurve)c.Document.FindEntity(handle);
+            IReadOnlyList<DxfCurve> made = OffsetCurves(c, handle, side, distance);
+
+            if (made == null || made.Count == 0)
+            {
+                c.Write("Cannot offset that object.");
+                return null;
+            }
+
+            IReadOnlyList<CadEditRecord> planned = erase ? new[] { new CadEditRecord(CadEditRecordKind.Erased, handle) } : null;
+            string layer = c.Database.Clayer;
+            CadEditResult result = c.Apply(planned, s =>
+            {
+                CadSpace space = s.Document.FindSpace(handle);
+
+                foreach (DxfCurve copy in OffsetCopies(made, currentLayer ? layer : null))
+                {
+                    s.Append(space, copy);
+                }
+
+                if (erase && !s.IsHandled(handle))
+                {
+                    s.Document.FindEntity(handle).Erase();
+                }
+            });
+
+            return result.Succeeded ? AddedHandle(result) : null;
+        }
+
+        /// <summary>The curves OFFSET adds of those an offset made, as they are added and previewed: copies, on a layer given or their own.</summary>
+        private static List<DxfCurve> OffsetCopies(IReadOnlyList<DxfCurve> made, string layer)
+        {
+            var copies = new List<DxfCurve>();
+
+            foreach (DxfCurve piece in made)
+            {
+                DxfCurve copy = (DxfCurve)piece.Clone();
+                CadOwnerTag.Remove(copy);
+
+                if (layer != null)
+                {
+                    copy.Layer = layer;
+                }
+
+                copies.Add(copy);
+            }
+
+            return copies;
+        }
+
+        /// <summary>
+        /// The curves the offset of one curve to the side of a point, or through it, makes, as <see cref="OffsetOne"/> adds them
+        /// and the prompt of the side previews them; null where it makes none.
+        /// </summary>
+        private static IReadOnlyList<DxfCurve> OffsetCurves(CadCommandContext c, string handle, GeoPoint2 side, double distance, bool quiet = false)
+        {
+            if (!(c.Document.FindEntity(handle) is DxfCurve curve))
+            {
+                return null;
+            }
+
             GeoPoint3 at = P3(side);
             IReadOnlyList<DxfCurve> made;
 
@@ -229,7 +294,6 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (!(length > c.Session.Tolerance.EqualPoint))
                 {
-                    c.Write("Cannot offset that object.");
                     return null;
                 }
 
@@ -255,42 +319,16 @@ namespace GeometryHelper.Dxf.Viewer
             }
             catch (Exception exception) when (exception is ArgumentException || exception is InvalidOperationException || exception is NotSupportedException)
             {
-                GeometryHelperLog.Debug("OFFSET: " + handle + " has no offset there: " + exception.Message);
+                // The preview asks at every move of the mouse, and logs nothing.
+                if (!quiet)
+                {
+                    GeometryHelperLog.Debug("OFFSET: " + handle + " has no offset there: " + exception.Message);
+                }
+
                 made = null;
             }
 
-            if (made == null || made.Count == 0)
-            {
-                c.Write("Cannot offset that object.");
-                return null;
-            }
-
-            IReadOnlyList<CadEditRecord> planned = erase ? new[] { new CadEditRecord(CadEditRecordKind.Erased, handle) } : null;
-            string layer = c.Database.Clayer;
-            CadEditResult result = c.Apply(planned, s =>
-            {
-                CadSpace space = s.Document.FindSpace(handle);
-
-                foreach (DxfCurve piece in made)
-                {
-                    DxfCurve copy = (DxfCurve)piece.Clone();
-                    CadOwnerTag.Remove(copy);
-
-                    if (currentLayer)
-                    {
-                        copy.Layer = layer;
-                    }
-
-                    s.Append(space, copy);
-                }
-
-                if (erase && !s.IsHandled(handle))
-                {
-                    s.Document.FindEntity(handle).Erase();
-                }
-            });
-
-            return result.Succeeded ? AddedHandle(result) : null;
+            return made;
         }
 
         private static bool Outside(GeoPoint3 center, GeoPoint2 point, double radius)

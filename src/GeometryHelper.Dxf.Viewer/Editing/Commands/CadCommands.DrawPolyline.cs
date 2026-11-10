@@ -38,17 +38,23 @@ namespace GeometryHelper.Dxf.Viewer
                 GeoVector2 along = tangents[tangents.Count - 1];
                 int segments = points.Count - 1;
 
+                // The segment the point at the cursor would add, its widths drawn: a line, or the arc leaving the way the
+                // polyline came.
+                double[] drawn = { widths[0], widths[1] };
+
                 if (arcs)
                 {
                     yield return CadPrompt.ForPoint("Specify endpoint of arc" + HoldCtrl, last, segments >= 1
                         ? new[] { "Angle", "CEnter", "CLose", "Direction", "Halfwidth", "Line", "Radius", "Second pt", "Undo", "Width" }
-                        : new[] { "Angle", "CEnter", "Direction", "Halfwidth", "Line", "Radius", "Second pt", "Undo", "Width" });
+                        : new[] { "Angle", "CEnter", "Direction", "Halfwidth", "Line", "Radius", "Second pt", "Undo", "Width" })
+                        .Previewing(CadPreview.MakingOne(c, input => PlineSegment(c, last, input.Point, SweepLeaving(along, input.Point - last), drawn)));
                 }
                 else
                 {
                     yield return CadPrompt.ForPoint("Specify next point", last, segments >= 1
                         ? new[] { "Arc", "Close", "Halfwidth", "Length", "Undo", "Width" }
-                        : new[] { "Arc", "Halfwidth", "Length", "Undo", "Width" });
+                        : new[] { "Arc", "Halfwidth", "Length", "Undo", "Width" })
+                        .Previewing(CadPreview.MakingOne(c, input => PlineSegment(c, last, input.Point, 0.0, drawn)));
                 }
 
                 if (c.Input.Is("Arc"))
@@ -116,14 +122,13 @@ namespace GeometryHelper.Dxf.Viewer
                     // the angle between that way and the chord. Ctrl held takes it leaving the other way.
                     if (arcs)
                     {
-                        GeoVector2 way = c.Input.Control ? along * -1.0 : along;
-                        GeoVector2 chord = next - last;
-                        sweep = 2.0 * Math.Atan2(way.X * chord.Y - way.Y * chord.X, way.X * chord.X + way.Y * chord.Y);
+                        sweep = SweepLeaving(c.Input.Control ? along * -1.0 : along, next - last);
                     }
                 }
                 else if (!arcs && c.Input.Is("Length"))
                 {
-                    yield return CadPrompt.ForDistance("Specify length of line", last);
+                    yield return CadPrompt.ForDistance("Specify length of line", last)
+                        .Previewing(CadPreview.MakingOne(c, input => PlineSegment(c, last, last + along * input.Number, 0.0, drawn), true));
 
                     if (c.Input.Kind != CadInputKind.Number)
                     {
@@ -136,7 +141,7 @@ namespace GeometryHelper.Dxf.Viewer
                 {
                     var end = new PlineArcEnd();
 
-                    foreach (CadPrompt prompt in PlineArc(c, c.Input.Text, last, along, end))
+                    foreach (CadPrompt prompt in PlineArc(c, c.Input.Text, last, along, end, drawn))
                     {
                         yield return prompt;
                     }
@@ -177,13 +182,8 @@ namespace GeometryHelper.Dxf.Viewer
                 if (handle == null)
                 {
                     GeoPoint2 start = last;
-                    handle = AddedHandle(c.Apply(null, s =>
-                    {
-                        var made = new DxfPolyline();
-                        made.AddVertexAt(0, start, bulge, w0, w1);
-                        made.AddVertexAt(1, next, 0.0, w1, w1);
-                        s.Append(c.Space, Current(c, made));
-                    }));
+                    double turn = sweep;
+                    handle = AddedHandle(c.Apply(null, s => s.Append(c.Space, PlineSegment(c, start, next, turn, new[] { w0, w1 }))));
 
                     if (handle == null)
                     {
@@ -222,6 +222,27 @@ namespace GeometryHelper.Dxf.Viewer
                 tangents.Add(leaving);
             }
         }
+
+        /// <summary>
+        /// The polyline of one segment PLINE draws from a vertex to the next, as the first segment is made and every segment
+        /// is previewed: an arc of the sweep where it is not nought, the widths at its two ends. Null where the two lie at
+        /// one point.
+        /// </summary>
+        private static DxfPolyline PlineSegment(CadCommandContext c, GeoPoint2 from, GeoPoint2 next, double sweep, double[] widths)
+        {
+            if ((next - from).Length <= c.Session.Tolerance.EqualPoint || double.IsNaN(sweep))
+            {
+                return null;
+            }
+
+            var made = new DxfPolyline();
+            made.AddVertexAt(0, from, Math.Tan(sweep / 4.0), widths[0], widths[1]);
+            made.AddVertexAt(1, next, 0.0, widths[1], widths[1]);
+            return Current(c, made);
+        }
+
+        /// <summary>The sweep of the arc that leaves a point a way and ends along a chord from it: twice the angle between the two.</summary>
+        private static double SweepLeaving(GeoVector2 way, GeoVector2 chord) => 2.0 * Math.Atan2(way.X * chord.Y - way.Y * chord.X, way.X * chord.X + way.Y * chord.Y);
 
         /// <summary>Gives a vertex the widths of the segment leaving it, writing only those that change.</summary>
         private static void SetWidths(DxfPolyline polyline, int index, double start, double end)
@@ -289,9 +310,13 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>The arc segment of an option of PLINE's arc mode: Angle, CEnter, Direction, Radius or Second pt.</summary>
-        private static IEnumerable<CadPrompt> PlineArc(CadCommandContext c, string option, GeoPoint2 from, GeoVector2 along, PlineArcEnd result)
+        private static IEnumerable<CadPrompt> PlineArc(CadCommandContext c, string option, GeoPoint2 from, GeoVector2 along, PlineArcEnd result, double[] widths)
         {
             Tolerance tolerance = c.Session.Tolerance;
+
+            // The arc segment of an end and a sweep, as the polyline gets it; none where the end makes none.
+            CadPreview Shown(Func<CadInput, GeoPoint2?> end, Func<CadInput, double> turn, bool band = false)
+                => CadPreview.MakingOne(c, input => end(input) is GeoPoint2 to ? PlineSegment(c, from, to, turn(input), widths) : null, band);
 
             switch (option)
             {
@@ -304,7 +329,8 @@ namespace GeometryHelper.Dxf.Viewer
                         yield break;
                     }
 
-                    yield return CadPrompt.ForPoint("Specify endpoint of arc" + HoldCtrl, from, new[] { "CEnter", "Radius" });
+                    yield return CadPrompt.ForPoint("Specify endpoint of arc" + HoldCtrl, from, new[] { "CEnter", "Radius" })
+                        .Previewing(Shown(input => input.Point, input => sweep));
 
                     if (c.Input.IsPoint)
                     {
@@ -312,7 +338,8 @@ namespace GeometryHelper.Dxf.Viewer
                     }
                     else if (c.Input.Is("CEnter"))
                     {
-                        yield return CadPrompt.ForPoint("Specify center point of arc", from);
+                        yield return CadPrompt.ForPoint("Specify center point of arc", from)
+                            .Previewing(Shown(input => Rotated(from, input.Point, sweep), input => sweep, true));
 
                         if (c.Input.IsPoint)
                         {
@@ -330,7 +357,7 @@ namespace GeometryHelper.Dxf.Viewer
 
                         double radius = Math.Abs(c.Input.Number);
 
-                        foreach (CadPrompt prompt in ChordDirection(c, from, along, 2.0 * radius * Math.Sin(Math.Abs(sweep) / 2.0), sweep, result))
+                        foreach (CadPrompt prompt in ChordDirection(c, from, along, 2.0 * radius * Math.Sin(Math.Abs(sweep) / 2.0), sweep, result, widths))
                         {
                             yield return prompt;
                         }
@@ -358,14 +385,23 @@ namespace GeometryHelper.Dxf.Viewer
                     }
 
                     double a0 = Math.Atan2(from.Y - center.Y, from.X - center.X);
-                    yield return CadPrompt.ForPoint("Specify endpoint of arc" + HoldCtrl, center, new[] { "Angle", "Length" });
+
+                    // Counter-clockwise from the start to the way of the end; none for no turn.
+                    double Around(GeoPoint2 end)
+                    {
+                        double turn = Turn(Math.Atan2(end.Y - center.Y, end.X - center.X) - a0);
+                        return turn <= tolerance.EqualAngleRad ? double.NaN : turn;
+                    }
+
+                    yield return CadPrompt.ForPoint("Specify endpoint of arc" + HoldCtrl, center, new[] { "Angle", "Length" })
+                        .Previewing(Shown(input => Rotated(from, center, Around(input.Point)), input => Around(input.Point), true));
                     double sweep;
 
                     if (c.Input.IsPoint)
                     {
-                        sweep = Turn(Math.Atan2(c.Input.Point.Y - center.Y, c.Input.Point.X - center.X) - a0);
+                        sweep = Around(c.Input.Point);
 
-                        if (sweep <= tolerance.EqualAngleRad)
+                        if (double.IsNaN(sweep))
                         {
                             c.Write("*Invalid*");
                             yield break;
@@ -378,7 +414,8 @@ namespace GeometryHelper.Dxf.Viewer
                     }
                     else if (c.Input.Is("Angle"))
                     {
-                        yield return CadPrompt.ForAngle("Specify included angle" + HoldCtrl, center);
+                        yield return CadPrompt.ForAngle("Specify included angle" + HoldCtrl, center)
+                            .Previewing(Shown(input => Rotated(from, center, Included(c, input.Number, false)), input => Included(c, input.Number, false), true));
 
                         if (c.Input.Kind != CadInputKind.Number || !IncludedAngle(c, out sweep))
                         {
@@ -387,21 +424,14 @@ namespace GeometryHelper.Dxf.Viewer
                     }
                     else if (c.Input.Is("Length"))
                     {
-                        yield return CadPrompt.ForDistance("Specify length of chord" + HoldCtrl, from);
-                        double chord = c.Input.Kind == CadInputKind.Number ? c.Input.Number : 0.0;
+                        yield return CadPrompt.ForDistance("Specify length of chord" + HoldCtrl, from)
+                            .Previewing(Shown(input => Rotated(from, center, ChordSweep(c, radius, input.Number, false)), input => ChordSweep(c, radius, input.Number, false), true));
+                        sweep = ChordSweep(c, radius, c.Input.Kind == CadInputKind.Number ? c.Input.Number : 0.0, c.Input.Control);
 
-                        if (Math.Abs(chord) <= tolerance.EqualPoint || Math.Abs(chord) > 2.0 * radius + tolerance.EqualPoint)
+                        if (double.IsNaN(sweep))
                         {
                             c.Write("*Invalid*");
                             yield break;
-                        }
-
-                        double half = Math.Asin(Math.Min(1.0, Math.Abs(chord) / (2.0 * radius)));
-                        sweep = chord > 0.0 ? 2.0 * half : 2.0 * Math.PI - 2.0 * half;
-
-                        if (c.Input.Control)
-                        {
-                            sweep = -sweep;
                         }
                     }
                     else
@@ -424,15 +454,16 @@ namespace GeometryHelper.Dxf.Viewer
 
                     double angle = c.Session.Ucs.AngleToWorld(c.Input.Number);
                     var way = new GeoVector2(Math.Cos(angle), Math.Sin(angle));
-                    yield return CadPrompt.ForPoint("Specify endpoint of the arc" + HoldCtrl, from);
+                    double Turned(GeoPoint2 end) => Math.Atan2(way.X * (end - from).Y - way.Y * (end - from).X, Dot(way, end - from));
+                    yield return CadPrompt.ForPoint("Specify endpoint of the arc" + HoldCtrl, from)
+                        .Previewing(Shown(input => input.Point, input => 2.0 * Turned(input.Point)));
 
                     if (!c.Input.IsPoint)
                     {
                         yield break;
                     }
 
-                    GeoVector2 chord = c.Input.Point - from;
-                    double turn = Math.Atan2(way.X * chord.Y - way.Y * chord.X, Dot(way, chord));
+                    double turn = Turned(c.Input.Point);
                     Finish(result, c.Input.Point, c.Input.Control ? -2.0 * turn : 2.0 * turn);
                     yield break;
                 }
@@ -447,21 +478,35 @@ namespace GeometryHelper.Dxf.Viewer
                     }
 
                     double radius = c.Input.Number;
-                    yield return CadPrompt.ForPoint("Specify endpoint of arc" + HoldCtrl, from, new[] { "Angle" });
+
+                    // The shorter arc of the radius counter-clockwise, the longer where the radius is below nought; none where the
+                    // end lies farther than the diameter.
+                    double Bent(GeoPoint2 end)
+                    {
+                        double half = (end - from).Length / 2.0;
+
+                        if (half > Math.Abs(radius) + tolerance.EqualPoint)
+                        {
+                            return double.NaN;
+                        }
+
+                        double small = 2.0 * Math.Asin(Math.Min(1.0, half / Math.Abs(radius)));
+                        return radius > 0.0 ? small : 2.0 * Math.PI - small;
+                    }
+
+                    yield return CadPrompt.ForPoint("Specify endpoint of arc" + HoldCtrl, from, new[] { "Angle" })
+                        .Previewing(Shown(input => input.Point, input => Bent(input.Point)));
 
                     if (c.Input.IsPoint)
                     {
-                        // The shorter arc of the radius counter-clockwise, the longer where the radius is below nought.
-                        double half = (c.Input.Point - from).Length / 2.0;
+                        double sweep = Bent(c.Input.Point);
 
-                        if (half > Math.Abs(radius) + tolerance.EqualPoint)
+                        if (double.IsNaN(sweep))
                         {
                             c.Write("*Invalid*");
                             yield break;
                         }
 
-                        double small = 2.0 * Math.Asin(Math.Min(1.0, half / Math.Abs(radius)));
-                        double sweep = radius > 0.0 ? small : 2.0 * Math.PI - small;
                         Finish(result, c.Input.Point, c.Input.Control ? -sweep : sweep);
                     }
                     else if (c.Input.Is("Angle"))
@@ -473,7 +518,7 @@ namespace GeometryHelper.Dxf.Viewer
                             yield break;
                         }
 
-                        foreach (CadPrompt prompt in ChordDirection(c, from, along, 2.0 * Math.Abs(radius) * Math.Sin(Math.Abs(sweep) / 2.0), sweep, result))
+                        foreach (CadPrompt prompt in ChordDirection(c, from, along, 2.0 * Math.Abs(radius) * Math.Sin(Math.Abs(sweep) / 2.0), sweep, result, widths))
                         {
                             yield return prompt;
                         }
@@ -492,35 +537,54 @@ namespace GeometryHelper.Dxf.Viewer
                     }
 
                     GeoPoint2 second = c.Input.Point;
-                    yield return CadPrompt.ForPoint("Specify end point of arc", second);
+
+                    // The sweep of the arc through the second point to an end; none where the three lie in a line.
+                    double Through(GeoPoint2 end)
+                    {
+                        if (!CadGrips.CircleThrough(from, second, end, out GeoPoint2 center, out _))
+                        {
+                            return double.NaN;
+                        }
+
+                        double a0 = Math.Atan2(from.Y - center.Y, from.X - center.X);
+                        double a1 = Math.Atan2(end.Y - center.Y, end.X - center.X);
+                        bool ccw = Cross(end - from, second - from) < 0.0;
+                        return ccw ? Turn(a1 - a0) : -Turn(a0 - a1);
+                    }
+
+                    yield return CadPrompt.ForPoint("Specify end point of arc", second)
+                        .Previewing(Shown(input => input.Point, input => Through(input.Point)));
 
                     if (!c.Input.IsPoint)
                     {
                         yield break;
                     }
 
-                    GeoPoint2 end = c.Input.Point;
+                    GeoPoint2 last = c.Input.Point;
+                    double sweep = Through(last);
 
-                    if (!CadGrips.CircleThrough(from, second, end, out GeoPoint2 center, out _))
+                    if (double.IsNaN(sweep))
                     {
                         c.Write("*Invalid* The three points lie in a line.");
                         yield break;
                     }
 
-                    double a0 = Math.Atan2(from.Y - center.Y, from.X - center.X);
-                    double a1 = Math.Atan2(end.Y - center.Y, end.X - center.X);
-                    bool ccw = Cross(end - from, second - from) < 0.0;
-                    Finish(result, end, ccw ? Turn(a1 - a0) : -Turn(a0 - a1));
+                    Finish(result, last, sweep);
                     yield break;
                 }
             }
         }
 
         /// <summary>The end of a chord of a length from a point, its direction asked with the way the polyline leaves offered.</summary>
-        private static IEnumerable<CadPrompt> ChordDirection(CadCommandContext c, GeoPoint2 from, GeoVector2 along, double length, double sweep, PlineArcEnd result)
+        private static IEnumerable<CadPrompt> ChordDirection(CadCommandContext c, GeoPoint2 from, GeoVector2 along, double length, double sweep, PlineArcEnd result, double[] widths)
         {
             double leaving = c.Session.Ucs.AngleToUcs(Math.Atan2(along.Y, along.X));
-            yield return CadPrompt.ForAngle("Specify direction of chord for arc" + HoldCtrl, from, null, Number(Turn(leaving) * 180.0 / Math.PI));
+            yield return CadPrompt.ForAngle("Specify direction of chord for arc" + HoldCtrl, from, null, Number(Turn(leaving) * 180.0 / Math.PI))
+                .Previewing(CadPreview.MakingOne(c, input =>
+                {
+                    double angle = c.Session.Ucs.AngleToWorld(input.Number);
+                    return PlineSegment(c, from, from + new GeoVector2(Math.Cos(angle), Math.Sin(angle)) * length, sweep, widths);
+                }, true));
             double angle;
 
             if (c.Input.IsNone)
