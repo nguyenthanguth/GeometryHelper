@@ -6,6 +6,16 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** The presenter's typed and shown angles follow ANGBASE and ANGDIR as AutoCAD 2021's do; they were read from
+the X axis counter-clockwise whatever UNITS had set (only an arc's included angle followed ANGDIR). With ANGBASE 90 and
+ANGDIR 1, `@100<30` now ends at 50, 86.6 and not 86.6, 50; 30 at ROTATE turns 30 degrees clockwise, the base left out
+as AutoCAD leaves it out of a turn; DIST writes a line to the east as "Angle in XY Plane = 90", and LIST, the Properties
+palette, the cursor tip, the coordinate readout and the angle box of dynamic input count the same way. `@100<<30` and
+`@100<<<30` end at 86.6, 50 whatever the settings. Prompts whose default is a direction offer it counted
+("Specify rotation angle or [Copy/Reference] <90>:"). New: `CadUnits.ToDirection` and `FromDirection`,
+`CadCommandSession.CountAngle`, and `CadPrompt.AsksTurn` and `AsksPlainAngle`, which say how the session reads an angle
+typed at a prompt. A drawing with ANGBASE 0 and ANGDIR 0 behaves as before.
+
 **NEW.** DIMARC (DAR), the presenter's arc length dimension, as AutoCAD 2021 makes it and stored as the library's
 `DxfArcDimension`: Mtext and Text for its words, Angle for theirs, Partial for the length between two points of the arc,
 and Leader, offered past 90 degrees of sweep, for a leader from the words' arc to the arc measured. Below 90 degrees the

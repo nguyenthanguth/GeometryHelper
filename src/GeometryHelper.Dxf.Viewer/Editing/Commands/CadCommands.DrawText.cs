@@ -155,7 +155,7 @@ namespace GeometryHelper.Dxf.Viewer
                 {
                     GeoPoint2 start = at;
                     double tall = height;
-                    yield return CadPrompt.ForAngle("Specify rotation angle of text", at, null, Number(rotation * 180.0 / Math.PI))
+                    yield return CadPrompt.ForAngle("Specify rotation angle of text", at, null, Counted(c, rotation))
                         .Previewing(CadPreview.MakingOne(c, input => TextBox(c, start, tall, c.Session.Ucs.AngleToWorld(input.Number)), true));
 
                     if (c.Input.Kind == CadInputKind.Number)
@@ -428,7 +428,7 @@ namespace GeometryHelper.Dxf.Viewer
                 }
                 else if (c.Input.Is("Rotation"))
                 {
-                    yield return CadPrompt.ForAngle("Specify rotation angle", a, null, Number(rotation * 180.0 / Math.PI));
+                    yield return CadPrompt.ForAngle("Specify rotation angle", a, null, Counted(c, rotation));
 
                     if (c.Input.Kind == CadInputKind.Number)
                     {

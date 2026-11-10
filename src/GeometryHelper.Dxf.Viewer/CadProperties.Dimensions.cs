@@ -122,7 +122,7 @@ namespace GeometryHelper.Dxf.Viewer
                 title = row.Group;
                 IReadOnlyList<string> choices = row.Label == "Dim style" ? CadDimStyleEditor.Styles(f.Database).Select(s => s.Name).ToList()
                     : row.Label == "Text style" ? TextStyles(f.Database) : row.Choices;
-                rows.Add(new CadPropertyRow(row.Label, Read(() => row.Read(dimension, f.Angle), string.Empty), row.Parse == null, choices));
+                rows.Add(new CadPropertyRow(row.Label, Read(() => row.Read(dimension, f.Plain), string.Empty), row.Parse == null, choices));
 
                 if (row.Label == "Measurement")
                 {

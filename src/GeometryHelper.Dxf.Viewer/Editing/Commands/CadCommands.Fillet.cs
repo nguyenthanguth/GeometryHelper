@@ -372,7 +372,7 @@ namespace GeometryHelper.Dxf.Viewer
                     yield break;
                 }
 
-                yield return CadPrompt.ForAngle("Specify chamfer angle from the first line", null, null, Number(c.Database.Chamferd * 180.0 / Math.PI));
+                yield return CadPrompt.ForAngle("Specify chamfer angle from the first line", null, null, Number(c.Database.Chamferd * 180.0 / Math.PI)).Turning();
                 double angle = c.Input.Kind == CadInputKind.Number ? c.Input.Number : c.Database.Chamferd;
                 SetHeader(c, "$CHAMFERC", c.Database.Chamferc, length, d => d.Chamferc = length);
                 SetHeader(c, "$CHAMFERD", c.Database.Chamferd, angle, d => d.Chamferd = angle);

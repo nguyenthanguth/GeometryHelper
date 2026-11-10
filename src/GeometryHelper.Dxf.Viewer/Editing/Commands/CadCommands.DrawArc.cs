@@ -172,7 +172,7 @@ namespace GeometryHelper.Dxf.Viewer
             }
             else if (c.Input.Is("Angle"))
             {
-                yield return CadPrompt.ForAngle("Specify included angle" + HoldCtrl, center)
+                yield return CadPrompt.ForAngle("Specify included angle" + HoldCtrl, center).Turning()
                     .Previewing(CadPreview.MakingOne(c, input => MakeArc(c,center, radius, a0, Included(c, input.Number, false)), true));
 
                 if (c.Input.Kind != CadInputKind.Number || !IncludedAngle(c, out sweep))
@@ -283,7 +283,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (c.Input.Is("Angle"))
             {
-                yield return CadPrompt.ForAngle("Specify included angle" + HoldCtrl, start)
+                yield return CadPrompt.ForAngle("Specify included angle" + HoldCtrl, start).Turning()
                     .Previewing(CadPreview.MakingOne(c, input => ArcOfEnds(c, start, end, Included(c, input.Number, false)), true));
 
                 if (c.Input.Kind != CadInputKind.Number || !IncludedAngle(c, out sweep))
@@ -420,15 +420,10 @@ namespace GeometryHelper.Dxf.Viewer
             return true;
         }
 
-        /// <summary>An included angle of a number answered, turned by ANGDIR and Ctrl; NaN for none or a whole turn.</summary>
+        /// <summary>An included angle of a number answered, turned by Ctrl (the session has counted a typed one by ANGDIR); NaN for none or a whole turn.</summary>
         private static double Included(CadCommandContext c, double number, bool control)
         {
             double sweep = number;
-
-            if (c.Database.Angdir)
-            {
-                sweep = -sweep;
-            }
 
             if (control)
             {

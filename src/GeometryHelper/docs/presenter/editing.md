@@ -308,6 +308,16 @@ the VIEW table (`db.ViewTable`), its layer snapshot the hidden state ACAD_VIEWS_
 Boundaries and Define window ask two corners and bring the dialog back, Cancel takes the run back. UNITS shows Drawing Units
 and its Direction Control, writing LUNITS, LUPREC, AUNITS, AUPREC, ANGDIR, INSUNITS and ANGBASE on OK as one step; typed
 lengths and angles are read in those units, `1'3-1/2"` in architectural units and `100` as grads where AUNITS is 2.
+A typed angle is counted as AutoCAD counts it. A direction (the angle of `@100<30`, a text's rotation, an xline's
+angle, a hatch pattern's, the new angle of ROTATE's Reference) is from ANGBASE and, with ANGDIR 1, clockwise: with
+ANGBASE 90 and ANGDIR 1, `@100<30` ends at 50, 86.6. A turn (ROTATE's angle, an arc's included angle, a block's
+rotation, CHAMFER's and LENGTHEN's angles, the angles of a polar array, UCS Z) follows ANGDIR only, so 30 at ROTATE turns
+30 degrees clockwise; a point picked there turns by its direction less ANGBASE. An obliquing angle follows neither.
+`<<` before the angle reads it in degrees from the X axis counter-clockwise whatever the settings (`@100<<30` ends at
+86.6, 50), and `<<<` the same in the drawing's angle units. The angles DIST, LIST, the Properties palette, the tip by the
+cursor and the coordinate readout write are counted the same way, east as 90 there; what the drawing keeps stays
+counter-clockwise from the X axis. `CadUnits.ToDirection` and `FromDirection` are the two conversions, and
+`session.CountAngle(radians)` the second with the drawing's settings.
 With SELECTIONCYCLING 2, AutoCAD's default, a
 click where two lines cross shows the list of both near the cursor, the one drawn on top first, `Line · 0` and
 `Line · WALLS`, and the row chosen is taken as a click on that line alone; with 1 or 2, Shift+Space arms cycling, and each

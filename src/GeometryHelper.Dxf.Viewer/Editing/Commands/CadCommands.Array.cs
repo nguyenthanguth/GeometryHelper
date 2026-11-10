@@ -354,14 +354,14 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (c.Input.Is("Angle between"))
                 {
-                    yield return CadPrompt.ForAngle("Specify angle between items", null, new[] { "Expression" }, Number(step * 180.0 / Math.PI));
+                    yield return CadPrompt.ForAngle("Specify angle between items", null, new[] { "Expression" }, Number(step * 180.0 / Math.PI)).Turning();
                     step = c.Input.Kind == CadInputKind.Number ? c.Input.Number : step;
                     continue;
                 }
 
                 if (c.Input.Is("Fill angle"))
                 {
-                    yield return CadPrompt.ForAngle("Specify the angle to fill (+=ccw, -=cw)", null, new[] { "EXpression" }, Number(Fill(items, step) * 180.0 / Math.PI));
+                    yield return CadPrompt.ForAngle("Specify the angle to fill " + FillWays(c), null, new[] { "EXpression" }, Number(Fill(items, step) * 180.0 / Math.PI)).Turning();
 
                     if (c.Input.Kind == CadInputKind.Number)
                     {
@@ -461,13 +461,13 @@ namespace GeometryHelper.Dxf.Viewer
                 GeoPoint2 centre = c.Input.Point;
                 yield return CadPrompt.ForInteger("Enter the number of items in the array");
                 int items = c.Input.Kind == CadInputKind.Number ? (int)c.Input.Number : 0;
-                yield return CadPrompt.ForAngle("Specify the angle to fill (+=ccw, -=cw)", null, null, "360");
+                yield return CadPrompt.ForAngle("Specify the angle to fill " + FillWays(c), null, null, "360").Turning();
                 double fill = c.Input.Kind == CadInputKind.Number ? c.Input.Number : 2.0 * Math.PI;
                 double step;
 
                 if (items <= 0)
                 {
-                    yield return CadPrompt.ForAngle("Angle between items");
+                    yield return CadPrompt.ForAngle("Angle between items").Turning();
 
                     if (c.Input.Kind != CadInputKind.Number || Math.Abs(c.Input.Number) <= Tolerance.Default.EqualAngleRad)
                     {
@@ -592,6 +592,9 @@ namespace GeometryHelper.Dxf.Viewer
 
             return moves;
         }
+
+        /// <summary>The ways a fill angle turns, as AutoCAD says them: a number above nought is clockwise with ANGDIR 1.</summary>
+        private static string FillWays(CadCommandContext c) => c.Database.Angdir ? "(+=cw, -=ccw)" : "(+=ccw, -=cw)";
 
         /// <summary>The angle a polar array fills: a whole turn its items share evenly, else as far as its last item.</summary>
         private static double Fill(int items, double step)

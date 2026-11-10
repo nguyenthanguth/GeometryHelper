@@ -30,7 +30,7 @@ namespace GeometryHelper.Dxf.Viewer
             }
             else if (c.Input.Is("Ang"))
             {
-                yield return CadPrompt.ForAngle("Enter angle of xline (0)");
+                yield return CadPrompt.ForAngle("Enter angle of xline (" + Counted(c, 0.0) + ")");
 
                 if (c.Input.Kind == CadInputKind.Number)
                 {
