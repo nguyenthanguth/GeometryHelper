@@ -171,6 +171,15 @@ at the back of each arrowhead, 2.5 in from its tip, but for the ticks, Dot small
 which take no room and never move out. DIMTVP lifts the words of DIMTAD 0 by that many times their height, the line
 broken about them below 0.7; a DIMGAP below nought draws a box round the words, the gap clear of them.
 
+DIMTMOVE says where words go that the fit moves out or DIMTEDIT puts by hand. Under 0 they stand beside the line, which
+DIMTEDIT moves to run through the point given, the words above it there (on it for DIMTAD 0, the line broken a gap
+clear of them, and run on to a gap short of them past an end). Under 2 the fit puts them over the line, away from the
+points, DIMEXE, one and a half DIMGAP and half their height out (their height more where they stand below it as they
+read): "4" moved out of a dimension of 4 stands 5.9375 below the middle of its line; DIMTEDIT puts their middle at the
+point. Under 1 the same place is a leader's end, the leader from the middle of the line a third as far along again, and
+a landing on to the words; DIMTEDIT draws a leader to words further from the line than DIMGAP and half the heights of
+the words and the arrowheads, 3.15 with ISO-25's sizes, the words starting at the point, and none to words nearer.
+
 Radius, diameter and angular dimensions follow the same variables. A radius of 20 with its line put 45 from the centre
 has its arrowhead outside the rim, its line from the back of it on under the words, and a line from the centre to the
 rim by DIMTOFL, or with DIMTOFL off the centre mark of DIMCEN (centre lines too where DIMCEN is below nought); put 8 from
@@ -179,10 +188,13 @@ words where they are put, no nearer the rim than two arrowheads and the gap; 0 t
 where they fit, else outside past the rim. A diameter's words on its line (DIMTAD 0) take a gap each side and, with
 the arrowheads inside, the arrowheads' room too: "%%c6" 4.357 wide fits a diameter of 6 under DIMATFIT 1, the line
 through the circle broken a gap clear of it. An angle's extension lines run from DIMEXO off its points to DIMEXE past
-the arc wherever that is any length: points 20 out and the arc 20.3 out give lines from 20.625 to 21.55. An angle of 60 degrees with its arc 30 from the vertex has its arc from the
-back of one arrowhead to the back of the other, 4.78 to 55.22 degrees, the arrowheads set along their chords; an angle
-of 8 degrees has its words and arrowheads outside past its first ray, the arc run on and a line along it to the words.
-DIMJUST 1 puts an angle's words next to its second ray, 2 next to its first. Words of an angle moved by DIMTEDIT stand
+the arc wherever that is any length: points 20 out and the arc 20.3 out give lines from 20.625 to 21.55. An angle of 60
+degrees with its arc 30 from the vertex has its arc from the back of one arrowhead to the back of the other, 4.78 to
+55.22 degrees, the arrowheads set along their chords; an angle of 8 degrees has its words and arrowheads outside past
+its first ray, the arc run on and a line along it to the words, or under DIMTMOVE 1 and 2 over the arc, out along the
+middle of its sweep: under 1 past a leader from the arc to two arrowheads beyond it (beyond the farthest point where
+that is further), under 2 their middle there, or where the points lie beyond the arc where the words first fit between
+the extension lines. DIMJUST 1 puts an angle's words next to its second ray, 2 next to its first. Words of an angle moved by DIMTEDIT stand
 on the arc, which then runs through the point given, under DIMTMOVE 0 ("60°" moved 50 out at 30 degrees stands 51.9
 out, above the arc as it reads), level past a leader from the middle of the arc under 1, and turned along the arc under
 2. Those of a radius or a diameter slide along its line, which stays, to where the point falls on it under 0 and 1, and

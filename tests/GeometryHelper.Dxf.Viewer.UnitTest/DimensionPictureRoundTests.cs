@@ -754,6 +754,29 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         [Fact]
+        public void WordsTheFitMovesOutOfAnAngle_StandOverTheArcUnderDimtmove1And2()
+        {
+            // AutoCAD 2021: an angle of 8 degrees with its arc through its points 20 out. Under DIMTMOVE 1 a leader along the
+            // middle of the sweep from the arc to two arrowheads past it, the words a gap and half their height beyond, turned
+            // along the arc; the arc between the extension lines drawn. No arc runs on to the first ray.
+            CadCommandSession session = Metric(s => { s.Dimatfit = 0; s.Dimtmove = 1; });
+            Run(session, "DAN", Enter, P(0, 0), P(20, 0), Polar(8, 20), Polar(4, 20));
+            DxfDimension dimension = Made(session);
+            HasLine(dimension, Polar(4, 20), Polar(4, 25));
+            Near(Polar(4, 25 + Lift), P2(Words(dimension).Location), 1E-9);
+            Assert.Equal(274 * Math.PI / 180, Words(dimension).Rotation, 9);
+            HasArc(dimension, 20, 0, 8);
+            Assert.DoesNotContain(Arcs(dimension), a => Math.Abs(Math.IEEERemainder(a.EndAngle, 2 * Math.PI)) < 1E-9 && a.StartAngle > Math.PI);
+
+            // Under DIMTMOVE 2 the words' middle two arrowheads past the arc, no leader.
+            session = Metric(s => { s.Dimatfit = 0; s.Dimtmove = 2; });
+            Run(session, "DAN", Enter, P(0, 0), P(20, 0), Polar(8, 20), Polar(4, 20));
+            dimension = Made(session);
+            Near(Polar(4, 25), P2(Words(dimension).Location), 1E-9);
+            Assert.DoesNotContain(Lines(dimension), l => Same(P2(l.StartPoint), Polar(4, 20), 1E-6));
+        }
+
+        [Fact]
         public void TheWordsOnTheLineOfADiameter_FitWithAGapEachSide_AndWithTheArrowheadsTakeTheirRoomToo()
         {
             // "%%c5", two letters 3.5 wide here: under DIMATFIT 1 they fit a diameter of 5 with a gap each side and stand at
