@@ -316,10 +316,16 @@ namespace GeometryHelper.Dxf.Viewer
                 yield break;
             }
 
-            var handles = new List<string>(c.Input.Handles);
-            handles.Sort(StringComparer.OrdinalIgnoreCase);
             c.ClearsSelection = true;
-            c.Apply(new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "Group " + option.ToLowerInvariant(), name, string.Join(",", handles)) }, s =>
+            ChangeMembers(c, name, add, c.Input.Handles);
+        }
+
+        /// <summary>Adds objects to a group, or removes them from it, one edit: those it holds already, or does not, passed over.</summary>
+        private static void ChangeMembers(CadCommandContext c, string name, bool add, IReadOnlyList<string> picked)
+        {
+            var handles = new List<string>(picked);
+            handles.Sort(StringComparer.OrdinalIgnoreCase);
+            c.Apply(new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "Group " + (add ? "add" : "remove"), name, string.Join(",", handles)) }, s =>
             {
                 DxfGroup target = FindGroup(c, name);
                 var entities = new List<DxfEntity>();
@@ -408,7 +414,7 @@ namespace GeometryHelper.Dxf.Viewer
             }
         }
 
-        private static void MakeGroup(CadCommandContext c, string name, string description, IReadOnlyList<string> handles)
+        private static void MakeGroup(CadCommandContext c, string name, string description, IReadOnlyList<string> handles, bool selectable = true)
         {
             var sorted = new List<string>(handles);
             sorted.Sort(StringComparer.OrdinalIgnoreCase);
@@ -424,7 +430,7 @@ namespace GeometryHelper.Dxf.Viewer
                     dictionary = s.Database.GroupDictionary;
                 }
 
-                var group = new DxfGroup(description, true);
+                var group = new DxfGroup(description, selectable);
                 dictionary.SetAt(name ?? "*", group);
                 var entities = new List<DxfEntity>();
 

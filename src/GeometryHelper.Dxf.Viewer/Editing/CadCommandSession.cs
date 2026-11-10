@@ -51,9 +51,12 @@ namespace GeometryHelper.Dxf.Viewer
         /// Gets what the command hands its dialog, which the window fills and closes with an action: a
         /// <see cref="CadBlockDefinitionRequest"/> for BLOCK, <see cref="CadInsertRequest"/> for INSERT,
         /// <see cref="CadWriteBlockRequest"/> for WBLOCK, <see cref="CadAttributeDefinitionRequest"/> for ATTDEF and
-        /// <see cref="CadAttributeEditRequest"/> for EATTEDIT; for REDEFINE, which INSERT asks when the block chosen from another
-        /// drawing has a namesake in this one, the name of the block, "Yes" in <see cref="Answer"/> redefining it; null for the
-        /// other requests.
+        /// <see cref="CadAttributeEditRequest"/> for EATTEDIT, <see cref="CadAttributeManagerRequest"/> for BATTMAN,
+        /// <see cref="CadAttributeValuesRequest"/> for ATTDIA (the Edit Attributes dialog of INSERT),
+        /// <see cref="CadPurgeRequest"/> for PURGE and <see cref="CadGroupManagerRequest"/> for CLASSICGROUP; for REDEFINE,
+        /// which INSERT asks when the block chosen from another drawing has a namesake in this one, the name of the block, "Yes"
+        /// in <see cref="Answer"/> redefining it; for PURGEITEM, which PURGE asks before each object it purges, the question,
+        /// "Yes" or "No" in <see cref="Answer"/>, null stopping the purge; null for the other requests.
         /// </summary>
         public object Payload { get; }
 
@@ -151,6 +154,12 @@ namespace GeometryHelper.Dxf.Viewer
         /// their colour.
         /// </summary>
         public CadMatchProperties MatchProperties { get; set; } = CadMatchProperties.All;
+
+        /// <summary>
+        /// Gets what the Block Attribute Manager of BATTMAN keeps from one run to the next, as its Settings dialog sets it:
+        /// the columns of its grid, tags given twice drawn in red, and whether Apply brings the INSERTs in line at once.
+        /// </summary>
+        public CadAttributeManagerSettings AttributeManager { get; } = new CadAttributeManagerSettings();
 
         /// <summary>Gets or sets where the cursor is, in drawing units, so that a number typed at a point prompt is a distance along the rubber band, as AutoCAD's direct distance entry.</summary>
         public GeoPoint2? Cursor { get; set; }

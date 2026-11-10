@@ -1,0 +1,78 @@
+<Window x:Class="GeometryHelper.Dxf.Viewer.Wpf.OrderGroupWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Order Group" Width="440" Height="400" WindowStyle="None" ResizeMode="NoResize" ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner" Background="#262B33">
+
+    <!-- Built plainly from the note of the Object Grouping board; it has no board of its own yet. -->
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/BlockDialogs.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <Style x:Key="FieldLabel" TargetType="TextBlock">
+                <Setter Property="Foreground" Value="{StaticResource GhTextMuted}" />
+                <Setter Property="VerticalAlignment" Value="Center" />
+                <Setter Property="Margin" Value="0,0,0,8" />
+            </Style>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <Border x:Name="Root" Background="{StaticResource GhPanel}" BorderBrush="{StaticResource GhBorder}" BorderThickness="1"
+            TextElement.FontFamily="{StaticResource GhFont}" TextElement.FontSize="12" TextElement.Foreground="{StaticResource GhText}"
+            UseLayoutRounding="True" SnapsToDevicePixels="True" TextOptions.TextFormattingMode="Display">
+        <DockPanel>
+            <Border DockPanel.Dock="Top" Background="{StaticResource GhHeader}" Padding="16,10" MouseLeftButtonDown="OnHeaderDown">
+                <DockPanel>
+                    <Button DockPanel.Dock="Right" Style="{StaticResource GhTitleCloseButton}" Click="OnCancel" ToolTip="Close" />
+                    <TextBlock Text="Order Group" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" />
+                </DockPanel>
+            </Border>
+
+            <Border DockPanel.Dock="Bottom" Background="{StaticResource GhHeader}" Padding="16,10">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button Style="{StaticResource GhDialogButton}" Content="Cancel" Padding="14,5" Margin="0,0,8,0" Click="OnCancel" IsCancel="True" />
+                    <Button Style="{StaticResource StylePrimaryButton}" Content="OK" Padding="14,5" Click="OnOk" IsDefault="True" />
+                </StackPanel>
+            </Border>
+
+            <StackPanel Margin="16,12">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="150" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Group Name:" />
+                    <TextBlock Grid.Column="1" Text="{Binding Group}" FontFamily="{StaticResource GhMonoFont}" VerticalAlignment="Center" Margin="0,0,0,8" />
+                    <TextBlock Grid.Row="1" Style="{StaticResource FieldLabel}" Text="Description:" />
+                    <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Description}" VerticalAlignment="Center" Margin="0,0,0,8" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Grid.Row="2" Style="{StaticResource FieldLabel}" Text="Objects:" />
+                    <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding Positions}" VerticalAlignment="Center" Margin="0,0,0,8" />
+                    <TextBlock Grid.Row="3" Style="{StaticResource FieldLabel}" Text="Remove from position:" />
+                    <TextBox Grid.Row="3" Grid.Column="1" Style="{StaticResource BlockNumber}" Margin="0,0,0,8" Text="{Binding RemoveFrom, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Remove from position" />
+                    <TextBlock Grid.Row="4" Style="{StaticResource FieldLabel}" Text="Enter new position:" />
+                    <TextBox Grid.Row="4" Grid.Column="1" Style="{StaticResource BlockNumber}" Margin="0,0,0,8" Text="{Binding NewPosition, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Enter new position" />
+                    <TextBlock Grid.Row="5" Style="{StaticResource FieldLabel}" Text="Number of objects:" />
+                    <TextBox Grid.Row="5" Grid.Column="1" Style="{StaticResource BlockNumber}" Margin="0,0,0,8" Text="{Binding Count, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Number of objects" />
+                </Grid>
+                <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                    <Button Style="{StaticResource GhDialogButton}" Content="Re-Order" Padding="12,4" Margin="0,0,6,0" Click="OnReorder" />
+                    <Button Style="{StaticResource GhDialogButton}" Content="Highlight &lt;" Padding="12,4" Margin="0,0,6,0" Click="OnHighlight" />
+                    <Button Style="{StaticResource GhDialogButton}" Content="Reverse Order" Padding="12,4" Click="OnReverse" />
+                </StackPanel>
+                <TextBlock Margin="0,10,0,0" Foreground="{StaticResource GhError}" TextWrapping="Wrap" Text="{Binding Message}" />
+                <TextBlock Margin="0,4,0,0" Foreground="{StaticResource GhTextMuted}" TextWrapping="Wrap"
+                           Text="Positions are numbered from 0. Re-Order and Reverse Order change the group at once; Cancel in Object Grouping takes them back." />
+            </StackPanel>
+        </DockPanel>
+    </Border>
+</Window>

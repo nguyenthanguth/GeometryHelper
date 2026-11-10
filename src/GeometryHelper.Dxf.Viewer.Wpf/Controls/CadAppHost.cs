@@ -82,7 +82,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// Gets the line written to the error output when the arguments of <c>--screenshot</c> do not read: the options the
         /// presenter knows, after the name of the program.
         /// </summary>
-        protected virtual string Usage => "Usage: " + (Assembly.GetEntryAssembly()?.GetName().Name ?? "app") + " --screenshot out.png [file.dxf] [--size 1600 960] [--space \"Layout1\"] [--select H1,H2] [--run \"MOVE;0,0\"] [--cursor x,y] [--toggle GRID,SNAP] [--layers] [--tab Insert|Annotate|View|Plugins|Settings] [--dialog save-changes|options|settings:Category|plugins|plugin-settings|plugin-untrusted|color|truecolor|truecolor-rgb|dsettings[:Tab]|osnap-menu|snap-menu|drawings-menu|scale-menu|missing-shx|missing-shx-replace|ptype|linetype|linetype-load|select-linetype|hatch|hatch-gradient|hatch-user|hatch-solid|hatch-file|block|insert|wblock|attdef|eattedit[:Tab]|style|style-new|dimstyle|dimstyle-new|dimstyle-modify[:Tab]|dimstyle-override[:Tab]|dimstyle-compare[:Other]|mleaderstyle|mleaderstyle-modify[:Tab]|matchprop|pastespec|app-menu[:Item]|cmdline-menu|input-settings-menu|recent-commands-menu|autocomplete:Text] [--recent \"a.dxf|*b.dxf\"] [--plugin path.dll]";
+        protected virtual string Usage => "Usage: " + (Assembly.GetEntryAssembly()?.GetName().Name ?? "app") + " --screenshot out.png [file.dxf] [--size 1600 960] [--space \"Layout1\"] [--select H1,H2] [--run \"MOVE;0,0\"] [--cursor x,y] [--toggle GRID,SNAP] [--layers] [--tab Insert|Annotate|View|Plugins|Settings] [--dialog save-changes|options|settings:Category|plugins|plugin-settings|plugin-untrusted|color|truecolor|truecolor-rgb|dsettings[:Tab]|osnap-menu|snap-menu|drawings-menu|scale-menu|missing-shx|missing-shx-replace|ptype|linetype|linetype-load|select-linetype|hatch|hatch-gradient|hatch-user|hatch-solid|hatch-file|block|insert|wblock|attdef|eattedit[:Tab]|battman|battman-edit[:Tab]|battman-settings|attdia|purge|purge-nonpurgeable|classicgroup|group-order|style|style-new|dimstyle|dimstyle-new|dimstyle-modify[:Tab]|dimstyle-override[:Tab]|dimstyle-compare[:Other]|mleaderstyle|mleaderstyle-modify[:Tab]|matchprop|pastespec|app-menu[:Item]|cmdline-menu|input-settings-menu|recent-commands-menu|autocomplete:Text] [--recent \"a.dxf|*b.dxf\"] [--plugin path.dll]";
 
         /// <summary>
         /// Runs the app on the STA thread of its entry point: the window until it is closed, or the screenshot where the first
@@ -563,6 +563,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 width = (int)window.Width;
                 height = (int)window.Height;
             }
+            else if (model.Document != null && ManagerDialog(model, dialogName, ref run, out window, out root))
+            {
+                // The managers of round six, after the lines of --run.
+                width = (int)window.Width;
+                height = (int)window.Height;
+            }
             else if (model.Document != null && StyleDialog(model, dialogName, ref run, out window, out root))
             {
                 // The Text Style dialog, the Dimension Style Manager and its dialogs, after the lines of --run.
@@ -973,6 +979,132 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     var editor = new AttributeEditorWindow(new AttributeEditorViewModel(request));
                     editor.ShowTab(parts.Length > 1 ? parts[1] : "Attribute");
                     (window, root) = (editor, editor.Body);
+                    return true;
+            }
+        }
+
+        /// <summary>
+        /// The managers, after the lines of --run, each over the request its command hands the window: <c>battman</c> (the
+        /// Block Attribute Manager on the first block with attributes), <c>battman-edit[:Tab]</c> (its Edit Attribute on the
+        /// first row, on a tab), <c>battman-settings</c>; <c>attdia</c> (Edit Attributes of an INSERT of that block, ATTDIA
+        /// set to 1); <c>purge</c> and <c>purge-nonpurgeable</c> (Purge in each mode, the current layer chosen in the second);
+        /// <c>classicgroup</c> (Object Grouping, the first group chosen) and <c>group-order</c> (its Order Group).
+        /// </summary>
+        private static bool ManagerDialog(MainViewModel model, string dialogName, ref string run, out Window window, out FrameworkElement root)
+        {
+            window = null;
+            root = null;
+            string[] parts = (dialogName ?? string.Empty).Split(':');
+            string kind = parts[0].ToLowerInvariant();
+
+            if (kind != "battman" && kind != "battman-edit" && kind != "battman-settings" && kind != "attdia" && kind != "purge" && kind != "purge-nonpurgeable"
+                && kind != "classicgroup" && kind != "group-order")
+            {
+                return false;
+            }
+
+            foreach (string line in run == null ? Array.Empty<string>() : run.Split(';'))
+            {
+                model.Execute(line);
+            }
+
+            run = null;
+            CadDocument document = model.Document;
+            object shown = null;
+
+            switch (kind)
+            {
+                case "battman":
+                case "battman-edit":
+                case "battman-settings":
+                    model.ShowBlockAttributeManager = dialog => { shown = dialog; return true; };
+                    model.Execute("BATTMAN");
+                    model.ShowBlockAttributeManager = null;
+
+                    if (!(shown is BlockAttributeManagerViewModel manager))
+                    {
+                        Console.Error.WriteLine("--dialog " + kind + ": the drawing has no block with attributes.");
+                        return false;
+                    }
+
+                    if (kind == "battman")
+                    {
+                        var list = new BlockAttributeManagerWindow(manager);
+                        (window, root) = (list, list.Body);
+                    }
+                    else if (kind == "battman-edit")
+                    {
+                        var edit = new EditAttributeWindow(new EditAttributeViewModel(document, manager.Block, manager.Request.Rows[0]));
+                        edit.ShowTab(parts.Length > 1 ? parts[1] : "Attribute");
+                        (window, root) = (edit, edit.Body);
+                    }
+                    else
+                    {
+                        var settings = new AttributeManagerSettingsWindow(new AttributeManagerSettingsViewModel(manager.Request.Settings));
+                        (window, root) = (settings, settings.Body);
+                    }
+
+                    return true;
+                case "attdia":
+                    string block = CadBlocks.Named(document.Database).Where(b => b.OfType<DxfAttributeDefinition>().Any(d => !d.Constant)).Select(b => b.Name).FirstOrDefault();
+
+                    if (block == null)
+                    {
+                        Console.Error.WriteLine("--dialog attdia: the drawing has no block with attributes.");
+                        return false;
+                    }
+
+                    model.ShowEditAttributes = dialog => { shown = dialog; return true; };
+
+                    foreach (string line in new[] { "ATTDIA", "1", "-INSERT", block, "0,0", string.Empty, string.Empty, string.Empty })
+                    {
+                        model.Execute(line);
+                    }
+
+                    model.ShowEditAttributes = null;
+                    var values = new EditAttributesWindow((EditAttributesViewModel)shown);
+                    (window, root) = (values, values.Body);
+                    return true;
+                case "purge":
+                case "purge-nonpurgeable":
+                    model.ShowPurge = dialog => { shown = dialog; return true; };
+                    model.Execute("PURGE");
+                    model.ShowPurge = null;
+                    var purge = (PurgeViewModel)shown;
+
+                    if (kind == "purge-nonpurgeable")
+                    {
+                        purge.Mode = purge.Modes[1];
+                        PurgeNodeViewModel layers = purge.Nodes.FirstOrDefault(n => n.Name == "Layers");
+
+                        if (layers != null)
+                        {
+                            layers.IsExpanded = true;
+                            purge.Selected = layers.Children.FirstOrDefault(n => string.Equals(n.Name, document.Database.Clayer, StringComparison.OrdinalIgnoreCase)) ?? layers.Children.FirstOrDefault();
+                        }
+                    }
+
+                    var dialogWindow = new PurgeWindow(purge);
+                    (window, root) = (dialogWindow, dialogWindow.Body);
+                    return true;
+                default:
+                    model.ShowGroupManager = dialog => { shown = dialog; return true; };
+                    model.Execute("CLASSICGROUP");
+                    model.ShowGroupManager = null;
+                    var groups = (GroupManagerViewModel)shown;
+                    groups.Selected = groups.Groups.FirstOrDefault();
+
+                    if (kind == "classicgroup")
+                    {
+                        var grouping = new GroupManagerWindow(groups);
+                        (window, root) = (grouping, grouping.Body);
+                    }
+                    else
+                    {
+                        var order = new OrderGroupWindow(new OrderGroupViewModel(groups.Request));
+                        (window, root) = (order, order.Body);
+                    }
+
                     return true;
             }
         }

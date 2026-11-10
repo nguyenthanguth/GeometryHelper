@@ -147,7 +147,8 @@ namespace GeometryHelper.Dxf.Viewer
             registry.Add(new CadCommand("GROUP", Group, true));
             registry.Add(new CadCommand("-GROUP", GroupTyped));
             registry.Add(new CadCommand("UNGROUP", Ungroup, true));
-            registry.Add(new CadCommand("PURGE", PurgeTyped));
+            registry.Add(new CadCommand("CLASSICGROUP", GroupManager));
+            registry.Add(new CadCommand("PURGE", Purge));
             registry.Add(new CadCommand("-PURGE", PurgeTyped));
             AddXrefsTo(registry);
             AddVariablesTo(registry);

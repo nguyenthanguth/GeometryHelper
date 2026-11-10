@@ -201,14 +201,14 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Equal(
                 new[]
                 {
-                    "ATTREQ", "CANNOSCALE", "CDATE", "CECOLOR", "CELTSCALE", "CELTYPE", "CELWEIGHT", "CHAMFERA", "CHAMFERB", "CLAYER", "DATE", "DIMASSOC", "DIMSCALE", "DIMSTYLE",
+                    "ATTDIA", "ATTREQ", "CANNOSCALE", "CDATE", "CECOLOR", "CELTSCALE", "CELTYPE", "CELWEIGHT", "CHAMFERA", "CHAMFERB", "CLAYER", "DATE", "DIMASSOC", "DIMSCALE", "DIMSTYLE",
                     "DWGNAME", "DWGPREFIX", "EXTMAX", "EXTMIN", "FILLETRAD", "IMAGEFRAME", "INSBASE", "LIMMAX", "LIMMIN", "LTSCALE", "LWDISPLAY", "MIRRTEXT",
                     "MSLTSCALE", "OFFSETDIST", "ORTHOMODE", "PDMODE", "PDSIZE", "PICKADD", "PICKFIRST", "PICKSTYLE", "PSLTSCALE", "SELECTIONCYCLING", "SORTENTS", "TEXTSIZE",
                     "TEXTSTYLE", "TILEMODE", "UCSNAME", "UCSORG",
                 },
                 registry.Variables.Select(v => v.Name));
             Assert.Equal("LTSCALE", registry.FindVariable("LTS").Name);
-            Assert.Equal(166, registry.Commands.Count);
+            Assert.Equal(168, registry.Commands.Count);
             Assert.NotNull(registry.Find("SETVAR"));
             Assert.Null(registry.Find("PDMODE"));
             Assert.True(registry.FindVariable("PDMODE").IsInDrawing);

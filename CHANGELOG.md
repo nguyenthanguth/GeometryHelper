@@ -6,6 +6,29 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** BATTMAN, the presenter's Block Attribute Manager: the attribute definitions of a block in its order, with the
+INSERTs of it counted in the drawing and in model space, the modes as AutoCAD's letters I C V P L M and a tag given twice
+in red; Move Up, Move Down, Edit Attribute (Attribute, Text Options and Properties) and Remove, written into the block by
+Apply or OK, each one undo step; Sync brings every INSERT in line as ATTSYNC does, the values typed kept, and its Settings
+choose the columns of the grid and whether Apply syncs at once. A block GB of GRID, LEVEL and REV with LEVEL moved up and
+synced gives each INSERT LEVEL then GRID; AutoCAD 2021 audits the drawing with no error.
+
+**NEW.** ATTDIA is a variable of SETVAR, 0 by default; at 1 INSERT and -INSERT ask the values of a block's attributes in
+the presenter's Edit Attributes dialog, eight a page in the block's order, the constant ones left out and a value to be
+verified asked once. A title block of eleven attributes opens on Page 1 of 2.
+
+**NEW.** PURGE shows the presenter's Purge dialog: the named objects nothing uses by kind, with counts, a preview of a
+block, text style or dimension style, Confirm each item, Purge nested items, the geometry of no length and the empty
+texts, Purge Checked Items and Purge All, each purge one undo step; and Find Non-Purgeable Items, the objects in use with
+the reasons ("Layer WALLS is the current layer.", "Used by 2 objects in model space and 0 in layouts.", "Referenced by
+block GB.") and Select Objects. -PURGE stays typed, and now purges nested items too: a block OUTER inserted nowhere that
+holds the only INSERT of INNER takes INNER with it, and the layer only INNER used, where it took one pass before.
+
+**NEW.** CLASSICGROUP, AutoCAD 2021's Object Grouping dialog: the groups with Include Unnamed, Find Name, Highlight,
+New, Remove and Add asked on the command line with the dialog hidden, then shown again; Rename, Description, Explode,
+Selectable and Re-Order (Order Group: Re-Order, Highlight, Reverse Order) at once; OK keeps every change as one undo
+step, Cancel takes them back. The registry holds 167 commands.
+
 **FIXED.** `DxfPolyline2d.CurveFit` (PEDIT Fit) now gives AutoCAD 2021's arcs, vertex by vertex to 1E-11 on 60 polylines
 fitted in its console. The tangent between the ends of an open polyline, and everywhere round a closed one, is AutoCAD's
 blend of the two segments at the vertex weighted by the turns either side, not the circle through the vertex and its

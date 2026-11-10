@@ -1,0 +1,146 @@
+<Window x:Class="GeometryHelper.Dxf.Viewer.Wpf.GroupManagerWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:GeometryHelper.Dxf.Viewer.Wpf"
+        Title="Object Grouping" Width="560" Height="620" WindowStyle="None" ResizeMode="NoResize" ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner" Background="#262B33">
+
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/BlockDialogs.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <Style x:Key="GroupRow" TargetType="ListBoxItem">
+                <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ListBoxItem">
+                            <Border x:Name="Row" BorderBrush="{StaticResource GhHeader}" BorderThickness="0,1,0,0" Background="Transparent">
+                                <ContentPresenter />
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsSelected" Value="True">
+                                    <Setter TargetName="Row" Property="Background" Value="{StaticResource GhSelected}" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <Style x:Key="SmallButton" TargetType="Button" BasedOn="{StaticResource GhDialogButton}">
+                <Setter Property="Padding" Value="8,4" />
+            </Style>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <Border x:Name="Root" Background="{StaticResource GhPanel}" BorderBrush="{StaticResource GhBorder}" BorderThickness="1"
+            TextElement.FontFamily="{StaticResource GhFont}" TextElement.FontSize="12" TextElement.Foreground="{StaticResource GhText}"
+            UseLayoutRounding="True" SnapsToDevicePixels="True" TextOptions.TextFormattingMode="Display">
+        <DockPanel>
+            <Border DockPanel.Dock="Top" Background="{StaticResource GhHeader}" Padding="16,10" MouseLeftButtonDown="OnHeaderDown">
+                <DockPanel>
+                    <Button DockPanel.Dock="Right" Style="{StaticResource GhTitleCloseButton}" Click="OnCancel" ToolTip="Close" />
+                    <TextBlock Text="Object Grouping" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" />
+                </DockPanel>
+            </Border>
+
+            <Border DockPanel.Dock="Bottom" Background="{StaticResource GhHeader}" Padding="16,10">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button Style="{StaticResource GhDialogButton}" Content="Cancel" Padding="14,5" Margin="0,0,8,0" Click="OnCancel" IsCancel="True" />
+                    <Button Style="{StaticResource StylePrimaryButton}" Content="OK" Padding="14,5" Click="OnOk" IsDefault="True" />
+                </StackPanel>
+            </Border>
+
+            <StackPanel Margin="16,12">
+                <Border Height="150" BorderBrush="{StaticResource GhBorder}" BorderThickness="1" CornerRadius="4" Margin="0,0,0,2">
+                    <DockPanel>
+                        <Grid DockPanel.Dock="Top" Background="{StaticResource GhHeader}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="100" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Group Name" Padding="10,6" FontSize="11" FontWeight="Medium" Foreground="{StaticResource GhTextMuted}" />
+                            <TextBlock Grid.Column="1" Text="Selectable" Padding="10,6" FontSize="11" FontWeight="Medium" Foreground="{StaticResource GhTextMuted}" />
+                        </Grid>
+                        <ListBox ItemsSource="{Binding Groups}" SelectedItem="{Binding Selected, Mode=TwoWay}" Background="Transparent" BorderThickness="0"
+                                 ItemContainerStyle="{StaticResource GroupRow}" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate DataType="{x:Type local:GroupRowViewModel}">
+                                    <Grid Width="508">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="100" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="{Binding Name}" Padding="10,4" FontFamily="{StaticResource GhMonoFont}" Foreground="{StaticResource GhText}" />
+                                        <TextBlock Grid.Column="1" Text="{Binding Selectable}" Padding="10,4" Foreground="{StaticResource GhText}" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </DockPanel>
+                </Border>
+
+                <HeaderedContentControl Style="{StaticResource BlockGroup}" Header="Group Identification">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="90" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <TextBlock Text="Group Name:" Foreground="{StaticResource GhTextMuted}" VerticalAlignment="Center" Margin="0,0,0,8" />
+                        <TextBox Grid.Column="1" Style="{StaticResource BlockNumber}" BorderBrush="{StaticResource GhAccent}" Margin="0,0,0,8" Text="{Binding GroupName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Group Name" />
+                        <TextBlock Grid.Row="1" Text="Description:" Foreground="{StaticResource GhTextMuted}" VerticalAlignment="Center" Margin="0,0,0,8" />
+                        <TextBox Grid.Row="1" Grid.Column="1" Style="{StaticResource BlockBox}" Margin="0,0,0,8" Text="{Binding Description, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Description" />
+                        <DockPanel Grid.Row="2" Grid.Column="1">
+                            <CheckBox DockPanel.Dock="Right" Style="{StaticResource StyleCheck}" Content="Include Unnamed" IsChecked="{Binding IncludeUnnamed, Mode=TwoWay}" VerticalAlignment="Center" />
+                            <StackPanel Orientation="Horizontal">
+                                <Button Style="{StaticResource SmallButton}" Content="Find Name &lt;" Margin="0,0,6,0" Click="OnPick" Tag="Find Name" />
+                                <Button Style="{StaticResource SmallButton}" Content="Highlight &lt;" Click="OnPick" Tag="Highlight" IsEnabled="{Binding HasSelected}" />
+                            </StackPanel>
+                        </DockPanel>
+                    </Grid>
+                </HeaderedContentControl>
+
+                <HeaderedContentControl Style="{StaticResource BlockGroup}" Header="Create Group">
+                    <StackPanel Orientation="Horizontal">
+                        <Button Style="{StaticResource SmallButton}" Content="New &lt;" Padding="14,4" Margin="0,0,12,0" Click="OnPick" Tag="New" />
+                        <CheckBox Style="{StaticResource StyleCheck}" Content="Selectable" IsChecked="{Binding NewSelectable, Mode=TwoWay}" VerticalAlignment="Center" Margin="0,0,12,0" />
+                        <CheckBox Style="{StaticResource StyleCheck}" Content="Unnamed" IsChecked="{Binding NewUnnamed, Mode=TwoWay}" VerticalAlignment="Center" />
+                    </StackPanel>
+                </HeaderedContentControl>
+
+                <HeaderedContentControl Style="{StaticResource BlockGroup}" Header="Change Group">
+                    <UniformGrid Columns="4" IsEnabled="{Binding HasSelected}">
+                        <Button Style="{StaticResource SmallButton}" Content="Remove &lt;" Margin="0,0,6,6" Click="OnPick" Tag="Remove" />
+                        <Button Style="{StaticResource SmallButton}" Content="Add &lt;" Margin="0,0,6,6" Click="OnPick" Tag="Add" />
+                        <Button Style="{StaticResource SmallButton}" Content="Rename" Margin="0,0,6,6" Click="OnRename" />
+                        <Button Style="{StaticResource SmallButton}" Content="Re-Order…" Margin="0,0,0,6" Click="OnReorder" />
+                        <Button Style="{StaticResource SmallButton}" Content="Description" Margin="0,0,6,0" Click="OnDescription" />
+                        <Button Style="{StaticResource SmallButton}" Content="Explode" Margin="0,0,6,0" Click="OnExplode" />
+                        <Button Style="{StaticResource SmallButton}" Content="Selectable" Margin="0,0,6,0" Click="OnSelectable" />
+                    </UniformGrid>
+                </HeaderedContentControl>
+
+                <TextBlock Margin="0,6,0,0" Foreground="{StaticResource GhError}" TextWrapping="Wrap" Text="{Binding Message}">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Style.Triggers>
+                                <Trigger Property="Text" Value="">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+                <TextBlock Margin="0,8,0,0" Foreground="{StaticResource GhTextMuted}" TextWrapping="Wrap"
+                           Text="A button ending in &lt; hides the dialog and asks on the command line, then the dialog comes back. Find Name lists the groups of a picked object; Highlight selects the members of the chosen group on the canvas. Unnamed groups show as *A1, *A2 only with Include Unnamed." />
+            </StackPanel>
+        </DockPanel>
+    </Border>
+</Window>
