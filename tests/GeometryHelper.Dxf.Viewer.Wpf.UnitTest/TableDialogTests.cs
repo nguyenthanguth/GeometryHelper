@@ -180,11 +180,17 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             Assert.Equal("GH_SCHEDULE", manager.SelectedStyle.Name);
             Assert.True(manager.CanDelete);
 
-            // A drawing made new lists no DICTIONARYVAR: Set Current says so and the style stays as it was.
+            // A drawing made new is given the class DICTIONARYVAR as AutoCAD 2021 lists it: Set Current makes the style
+            // current, and a current style is not deleted.
+            manager.SetCurrent();
+            Assert.Equal("GH_SCHEDULE", manager.CurrentStyle);
+            Assert.Equal("GH_SCHEDULE", DxfDatabase.Parse(document.Database.ToText()).Tablestyle);
+            Assert.False(manager.CanDelete);
+
+            manager.SelectedStyle = manager.Styles.Single(s => s.Name == "Standard");
             manager.SetCurrent();
             Assert.Equal("Standard", manager.CurrentStyle);
-            Assert.Contains("cannot be made current", manager.Message);
-
+            manager.SelectedStyle = manager.Styles.Single(s => s.Name == "GH_SCHEDULE");
             manager.Delete();
             Assert.Equal(new[] { "Standard" }, manager.Styles.Select(s => s.Name).ToArray());
         }

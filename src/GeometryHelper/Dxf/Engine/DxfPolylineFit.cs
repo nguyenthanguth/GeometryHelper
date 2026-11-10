@@ -20,8 +20,9 @@ namespace GeometryHelper.Dxf
     /// </para>
     /// <para>
     /// A curve fit puts a pair of arcs on each segment, meeting at a vertex the fitting adds, with the tangent at each vertex
-    /// the one given (flag 2 and group 50) or that of the circle through it and its two neighbours, the ends of an open polyline
-    /// taking the circle through the first or last three; the pair is the biarc whose two tangent lengths are equal.
+    /// the one given (flag 2 and group 50) or Akima's blend of the segments either side, the ends of an open polyline taking the
+    /// circle through the first or last three, as AutoCAD 2021's PEDIT Fit does to 1E-11 (probed on 60 polylines). A segment
+    /// whose tangents are within a millionth of a radian of its line stays straight, with no vertex added.
     /// </para>
     /// </remarks>
     internal static class DxfPolylineFit
@@ -141,126 +142,224 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
-        /// The curve-fit tangents at the vertices of a frame in its plane (x and y): the one given where it is, else that of the
-        /// circle through the vertex and its neighbours, along the way the polyline runs.
+        /// The curve-fit tangents at the vertices of a frame in its plane (x and y), as AutoCAD 2021 takes them: the one given
+        /// where it is; else at an end of an open run the tangent of the circle through it and its two neighbours, and inside one
+        /// Akima's blend of the two segments at the vertex, each segment s as s / |s|², the one before weighted by the sine of
+        /// the turn at the next vertex and the one after by that at the vertex before (1 where that turn is past an end). A
+        /// segment of no length splits the frame into runs fitted each on its own; a run of two vertices is its chord, and one
+        /// of a single vertex has no tangent (nought).
         /// </summary>
         internal static List<GeoVector2> Tangents(IReadOnlyList<GeoPoint2> p, IReadOnlyList<double?> given, bool closed)
         {
             int n = p.Count;
-            var tangents = new List<GeoVector2>(n);
+            var tangents = new GeoVector2[n];
+            int segments = closed ? n : n - 1;
+            var empty = new List<int>();
 
-            for (int i = 0; i < n; i++)
+            // AutoCAD 2021 breaks the curve only where two vertices are one point: a segment 1E-11 long is fitted as any other.
+            for (int i = 0; i < segments; i++)
             {
-                if (given[i].HasValue)
-                {
-                    tangents.Add(new GeoVector2(Math.Cos(given[i].Value), Math.Sin(given[i].Value)));
-                    continue;
-                }
+                GeoPoint2 a = p[i], b = p[(i + 1) % n];
 
-                if (n == 2)
+                if (a.X == b.X && a.Y == b.Y)
                 {
-                    tangents.Add(Unit(p[1].X - p[0].X, p[1].Y - p[0].Y));
-                    continue;
+                    empty.Add(i);
                 }
+            }
 
-                int a, b, c;
+            if (closed && empty.Count == 0)
+            {
+                Run(p, given, Indices(0, n, n), true, tangents);
+                return new List<GeoVector2>(tangents);
+            }
 
-                if (closed || (i > 0 && i < n - 1))
+            if (!closed)
+            {
+                empty.Add(n - 1);
+            }
+
+            // Each run reaches from the vertex after one empty segment to the vertex that starts the next, round a closed frame.
+            int start = closed ? (empty[empty.Count - 1] + 1) % n : 0;
+
+            foreach (int end in empty)
+            {
+                Run(p, given, Indices(start, (end - start + n) % n + 1, n), false, tangents);
+                start = (end + 1) % n;
+            }
+
+            return new List<GeoVector2>(tangents);
+        }
+
+        /// <summary>A count of indices from one onwards, round a frame of a count of vertices.</summary>
+        private static List<int> Indices(int from, int count, int n)
+        {
+            var indices = new List<int>(count);
+
+            for (int k = 0; k < count; k++)
+            {
+                indices.Add((from + k) % n);
+            }
+
+            return indices;
+        }
+
+        /// <summary>The tangents of one run of vertices, open or round a closed frame, into their places.</summary>
+        private static void Run(IReadOnlyList<GeoPoint2> p, IReadOnlyList<double?> given, List<int> run, bool cyclic, GeoVector2[] tangents)
+        {
+            int m = run.Count;
+            int count = cyclic ? m : m - 1;
+            var segments = new GeoVector2[count];
+
+            for (int k = 0; k < count; k++)
+            {
+                GeoPoint2 a = p[run[k]], b = p[run[(k + 1) % m]];
+                segments[k] = new GeoVector2(b.X - a.X, b.Y - a.Y);
+            }
+
+            for (int k = 0; k < m; k++)
+            {
+                int at = run[k];
+
+                if (given[at].HasValue)
                 {
-                    a = (i - 1 + n) % n;
-                    b = i;
-                    c = (i + 1) % n;
-                    tangents.Add(Through(p[a], p[b], p[c], p[b], p[c].X - p[a].X, p[c].Y - p[a].Y));
+                    tangents[at] = new GeoVector2(Math.Cos(given[at].Value), Math.Sin(given[at].Value));
                 }
-                else if (i == 0)
+                else if (m == 1)
                 {
-                    tangents.Add(Through(p[0], p[1], p[2], p[0], p[1].X - p[0].X, p[1].Y - p[0].Y));
+                    tangents[at] = new GeoVector2(0.0, 0.0);
+                }
+                else if (!cyclic && m == 2)
+                {
+                    tangents[at] = Unit(segments[0].X, segments[0].Y);
+                }
+                else if (!cyclic && k == 0)
+                {
+                    tangents[at] = Mirrored(Blend(segments[0], 1.0, segments[1], 1.0), segments[0]);
+                }
+                else if (!cyclic && k == m - 1)
+                {
+                    tangents[at] = Mirrored(Blend(segments[count - 2], 1.0, segments[count - 1], 1.0), segments[count - 1]);
                 }
                 else
                 {
-                    tangents.Add(Through(p[n - 3], p[n - 2], p[n - 1], p[n - 1], p[n - 1].X - p[n - 2].X, p[n - 1].Y - p[n - 2].Y));
+                    // The turns at the vertices either side, 1 past an end of an open run.
+                    double after = cyclic || k + 1 < count ? Turn(segments[k % count], segments[(k + 1) % count]) : 1.0;
+                    double before = cyclic || k >= 2 ? Turn(segments[(k - 2 + count) % count], segments[(k - 1 + count) % count]) : 1.0;
+                    tangents[at] = Blend(segments[(k - 1 + count) % count], after, segments[k % count], before);
                 }
             }
+        }
 
-            return tangents;
+        /// <summary>The unit direction of two segments each taken as s / |s|² and weighted; nought where they cancel.</summary>
+        private static GeoVector2 Blend(GeoVector2 a, double wa, GeoVector2 b, double wb)
+        {
+            double la = a.X * a.X + a.Y * a.Y, lb = b.X * b.X + b.Y * b.Y;
+            return Unit(wa * a.X / la + wb * b.X / lb, wa * a.Y / la + wb * b.Y / lb);
         }
 
         /// <summary>
-        /// The biarc from one point to another, leaving the first along one tangent and reaching the second along another, its two
-        /// tangent lengths equal: where the arcs meet, and the bulge of each. Two straight halves where no such pair is.
+        /// The tangent at one end of a chord of a circle from that at its other end, both along the way the circle runs: the
+        /// given direction mirrored in the chord's line. Nought stays nought.
         /// </summary>
-        internal static void Biarc(GeoPoint2 p0, GeoVector2 t0, GeoPoint2 p1, GeoVector2 t1, out GeoPoint2 joint, out double first, out double second)
+        private static GeoVector2 Mirrored(GeoVector2 t, GeoVector2 chord)
         {
-            double vx = p1.X - p0.X, vy = p1.Y - p0.Y;
-            double tx = t0.X + t1.X, ty = t0.Y + t1.Y;
-            double vv = vx * vx + vy * vy;
-            double vt = vx * tx + vy * ty;
-            double a = 2.0 * (t0.X * t1.X + t0.Y * t1.Y - 1.0);
-            double d = double.NaN;
+            GeoVector2 u = Unit(chord.X, chord.Y);
+            double along = 2.0 * (t.X * u.X + t.Y * u.Y);
+            return new GeoVector2(along * u.X - t.X, along * u.Y - t.Y);
+        }
 
-            if (Math.Abs(a) <= 1E-12)
+        /// <summary>The sine of the turn from one segment to the next, without its sign.</summary>
+        private static double Turn(GeoVector2 a, GeoVector2 b)
+        {
+            GeoVector2 ua = Unit(a.X, a.Y), ub = Unit(b.X, b.Y);
+            return Math.Abs(ua.X * ub.Y - ua.Y * ub.X);
+        }
+
+        /// <summary>
+        /// The pair of arcs AutoCAD 2021 puts on a segment from one point to another, leaving the first along one tangent and
+        /// reaching the second along another: where the arcs meet, and the bulge of each. Where the tangents are either side of
+        /// the chord the joint is the incentre of the triangle the chord and the two tangents make, so that the curve there runs
+        /// along the chord; where they are on one side (an S) the radii of the arcs are as the sines of the tangents' angles to
+        /// the chord, the second's to the first's. False, and no arcs, where either tangent is within a millionth of a radian of
+        /// the chord's line, or is nought: the segment stays straight, as AutoCAD keeps it.
+        /// </summary>
+        internal static bool Biarc(GeoPoint2 p0, GeoVector2 t0, GeoPoint2 p1, GeoVector2 t1, out GeoPoint2 joint, out double first, out double second)
+        {
+            joint = p0;
+            first = 0.0;
+            second = 0.0;
+            double cx = p1.X - p0.X, cy = p1.Y - p0.Y;
+            double length = Math.Sqrt(cx * cx + cy * cy);
+
+            if (length == 0.0)
             {
-                d = vt > 0.0 ? vv / (2.0 * vt) : double.NaN;
+                return false;
+            }
+
+            double ux = cx / length, uy = cy / length;
+
+            // AutoCAD 2021 keeps a segment straight where the sine of either tangent's angle to it is below 1E-6 (probed to 1%).
+            if (Math.Abs(ux * t0.Y - uy * t0.X) < 1E-6 || Math.Abs(ux * t1.Y - uy * t1.X) < 1E-6)
+            {
+                return false;
+            }
+
+            double a0 = Signed(ux, uy, t0.X, t0.Y);
+            double a1 = Signed(ux, uy, t1.X, t1.Y);
+
+            if (a0 * a1 < 0.0)
+            {
+                double reach = length * Math.Sin(0.5 * Math.Abs(a1)) / Math.Sin(0.5 * (Math.Abs(a0) + Math.Abs(a1)));
+                double cos = Math.Cos(0.5 * a0), sin = Math.Sin(0.5 * a0);
+                joint = new GeoPoint2(p0.X + reach * (ux * cos - uy * sin), p0.Y + reach * (ux * sin + uy * cos));
             }
             else
             {
-                double disc = vt * vt - a * vv;
+                // The arcs' centres, either side of the curve, are their radii apart: |c0 - c1| = r0 + r1 with r1 = r0 / k.
+                double k = Math.Sin(a1) / Math.Sin(a0);
+                double side = a0 < 0.0 ? 1.0 : -1.0;
+                double n0x = -t0.Y, n0y = t0.X, n1x = -t1.Y, n1y = t1.X;
+                double wx = side * (n0x + n1x / k), wy = side * (n0y + n1y / k);
+                double dx = p0.X - p1.X, dy = p0.Y - p1.Y;
+                double qa = 2.0 * (n0x * n1x + n0y * n1y - 1.0) / k;
+                double qb = 2.0 * (dx * wx + dy * wy);
+                double qc = dx * dx + dy * dy;
+                double disc = qb * qb - 4.0 * qa * qc;
 
-                if (disc >= 0.0)
+                if (disc < 0.0)
                 {
-                    double root = Math.Sqrt(disc);
-                    double r1 = (vt + root) / a;
-                    double r2 = (vt - root) / a;
-                    d = r1 > 0.0 && (r2 <= 0.0 || r1 < r2) ? r1 : r2 > 0.0 ? r2 : double.NaN;
+                    return false;
                 }
+
+                double q = -0.5 * (qb + (qb < 0.0 ? -1.0 : 1.0) * Math.Sqrt(disc));
+                double small = q != 0.0 ? qc / q : double.NaN;
+                double large = qa != 0.0 ? q / qa : double.NaN;
+                double r0 = small > 0.0 && !(large > 0.0 && large < small) ? small : large;
+
+                if (!(r0 > 0.0) || double.IsInfinity(r0))
+                {
+                    return false;
+                }
+
+                double r1 = r0 / k;
+                double c0x = p0.X + side * r0 * n0x, c0y = p0.Y + side * r0 * n0y;
+                double c1x = p1.X - side * r1 * n1x, c1y = p1.Y - side * r1 * n1y;
+                double share = r0 / (r0 + r1);
+                joint = new GeoPoint2(c0x + (c1x - c0x) * share, c0y + (c1y - c0y) * share);
             }
 
-            if (!(d > 0.0) || double.IsInfinity(d))
-            {
-                joint = new GeoPoint2(0.5 * (p0.X + p1.X), 0.5 * (p0.Y + p1.Y));
-                first = 0.0;
-                second = 0.0;
-                return;
-            }
-
-            joint = new GeoPoint2(0.5 * (p0.X + d * t0.X + p1.X - d * t1.X), 0.5 * (p0.Y + d * t0.Y + p1.Y - d * t1.Y));
             first = Math.Tan(0.5 * Signed(t0.X, t0.Y, joint.X - p0.X, joint.Y - p0.Y));
             second = Math.Tan(0.5 * Signed(p1.X - joint.X, p1.Y - joint.Y, t1.X, t1.Y));
+            return true;
         }
 
         /// <summary>The angle from one direction to another, above nought counter-clockwise.</summary>
         private static double Signed(double ax, double ay, double bx, double by) => Math.Atan2(ax * by - ay * bx, ax * bx + ay * by);
 
-        /// <summary>The tangent at a point of the circle through three points, along a direction; that direction where they are on a line.</summary>
-        private static GeoVector2 Through(GeoPoint2 a, GeoPoint2 b, GeoPoint2 c, GeoPoint2 at, double alongX, double alongY)
-        {
-            double d = 2.0 * (a.X * (b.Y - c.Y) + b.X * (c.Y - a.Y) + c.X * (a.Y - b.Y));
-            double scale = Math.Max(1.0, Math.Abs(a.X) + Math.Abs(a.Y) + Math.Abs(b.X) + Math.Abs(b.Y) + Math.Abs(c.X) + Math.Abs(c.Y));
-
-            if (Math.Abs(d) <= 1E-12 * scale * scale)
-            {
-                return Unit(alongX, alongY);
-            }
-
-            double aa = a.X * a.X + a.Y * a.Y, bb = b.X * b.X + b.Y * b.Y, cc = c.X * c.X + c.Y * c.Y;
-            double ox = (aa * (b.Y - c.Y) + bb * (c.Y - a.Y) + cc * (a.Y - b.Y)) / d;
-            double oy = (aa * (c.X - b.X) + bb * (a.X - c.X) + cc * (b.X - a.X)) / d;
-            double tx = -(at.Y - oy);
-            double ty = at.X - ox;
-
-            if (tx * alongX + ty * alongY < 0.0)
-            {
-                tx = -tx;
-                ty = -ty;
-            }
-
-            return Unit(tx, ty);
-        }
-
         private static GeoVector2 Unit(double x, double y)
         {
             double length = Math.Sqrt(x * x + y * y);
-            return length > 0.0 ? new GeoVector2(x / length, y / length) : new GeoVector2(1.0, 0.0);
+            return length > 0.0 ? new GeoVector2(x / length, y / length) : new GeoVector2(0.0, 0.0);
         }
     }
 }

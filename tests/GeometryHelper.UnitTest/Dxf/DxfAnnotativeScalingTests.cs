@@ -217,9 +217,11 @@ namespace GeometryHelper.UnitTest.Dxf
         [Fact]
         public void TheCurrentScaleOfADrawingThatCannotWriteCANNOSCALE_IsNotRenamed_AndNothingIsWritten()
         {
+            // A file with no CLASSES section has nowhere to list DICTIONARYVAR (one whose section lists none has it listed).
             string listed = Listed();
-            string variableClass = Records(listed).Single(r => r.StartsWith("  0\nCLASS\n  1\nDICTIONARYVAR\n", StringComparison.Ordinal));
-            DxfDatabase db = DxfDatabase.Parse(listed.Replace(variableClass, string.Empty));
+            int start = listed.IndexOf("  0\nSECTION\n  2\nCLASSES\n", StringComparison.Ordinal);
+            int end = listed.IndexOf("  0\nENDSEC\n", start, StringComparison.Ordinal) + "  0\nENDSEC\n".Length;
+            DxfDatabase db = DxfDatabase.Parse(listed.Remove(start, end - start));
             string text = db.ToText();
             var one = (DxfAnnotationScale)Scales(db).CurrentContext;
 

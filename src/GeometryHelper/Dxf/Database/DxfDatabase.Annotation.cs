@@ -14,8 +14,8 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Refuses a variable kept out of the header that the drawing could not write, as setting it would refuse it, before
-        /// anything is written: one the header does not hold, in a file with no OBJECTS section, no named object dictionary or
-        /// no class DICTIONARYVAR.
+        /// anything is written: one the header does not hold, in a file with no OBJECTS section, no named object dictionary, or
+        /// neither the class DICTIONARYVAR nor a CLASSES section to list it in.
         /// </summary>
         /// <exception cref="InvalidOperationException">Thrown when the variable could not be written.</exception>
         internal void CheckVariableWritable(string name)
@@ -33,9 +33,9 @@ namespace GeometryHelper.Dxf
                 throw new InvalidOperationException("A DXF " + (Version ?? "with no version") + " has no named object dictionary to hold a variable kept out of the header: R13 (AC1012) brought it.");
             }
 
-            if (!File.HasClass("DICTIONARYVAR"))
+            if (!File.HasClass("DICTIONARYVAR") && !File.ListsClasses())
             {
-                throw new InvalidOperationException("The file's CLASSES section lists no DICTIONARYVAR, which a variable kept out of the header is.");
+                throw new InvalidOperationException("The file has no CLASSES section to list DICTIONARYVAR, which a variable kept out of the header is.");
             }
         }
     }

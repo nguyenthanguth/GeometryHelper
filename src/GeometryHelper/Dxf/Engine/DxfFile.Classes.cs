@@ -8,6 +8,41 @@ namespace GeometryHelper.Dxf
     {
         #region Classes
 
+        /// <summary>Whether the file has a CLASSES section, which <see cref="AddClass"/> lists a class in.</summary>
+        internal bool ListsClasses()
+        {
+            foreach (Section section in _sections)
+            {
+                if (section.Name == "CLASSES")
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Lists the class DICTIONARYVAR as AutoCAD 2021 lists it (its proxy flags 0, of ObjectDBX Classes, read off its
+        /// <c>RXClass</c>), counted once from R2004 on, where the file lists none, so that a variable kept out of the header can
+        /// be added to a drawing the library made new. False where the file has no CLASSES section to list it in.
+        /// </summary>
+        internal bool ListDictionaryVariables()
+        {
+            if (HasClass("DICTIONARYVAR"))
+            {
+                return true;
+            }
+
+            if (!ListsClasses())
+            {
+                return false;
+            }
+
+            AddClass("DICTIONARYVAR", "AcDbDictionaryVar", 0, count: 1);
+            return true;
+        }
+
         /// <summary>
         /// Lists a class of objects in the CLASSES section, last, where the section lists none of its DXF name, as AutoCAD lists
         /// the class of an object not built in: its DXF name (1), its C++ name (2), its application (3), ObjectDBX Classes where

@@ -157,7 +157,8 @@ namespace GeometryHelper.Dxf
         /// <summary>
         /// Fits the polyline with a spline, as AutoCAD's <c>SplineFit</c>: its vertices made the frame of a uniform B-spline in
         /// space (flag 16 of their group 70, each keeping its handle), clamped to the first and last vertex of an open polyline
-        /// and running round a closed one, and the vertices of the curve added after them (flag 8), as many segments to each span
+        /// and running round a closed one, and the vertices of the curve added after the first of them (flag 8), where AutoCAD
+        /// keeps them, as many segments to each span
         /// of the spline as asked (their count is taken where it is below nought, a 3D polyline having no arcs); flag 4 of the
         /// polyline's group 70 and group 75, 5 or 6. A fitted polyline is straightened first.
         /// </summary>
@@ -206,7 +207,9 @@ namespace GeometryHelper.Dxf
             }
 
             SetGroupsAtMany(changes, VertexOrder);
-            int place = RecordCount > 1 && RecordType(RecordCount - 1) == "SEQEND" ? RecordCount - 1 : RecordCount;
+
+            // The vertices of the curve follow the first of the frame, as AutoCAD keeps them.
+            int place = vertices[0].Key + 1;
 
             foreach (DxfPolylineVertex3d vertex in made)
             {

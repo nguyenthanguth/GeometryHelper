@@ -48,7 +48,8 @@ namespace GeometryHelper.Dxf
         /// <para>
         /// Set <see cref="DxfAnnotativeStates.True"/>, a text style or a dimension style is given the extended data
         /// <c>AcadAnnotative</c> (1000 <c>AnnotativeData</c>, then 1070 1 and 1070 1 in braces), which is all AutoCAD keeps of
-        /// it. Set <see cref="DxfAnnotativeStates.False"/>, the extended data is taken out, with <c>AcadAnnoPO</c>, a
+        /// it; a multileader style is given 1 in its group 296, and no extended data, as AutoCAD 2021 keeps the flag of the style
+        /// it makes annotative (0 when set false). Set <see cref="DxfAnnotativeStates.False"/>, the extended data is taken out, with <c>AcadAnnoPO</c>, a
         /// multileader's 293 is made 0, and an entity's contexts go with the dictionary AcDbContextDataManager of its extension
         /// dictionary, of any kind of entity: its own groups, those of the scale it was last shown at, stay. A value the object
         /// has changes nothing.
@@ -59,7 +60,7 @@ namespace GeometryHelper.Dxf
         /// eNotApplicable; on an object in no file or erased; or true on a style in a file older than R2007 (AC1021).</exception>
         /// <exception cref="NotSupportedException">Thrown when set true on an entity, which AutoCAD shows at the current scale by
         /// a context the library does not write until AutoCAD's record of it is checked on a drawing AutoCAD saved; or set on an
-        /// INSERT (annotative as its block is), a block or a multileader style.</exception>
+        /// INSERT (annotative as its block is) or a block.</exception>
         public DxfAnnotativeStates Annotative
         {
             get
@@ -104,9 +105,17 @@ namespace GeometryHelper.Dxf
                     return;
                 }
 
-                if (kind == AnnotationKind.Reference || kind == AnnotationKind.Block || kind == AnnotationKind.MLeaderStyle)
+                if (kind == AnnotationKind.Reference || kind == AnnotationKind.Block)
                 {
-                    throw new NotSupportedException("A " + KindName() + " is not made annotative here: an INSERT is annotative as its block is, and a block's and a multileader style's flag are not set yet.");
+                    throw new NotSupportedException("A " + KindName() + " is not made annotative here: an INSERT is annotative as its block is, and a block's flag is not set yet.");
+                }
+
+                if (kind == AnnotationKind.MLeaderStyle)
+                {
+                    // AutoCAD 2021 keeps a multileader style's flag in its group 296 alone, with no extended data.
+                    InFile(value == DxfAnnotativeStates.True ? "be made annotative" : "be made not annotative");
+                    ((DxfMLeaderStyle)this).SetAnnotativeGroup(value == DxfAnnotativeStates.True);
+                    return;
                 }
 
                 if (value == DxfAnnotativeStates.True && kind == AnnotationKind.Entity)
