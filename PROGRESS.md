@@ -184,7 +184,7 @@ the ones wanted.
       object snap precedence); a handle-less R12 DXF gives no object snaps (S)
 - [ ] COPYVIEW (not in AutoCAD): the view as an image on the clipboard, also on the canvas right-click menu (optional)
 - [ ] Tables: the cell right-click menu, column letters and row numbers, autofill and width grips, drag-select a range
-- [ ] Tables: rows grow for wrapped text; Tab in the last cell adds a row; first/second/other row cell styles
+- [ ] Tables (running): rows grow for wrapped text; Tab in the last cell adds a row; first/second/other row cell styles
 
 - [ ] Ribbon: check drop-downs and the Insert block gallery at 125 % and 150 % display scaling; pin and Esc by hand
 - [ ] Ribbon: Home panels a few pixels wider than their design widths
@@ -199,7 +199,7 @@ the ones wanted.
 - [x] Dimensions: the dimension line starts at the back of a closed arrowhead, as AutoCAD draws it
 - [x] Dimensions: DIMTVP, DIMTMOVE 1's leader for words moved out by fit, DIMGAP below zero (box round the words);
       DIMTEDIT on a DIMTAD 0 dimension puts the line through the words
-- [ ] Dimensions follow-ups: words sized by the font, not estimated; DIMJOGGED (prompts recorded, the jog picture not yet
+- [ ] Dimensions follow-ups (running): words sized by the font, not estimated; DIMJOGGED (prompts recorded, the jog picture not yet
       derived: one chord at -23.6 deg unexplained); DIM offering Jogged and Arc length (2016+ DIM prompts not recordable
       headless); DIM edits Mtext in the editor; parked: angles whose arc runs through their points (56 pictures, float
       side choice), radius 3 circles under DIMTMOVE 1/2 with the point inside (28 pictures); DIMTEDIT Left/Right and
