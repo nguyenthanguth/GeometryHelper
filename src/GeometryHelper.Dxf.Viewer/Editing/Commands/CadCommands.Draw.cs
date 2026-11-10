@@ -373,7 +373,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (c.Input.Is("Rotation"))
             {
-                yield return CadPrompt.ForAngle("Specify rotation around major axis", center)
+                yield return CadPrompt.ForAngle("Specify rotation around major axis", center).Turning()
                     .Previewing(CadPreview.MakingOne(c, input => Math.Abs(Math.Cos(input.Number)) < Math.Cos(89.4 * Math.PI / 180.0) ? null : Make(first.Length * Math.Abs(Math.Cos(input.Number)), 0.0, 2.0 * Math.PI, false), true));
 
                 // AutoCAD takes a rotation below 89.4 degrees, the other half the first's times its cosine.
@@ -405,9 +405,10 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (arc)
             {
-                // An angle typed is from the first axis end; one picked is the way to the point, made from that end too.
-                double fromUcs = c.Session.Ucs.AngleToUcs(Math.Atan2(axis.Y, axis.X));
-                yield return CadPrompt.ForAngle("Specify start angle", center)
+                // An angle typed is from the first axis end, clockwise with ANGDIR 1; one picked is the way to the point, made from
+                // that end too (the session gives a pick at these prompts less ANGBASE, which is put back here).
+                double fromUcs = c.Session.Ucs.AngleToUcs(Math.Atan2(axis.Y, axis.X)) - c.Database.Angbase;
+                yield return CadPrompt.ForAngle("Specify start angle", center).Turning()
                     .Previewing(CadPreview.MakingOne(c, input => Make(other, 0.0, 2.0 * Math.PI, false), true));
 
                 if (c.Input.Kind != CadInputKind.Number)
@@ -417,12 +418,12 @@ namespace GeometryHelper.Dxf.Viewer
 
                 start = Typed(c.Input) ? c.Input.Number : c.Input.Number - fromUcs;
                 double begin = start;
-                yield return CadPrompt.ForAngle("Specify end angle", center, new[] { "Included angle" })
+                yield return CadPrompt.ForAngle("Specify end angle", center, new[] { "Included angle" }).Turning()
                     .Previewing(CadPreview.MakingOne(c, input => Make(other, begin, input.Number - fromUcs, true), true));
 
                 if (c.Input.Is("Included angle"))
                 {
-                    yield return CadPrompt.ForAngle("Specify included angle for arc", center, null, "180")
+                    yield return CadPrompt.ForAngle("Specify included angle for arc", center, null, "180").Turning()
                         .Previewing(CadPreview.MakingOne(c, input => Make(other, begin, input.Number - fromUcs, true), true));
                     end = c.Input.IsNone ? start + Math.PI : c.Input.Kind != CadInputKind.Number ? double.NaN : Typed(c.Input) ? start + c.Input.Number : c.Input.Number - fromUcs;
                 }

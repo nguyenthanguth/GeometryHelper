@@ -395,7 +395,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     return string.Empty;
                 }
 
-                return TipText(shown ? _snapped : null, Session.Prompt.BasePoint, _snapped?.Point ?? _cursor.Value, Session.Ucs);
+                return TipText(shown ? _snapped : null, Session.Prompt.BasePoint, _snapped?.Point ?? _cursor.Value, Session);
             }
         }
 
@@ -3170,8 +3170,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             dc.DrawLine(pen, new Point(at.X - 5.0, at.Y + 5.0), new Point(at.X + 5.0, at.Y - 5.0));
         }
 
-        /// <summary>The tip by the cursor, as AutoCAD's dynamic input: the snap's name, the distance and the angle from the base point, the angle from the X axis of the UCS.</summary>
-        private static string TipText(CadSnapResult snapped, GeoPoint2? basePoint, GeoPoint2 target, CadUcs ucs)
+        /// <summary>The tip by the cursor, as AutoCAD's dynamic input: the snap's name, the distance and the angle from the base point, the angle counted as the drawing counts angles (from the X axis of the UCS turned by ANGBASE, clockwise with ANGDIR 1).</summary>
+        private static string TipText(CadSnapResult snapped, GeoPoint2? basePoint, GeoPoint2 target, CadCommandSession session)
         {
             string kind = snapped == null ? string.Empty : CadSnapMarker.NameOf(snapped.Kind);
 
@@ -3180,9 +3180,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return kind;
             }
 
-            GeoVector2 way = ucs.ToUcs(target - basePoint.Value);
-            double degrees = Math.Atan2(way.Y, way.X) * 180.0 / Math.PI;
-            degrees = degrees < 0.0 ? degrees + 360.0 : degrees;
+            GeoVector2 way = session.Ucs.ToUcs(target - basePoint.Value);
+            double degrees = session.CountAngle(Math.Atan2(way.Y, way.X)) * 180.0 / Math.PI;
             string measured = way.Length.ToString("0.0", CultureInfo.InvariantCulture) + " < " + degrees.ToString("0", CultureInfo.InvariantCulture) + "°";
             return kind.Length == 0 ? measured : kind + " · " + measured;
         }

@@ -530,7 +530,7 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (option == "Rotate")
                 {
-                    yield return CadPrompt.ForAngle("Specify rotation angle", null, null, Number(0.0));
+                    yield return CadPrompt.ForAngle("Specify rotation angle", null, null, Number(0.0)).Turning();
 
                     if (c.Input.Kind == CadInputKind.Number)
                     {
@@ -620,7 +620,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (askRotation && !rotationGiven)
             {
-                yield return CadPrompt.ForAngle("Specify rotation angle", new GeoPoint2(placing.Point.X, placing.Point.Y), null, Number(0.0));
+                yield return CadPrompt.ForAngle("Specify rotation angle", new GeoPoint2(placing.Point.X, placing.Point.Y), null, Number(0.0)).Turning();
 
                 if (c.Input.Kind == CadInputKind.Number)
                 {
@@ -879,7 +879,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (request.SpecifyRotationOnScreen)
             {
-                yield return CadPrompt.ForAngle("Specify rotation angle", new GeoPoint2(point.X, point.Y), null, Number(0.0));
+                yield return CadPrompt.ForAngle("Specify rotation angle", new GeoPoint2(point.X, point.Y), null, Number(0.0)).Turning();
 
                 if (c.Input.Kind == CadInputKind.Number)
                 {

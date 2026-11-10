@@ -11,13 +11,14 @@ namespace GeometryHelper.Dxf.Viewer
     /// that a block holding the only INSERT of another takes that one with it; or the lines, arcs and polylines of no length
     /// and the texts of no content. What AutoCAD keeps is never purged: layer 0 and Defpoints, the linetypes ByLayer, ByBlock
     /// and Continuous, the styles Standard and the current ones, the blocks of the spaces and layouts, the plot style Normal
-    /// and every visual style, as <see cref="DxfDatabase.Purge"/> keeps them.
+    /// and every visual style, as <see cref="DxfDatabase.Purge"/> keeps them. A group is purged when it holds nothing, named
+    /// or not: one never given a member, or whose members were all erased.
     /// </summary>
     internal static partial class CadCommands
     {
         private static readonly string[] PurgeOptions =
         {
-            "Blocks", "Dimstyles", "LAyers", "LTypes", "MUltileaderstyles", "Plotstyles", "SHapes", "textSTyles", "Tablestyles",
+            "Blocks", "Dimstyles", "Groups", "LAyers", "LTypes", "MUltileaderstyles", "Plotstyles", "SHapes", "textSTyles", "Tablestyles",
             "Visualstyles", "Regapps", "Zero-length geometry", "Empty text objects", "All",
         };
 
@@ -35,6 +36,7 @@ namespace GeometryHelper.Dxf.Viewer
             new[] { "Tablestyles", "table style", "table styles" },
             new[] { "Visualstyles", "visual style", "visual styles" },
             new[] { "Regapps", "registered application", "registered applications" },
+            new[] { "Groups", "group", "groups" },
         };
 
         /// <summary>
@@ -196,6 +198,9 @@ namespace GeometryHelper.Dxf.Viewer
             DxfDatabase db = c.Database;
             var candidates = new List<KeyValuePair<string, DxfDBObject>>();
 
+            // A group is used by nothing; it is purged for holding nothing.
+            bool empty = kind == "Groups";
+
             void Dictionary(DxfDBDictionary dictionary, string current)
             {
                 if (dictionary == null)
@@ -274,6 +279,16 @@ namespace GeometryHelper.Dxf.Viewer
                 case "Plotstyles":
                     Dictionary(db.PlotStyleNameDictionary, null);
                     break;
+                case "Groups":
+                    foreach (DxfGroup group in c.Document.Groups())
+                    {
+                        if (group.NumEntities == 0)
+                        {
+                            candidates.Add(new KeyValuePair<string, DxfDBObject>(group.Name, group));
+                        }
+                    }
+
+                    break;
             }
 
             var unused = new List<KeyValuePair<string, DxfDBObject>>();
@@ -290,7 +305,7 @@ namespace GeometryHelper.Dxf.Viewer
                 objects.Add(candidate.Value);
             }
 
-            var free = new HashSet<DxfDBObject>(db.Purge(objects));
+            var free = new HashSet<DxfDBObject>(empty ? objects : db.Purge(objects));
 
             foreach (KeyValuePair<string, DxfDBObject> candidate in candidates)
             {
@@ -336,6 +351,9 @@ namespace GeometryHelper.Dxf.Viewer
                     break;
                 case "Plotstyles":
                     db.PlotStyleNameDictionary.Remove(name);
+                    break;
+                case "Groups":
+                    db.GroupDictionary.GetAt(name).Erase();
                     break;
             }
         }

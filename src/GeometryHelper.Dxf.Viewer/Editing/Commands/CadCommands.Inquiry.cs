@@ -33,7 +33,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             // The angle and the deltas are along the axes of the UCS, as AutoCAD reports them.
             GeoVector2 d = c.Session.Ucs.ToUcs(c.Input.Point - a);
-            c.Write("Distance = " + Length(d.Length) + ",  Angle in XY Plane = " + Degrees(c, Math.Atan2(d.Y, d.X)) + ",  Angle from XY Plane = " + Degrees(c, 0.0));
+            c.Write("Distance = " + Length(d.Length) + ",  Angle in XY Plane = " + Degrees(c, c.Session.CountAngle(Math.Atan2(d.Y, d.X))) + ",  Angle from XY Plane = " + Degrees(c, c.Session.CountAngle(0.0)));
             c.Write("Delta X = " + Length(d.X) + ",  Delta Y = " + Length(d.Y) + ",  Delta Z = " + Length(0.0));
         }
 
@@ -221,7 +221,7 @@ namespace GeometryHelper.Dxf.Viewer
                     var d = new GeoVector3(flat.X, flat.Y, delta.Z);
                     yield return "              from point, " + At(c, line.StartPoint);
                     yield return "                to point, " + At(c, line.EndPoint);
-                    yield return "          Length = " + Length(line.Length) + ",  Angle in XY Plane = " + Degrees(c, Math.Atan2(d.Y, d.X)).PadLeft(6);
+                    yield return "          Length = " + Length(line.Length) + ",  Angle in XY Plane = " + Degrees(c, c.Session.CountAngle(Math.Atan2(d.Y, d.X))).PadLeft(6);
                     yield return "                  Delta X = " + Length(d.X) + ", Delta Y = " + Length(d.Y) + ", Delta Z = " + Length(d.Z);
                     yield break;
                 case DxfCircle circle:
@@ -233,8 +233,8 @@ namespace GeometryHelper.Dxf.Viewer
                 case DxfArc arc:
                     yield return "            center point, " + At(c, arc.Center);
                     yield return "            radius " + Length(arc.Radius).PadLeft(9);
-                    yield return "             start angle " + Degrees(c, c.Session.Ucs.AngleToUcs(arc.StartAngle)).PadLeft(6);
-                    yield return "               end angle " + Degrees(c, c.Session.Ucs.AngleToUcs(arc.EndAngle)).PadLeft(6);
+                    yield return "             start angle " + Degrees(c, c.Session.CountAngle(c.Session.Ucs.AngleToUcs(arc.StartAngle))).PadLeft(6);
+                    yield return "               end angle " + Degrees(c, c.Session.CountAngle(c.Session.Ucs.AngleToUcs(arc.EndAngle))).PadLeft(6);
                     yield return "                  length " + Length(arc.Length).PadLeft(9);
                     yield break;
                 case DxfPolyline polyline:

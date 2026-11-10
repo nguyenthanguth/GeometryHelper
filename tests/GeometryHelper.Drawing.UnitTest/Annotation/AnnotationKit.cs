@@ -57,7 +57,7 @@ namespace GeometryHelper.Drawing.UnitTest.Annotation
 
         /// <summary>
         /// Writes a view and its dimensions into a new drawing at 1:1 and draws the drawing, as the presenter shows it, into a
-        /// PNG under %TEMP%/gk/drawing/annot; gives the path. The DXF is saved beside it.
+        /// PNG in the folder annot of the run (<see cref="TestRun"/>); gives the path. The DXF is saved beside it.
         /// </summary>
         public static string SavePicture(ProjectedView2 view, IEnumerable<DrawingDimension> dimensions, string name)
         {
@@ -80,8 +80,7 @@ namespace GeometryHelper.Drawing.UnitTest.Annotation
                 cad.ZoomTo(box, 0.05);
             }
 
-            string folder = Path.Combine(Path.GetTempPath(), "gk", "drawing", "annot");
-            Directory.CreateDirectory(folder);
+            string folder = TestRun.Folder("annot");
             string path = Path.Combine(folder, name + ".png");
 
             using (var bitmap = new SKBitmap(width, height))

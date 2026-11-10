@@ -160,7 +160,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     return string.Empty;
                 }
 
-                // In the current UCS: its coordinates, and the angle from its X axis.
+                // In the current UCS: its coordinates, and the angle counted from its X axis turned by ANGBASE, by ANGDIR.
                 if (!prompt.BasePoint.HasValue)
                 {
                     GeoPoint2 shown = Ucs.ToUcs(_cursorAt);
@@ -170,8 +170,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 GeoVector2 way = Ucs.ToUcs(_cursorAt - prompt.BasePoint.Value);
                 double dx = way.X;
                 double dy = way.Y;
-                double degrees = Math.Atan2(dy, dx) * 180.0 / Math.PI;
-                degrees = degrees < 0.0 ? degrees + 360.0 : degrees;
+                double degrees = Session.CountAngle(Math.Atan2(dy, dx)) * 180.0 / Math.PI;
                 return _settings.FormatNumber(Math.Sqrt(dx * dx + dy * dy), _settings.CoordinateDecimals) + " < " + _settings.FormatNumber(degrees, _settings.AngleDecimals) + "°";
             }
         }
@@ -641,7 +640,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     return far > 0.0 ? from + new GeoVector2(towards.X * length / far, towards.Y * length / far) : from;
                 }
 
-                double angle = Number(second) * Math.PI / 180.0;
+                // The angle box counts as the drawing does: from ANGBASE, clockwise with ANGDIR 1.
+                double angle = CadUnits.ToDirection(Number(second) * Math.PI / 180.0, Session.Document.Database.Angbase, Session.Document.Database.Angdir);
                 return from + ucs.ToWorld(new GeoVector2(length * Math.Cos(angle), length * Math.Sin(angle)));
             }
 
@@ -750,8 +750,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return _settings.FormatNumber(Math.Sqrt(dx * dx + dy * dy), _settings.CoordinateDecimals);
             }
 
-            double degrees = Math.Atan2(dy, dx) * 180.0 / Math.PI;
-            return _settings.FormatNumber(degrees < 0.0 ? degrees + 360.0 : degrees, _settings.AngleDecimals);
+            return _settings.FormatNumber(Session.CountAngle(Math.Atan2(dy, dx)) * 180.0 / Math.PI, _settings.AngleDecimals);
         }
 
         private bool FieldLocked(bool second)

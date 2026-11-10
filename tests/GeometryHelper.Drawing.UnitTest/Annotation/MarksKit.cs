@@ -123,7 +123,7 @@ namespace GeometryHelper.Drawing.UnitTest.Annotation
         }
 
         /// <summary>
-        /// Draws a drawing, as the presenter shows it, into a PNG under %TEMP%/gk/drawing/marks, and saves the DXF beside it;
+        /// Draws a drawing, as the presenter shows it, into a PNG in the folder marks of the run (<see cref="TestRun"/>), and saves the DXF beside it;
         /// gives the path of the PNG.
         /// </summary>
         public static string SavePicture(DxfDatabase database, string name)
@@ -138,8 +138,7 @@ namespace GeometryHelper.Drawing.UnitTest.Annotation
                 cad.ZoomTo(box, 0.05);
             }
 
-            string folder = Path.Combine(Path.GetTempPath(), "gk", "drawing", "marks");
-            Directory.CreateDirectory(folder);
+            string folder = TestRun.Folder("marks");
             string path = Path.Combine(folder, name + ".png");
 
             using (var bitmap = new SKBitmap(width, height))

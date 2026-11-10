@@ -59,7 +59,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (kind == "Oblique")
             {
-                yield return CadPrompt.ForAngle("Enter obliquing angle (press ENTER for none)");
+                yield return CadPrompt.ForAngle("Enter obliquing angle (press ENTER for none)").Plain();
 
                 if (c.Input.Kind == CadInputKind.Number)
                 {

@@ -1,6 +1,6 @@
 # Third-party notices
 
-GeometryHelper holds code that comes from another project. Its notice follows.
+GeometryHelper holds code that comes from other projects. Their notices follow.
 
 ## Clipper2
 
@@ -48,4 +48,40 @@ SHALL THE COPYRIGHT HOLDERS OR ANYONE DISTRIBUTING THE SOFTWARE BE LIABLE
 FOR ANY DAMAGES OR OTHER LIABILITY, WHETHER IN CONTRACT, TORT OR OTHERWISE,
 ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
+```
+
+## ACadSharp
+
+The DWG reader of GeometryHelper was written from the Open Design Specification for .dwg files, and where that leaves the
+order or the meaning of the fields of an object open it follows [ACadSharp](https://github.com/DomCR/ACadSharp), by
+Albert Domenech, as read at commit `c780699` of 10 November 2026. No file of ACadSharp is carried over; these files of
+GeometryHelper decode the header variables and the objects of a DWG in the order ACadSharp's reader does, and are to be
+taken as derived from it:
+
+- `src/GeometryHelper/Dwg/DwgHeaderVariables.cs`: the header variables of AC1015.
+- `src/GeometryHelper/Dwg/DwgObjectReader.cs`, `DwgObjectReader.Entities.cs`, `DwgObjectReader.Tables.cs` and
+  `DwgObjectReader.Objects.cs`: the common data of objects and entities, and the entities, table records and objects.
+
+```text
+MIT License
+
+Copyright (c) 2021 Albert Domenech
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 ```

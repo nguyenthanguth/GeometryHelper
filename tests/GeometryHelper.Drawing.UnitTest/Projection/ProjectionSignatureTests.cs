@@ -20,7 +20,7 @@ namespace GeometryHelper.Drawing.UnitTest.Projection
     {
         // Taken on 2026-11-08 under .NET Framework 4.8, x64, from the projection as it stood before it was made faster
         // (the code agent projection left), before any line of it was changed: each a view's Signature, its SHA-256 cut
-        // to 24 digits. The test writes what it takes under %TEMP%/gk/drawing/proj/signatures.
+        // to 24 digits. The test writes what it takes in the folder proj\signatures of the run (TestRun).
         private const string Bodies = ""
             + "box top 5d624ae514d29c8c0ab7cd45\n"
             + "box bottom 752cdedb17584ca1962bb26e\n"
@@ -243,12 +243,11 @@ namespace GeometryHelper.Drawing.UnitTest.Projection
         private static ProjectionInput[] Inputs(TestBody body) => body.Parts.Select(p => new ProjectionInput(p.Object.Id, p.Object.Solid)).ToArray();
 
         /// <summary>
-        /// Writes the signatures taken under %TEMP%/gk/drawing/proj/signatures, to compare where a test fails, and gives them.
+        /// Writes the signatures taken in the folder proj\signatures of the run (<see cref="TestRun"/>) and gives them.
         /// </summary>
         private static string Kept(string name, string signatures)
         {
-            string folder = Path.Combine(Path.GetTempPath(), "gk", "drawing", "proj", "signatures");
-            Directory.CreateDirectory(folder);
+            string folder = TestRun.Folder("proj", "signatures");
             File.WriteAllText(Path.Combine(folder, name + ".txt"), signatures);
             return signatures;
         }

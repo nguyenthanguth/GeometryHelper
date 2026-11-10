@@ -27,6 +27,57 @@ DIMEXO off its points to DIMEXE past the arc wherever that is any length, as a l
 from the vertex and its arc 20.3 out they run from 20.625 to 21.55, where none were drawn. Checked against 70 new
 pictures AutoCAD drew, all matching to 0.001; the 676 of the earlier rounds still match.
 
+**NEW.** PURGE and -PURGE of the presenter purge groups, as AutoCAD 2021's do: the Groups option of -PURGE and of its
+All, and a Groups node in the tree of the Purge dialog. A group is purged when it holds nothing, whether it was never
+given a member or its members were all erased, named or unnamed: of a drawing with the groups EMPTY and FULL and an
+unnamed group whose one line was erased, -PURGE Groups says `Deleting group "*A1".`, `Deleting group "EMPTY".`,
+`2 groups deleted.` and keeps FULL, and a second run says `No unreferenced groups found.`. Find Non-Purgeable Items
+lists FULL with `Group FULL holds objects.`.
+
+**FIXED.** A disabled drop-down and a disabled button of the presenter look disabled. The shared styles of the theme
+gave neither a disabled look, so the Live section, Visual style and Background boxes of New View, the Lighting box of
+Drawing Units and the ribbon buttons that need a drawing, or are not built yet, read as ones to press, and a disabled
+drop-down still lit its border under the mouse. A disabled drop-down now shows its words muted and its box at half
+strength and does not answer the mouse; a disabled button shows its icon and words at 45 per cent.
+
+**FIXED.** The presenter's Layer States Manager restores a state into the current viewport of a layout where "Apply
+properties as viewport overrides" is ticked; the tick was read and then ignored, and the layers themselves were changed.
+A state that has the layer A red and 0.50 wide, B off and C frozen, restored so into a viewport after A was made green,
+leaves A green in the drawing and gives it a red, 0.50 override in that viewport, freezes B and C there, and leaves
+every other viewport alone; a property the state and the layer agree on takes its override off, and a layer the state
+has on and thawed is thawed there. With "Turn off layers not found in layer state" the layers the state does not name
+are frozen in the viewport. One undo step, as the restore into the layers is. On the Model tab, and on the paper with
+no viewport chosen, Restore changes the layers as before.
+
+**FIXED.** `DxfLayerStateManager.GetLayerStateNames(includeHidden, false)` left out a layer state imported from a .las
+file. AutoCAD 2021 writes such a state with its layers by name (group 8: `XR_DOORS`, `0`), which the library took for
+the mark of an xref's state; `-LAYER` stAte `?` lists it with the drawing's own. A state is now an xref's only where it is
+named `xref__state` and every layer of its record is named as `xref|layer`, as AutoCAD writes
+`70-b-xref-source__GH_XR_STATE` of the layer `70-b-xref-source|XR_WALLS`.
+
+**FIXED.** The presenter's typed and shown angles follow ANGBASE and ANGDIR as AutoCAD 2021's do; they were read from
+the X axis counter-clockwise whatever UNITS had set (only an arc's included angle followed ANGDIR). With ANGBASE 90 and
+ANGDIR 1, `@100<30` now ends at 50, 86.6 and not 86.6, 50; 30 at ROTATE turns 30 degrees clockwise, the base left out
+as AutoCAD leaves it out of a turn; DIST writes a line to the east as "Angle in XY Plane = 90", and LIST, the Properties
+palette, the cursor tip, the coordinate readout and the angle box of dynamic input count the same way. `@100<<30` and
+`@100<<<30` end at 86.6, 50 whatever the settings. Prompts whose default is a direction offer it counted
+("Specify rotation angle or [Copy/Reference] <90>:"). New: `CadUnits.ToDirection` and `FromDirection`,
+`CadCommandSession.CountAngle`, and `CadPrompt.AsksTurn` and `AsksPlainAngle`, which say how the session reads an angle
+typed at a prompt. A drawing with ANGBASE 0 and ANGDIR 0 behaves as before.
+
+**NEW.** `DwgReader` (namespace `GeometryHelper.Dwg`) reads a DWG file of AutoCAD 2000 (AC1015, which every later
+AutoCAD writes on "Save as AutoCAD 2000") by the library's own code, as the drawing its DXF would give:
+`DwgReader.Read` gives the `DxfDocument` of `DxfReader` and `DwgReader.Open` the `DxfDatabase`, from a path or a stream.
+Read are the header variables, the classes, the nine tables, the blocks and layouts, LINE, POINT, CIRCLE, ARC, ELLIPSE,
+SPLINE, RAY, XLINE, LWPOLYLINE, POLYLINE with its vertices, TEXT, MTEXT, ATTDEF, INSERT with its ATTRIBs, SOLID, TRACE,
+3DFACE and DIMENSION, and of the objects DICTIONARY, XRECORD, LAYOUT, GROUP and MLINESTYLE, each with its layer,
+linetype, colour, lineweight, owner, reactors, extension dictionary and extended data. Eight drawings made in AutoCAD
+2021 come out group for group as the DXF AutoCAD writes of them, numbers to nine places. The types not read yet, VIEWPORT,
+HATCH and LEADER among them, are left out and counted by type in one Debug line; a DWG of another version is refused
+with a `NotSupportedException` that names it. Every check sum is checked: a wrong one in the header, the classes or the
+object map refuses the file with a `FormatException`, and one broken object is left out with a Warn line while the
+others are read. See the guide page "Reading DWG files".
+
 **NEW.** DIMARC (DAR), the presenter's arc length dimension, as AutoCAD 2021 makes it and stored as the library's
 `DxfArcDimension`: Mtext and Text for its words, Angle for theirs, Partial for the length between two points of the arc,
 and Leader, offered past 90 degrees of sweep, for a leader from the words' arc to the arc measured. Below 90 degrees the

@@ -34,4 +34,10 @@
     <None Update="Clipper\Data\*.txt" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
+  <!-- The DWG reader's tests, under Dwg\, read these: each drawing as AutoCAD saved it and the DXF AutoCAD wrote of it,
+       both gzipped. -->
+  <ItemGroup>
+    <EmbeddedResource Include="Dwg\Data\*.gz" />
+  </ItemGroup>
+
 </Project>

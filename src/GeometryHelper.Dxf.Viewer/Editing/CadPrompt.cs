@@ -138,6 +138,36 @@ namespace GeometryHelper.Dxf.Viewer
             return this;
         }
 
+        /// <summary>
+        /// Gets whether the angle asked is an amount turned, as ROTATE's rotation angle, the included angle of an arc and the
+        /// rotation of INSERT are, and not a direction: an angle typed is then turned the way ANGDIR counts and ANGBASE is left
+        /// out of it, and a point picked gives its direction counted from ANGBASE, as AutoCAD's own prompts do. With ANGBASE at
+        /// north and ANGDIR clockwise, 30 typed at ROTATE turns the objects 30 degrees clockwise, where 30 typed for the
+        /// rotation of a text sets it along the direction 60 degrees counter-clockwise from east. False for a prompt that asks
+        /// a direction, and for every prompt that asks no angle.
+        /// </summary>
+        public bool AsksTurn { get; private set; }
+
+        /// <summary>
+        /// Gets whether the angle asked is taken as typed, counter-clockwise, whatever ANGBASE and ANGDIR are, as the obliquing
+        /// angle of a text style and the direction -UNITS asks for angle nought are. False for every other prompt.
+        /// </summary>
+        public bool AsksPlainAngle { get; private set; }
+
+        /// <summary>Makes the angle asked an amount turned (<see cref="AsksTurn"/>).</summary>
+        internal CadPrompt Turning()
+        {
+            AsksTurn = true;
+            return this;
+        }
+
+        /// <summary>Makes the angle asked one taken as typed (<see cref="AsksPlainAngle"/>).</summary>
+        internal CadPrompt Plain()
+        {
+            AsksPlainAngle = true;
+            return this;
+        }
+
         // Keywords taken but not shown, as a grip edit takes MOVE or MO at its STRETCH prompt.
         private IReadOnlyList<string> _hidden = Array.Empty<string>();
 
