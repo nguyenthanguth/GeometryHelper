@@ -201,6 +201,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private bool _swallowUp;
         private Point? _pointDown;
         private GeoPoint2? _cursor;
+        private string _typed;
         private Point? _mouse;
         private double _crosshairPercent;
         private int _gripRgb = 0x3D9BFF;
@@ -1242,6 +1243,37 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
         }
 
+        /// <summary>Shift pressed or released: a preview that follows it, as TRIM's, is drawn anew.</summary>
+        internal void OnShiftChanged()
+        {
+            if (Session?.Prompt?.Preview != null)
+            {
+                InvalidateVisual();
+            }
+        }
+
+        /// <summary>Gets or sets the text typed so far in the command line, which a preview of a line of text draws, as TEXT's at "Enter text".</summary>
+        internal string Typed
+        {
+            get => _typed;
+            set
+            {
+                _typed = value;
+
+                if (Session?.Prompt?.Kind == CadPromptKind.String && Session.Prompt.Preview != null)
+                {
+                    InvalidateVisual();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets what holds the point of a prompt in place of the cursor, as the fields of dynamic input do once one
+        /// holds a number: given the cursor, snapped, and whether a click takes the point now, the point held, or null to
+        /// leave the cursor free. Null for none.
+        /// </summary>
+        internal Func<GeoPoint2, bool, GeoPoint2?> HeldAt { get; set; }
+
         /// <summary>Gets or sets where a mouse event happened; null for the mouse itself. A test sets it, having no mouse to move.</summary>
         internal Func<MouseEventArgs, Point> Pointer { get; set; }
 
@@ -1651,6 +1683,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return true;
             }
 
+            // TRIM and EXTEND preview the other's result while Shift is held, as a pick with it gives.
+            preview.Shift = (Keyboard.Modifiers & ModifierKeys.Shift) != 0;
             double tolerance = 0.5 * scale / view.PixelsPerUnit;
             DisplayBox grown = view.VisibleBox.Inflate(4.0 * scale / view.PixelsPerUnit);
             IReadOnlyList<Affine2> moves = preview.Moves(target);
@@ -2109,7 +2143,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return;
             }
 
-            if (CadPicking.Click(document, WorkSpace, Session, Snap, at, aperture, shift, (Keyboard.Modifiers & ModifierKeys.Control) != 0))
+            // A field of dynamic input that holds a number gives the point, the click its direction or its distance.
+            bool control = (Keyboard.Modifiers & ModifierKeys.Control) != 0;
+            GeoPoint2? fields = HeldAt != null && CadPicking.WantsPoint(Session)
+                ? HeldAt(CadPicking.Snap(document, WorkSpace, Snap, at, aperture, Session.Prompt.BasePoint)?.Point ?? at, true)
+                : null;
+
+            if (fields.HasValue ? Session.Feed(fields.Value, false, control) : CadPicking.Click(document, WorkSpace, Session, Snap, at, aperture, shift, control))
             {
                 SelectionChanged?.Invoke(this, EventArgs.Empty);
             }
@@ -3005,8 +3045,17 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             CadCommandSession session = Session;
 
-            // A prompt for objects previews what the object under the cursor would give, as FILLET its arc.
-            if (CadPicking.WantsObjects(session) && _cursor.HasValue)
+            // A prompt for a line of text previews the words typed so far, wherever the cursor is.
+            if (session?.Prompt?.Kind == CadPromptKind.String && session.Prompt.Preview != null)
+            {
+                session.Prompt.Preview.Typed = Typed;
+                DrawPreview(dc, view, scale, _cursor ?? default(GeoPoint2));
+                return;
+            }
+
+            // A prompt for objects previews what the object under the cursor would give, as FILLET its arc; a prompt for a
+            // keyword what Enter would, as -ARRAY's copies while it asks whether to rotate them.
+            if ((CadPicking.WantsObjects(session) || session?.Prompt?.Kind == CadPromptKind.Keyword) && _cursor.HasValue)
             {
                 DrawPreview(dc, view, scale, _cursor.Value);
                 return;
@@ -3020,6 +3069,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             // Without the magnet (AUTOSNAP 4) the rubber band and the ghost stay at the cursor while an object snap is shown.
             bool held = _snapped != null && (Snap == null || Snap.Magnet || !IsObjectSnap(_snapped.Kind));
             GeoPoint2 target = held ? _snapped.Point : _cursor.Value;
+
+            // A field of dynamic input that holds a number holds the rubber band and the preview with it.
+            target = HeldAt?.Invoke(target, false) ?? target;
             Point to = ToScreen(view, target, scale);
             GeoPoint2? basePoint = session.Prompt.BasePoint;
             DrawGhost(dc, view, scale, target);

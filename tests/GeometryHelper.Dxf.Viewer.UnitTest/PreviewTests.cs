@@ -649,6 +649,76 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         [Fact]
+        public void StandardTrim_PreviewsThePieceUpToTheCuttingEdgeChosen_AndNothingWhereNoneCuts()
+        {
+            // Two walls cross the line; only the one at 60 is a cutting edge, so the cut runs from the end to it.
+            CadCommandSession session = Started("LINE", P(-50, 0), P(100, 0), Enter, "LINE", P(0, -50), P(0, 100), Enter, "LINE", P(60, -50), P(60, 100), Enter);
+            string first = All<DxfLine>(session.Document.ModelSpace).First().Handle;
+            string wall = All<DxfLine>(session.Document.ModelSpace).Last().Handle;
+            Run(session, "TRIM", "O", "Standard", new[] { wall }, Enter);
+            Assert.StartsWith("Select object to trim", session.PromptText);
+            CadPreview preview = session.Prompt.Preview;
+            Assert.True(preview.Fades);
+            int lines = session.History.Count;
+
+            List<string> gone = Shapes(preview.Items(P(-25, 0)));
+            Assert.Empty(preview.Items(P(60, 80)));
+            Assert.Equal(lines, session.History.Count);
+            Run(session, P(-25, 0));
+
+            Assert.Equal("DisplayPolyline2 open -50.000000 0.000000 60.000000 0.000000", Assert.Single(gone));
+            Assert.Equal("DisplayPolyline2 open 60.000000 0.000000 100.000000 0.000000", Assert.Single(ShapesOf(session.Document, first)));
+        }
+
+        [Fact]
+        public void StandardExtend_PreviewsTheObjectRunOnToTheBoundaryChosen()
+        {
+            CadCommandSession session = Started("LINE", P(0, 0), P(50, 0), Enter, "LINE", P(100, -50), P(100, 50), Enter, "LINE", P(150, -50), P(150, 50), Enter);
+            string first = All<DxfLine>(session.Document.ModelSpace).First().Handle;
+            string far = All<DxfLine>(session.Document.ModelSpace).Last().Handle;
+            Run(session, "EXTEND", "O", "Standard", new[] { far }, Enter);
+            Assert.StartsWith("Select object to extend", session.PromptText);
+            Assert.False(session.Prompt.Preview.Fades);
+
+            List<string> previewed = Shapes(session.Prompt.Preview.Items(P(40, 0)));
+            Run(session, P(40, 0));
+
+            Assert.Equal("DisplayPolyline2 open 0.000000 0.000000 150.000000 0.000000", Assert.Single(previewed));
+            Assert.Equal(ShapesOf(session.Document, first), previewed);
+        }
+
+        [Fact]
+        public void ShiftHeldInTrim_PreviewsTheExtension_AndInExtendThePieceTrimmed()
+        {
+            CadCommandSession session = Started("LINE", P(0, 0), P(50, 0), Enter, "LINE", P(100, -50), P(100, 50), Enter, "TRIM");
+            string first = All<DxfLine>(session.Document.ModelSpace).First().Handle;
+            CadPreview preview = session.Prompt.Preview;
+            Assert.True(preview.Fades);
+            preview.Shift = true;
+            Assert.False(preview.Fades);
+
+            List<string> previewed = Shapes(preview.Items(P(40, 0)));
+            session.Feed(P(40, 0), true);
+
+            Assert.Equal("DisplayPolyline2 open 0.000000 0.000000 100.000000 0.000000", Assert.Single(previewed));
+            Assert.Equal(ShapesOf(session.Document, first), previewed);
+
+            // EXTEND with Shift trims: the 50 past the wall, faded.
+            session = Started("LINE", P(0, 0), P(150, 0), Enter, "LINE", P(100, -50), P(100, 50), Enter, "EXTEND");
+            first = All<DxfLine>(session.Document.ModelSpace).First().Handle;
+            preview = session.Prompt.Preview;
+            Assert.False(preview.Fades);
+            preview.Shift = true;
+            Assert.True(preview.Fades);
+
+            List<string> gone = Shapes(preview.Items(P(140, 0)));
+            session.Feed(P(140, 0), true);
+
+            Assert.Equal("DisplayPolyline2 open 100.000000 0.000000 150.000000 0.000000", Assert.Single(gone));
+            Assert.Equal("DisplayPolyline2 open 0.000000 0.000000 100.000000 0.000000", Assert.Single(ShapesOf(session.Document, first)));
+        }
+
+        [Fact]
         public void LengthenDynamic_PreviewsTheEndRunOnOrCutBackToTheCursor()
         {
             CadCommandSession session = Started("LINE", P(0, 0), P(100, 0), Enter, "LENGTHEN", "DY", P(90, 0));
@@ -693,6 +763,59 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             DxfDBText text = Assert.Single(All<DxfDBText>(session.Document.ModelSpace));
             Assert.Equal(5.0, text.Height, 9);
             Assert.Equal(Math.PI / 2.0, text.Rotation, 9);
+        }
+
+        [Theory]
+        [InlineData("C", "7.500000 10.000000 12.500000 10.000000 12.500000 15.000000 7.500000 15.000000")]
+        [InlineData("R", "5.000000 10.000000 10.000000 10.000000 10.000000 15.000000 5.000000 15.000000")]
+        [InlineData("M", "7.500000 7.500000 12.500000 7.500000 12.500000 12.500000 7.500000 12.500000")]
+        [InlineData("TL", "10.000000 5.000000 15.000000 5.000000 15.000000 10.000000 10.000000 10.000000")]
+        [InlineData("TR", "5.000000 5.000000 10.000000 5.000000 10.000000 10.000000 5.000000 10.000000")]
+        [InlineData("MC", "7.500000 7.500000 12.500000 7.500000 12.500000 12.500000 7.500000 12.500000")]
+        [InlineData("ML", "10.000000 7.500000 15.000000 7.500000 15.000000 12.500000 10.000000 12.500000")]
+        [InlineData("BR", "5.000000 10.000000 10.000000 10.000000 10.000000 15.000000 5.000000 15.000000")]
+        public void TextJustified_PreviewsTheBoxHeldAtThePointAsTheTextIs(string justify, string box)
+        {
+            CadCommandSession session = Started("TEXT", "J", justify, P(10, 10));
+            Assert.StartsWith("Specify height", session.PromptText);
+            Assert.Equal("DisplayPolyline2 closed " + box, Assert.Single(Shapes(session.Prompt.Preview.Items(P(10, 15)))));
+        }
+
+        [Fact]
+        public void TextFittedBetweenTwoPoints_PreviewsTheBoxAsLongAsTheyAreApart()
+        {
+            CadCommandSession session = Started("TEXT", "J", "F", P(10, 10), P(40, 10));
+            Assert.StartsWith("Specify height", session.PromptText);
+            Assert.Equal("DisplayPolyline2 closed 10.000000 10.000000 40.000000 10.000000 40.000000 15.000000 10.000000 15.000000", Assert.Single(Shapes(session.Prompt.Preview.Items(P(10, 15)))));
+        }
+
+        [Theory]
+        [InlineData("L")]
+        [InlineData("MC")]
+        public void TextAskingItsWords_PreviewsTheWordsTypedSoFar_AsTheLineIsThenMade(string justify)
+        {
+            CadCommandSession session = Started("TEXT", "J", justify, P(10, 10), "5", "30");
+            Assert.StartsWith("Enter text", session.PromptText);
+            CadPreview preview = session.Prompt.Preview;
+            Assert.Empty(preview.Items(P(0, 0)));
+
+            preview.Typed = "Steel S355";
+            int history = session.History.Count;
+            List<string> previewed = Shapes(preview.Items(P(0, 0)));
+            Assert.NotEmpty(previewed);
+            Assert.Equal(history, session.History.Count);
+            Assert.Empty(All<DxfDBText>(session.Document.ModelSpace));
+
+            Run(session, "Steel S355");
+            Assert.Equal(Shapes(session.Document.GetDisplay(session.Document.ModelSpace).Items), previewed);
+
+            // The next line is previewed below the first, where it is then written.
+            session.Prompt.Preview.Typed = "Bolts";
+            previewed = Shapes(session.Prompt.Preview.Items(P(0, 0)));
+            Run(session, "Bolts", Enter);
+            Assert.NotEmpty(previewed);
+            List<string> drawn = Shapes(session.Document.GetDisplay(session.Document.ModelSpace).Items);
+            Assert.Equal(drawn.Skip(drawn.Count - previewed.Count), previewed);
         }
 
         [Fact]
@@ -774,6 +897,61 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
             List<string> made = Ends(session.Document, Handles(session.Document).Where(h => !before.Contains(h)), Affine2.Identity).OrderBy(s => s, StringComparer.Ordinal).ToList();
             Assert.Equal(made, previewed);
+        }
+
+        /// <summary>
+        /// Checks that the prompt waiting previews, with the cursor at a point, the copies of the one line that the inputs given
+        /// then make, and returns how many.
+        /// </summary>
+        private static int CopiesAsMade(CadCommandSession session, string line, GeoPoint2 cursor, params object[] then)
+        {
+            CadPreview preview = session.Prompt?.Preview;
+            Assert.NotNull(preview);
+            IReadOnlyList<Affine2> moves = preview.Moves(cursor);
+            HashSet<string> before = Handles(session.Document);
+            int history = session.History.Count;
+            List<string> previewed = moves.SelectMany(m => Ends(session.Document, new[] { line }, m)).OrderBy(s => s, StringComparer.Ordinal).ToList();
+            Assert.Equal(history, session.History.Count);
+
+            Run(session, then);
+
+            List<string> made = Ends(session.Document, Handles(session.Document).Where(h => !before.Contains(h)), Affine2.Identity).OrderBy(s => s, StringComparer.Ordinal).ToList();
+            Assert.Equal(made, previewed);
+            return moves.Count;
+        }
+
+        [Fact]
+        public void TypedRectangularArrayWithTheColumnDistanceShownByTwoPoints_PreviewsEveryCopyAtTheSecond()
+        {
+            CadCommandSession session = WithALine(out string line);
+            Run(session, "-ARRAY", new[] { line }, Enter, "R", "2", "3", "25", P(5, 5));
+            Assert.StartsWith("Specify second point", session.PromptText);
+            Assert.Equal(5, CopiesAsMade(session, line, P(35, 45), P(35, 45)));
+
+            // One row asks the columns alone, and a distance typed there is taken as before.
+            Run(session, "-ARRAY", new[] { line }, Enter, "R", "1", "3", P(0, 0));
+            Assert.Equal(2, CopiesAsMade(session, line, P(0, 40), P(0, 40)));
+            int lines = All<DxfLine>(session.Document.ModelSpace).Count();
+            Run(session, "-ARRAY", new[] { line }, Enter, "R", "1", "3", "40");
+            Assert.Null(session.Prompt);
+            Assert.Equal(lines + 2, All<DxfLine>(session.Document.ModelSpace).Count());
+        }
+
+        [Fact]
+        public void TypedPolarArray_PreviewsTheCopiesOfTheAngleToFill_TheAngleBetween_AndBeforeTheyAreTurned()
+        {
+            CadCommandSession session = WithALine(out string line);
+            Run(session, "-ARRAY", new[] { line }, Enter, "P", P(0, 0), "4");
+            Assert.StartsWith("Specify the angle to fill", session.PromptText);
+            Assert.Equal(3, CopiesAsMade(session, line, P(-10, 10), P(-10, 10), Enter));
+
+            Run(session, "-ARRAY", new[] { line }, Enter, "P", P(0, 0), Enter, "180");
+            Assert.StartsWith("Angle between items", session.PromptText);
+            Assert.Equal(4, CopiesAsMade(session, line, P(10, 10), P(10, 10), Enter));
+
+            Run(session, "-ARRAY", new[] { line }, Enter, "P", P(0, 0), "6", Enter);
+            Assert.StartsWith("Rotate arrayed objects", session.PromptText);
+            Assert.Equal(5, CopiesAsMade(session, line, P(0, 0), Enter));
         }
 
         [Fact]

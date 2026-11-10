@@ -189,10 +189,13 @@ namespace GeometryHelper.Dxf.Viewer
         /// Draws entities that are in no space, as a command's preview makes them before it adds one: each as it would be drawn
         /// once appended to the space, in the order given; one that cannot be drawn gives nothing.
         /// </summary>
-        internal IReadOnlyList<DisplayItem2> BuildLoose(IEnumerable<DxfEntity> entities)
+        internal IReadOnlyList<DisplayItem2> BuildLoose(IEnumerable<DxfEntity> entities) => BuildLoose(entities, Affine2.Identity);
+
+        /// <summary>Draws entities as <see cref="BuildLoose(IEnumerable{DxfEntity})"/> does, each moved by a transformation, as the objects of a paste are drawn where the cursor would put them.</summary>
+        internal IReadOnlyList<DisplayItem2> BuildLoose(IEnumerable<DxfEntity> entities, Affine2 under)
         {
             var list = new DisplayList2 { PointViewHeight = _pointViewHeight, FontFolder = _document?.FontFolder };
-            var root = new Frame(Affine2.Identity);
+            var root = new Frame(under);
 
             foreach (DxfEntity entity in entities)
             {

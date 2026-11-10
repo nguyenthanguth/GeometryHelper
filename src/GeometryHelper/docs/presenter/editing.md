@@ -102,9 +102,13 @@ rectangle a pick there adds.
 At a prompt for one object, `Items(cursor)` is what picking the object under the cursor would give, as FILLET's second
 object gives both objects trimmed and the arc. The objects a command changes are previewed as they would be, copies of
 them made by the command's own code; nothing is written to the drawing or to the history while a preview is made. Where
-`Fades` is true the items are pieces the pick would take out rather than objects it makes, as TRIM in Quick mode and
+`Fades` is true the items are pieces the pick would take out rather than objects it makes, as TRIM and
 BREAK give them: a line from (-50, 0) to (100, 0) crossed at the origin, hovered at (-25, 0), previews the 50 from
-(-50, 0) to (0, 0), drawn faded.
+(-50, 0) to (0, 0), drawn faded. A window sets `Shift` while Shift is held, and the answer previewed carries it: TRIM then
+previews what EXTEND would do to the object, not faded, and EXTEND the piece TRIM would take out. At a prompt for a line
+of text a window sets `Typed` to the text typed so far, and `Items` is that text as the command would make it, wherever
+the cursor is: TEXT at "Enter text" previews its line. A prompt for a keyword can carry a preview too, of what Enter
+makes, as -ARRAY's "Rotate arrayed objects?" does.
 
 "Select objects:" takes the options of AutoCAD 2021, each by its capital letters:
 

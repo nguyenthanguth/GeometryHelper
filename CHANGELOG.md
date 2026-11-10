@@ -44,6 +44,19 @@ palette, the cursor tip, the coordinate readout and the angle box of dynamic inp
 `CadCommandSession.CountAngle`, and `CadPrompt.AsksTurn` and `AsksPlainAngle`, which say how the session reads an angle
 typed at a prompt. A drawing with ANGBASE 0 and ANGDIR 0 behaves as before.
 
+**NEW.** `DwgReader` (namespace `GeometryHelper.Dwg`) reads a DWG file of AutoCAD 2000 (AC1015, which every later
+AutoCAD writes on "Save as AutoCAD 2000") by the library's own code, as the drawing its DXF would give:
+`DwgReader.Read` gives the `DxfDocument` of `DxfReader` and `DwgReader.Open` the `DxfDatabase`, from a path or a stream.
+Read are the header variables, the classes, the nine tables, the blocks and layouts, LINE, POINT, CIRCLE, ARC, ELLIPSE,
+SPLINE, RAY, XLINE, LWPOLYLINE, POLYLINE with its vertices, TEXT, MTEXT, ATTDEF, INSERT with its ATTRIBs, SOLID, TRACE,
+3DFACE and DIMENSION, and of the objects DICTIONARY, XRECORD, LAYOUT, GROUP and MLINESTYLE, each with its layer,
+linetype, colour, lineweight, owner, reactors, extension dictionary and extended data. Eight drawings made in AutoCAD
+2021 come out group for group as the DXF AutoCAD writes of them, numbers to nine places. The types not read yet, VIEWPORT,
+HATCH and LEADER among them, are left out and counted by type in one Debug line; a DWG of another version is refused
+with a `NotSupportedException` that names it. Every check sum is checked: a wrong one in the header, the classes or the
+object map refuses the file with a `FormatException`, and one broken object is left out with a Warn line while the
+others are read. See the guide page "Reading DWG files".
+
 **NEW.** DIMARC (DAR), the presenter's arc length dimension, as AutoCAD 2021 makes it and stored as the library's
 `DxfArcDimension`: Mtext and Text for its words, Angle for theirs, Partial for the length between two points of the arc,
 and Leader, offered past 90 degrees of sweep, for a leader from the words' arc to the arc measured. Below 90 degrees the
@@ -133,6 +146,38 @@ and rotation are asked, TABLE the table's outline, MLEADER the leader and landin
 Reference Points, -ARRAY's unit cell and ALIGN move the ghost as the objects move. A preview at a prompt for one object is
 of the object under the cursor, and writes nothing into the history. A FILLET of two lines costs 38 microseconds, a TRIM
 26, a hatch of a square with an island 0.1 ms, a QDIM row of three dimensions 0.76 ms.
+
+**NEW.** TRIM and EXTEND preview in Standard mode too, against the cutting or boundary edges chosen, and with Shift held
+they preview what the other does, as the pick with Shift then does: `CadPreview.Shift`, which the canvas sets from the
+keyboard, is carried by the answer previewed, and `Fades` follows it. A line from (0, 0) to (50, 0) hovered in TRIM with
+Shift held previews itself run on to the wall at 100, not faded.
+
+**NEW.** -ARRAY previews its copies at the prompts that had none. The distance between columns can be shown by two
+points, as AutoCAD takes it, and the copies follow the second; a Polar array shows its copies while the angle to fill
+and the angle between items are asked, each measured from the centre to the cursor, and while it asks whether to rotate
+them. Four items round the origin with the cursor at (-10, 10) preview three copies 45 degrees apart, the 135 degrees
+the pick there fills.
+
+**NEW.** PASTECLIP and PASTEBLOCK show the Clipboard's objects at the cursor while they ask the insertion point, held
+by their base point as the paste puts them, and drawn by the layers and blocks they bring before the drawing has them;
+text of another app is shown as the MTEXT it becomes. PASTEORIG asks no point and previews nothing. Nothing comes into
+the drawing until the point is picked.
+
+**NEW.** TEXT's preview follows the justification, and shows the words while they are typed. The square of the height
+is held at the point as the text will be: a height of 5 at (10, 10) gives the square from (10, 10) to (15, 15) for Left,
+from (7.5, 10) to (12.5, 15) for Center, from (7.5, 7.5) to (12.5, 12.5) for Middle, from (10, 5) to (15, 10) for TL; a
+text fitted between two points gives the box as long as they are apart. At "Enter text" the canvas draws the words
+typed so far in their style, height, rotation and justification, by the code that then makes the line
+(`CadPreview.Typed`, which the window sets from the command line).
+
+**NEW.** Dimensional input at the cursor beyond LINE and PLINE. The length and the angle from the first point show at
+the second point of ARC, CIRCLE's 2P, ELLIPSE's axis, POLYGON's edge, XLINE, RAY, MOVE, COPY, STRETCH and OFFSET's
+distance by two points, and at a grip stretched or moved, with Tab locking a field as before. A prompt for a distance
+from a known point shows the length field alone (the radius of CIRCLE and POLYGON, ELLIPSE's other axis), and one for an
+angle the angle field alone (ROTATE); RECTANG's other corner keeps X and Y, its two sizes, and SCALE's factor the one
+box. A field that holds a number now holds the rubber band, the preview and a click: 300 locked as a line's length from
+(1 000, 1 000) with the cursor at (1 300, 1 400) ends the preview and the line at (1 180, 1 240). New API:
+`MainViewModel.IsDynamicInputLength`, `IsDynamicInputAngle`, `IsDynamicInputDimensional` and `HoldDynamicInput`.
 
 **FIXED.** ROTATE's ghost in a UCS turned from the world's now turns by the angle the objects are turned: in a UCS turned
 30 degrees it turned 30 degrees more than the result.
