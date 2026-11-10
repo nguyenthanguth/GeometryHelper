@@ -6,6 +6,16 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**CHANGED.** Undo and redo in the presenter no longer wait for the whole drawing to be read back on a large drawing. After
+every step, undo and redo, a worker thread reads ahead the drawings the next undo and the next redo go to, from the bytes
+an undo has always read them from, and makes their index of handles; the undo then takes the drawing ready and draws
+again only the entities its step touched. The undo states are also packed and unpacked in pieces of 4 MB side by side. On
+a drawing of 1 000 000 entities, medians of five, the undo of a one-line MOVE and its display take 0.4 s where they took
+2.2 s once the drawing is read ahead (about 2 s after the step), and 1.5 s where they took 2.6 s when asked at once; the
+undo of an ERASE of 10 000 objects takes 0.8 s where it took 3.0 s, and finding an entity by its handle after an undo 0 ms
+where it took 0.2 s. Every drawing an undo or a redo gives is the one saved at that step, byte for byte. The read-ahead
+holds up to three more drawings, each about 330 MB at that size, so the peak working set rose from about 3.2 GB to 3.7 GB.
+
 **CHANGED.** The dynamic input of the presenter shows the length and the angle in their fields alone, with no dimension
 line, extension lines, angle arc or dashed base line drawn under them. That is every prompt with these fields: the
 second point of LINE, PLINE, ARC, CIRCLE's 2P, ELLIPSE's axis, POLYGON's edge, XLINE, RAY, MOVE, COPY, STRETCH, OFFSET

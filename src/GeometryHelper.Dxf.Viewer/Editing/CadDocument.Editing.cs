@@ -5,6 +5,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using GeometryHelper.Dxf;
 using GeometryHelper.Geometry;
@@ -31,6 +32,11 @@ namespace GeometryHelper.Dxf.Viewer
     /// held by its handle, not by the object, across them; the spaces are the same <see cref="CadSpace"/> objects, pointed at
     /// the new drawing.
     /// </para>
+    /// <para>
+    /// After every step, undo and redo, a worker thread reads ahead the drawings the next undo and the next redo go to, from
+    /// those same bytes, and walks their entities once, so that an undo finds its drawing read and only the entities its step
+    /// touched are drawn again. An undo asked before its drawing is read waits for it.
+    /// </para>
     /// </remarks>
     public sealed partial class CadDocument
     {
@@ -46,6 +52,9 @@ namespace GeometryHelper.Dxf.Viewer
         private List<CadEditRecord> _groupRecords;
         private bool _groupFailed;
         private readonly CadOwnerRegistry _owners = new CadOwnerRegistry();
+        private ReadAhead _readUndo;
+        private ReadAhead _readRedo;
+        private Task _reading = Task.FromResult(0);
         private ICadEditGate _gate;
         private ICadEditGate _ownerGate;
 
@@ -301,7 +310,7 @@ namespace GeometryHelper.Dxf.Viewer
                             if (!_byHandle.ContainsKey(record.Handle))
                             {
                                 _byHandle[record.Handle] = entity;
-                                _spaceByHandle[record.Handle] = space;
+                                _blockByHandle[record.Handle] = space.Block;
                             }
 
                             continue;
@@ -622,7 +631,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             CadUndoStep step = _steps[_position - 1];
             _position--;
-            Reload(_states[_position].Bytes, step.Records);
+            Reload(_states[_position], step.Records);
             Announce(CadChangeKind.Undo, step.Name, step.Records);
             return true;
         }
@@ -638,7 +647,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             CadUndoStep step = _steps[_position];
             _position++;
-            Reload(_states[_position].Bytes, step.Records);
+            Reload(_states[_position], step.Records);
             Announce(CadChangeKind.Redo, step.Name, step.Records);
             return true;
         }
@@ -729,6 +738,7 @@ namespace GeometryHelper.Dxf.Viewer
             _steps.Add(new CadUndoStep(name, records.ToArray()));
             _states.Add(Keep());
             _position++;
+            ReadAround();
         }
 
         /// <summary>Reads the drawing back as it stood after the last step, an edit or a group that failed taken back.</summary>
@@ -774,6 +784,167 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             public PackedDrawing Bytes => _packing.GetAwaiter().GetResult();
+        }
+
+        /// <summary>
+        /// Reads the drawing back as it stood at a step of the undo list, for an undo or a redo: the drawing read ahead for
+        /// it where there is one (see <see cref="ReadAround"/>), waited for where it is being read; else, its reading not begun,
+        /// read now from its bytes. Then the neighbours of the new place in the list are read ahead.
+        /// </summary>
+        private void Reload(KeptState state, IReadOnlyList<CadEditRecord> records)
+        {
+            ReadAhead taken = null;
+
+            if (_readUndo != null && _readUndo.State == state)
+            {
+                taken = _readUndo;
+                _readUndo = null;
+            }
+            else if (_readRedo != null && _readRedo.State == state)
+            {
+                taken = _readRedo;
+                _readRedo = null;
+            }
+
+            if (taken != null && taken.Begun && taken.Wait())
+            {
+                Rebind(taken.Database, records, taken);
+            }
+            else
+            {
+                taken?.Drop();
+                Reload(state.Bytes, records);
+            }
+
+            ReadAround();
+        }
+
+        /// <summary>
+        /// Reads ahead, on a worker thread, the drawings the next undo and the next redo go to, from the same bytes an undo
+        /// reads, and makes their index of handles, so that an undo or a redo of a drawing of a million entities finds its
+        /// drawing read, every entity of it met once, and only draws again what the step changed. The two are read one after
+        /// the other, the undo's first; one no longer wanted when its turn comes is not read, and one read and no longer
+        /// wanted is let go, so that at most three drawings are held besides the one shown.
+        /// </summary>
+        private void ReadAround()
+        {
+            KeptState undo = _position > UndoFloor && _position <= _states.Count ? _states[_position - 1] : null;
+            KeptState redo = _position + 1 < _states.Count ? _states[_position + 1] : null;
+            ReadAhead[] older = { _readUndo, _readRedo };
+            _readUndo = Matching(older, undo) ?? (undo == null ? null : StartReading(undo));
+            _readRedo = Matching(older, redo) ?? (redo == null ? null : StartReading(redo));
+
+            foreach (ReadAhead read in older)
+            {
+                if (read != null && read != _readUndo && read != _readRedo)
+                {
+                    read.Drop();
+                }
+            }
+        }
+
+        private static ReadAhead Matching(ReadAhead[] reads, KeptState state)
+        {
+            foreach (ReadAhead read in reads)
+            {
+                if (state != null && read != null && read.State == state)
+                {
+                    return read;
+                }
+            }
+
+            return null;
+        }
+
+        private ReadAhead StartReading(KeptState state)
+        {
+            var read = new ReadAhead(state);
+            _reading = _reading.ContinueWith(_ => read.Run(), CancellationToken.None, TaskContinuationOptions.None, TaskScheduler.Default);
+            return read;
+        }
+
+        /// <summary>A drawing of the undo list read ahead on a worker thread, with its index of handles; see <see cref="ReadAround"/>.</summary>
+        private sealed class ReadAhead
+        {
+            private readonly TaskCompletionSource<bool> _done = new TaskCompletionSource<bool>();
+            private volatile bool _dropped;
+            private volatile bool _begun;
+
+            public ReadAhead(KeptState state)
+            {
+                State = state;
+            }
+
+            public KeptState State { get; }
+
+            public DxfDatabase Database { get; private set; }
+
+            public Dictionary<string, DxfEntity> ByHandle { get; private set; }
+
+            public Dictionary<string, DxfBlockTableRecord> BlockByHandle { get; private set; }
+
+            /// <summary>Gets whether the reading has begun on the worker thread.</summary>
+            public bool Begun => _begun;
+
+            /// <summary>
+            /// Reads the drawing and indexes its handles in the spaces' tab order, unless it was dropped first; one dropped
+            /// while it is read stops at the next of its checks, so that the drawing wanted next is not kept waiting.
+            /// </summary>
+            public void Run()
+            {
+                try
+                {
+                    if (_dropped)
+                    {
+                        return;
+                    }
+
+                    _begun = true;
+                    DxfDatabase database = DxfDatabase.Open(State.Bytes.Unpack());
+
+                    if (_dropped)
+                    {
+                        return;
+                    }
+
+                    var blocks = new List<DxfBlockTableRecord> { database.ModelSpace };
+
+                    foreach (DxfLayout layout in LayoutsOf(database))
+                    {
+                        blocks.Add(layout.BlockTableRecord);
+                    }
+
+                    if (!IndexHandles(blocks, out Dictionary<string, DxfEntity> byHandle, out Dictionary<string, DxfBlockTableRecord> blockByHandle, () => _dropped))
+                    {
+                        return;
+                    }
+
+                    if (!_dropped)
+                    {
+                        Database = database;
+                        ByHandle = byHandle;
+                        BlockByHandle = blockByHandle;
+                    }
+                }
+                catch (Exception exception)
+                {
+                    GeometryHelperLog.Debug("CadDocument: a drawing of the undo list was not read ahead: " + exception.Message);
+                }
+                finally
+                {
+                    _done.SetResult(true);
+                }
+            }
+
+            /// <summary>Lets the drawing go: not read if its turn has not come.</summary>
+            public void Drop() => _dropped = true;
+
+            /// <summary>Waits for the drawing where it is being read; false where it did not read, to be read again now.</summary>
+            public bool Wait()
+            {
+                _done.Task.GetAwaiter().GetResult();
+                return Database != null;
+            }
         }
 
         /// <summary>
@@ -842,15 +1013,19 @@ namespace GeometryHelper.Dxf.Viewer
             Rebind(DxfDatabase.Open(new MemoryStream(made)), null);
         }
 
-        /// <summary>Points the document and its spaces at a drawing read anew; see <see cref="Reload"/>.</summary>
-        private void Rebind(DxfDatabase database, IReadOnlyList<CadEditRecord> records)
+        /// <summary>
+        /// Points the document and its spaces at a drawing read anew; see <see cref="Reload(PackedDrawing, IReadOnlyList{CadEditRecord})"/>. A drawing read ahead brings its
+        /// index of handles, kept where the Block Editor is not open (its space is indexed too then).
+        /// </summary>
+        private void Rebind(DxfDatabase database, IReadOnlyList<CadEditRecord> records, ReadAhead read = null)
         {
             var drop = new HashSet<CadSpace>(records == null ? AllSpaces : new List<CadSpace>());
             DisplayBuilder older = _builder;
             Database = database;
             _builder = new DisplayBuilder(database, this);
             ShowDatabase(database);
-            _byHandle = null;
+            _byHandle = read != null && _blockEditor == null ? read.ByHandle : null;
+            _blockByHandle = read?.BlockByHandle;
             _entityCount = null;
             ModelSpace.Rebind(database.ModelSpace, null);
             var spaces = new List<CadSpace> { ModelSpace };
