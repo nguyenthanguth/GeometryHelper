@@ -202,9 +202,9 @@ the ones wanted.
 - [ ] Speed follow-ups: undo read-ahead costs about 0.5 GB more peak at 1M entities; an edit made while a read-ahead runs
       shares the CPU (100k ERASE right after an undo 98 -> 269 ms); the first undo after BSAVE reads inline; per-entity
       allocation in the core parser (`ParsedOf` pair lists) is the next cost of layer on/off (S)
-- [ ] Speed (running): draw the first display off the UI thread (10–13 s at 1 000 000 entities)
+- [x] Speed: open a drawing in the background; the window held at most 0.2 s at 1 000 000 entities (was 15.4 s), Stop and Esc cancel
 - [ ] Speed: frame at extents at 1 000 000 entities (0.8–1.1 s, inside Skia); level of detail would change pixels (needs a decision)
-- [ ] Speed (running): highlight of 100 000 selected objects (1.2–1.6 s)
+- [x] Speed: highlight of a large selection drawn on several threads (100k at extents 295 -> 150 ms, same pixels)
 - [x] Dimensions: radius, diameter and angular pictures follow DIMTAD, DIMJUST and the fit rules (linear and ordinate do)
 - [x] Dimensions: the dimension line starts at the back of a closed arrowhead, as AutoCAD draws it
 - [x] Dimensions: DIMTVP, DIMTMOVE 1's leader for words moved out by fit, DIMGAP below zero (box round the words);
