@@ -354,6 +354,33 @@ namespace GeometryHelper.UnitTest.Dwg
             }
         }
 
+        [Fact]
+        public void ASplineChangedSoThatItsPlaneCannotBeWorkedOut_IsLeftOut_AndTheOthersAreRead()
+        {
+            // Found by the fuzz of W3: byte 7413 of the objects of curves_AC1021, inside the SPLINE at 7261, set to 252
+            // gives the spline points whose plane the library's geometry refuses with an InvalidOperationException. It is
+            // one broken object, not a broken file.
+            byte[] file = DwgAnswerKey.Dwg("curves_AC1021");
+            DwgContainer container = DwgContainer.Read(file);
+            var reader = new DwgObjectReader(container.Objects, DwgClass.ReadAll(container.Classes, container.Version), container.Version);
+            KeyValuePair<ulong, long> spline = Assert.Single(container.ObjectMap, entry => entry.Value == 7261);
+            Assert.Equal("SPLINE", reader.Read(spline.Key, spline.Value).Name);
+
+            long[] data = DataOf(container.Objects, 7261, container.Version);
+            container.Objects[7413] = 252;
+            int crc = DwgCrc.Of(container.Objects, 7261, data[0] - 7261 + data[1], DwgCrc.Seed);
+            container.Objects[data[0] + data[1]] = (byte)crc;
+            container.Objects[data[0] + data[1] + 1] = (byte)(crc >> 8);
+            _written.Clear();
+
+            DxfDatabase database = DxfDatabase.Open(new MemoryStream(DwgTranscoder.ToDxf(container), false));
+
+            Assert.DoesNotContain(database.ModelSpace.OfType<DxfSpline>(), one => one.Handle == spline.Key.ToString("X", System.Globalization.CultureInfo.InvariantCulture));
+            Assert.NotEmpty(database.ModelSpace.OfType<DxfLine>());
+            string warning = Assert.Single(_written, line => line.Level == GeometryHelperLogLevel.Warn && line.Message.StartsWith("DwgReader:", StringComparison.Ordinal)).Message;
+            Assert.Contains("1 broken", warning);
+        }
+
         /// <summary>
         /// Turns <paramref name="container"/> into DXF and reads that, on another thread, and waits for it: a
         /// <see cref="FormatException"/> is a refusal; anything else, and a read that does not end, fails the test.
