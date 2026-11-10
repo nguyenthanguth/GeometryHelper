@@ -1800,7 +1800,7 @@ namespace GeometryHelper.Dwg
         /// </summary>
         private bool ReadTable()
         {
-            if (R2007Plus)
+            if (R2010Plus)
             {
                 return false;
             }
@@ -1934,11 +1934,11 @@ namespace GeometryHelper.Dwg
             ulong value = H();
             var content = new List<DwgGroup>();
 
-            if (type == 1 && value == 0)
+            if (type == 1 && value == 0 && !R2007Plus)
             {
                 content.Add(new DwgGroup(1, T()));
             }
-            else if (type == 1)
+            else if (type == 1 && value != 0)
             {
                 content.Add(new DwgGroup(344, value));
             }
@@ -1978,7 +1978,7 @@ namespace GeometryHelper.Dwg
             {
                 // Bit 0x40000 is of a later release, which keeps it here and has no value for it; DXF leaves it out.
                 int flags = _data.BitLong();
-                groups.Add(new DwgGroup(177, flags & 0x3FFFF));
+                groups.Add(new DwgGroup(R2007Plus ? 91 : 177, R2007Plus ? flags : flags & 0x3FFFF));
                 groups.Add(new DwgGroup(178, (int)_data.RawChar()));
                 ReadFlagged(groups, flags, 0x01, 170, 'S');
                 ReadFlagged(groups, flags, 0x02, 283, 'B');
@@ -2001,12 +2001,66 @@ namespace GeometryHelper.Dwg
             }
             else
             {
-                groups.Add(new DwgGroup(177, 0));
+                groups.Add(new DwgGroup(R2007Plus ? 91 : 177, 0));
                 groups.Add(new DwgGroup(178, 0));
             }
 
             groups.Add(new DwgGroup(145, rotation));
             groups.AddRange(content);
+
+            if (R2007Plus)
+            {
+                groups.Add(new DwgGroup(92, _data.BitLong()));
+                ReadCellValue(groups);
+            }
+        }
+
+        /// <summary>
+        /// The value of a table cell from R2007, between <c>301 CELL_VALUE</c> and <c>304 ACVALUE_END</c>: its flags, its type
+        /// and, unless flag 1 says it is empty, the value (a string as UTF-16 counted in bytes), its unit type, its format and
+        /// the text it shows.
+        /// </summary>
+        private void ReadCellValue(List<DwgGroup> groups)
+        {
+            int flags = _data.BitLong();
+            int type = _data.BitLong();
+            groups.Add(new DwgGroup(301, "CELL_VALUE"));
+
+            groups.Add(new DwgGroup(93, flags));
+            groups.Add(new DwgGroup(90, type));
+
+            if ((flags & 1) == 0)
+            {
+                switch (type)
+                {
+                    case 0:
+                    case 1:
+                        groups.Add(new DwgGroup(91, _data.BitLong()));
+                        break;
+                    case 2:
+                        groups.Add(new DwgGroup(140, _data.BitDouble()));
+                        break;
+                    case 4:
+                    case 512:
+                        int length = _data.BitLong();
+
+                        if (length < 2 || length * 8L > _data.Remaining)
+                        {
+                            throw new FormatException("The value of the table cell runs past its end.");
+                        }
+
+                        byte[] utf16 = _data.Bytes(length);
+                        groups.Add(new DwgGroup(1, System.Text.Encoding.UTF8.GetBytes(System.Text.Encoding.Unicode.GetString(utf16, 0, length - 2))));
+                        break;
+                    default:
+                        throw new FormatException("The table cell has a value of the kind " + type + ", which is not read.");
+                }
+            }
+
+            groups.Add(new DwgGroup(94, _data.BitLong()));
+            groups.Add(new DwgGroup(300, T()));
+            groups.Add(new DwgGroup(302, T()));
+            groups.Add(new DwgGroup(304, "ACVALUE_END"));
         }
 
         /// <summary>

@@ -104,6 +104,7 @@ namespace GeometryHelper.UnitTest.Dwg
         [InlineData("meshes_AC1032")]
         [InlineData("table_AC1015")]
         [InlineData("table_AC1018")]
+        [InlineData("table_AC1021")]
         public void ADrawingOfTheTypesOfW4_ReadFromItsDwg_IsTheDxfAutoCadWroteOfIt(string drawing)
         {
             // Made by probe GhDwg4 in all six versions; the repository holds the oldest and the newest of each.
@@ -205,7 +206,8 @@ namespace GeometryHelper.UnitTest.Dwg
         [Theory]
         [InlineData("table_AC1015")]
         [InlineData("table_AC1018")]
-        public void TheTablesOfR2000AndR2004_AreRead_WithTheirCellsAndStyles(string drawing)
+        [InlineData("table_AC1021")]
+        public void TheTablesOfR2000ToR2007_AreRead_WithTheirCellsAndStyles(string drawing)
         {
             DxfDatabase database = DwgReader.Open(new MemoryStream(DwgAnswerKey.Dwg(drawing), false));
             List<DxfTable> tables = database.ModelSpace.OfType<DxfTable>().ToList();

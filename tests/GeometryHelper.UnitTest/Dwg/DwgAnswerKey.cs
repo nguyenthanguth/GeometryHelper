@@ -332,6 +332,15 @@ namespace GeometryHelper.UnitTest.Dwg
                         continue;
                     }
 
+                    if (same && code == 93 && a.Type == "ACAD_TABLE" && i > 0 && a.Groups[i - 1].Value == "CELL_VALUE"
+                        && int.TryParse(v1, NumberStyles.Integer, CultureInfo.InvariantCulture, out int f1) && int.TryParse(v2, NumberStyles.Integer, CultureInfo.InvariantCulture, out int f2)
+                        && (f1 & 1) != 0 && (f1 & ~4) == (f2 & ~4))
+                    {
+                        // The flags of an empty cell value: the file holds 7; AutoCAD's DXF of R2007 writes 3 for most and 7
+                        // for some, of its own state. Compared without flag 4.
+                        continue;
+                    }
+
                     if (same && graphics && code == 310 && v1.Length == v2.Length)
                     {
                         // The proxy graphics of an entity: AutoCAD draws them anew as it writes the DXF, and the padding
