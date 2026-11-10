@@ -110,8 +110,10 @@ the ones wanted.
       back of its arrowhead; DIMTVP; the box of DIMGAP below zero (526 AutoCAD pictures compared, 511 match)
 - [ ] Dimensions: words measured by the drawing's fonts in the pictures (the main gap left); DIMTEDIT on angular and
       radius with DIMTMOVE 0 as AutoCAD; DIMARC; radial dimensions made under DIMTMOVE 1/2 (S)
-- [ ] Blocks (running): dynamic blocks in use: custom grips (visibility, lookup, stretch, flip, rotate, array) and their Properties
-      rows (L)
+- [x] Dynamic blocks in use: custom grips at AutoCAD's points (visibility, lookup, linear, flip, rotation, XY), the
+      Custom group in Properties, RESETBLOCK, the Block Editor's visibility box; AutoCAD reads every value as written
+- [ ] Dynamic blocks: the core's AddVisibilityParameter lists no parameter in any state (AutoCAD then hides them); XY
+      corner and block-table grips; a live preview while a custom grip is dragged; GRIPDYNCOLOR (S)
 
 ### To do
 
