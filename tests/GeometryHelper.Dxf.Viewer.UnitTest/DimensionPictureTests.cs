@@ -336,5 +336,86 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Near(new GeoPoint3(50, -30, 0), Words(dimension).Location);
             Assert.Equal(2, OnLevel(dimension, -30).Count);
         }
+
+        private static bool HasLine(DxfDimension dimension, GeoPoint2 a, GeoPoint2 b)
+            => dimension.DimBlock.OfType<DxfLine>().Any(l => !l.IsErased
+                && ((Same(l.StartPoint, a) && Same(l.EndPoint, b)) || (Same(l.StartPoint, b) && Same(l.EndPoint, a))));
+
+        private static bool Same(GeoPoint3 p, GeoPoint2 q) => Math.Abs(p.X - q.X) < 1E-6 && Math.Abs(p.Y - q.Y) < 1E-6;
+
+        [Fact]
+        public void WordsTheFitMovesOut_StandOverTheLineUnderDimtmove2_AndPastALeaderUnder1()
+        {
+            // AutoCAD 2021: a dimension of 4 with its line 20 below, its words "4" moved out under DIMTMOVE 2, has them 1.25 +
+            // 0.9375 + 1.25 + 2.5 = 5.9375 below the middle of the line, on the side away from the points; no line runs on.
+            CadCommandSession session = Metric(s => { s.Dimatfit = 0; s.Dimtmove = 2; });
+            Run(session, "DLI", P(0, 0), P(4, 0), P(2, -20));
+            DxfDimension dimension = Made(session);
+            Near(new GeoPoint3(2, -25.9375, 0), Words(dimension).Location);
+            Assert.DoesNotContain(OnLevel(dimension, -20), l => Right(l) > 4 + 2 * Arrow + 1E-9);
+
+            // Under DIMTMOVE 1 a leader from the middle of the line to a third as far along again, 1.78125, and a landing as wide
+            // as the words and a gap each side, the words above it; the line between the extension lines drawn twice.
+            session = Metric(s => { s.Dimatfit = 0; s.Dimtmove = 1; });
+            Run(session, "DLI", P(0, 0), P(4, 0), P(2, -20));
+            dimension = Made(session);
+            Assert.True(HasLine(dimension, P(2, -20), P(3.78125, -25.9375)));
+            Assert.True(HasLine(dimension, P(3.78125, -25.9375), P(3.78125 + 1.75 + 2 * Gap, -25.9375)));
+            Near(new GeoPoint3(3.78125 + Gap + 0.875, -25.9375 + Lift, 0), Words(dimension).Location);
+            Assert.Equal(2, OnLevel(dimension, -20).Count(l => Left(l) == 0 && Right(l) == 4));
+        }
+
+        [Fact]
+        public void DimteditUnderDimtmove1_DrawsALeaderToWordsFarFromTheLine_AndUnder2PutsTheWordsAtThePoint()
+        {
+            // AutoCAD 2021: "100" moved to 10 above the line, 10 left of its middle: a leader from the middle to 0.625 short of the
+            // point, a landing on to the left as wide as the words and a gap each side, the words above it, starting at the point.
+            CadCommandSession session = Metric(s => s.Dimtmove = 1);
+            Run(session, "DLI", P(0, 0), P(100, 0), P(50, -20));
+            string handle = Made(session).Handle;
+            Run(session, "DIMTEDIT", new[] { handle }, P(40, -10));
+            DxfDimension dimension = Made(session);
+            Assert.Equal(-20, ((DxfRotatedDimension)dimension).DimLinePoint.Y, 9);
+            Assert.True(HasLine(dimension, P(50, -20), P(40.625, -10)));
+            Assert.True(HasLine(dimension, P(40.625, -10), P(40.625 - 5.25 - 2 * Gap, -10)));
+            Near(new GeoPoint3(40 - 2.625, -10 + Lift, 0), Words(dimension).Location);
+
+            // Within the gap and half the heights of the words and the arrowheads, 3.125, no leader: the words above the point.
+            Run(session, "DIMTEDIT", new[] { handle }, P(40, -17));
+            dimension = Made(session);
+            Assert.False(HasLine(dimension, P(50, -20), P(40.625, -17)));
+            Near(new GeoPoint3(40, -17 + Lift, 0), Words(dimension).Location);
+
+            // DIMTMOVE 2: the words' middle at the point, the line broken where it runs through them.
+            session = Metric(s => s.Dimtmove = 2);
+            Run(session, "DLI", P(0, 0), P(100, 0), P(50, -20));
+            Run(session, "DIMTEDIT", new[] { Made(session).Handle }, P(30, -20));
+            dimension = Made(session);
+            Near(new GeoPoint3(30, -20, 0), Words(dimension).Location);
+            Assert.Equal(2, OnLevel(dimension, -20).Count);
+            Assert.Equal(30 - 2.625 - Gap, Right(OnLevel(dimension, -20)[0]), 9);
+        }
+
+        [Fact]
+        public void DimteditUnderDimtad0_PutsTheLineThroughThePoint_AndRunsItOnToAGapShortOfWordsPastAnEnd()
+        {
+            // AutoCAD 2021: "100" moved to (120, -25) past the second extension line: the line at -25, run on from 100 to a gap
+            // short of the words, 120 - 2.625 - 0.625.
+            CadCommandSession session = Metric(s => s.Dimtad = 0);
+            Run(session, "DLI", P(0, 0), P(100, 0), P(50, -20));
+            Run(session, "DIMTEDIT", new[] { Made(session).Handle }, P(120, -25));
+            DxfDimension dimension = Made(session);
+            Near(new GeoPoint3(120, -25, 0), Words(dimension).Location);
+            Assert.True(HasLine(dimension, P(100, -25), P(120 - 2.625 - Gap, -25)));
+
+            // Along the line, the line broken about the words a gap clear of them.
+            Run(session, "DIMTEDIT", new[] { dimension.Handle }, P(30, -20));
+            dimension = Made(session);
+            Near(new GeoPoint3(30, -20, 0), Words(dimension).Location);
+            List<DxfLine> line = OnLevel(dimension, -20);
+            Assert.Equal(2, line.Count);
+            Assert.Equal(30 - 2.625 - Gap, Right(line[0]), 9);
+            Assert.Equal(30 + 2.625 + Gap, Left(line[1]), 9);
+        }
     }
 }

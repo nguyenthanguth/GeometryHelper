@@ -3187,14 +3187,16 @@ namespace GeometryHelper.Dxf
 
             Since(1018, "background of an MTEXT");
 
-            if ((next & 3) == 0)
+            if ((next & 3) == 0 && ((next & 16) == 0 || !Item.File.Supports(1032)))
             {
                 SetWhole(90, next, 0);
                 return;
             }
 
             // A background on needs its colour and its scale, which AutoCAD refuses the file without: those it reads where
-            // there are none, BYLAYER and 1.5, and from R2007 the transparency by layer.
+            // there are none, BYLAYER and 1.5, and from R2007 the transparency by layer. A frame alone needs them in a
+            // drawing of R2018, where AutoCAD 2021 discards one whose MTEXT has group 90 of 16 and nothing after it, and
+            // must not have them in an older one, which it discards with them.
             var groups = new List<KeyValuePair<int, string>> { new KeyValuePair<int, string>(90, next.ToString(CultureInfo.InvariantCulture)) };
 
             if (Value(63) == null)

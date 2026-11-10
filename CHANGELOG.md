@@ -30,6 +30,27 @@ command line only, not in the box of dynamic input at the cursor. AutoCAD's choi
 Options), its collapsible section and its picture of a hatch pattern under the pointer are not built: they need a dialog
 and a list of their own.
 
+**FIXED.** The presenter's dimension pictures follow DIMTMOVE as AutoCAD 2021 draws them. Words the fit moves out of a
+linear dimension stand over its line under DIMTMOVE 2, on the side away from the points, DIMEXE, one and a half DIMGAP
+and half their height out, their height more where they read below it ("4" of a dimension of 4, 5.9375 below the middle
+of its line), and under DIMTMOVE 1 beside a leader to that place and a landing; an angle's go over its arc along the
+middle of its sweep, past a leader under 1. DIMTEDIT of a linear dimension under DIMTMOVE 0 runs the line through the
+point given and stands the words above it there, on it with the line broken for DIMTAD 0, where the line ran a gap and
+half their height under them; under 1 a leader is drawn to words further from the line than DIMGAP and half the heights
+of the words and the arrowheads, and none to words nearer; under 2 the words' middle is the point, the line broken where
+it runs through them. A dimension of AutoCAD's with its words moved is drawn as AutoCAD drew it. Of 846 pictures
+AutoCAD drew for this, 762 match to 0.001. Left: 56 angles whose arc passes exactly through their points, where
+AutoCAD's side of one extension line follows the rounding of the coordinates, and 28 radii and diameters of a small
+circle made under DIMTMOVE 1 or 2 with their point inside it.
+
+**FIXED.** Two more rules of the presenter's radius, diameter and angular pictures follow AutoCAD 2021. A diameter's
+words on its line (DIMTAD 0) need their width and a gap each side, and with the arrowheads inside the arrowheads' room
+as well, as a linear dimension's do: "%%c6" 4.357 wide now stands at the centre of a diameter of 6 under DIMATFIT 1,
+DIMTOFL's line through the circle broken a gap clear of it, where it stood outside. An angle's extension lines run from
+DIMEXO off its points to DIMEXE past the arc wherever that is any length, as a linear dimension's: with its points 20
+from the vertex and its arc 20.3 out they run from 20.625 to 21.55, where none were drawn. Checked against 70 new
+pictures AutoCAD drew, all matching to 0.001; the 676 of the earlier rounds still match.
+
 **NEW.** PURGE and -PURGE of the presenter purge groups, as AutoCAD 2021's do: the Groups option of -PURGE and of its
 All, and a Groups node in the tree of the Purge dialog. A group is purged when it holds nothing, whether it was never
 given a member or its members were all erased, named or unnamed: of a drawing with the groups EMPTY and FULL and an
@@ -80,6 +101,34 @@ HATCH and LEADER among them, are left out and counted by type in one Debug line;
 with a `NotSupportedException` that names it. Every check sum is checked: a wrong one in the header, the classes or the
 object map refuses the file with a `FormatException`, and one broken object is left out with a Warn line while the
 others are read. See the guide page "Reading DWG files".
+
+**CHANGED.** The presenter lays the words of an MTEXT out as AutoCAD 2021 does, where it drew one line a paragraph 1.25
+heights apart. The words wrap at the MTEXT's width (group 41) at their spaces alone, never after a hyphen, a word too
+long standing whole past the width and `\~` holding two words together; a width of 0 wraps nothing. Lines stand 5/3 of
+the height apart times the factor (44): exactly so under `Exactly`, and under `AtLeast` further where a taller run or a
+stacked fraction needs the room. `\S` stacks its parts with a bar (`/`), with none (`^`) or along a diagonal (`#`), each
+part as high as its ink, and `\A` sets the words beside it at its bottom, middle or top. The paragraph codes `\p` set
+indents and margins, the alignment (left, centre, right, justified, distributed), tab stops (left, centre, right,
+decimal; every 4 heights where none is set), the space before and after and a line spacing of the paragraph's own.
+Static and dynamic columns take the lines that fit their heights, `\N` starting the next. The background mask and the
+frame are drawn around the lines, the scale factor less 1 of a height out (1.5 for a frame alone). "II II II" 20 wide in
+letters 10 high whose I is inked 1 in and moves the pen 4 is set as "II II" and, 16.67 below it, "II". Held against
+AutoCAD's own fragments of 155 MTEXTs (536 lines), in an SHX font and in Arial: 150 have the same breaks with every line
+within 0.2 % of the height of where AutoCAD puts it. `DisplayText2.Parts` is now set for every MTEXT: a text for each
+run of each line, the mask (`DisplayFill2`) and the frame first; the box of the MTEXT's item is that of its parts.
+
+**CHANGED.** The presenter's grips and EXPLODE of an MTEXT follow its new layout, as AutoCAD 2021's do. An MTEXT with a
+width has a grip at each corner of its box besides its location (`CadGripKind.Corner`; the location alone for no width
+or for columns), and a corner dragged takes its two sides of the box to the point: "II" over "II" 240 wide at the
+origin, its top right corner dragged to (260, -12), is 260 wide with a defined height of 14.67 and located at (0, -12).
+`CadGrips.Of` therefore gives four or five grips where it gave one, the location no longer always the first. EXPLODE
+makes a TEXT of each run of each line where the picture draws it, and a LINE of the bar of each stack, where it made the
+TEXTs of the library's own simpler layout.
+
+**FIXED.** `DxfMText.ShowBorders` set in a drawing of R2018 with no background writes the colour and the scale of a
+background (63 256, 45 1.5, 441 0) after its group 90 of 16: AutoCAD 2021 discarded the whole drawing without them
+("Missing DXF group code: 90"). In a drawing of R2004 to R2013 it writes none, as before: there AutoCAD discards the
+drawing that has them.
 
 **NEW.** DIMARC (DAR), the presenter's arc length dimension, as AutoCAD 2021 makes it and stored as the library's
 `DxfArcDimension`: Mtext and Text for its words, Angle for theirs, Partial for the length between two points of the arc,

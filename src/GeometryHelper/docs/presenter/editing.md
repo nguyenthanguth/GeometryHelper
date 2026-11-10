@@ -171,15 +171,30 @@ at the back of each arrowhead, 2.5 in from its tip, but for the ticks, Dot small
 which take no room and never move out. DIMTVP lifts the words of DIMTAD 0 by that many times their height, the line
 broken about them below 0.7; a DIMGAP below nought draws a box round the words, the gap clear of them.
 
+DIMTMOVE says where words go that the fit moves out or DIMTEDIT puts by hand. Under 0 they stand beside the line, which
+DIMTEDIT moves to run through the point given, the words above it there (on it for DIMTAD 0, the line broken a gap
+clear of them, and run on to a gap short of them past an end). Under 2 the fit puts them over the line, away from the
+points, DIMEXE, one and a half DIMGAP and half their height out (their height more where they stand below it as they
+read): "4" moved out of a dimension of 4 stands 5.9375 below the middle of its line; DIMTEDIT puts their middle at the
+point. Under 1 the same place is a leader's end, the leader from the middle of the line a third as far along again, and
+a landing on to the words; DIMTEDIT draws a leader to words further from the line than DIMGAP and half the heights of
+the words and the arrowheads, 3.15 with ISO-25's sizes, the words starting at the point, and none to words nearer.
+
 Radius, diameter and angular dimensions follow the same variables. A radius of 20 with its line put 45 from the centre
 has its arrowhead outside the rim, its line from the back of it on under the words, and a line from the centre to the
 rim by DIMTOFL, or with DIMTOFL off the centre mark of DIMCEN (centre lines too where DIMCEN is below nought); put 8 from
 the centre, the arrowhead stands inside and the line runs in past the words. Inside a small circle DIMATFIT 3 keeps the
 words where they are put, no nearer the rim than two arrowheads and the gap; 0 to 2 put them in the middle of the line
-where they fit, else outside past the rim. An angle of 60 degrees with its arc 30 from the vertex has its arc from the
-back of one arrowhead to the back of the other, 4.78 to 55.22 degrees, the arrowheads set along their chords; an angle
-of 8 degrees has its words and arrowheads outside past its first ray, the arc run on and a line along it to the words.
-DIMJUST 1 puts an angle's words next to its second ray, 2 next to its first. Words of an angle moved by DIMTEDIT stand
+where they fit, else outside past the rim. A diameter's words on its line (DIMTAD 0) take a gap each side and, with
+the arrowheads inside, the arrowheads' room too: "%%c6" 4.357 wide fits a diameter of 6 under DIMATFIT 1, the line
+through the circle broken a gap clear of it. An angle's extension lines run from DIMEXO off its points to DIMEXE past
+the arc wherever that is any length: points 20 out and the arc 20.3 out give lines from 20.625 to 21.55. An angle of 60
+degrees with its arc 30 from the vertex has its arc from the back of one arrowhead to the back of the other, 4.78 to
+55.22 degrees, the arrowheads set along their chords; an angle of 8 degrees has its words and arrowheads outside past
+its first ray, the arc run on and a line along it to the words, or under DIMTMOVE 1 and 2 over the arc, out along the
+middle of its sweep: under 1 past a leader from the arc to two arrowheads beyond it (beyond the farthest point where
+that is further), under 2 their middle there, or where the points lie beyond the arc where the words first fit between
+the extension lines. DIMJUST 1 puts an angle's words next to its second ray, 2 next to its first. Words of an angle moved by DIMTEDIT stand
 on the arc, which then runs through the point given, under DIMTMOVE 0 ("60°" moved 50 out at 30 degrees stands 51.9
 out, above the arc as it reads), level past a leader from the middle of the arc under 1, and turned along the arc under
 2. Those of a radius or a diameter slide along its line, which stays, to where the point falls on it under 0 and 1, and
@@ -528,7 +543,8 @@ and its place; `document.GripDrag(handle, index, point)` drags one, as one undo 
 | CIRCLE | the centre, four quadrants | the centre moves it; a quadrant changes the radius |
 | ARC | two ends, the middle, the centre | the middle bends the arc through the point |
 | polylines | each vertex, the middle of each segment | a vertex moves; the middle of a straight segment moves it, of an arc segment bends it |
-| TEXT, MTEXT, INSERT | the insertion point | moves it |
+| TEXT, INSERT | the insertion point | moves it |
+| MTEXT | the location and the corners of its box (top left, top right, bottom left, bottom right; the location first where it is at none of them); the location alone for an MTEXT of no width or in columns | the location moves it; a corner takes its two sides of the box to the point, which sets the defined width and height, the location staying at the point of the new box the attachment names |
 | VIEWPORT | four corners, the middle | a corner resizes the frame, the opposite corner, the scale and the centre of the view kept |
 | linear and aligned DIMENSION | the two extension line origins, the two ends of the dimension line, the words | an origin measures anew, the dimension line kept where it is; an end of the line moves the line through the point; the words move as DIMTEDIT moves them |
 | radius and diameter DIMENSION | the chord point (a diameter's two), the words | a chord point goes round the circle towards the point |
@@ -544,6 +560,19 @@ to (150, 10) measures 150 with its line still 30 below; dragged by an end of its
 and words placed by DIMTEDIT go down with it. Its words dragged to (60, -50) stand there, the line moved to run under them
 where DIMTMOVE is 0 and a leader drawn to them where it is 1. A drag that would measure nothing, an origin onto the other,
 is refused.
+
+An MTEXT's grips are AutoCAD 2021's too. Its box is its defined width across and its defined height down, or with no
+defined height the height of its lines. "II" over "II" in letters 10 high, 240 wide and attached top left at the origin,
+has its grips at (0, 0), (240, 0), (0, -26.67) and (240, -26.67). The top right one dragged to (260, -12) leaves the
+MTEXT 260 wide with a defined height of 14.67, located at (0, -12); the bottom left one dragged by the same leaves it 220
+wide and 38.67 high at (20, 0). The words wrap anew at the new width. The box is never lower than one text height, the
+side dragged staying at the point, and a box dragged to no width is refused. In a drawing before R2007, whose MTEXT
+holds no defined height, a corner changes the width alone.
+
+EXPLODE breaks an MTEXT into a TEXT for each run of each line, where the picture draws it and of its height, width
+factor and slant, with `%%U`, `%%O` or `%%K` before the words of a run lined under, over or through, and a LINE for
+the bar of each stack, all in the MTEXT's text style, layer and colour. A run in a font or colour of its own (`\f`,
+`\C`) becomes a TEXT in the MTEXT's style and colour, as in AutoCAD.
 
 A dynamic block's custom grips are those AutoCAD 2021 shows, where the INSERT's values put them
 ([`DxfBlockReference.GetDynamicGrips`](xref:GeometryHelper.Dxf.DxfBlockReference.GetDynamicGrips)), each a `CadGrip` of a

@@ -1492,20 +1492,13 @@ namespace GeometryHelper.Dxf.Viewer
             Affine2 m = frame.Matrix;
             double turn = Orient(m, rotation, false, false, out bool backward);
             CadFontFace face = FaceOfCode(text.Contents) ?? FaceOf(text.TextStyleName);
-            DisplayText2 whole = Text(face, value, m.X(at.X, at.Y), m.Y(at.X, at.Y), text.TextHeight * m.Scale, turn, WidthOf(text.Contents, WidthFactorOf(text.TextStyleName)), horizontal, vertical, style, handle, layerName, ObliqueOf(text.TextStyleName), backward);
-            string contents = text.Contents;
 
-            // Words of more than one look are drawn run by run (the text keeps what it read as one); those of one look whole, as before.
-            if (contents.IndexOf('\\') >= 0 || contents.IndexOf('{') >= 0)
-            {
-                CadMTextContent content = CadMTextContent.Parse(contents, text.TextHeight);
-
-                if (!content.IsOneLook)
-                {
-                    whole.SetParts(MTextRuns(text, content, frame, style, handle, layerName));
-                }
-            }
-
+            // The text keeps its words, height and attachment as one text has them, for what reads it; it is drawn by its parts,
+            // the words laid out as AutoCAD lays them.
+            var whole = new DisplayText2(value, m.X(at.X, at.Y), m.Y(at.X, at.Y), text.TextHeight * m.Scale, turn, WidthOf(text.Contents, WidthFactorOf(text.TextStyleName)), horizontal, vertical, style, handle, layerName, face.Name, ObliqueOf(text.TextStyleName), backward);
+            CadMTextLayout layout = LayoutOf(text);
+            whole.SetMeasure(layout.ActualWidth * m.Scale, 0.0);
+            whole.SetParts(MTextParts(text, layout, frame, style, handle, layerName));
             list.Add(whole);
         }
 

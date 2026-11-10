@@ -68,11 +68,12 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             // Words moved by DIMTEDIT stand where they were put, and words turned by DIMEDIT or DIMTEDIT read at their angle. Those
-            // of a radius, a diameter or an angle are put by their picture about the point, which may be one of its line or arc.
+            // of a linear dimension, a radius, a diameter or an angle are put by their picture about the point, which may be one of
+            // its line or arc.
             DxfMText words = picture.OfType<DxfMText>().FirstOrDefault();
-            bool round = dimension is DxfRadialDimension || dimension is DxfDiametricDimension || dimension is DxfPoint3AngularDimension || dimension is DxfLineAngularDimension2 || dimension is DxfArcDimension;
+            bool laidOut = !(dimension is DxfOrdinateDimension);
 
-            if (words != null && !dimension.UsingDefaultTextPosition && !round)
+            if (words != null && !dimension.UsingDefaultTextPosition && !laidOut)
             {
                 words.Location = dimension.TextPosition;
             }
@@ -148,46 +149,8 @@ namespace GeometryHelper.Dxf.Viewer
             GeoPoint2 q2 = Foot(p2, onLine, along, oblique);
             string words = Formatted(dimension, measured, string.Empty);
             GeoPoint2? jog = JogOf(dimension);
-            List<DxfEntity> picture = Linear(style, style.Dimscale, textHeight, p1, p2, q1, q2, words, !dimension.UsingDefaultTextPosition, jog, jog.HasValue ? JogHeight(dimension, style, textHeight) : 0.0);
-
-            if (dimension.UsingDefaultTextPosition)
-            {
-                return picture;
-            }
-
-            // Words moved off the middle: where the line moves with them (DIMTMOVE 0) it runs on under words put past an end;
-            // where a leader is drawn (DIMTMOVE 1), a line from the middle of the dimension line to the words.
-            Sizes(style, style.Dimscale, textHeight, out _, out _, out double height, out double gap, out _, out _);
-            GeoPoint2 at = P2(dimension.TextPosition);
-            var middle = new GeoPoint2((q1.X + q2.X) / 2.0, (q1.Y + q2.Y) / 2.0);
-            int move = dimension.Dimtmove;
-
-            if (move == 0)
-            {
-                double half = WordsWidth(style, words, height, out _) / 2.0;
-                double t = (at - q1).X * along.X + (at - q1).Y * along.Y;
-                double length = (q2 - q1).Length;
-                double sign = (q2 - q1).X * along.X + (q2 - q1).Y * along.Y >= 0.0 ? 1.0 : -1.0;
-                double from = Math.Min(0.0, sign * t - half);
-                double to = Math.Max(length, sign * t + half);
-
-                if (from < 0.0)
-                {
-                    picture.Add(Lined(new DxfLine(P3(q1 + along * (sign * from)), P3(q1)), style.Dimclrd, style.Dimlwd));
-                }
-
-                if (to > length)
-                {
-                    picture.Add(Lined(new DxfLine(P3(q2), P3(q1 + along * (sign * to))), style.Dimclrd, style.Dimlwd));
-                }
-            }
-            else if (move == 1 && (at - middle).Length > gap + height / 2.0)
-            {
-                GeoVector2 down = (middle - at) / (middle - at).Length;
-                picture.Add(Lined(new DxfLine(P3(middle), P3(at + down * (gap + height / 2.0))), style.Dimclrd, style.Dimlwd));
-            }
-
-            return picture;
+            GeoPoint2? placed = dimension.UsingDefaultTextPosition ? (GeoPoint2?)null : P2(dimension.TextPosition);
+            return Linear(style, style.Dimscale, textHeight, p1, p2, q1, q2, words, placed, jog, jog.HasValue ? JogHeight(dimension, style, textHeight) : 0.0);
         }
 
         /// <summary>

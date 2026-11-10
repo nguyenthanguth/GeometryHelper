@@ -477,7 +477,8 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// Moves the words of a dimension to a point, as AutoCAD 2021's DIMTEDIT moves them: a linear one's dimension line moved
-        /// to run under them where its DIMTMOVE is 0; an angular one's arc through the point where it is 0, the words standing on
+        /// to run through the point where its DIMTMOVE is 0, the words above it there (on it, the line broken, for DIMTAD 0),
+        /// and for 1 and 2 its words by the point, the line staying (see <see cref="PlaceMoved"/>); an angular one's arc through the point where it is 0, the words standing on
         /// the arc there, above it as they read; a radius's or a diameter's words slid along its line, which stays, to where the
         /// point falls on it for DIMTMOVE 0 and 1, and put at the point itself for 2. A radius of 20 at 30 degrees whose words
         /// are moved to 50 out at 60 degrees has them 43.3 out along its line.
@@ -528,26 +529,25 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>
-        /// Drags the words of a dimension to a point, as their grip drags them: a linear one's dimension line moved to run under
-        /// them where its DIMTMOVE is 0, an angular one's arc to the radius under them as they read, so that they stand at the
-        /// point; a radius's or a diameter's line turned toward them.
+        /// Drags the words of a dimension to a point, as their grip drags them: a linear one's dimension line moved to run through
+        /// the point where its DIMTMOVE is 0, the point kept as its text's, about which its picture stands the words as AutoCAD
+        /// 2021's DIMTEDIT does (above the line for DIMTAD 1); an angular one's arc to the radius under them as they read, so
+        /// that they stand at the point; a radius's or a diameter's line turned toward them.
         /// </summary>
         internal static void DragWords(DxfDimension dimension, GeoPoint2 at)
         {
             DxfDimStyleTableRecord data = dimension.GetDimstyleData();
-            double scale = data.Dimscale > 0.0 ? data.Dimscale : 1.0;
-            double lift = Math.Abs(data.Dimgap) * scale + data.Dimtxt * scale / 2.0;
             bool withLine = dimension.Dimtmove == 0;
 
             switch (dimension)
             {
                 case DxfRotatedDimension rotated when withLine:
-                    rotated.DimLinePoint = P3(LineUnder(P2(rotated.XLine2Point), rotated.Rotation, rotated.Oblique, at, lift));
+                    rotated.DimLinePoint = P3(LineUnder(P2(rotated.XLine2Point), rotated.Rotation, rotated.Oblique, at));
                     break;
                 case DxfAlignedDimension aligned when withLine:
                     GeoPoint2 a = P2(aligned.XLine1Point);
                     GeoPoint2 b = P2(aligned.XLine2Point);
-                    aligned.DimLinePoint = P3(LineUnder(b, Math.Atan2(b.Y - a.Y, b.X - a.X), aligned.Oblique, at, lift));
+                    aligned.DimLinePoint = P3(LineUnder(b, Math.Atan2(b.Y - a.Y, b.X - a.X), aligned.Oblique, at));
                     break;
                 case DxfPoint3AngularDimension three when withLine:
                     at = OnArcUnder(dimension, data, P2(three.CenterPoint), at);
@@ -593,16 +593,9 @@ namespace GeometryHelper.Dxf.Viewer
             dimension.TextPosition = P3(at);
         }
 
-        /// <summary>
-        /// The point of a linear dimension's line, where its second extension line meets it, once the line runs under words at a
-        /// point: below them by the gap and half their height, on the side the words read from.
-        /// </summary>
-        private static GeoPoint2 LineUnder(GeoPoint2 second, double angle, double oblique, GeoPoint2 at, double lift)
-        {
-            double readable = Readable(angle);
-            var above = new GeoVector2(-Math.Sin(readable), Math.Cos(readable));
-            return Foot(second, at - above * lift, new GeoVector2(Math.Cos(angle), Math.Sin(angle)), oblique);
-        }
+        /// <summary>The point of a linear dimension's line, where its second extension line meets it, once the line runs through a point.</summary>
+        private static GeoPoint2 LineUnder(GeoPoint2 second, double angle, double oblique, GeoPoint2 at)
+            => Foot(second, at, new GeoVector2(Math.Cos(angle), Math.Sin(angle)), oblique);
 
         /// <summary>
         /// The point of the arc of an angular dimension its words stand on where they are to stand at a point, as its picture puts
@@ -640,7 +633,7 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// Puts the words of a linear dimension along its line next to the extension line on the left or the right as they
-        /// read: two arrowheads in from it, plus half their width, above the line by the gap.
+        /// read: two arrowheads in from it, plus half their width, above the line by the gap where DIMTAD puts them there.
         /// </summary>
         private static void WordsToSide(DxfDimension dimension, bool left)
         {
@@ -680,7 +673,11 @@ namespace GeometryHelper.Dxf.Viewer
             string words = picture.OfType<DxfMText>().FirstOrDefault()?.Contents ?? dimension.DimensionText;
             double inset = 2.0 * data.Dimasz * scale + WordsWidth(data, words, height, out double tall) / 2.0;
             var above = new GeoVector2(-reads.Y, reads.X);
-            dimension.TextPosition = P3(end + reads * (left ? inset : -inset) + above * (Math.Abs(data.Dimgap) * scale + tall / 2.0));
+
+            // The text's point on the line, about which the picture stands the words as DIMTAD says (above it for 1), but under
+            // DIMTMOVE 2, where the point is the words' middle itself.
+            double lift = data.Dimtmove == 2 ? Math.Abs(data.Dimgap) * scale + tall / 2.0 : 0.0;
+            dimension.TextPosition = P3(end + reads * (left ? inset : -inset) + above * lift);
         }
 
         /// <summary>The angle words along a direction are turned to, so that they read from the left or from below, as AutoCAD turns them.</summary>

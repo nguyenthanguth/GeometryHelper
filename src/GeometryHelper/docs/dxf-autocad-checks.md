@@ -100,6 +100,9 @@ and the 3D polyline of point 13 fitted at SPLINETYPE 5 its `Type mismatch`, as A
    - Now: the library sets the frame (flag 16 of group 90) from R2004 on; ezdxf from R2007.
    - A change if: AutoCAD 2004 to 2006 does not read the flag; then the library should refuse it before R2007.
    - AutoCAD 2021: reads the flag in both, AUDIT finding nothing; AutoCAD 2004 to 2006, the question, were not at hand.
+     In a drawing of R2018 it discards an MTEXT with the frame alone (90 of 16) and no 63 and 45 after it ("Missing DXF
+     group code: 90"), and in a drawing of R2004 to R2013 one that has them: `ShowBorders` writes 63 256, 45 1.5 and 441 0
+     in R2018 alone.
 
 9. **An MTEXT set in columns.**
    - Try: open in AutoCAD the MTEXTs set by `SetStaticColumns`, `SetDynamicColumns` and `SetColumnHeight` in a drawing of R2018

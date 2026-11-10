@@ -271,7 +271,9 @@ namespace GeometryHelper.Dxf.Viewer
             WordsWidth(style, words, height, out double tall);
             double before = symbol == 0 ? 1.8 * tall : 0.0;
             double[] near = { radial ? radius : size, radial ? radius : size };
-            List<DxfEntity> picture = Angular(style, dimscale, textHeight, middle, size, from, turn, near, (double[])near.Clone(), words, null, before, textAngle);
+            // Below 90 degrees the extension lines run along the bisector, drawn below; the angle's own are left out.
+            double[] far = radial ? (double[])near.Clone() : new[] { double.PositiveInfinity, double.PositiveInfinity };
+            List<DxfEntity> picture = Angular(style, dimscale, textHeight, middle, size, from, turn, near, far, words, null, before, textAngle);
 
             if (picture == null)
             {

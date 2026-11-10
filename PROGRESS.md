@@ -162,12 +162,14 @@ the ones wanted.
       in dimension and ellipse Properties rows, DIMEDIT oblique, -STYLE obliquing, MEASUREGEOM angle, the `<45` override;
       ATTSYNC by Select on a block with no definitions and its extended data (AutoCAD unchecked: no ATTSYNC in
       accoreconsole); GhDialogButton dimmed twice when disabled (S)
-- [ ] Command line and Recent: AutoComplete inside a running command; Search Content; an EXPORT command (S)
+- [ ] Command line and Recent (running): AutoComplete inside a running command; Search Content; an EXPORT command (S)
 - [ ] Dxf.App: an app icon, file association for .dxf (installer or registry), `--tab Home` in screenshot mode
 - [x] Images of an area: PNG and JPG devices in PLOT and -PLOT ("GeometryHelper PNG", "GeometryHelper JPG", as AutoCAD's
       PublishToWeb PNG/JPG), plot area Window, Extents, Display or Layout, size in pixels (1920 x 1080, 3840 x 2160 or
       typed) in place of a paper (designed in v111)
 - [x] Dynamic input: dimensional input (length and angle boxes) beyond LINE and PLINE (M)
+- [ ] Dynamic input (running, user 2026-11-10): while drawing LINE and the other commands with length and
+      angle fields, draw no dimension line, extension lines or angle arc; keep the length and angle values in their boxes (S)
 - [ ] Dynamic input follow-ups: MIRROR and other commands still on X and Y; CIRCLE 3P; angle field from a reference line;
       grip rotate and scale tested on their own (S)
 - [ ] COPYVIEW (not in AutoCAD): the view as an image on the clipboard, also on the canvas right-click menu (optional)
@@ -180,13 +182,21 @@ the ones wanted.
 - [ ] Speed: draw the first display off the UI thread (10–13 s at 1 000 000 entities)
 - [ ] Speed: frame at extents at 1 000 000 entities (0.8–1.1 s, inside Skia); level of detail would change pixels (needs a decision)
 - [ ] Speed: highlight of 100 000 selected objects (1.2–1.6 s)
-- [ ] Dimensions (running): radius, diameter and angular pictures follow DIMTAD, DIMJUST and the fit rules (linear and ordinate do)
-- [ ] Dimensions (running): the dimension line starts at the back of a closed arrowhead, as AutoCAD draws it; words sized by the
-      font, not estimated
-- [ ] Dimensions (running): DIMTVP, DIMTMOVE 1's leader for words moved out by fit, DIMGAP below zero (box round the words);
+- [x] Dimensions: radius, diameter and angular pictures follow DIMTAD, DIMJUST and the fit rules (linear and ordinate do)
+- [x] Dimensions: the dimension line starts at the back of a closed arrowhead, as AutoCAD draws it
+- [x] Dimensions: DIMTVP, DIMTMOVE 1's leader for words moved out by fit, DIMGAP below zero (box round the words);
       DIMTEDIT on a DIMTAD 0 dimension puts the line through the words
-- [ ] Dimensions (running, not Mtext): DIM offers Jogged and Arc length, edits Mtext in the editor
-- [ ] MTEXT (running): word wrap at the width, stacked fractions, columns; line spacing 5/3 as AutoCAD (check first)
+- [ ] Dimensions follow-ups: words sized by the font, not estimated; DIMJOGGED (prompts recorded, the jog picture not yet
+      derived: one chord at -23.6 deg unexplained); DIM offering Jogged and Arc length (2016+ DIM prompts not recordable
+      headless); DIM edits Mtext in the editor; parked: angles whose arc runs through their points (56 pictures, float
+      side choice), radius 3 circles under DIMTMOVE 1/2 with the point inside (28 pictures); DIMTEDIT Left/Right and
+      DIMTOH on slanted lines unprobed (M)
+- [x] MTEXT: word wrap at the width, stacked fractions, columns; line spacing 5/3 as AutoCAD (check first)
+- [ ] MTEXT follow-ups: the in-place editor wraps and spaces lines as the drawn MTEXT (it keeps one line per paragraph,
+      pitch 1.25); paragraph, column and tab dialogs and ribbon controls (need design); triangle width/height grips;
+      parked: `\pxsm2` with tall runs (0.048 h), flow direction 3, `\pxsa` first line, `\M+` codes, mask with a taller
+      defined height, manual columns at bottom or middle attachment, column grips; EXPLODE keeping run fonts and colours;
+      TEXT draws %%U/%%O/%%K lines; warm display cost of 10 000 MTEXTs 290 -> 430 ms (a per-entity cache?) (M)
 - [x] Clipboard: preview of the objects while PASTECLIP asks for the point
 - [ ] PLOT: print to Windows printers; add named page setups; embed only the glyphs used (smaller PDFs)
 - [ ] Xrefs: XOPEN, a balloon when a file changes, editable xref layers (`NAME|LAYER`), nested xrefs in the palette
