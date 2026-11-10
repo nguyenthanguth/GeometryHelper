@@ -72,7 +72,21 @@ namespace GeometryHelper.Dxf.Viewer
                     keywords.Add("Undo");
                 }
 
-                yield return CadPrompt.ForEntity(extend ? "Select object to extend or shift-select to trim" : "Select object to trim or shift-select to extend", keywords);
+                CadPrompt asked = CadPrompt.ForEntity(extend ? "Select object to extend or shift-select to trim" : "Select object to trim or shift-select to extend", keywords);
+
+                if (quick)
+                {
+                    // Quick mode previews the piece a trim takes out, faded, or the object an extension runs on.
+                    IReadOnlyList<string> cutting = edges.Value;
+                    Func<CadInput, IEnumerable<DxfEntity>> cut = input =>
+                    {
+                        var preview = new List<DxfEntity>();
+                        return input.Kind == CadInputKind.Selection && CutOne(c, input.Handles[0], input.Point, extend, cutting, preview) ? preview : null;
+                    };
+                    asked = asked.Previewing(extend ? CadPreview.Making(c, cut) : CadPreview.Fading(c, cut));
+                }
+
+                yield return asked;
 
                 if (c.Input.Kind == CadInputKind.Selection)
                 {
@@ -336,7 +350,12 @@ namespace GeometryHelper.Dxf.Viewer
         private static bool Cut(CadCommandContext c, string handle, GeoPoint2 at, bool extend, IReadOnlyList<string> edges)
             => Splits(c, extend ? "extended" : "trimmed", () => CutOne(c, handle, at, extend, edges));
 
-        private static bool CutOne(CadCommandContext c, string handle, GeoPoint2 at, bool extend, IReadOnlyList<string> edges)
+        /// <summary>
+        /// Trims or extends one object picked at a point. Given a list to preview into, it adds to it what Quick mode's preview
+        /// shows instead, and changes nothing: the piece a trim takes out (the whole object where Quick erases it), or a copy of
+        /// the object run on.
+        /// </summary>
+        private static bool CutOne(CadCommandContext c, string handle, GeoPoint2 at, bool extend, IReadOnlyList<string> edges, List<DxfEntity> preview = null)
         {
             if (!CanChange(c, handle, extend ? "extended" : "trimmed"))
             {
@@ -354,6 +373,14 @@ namespace GeometryHelper.Dxf.Viewer
                     return false;
                 }
 
+                if (preview != null)
+                {
+                    var run = (DxfCurve)curve.Clone();
+                    run.Extend(atStart, to);
+                    preview.Add(run);
+                    return true;
+                }
+
                 return c.Apply(new[] { new CadEditRecord(CadEditRecordKind.Reshaped, handle, "Extend") }, s => ((DxfCurve)s.Document.FindEntity(handle)).Extend(atStart, to)).Succeeded;
             }
 
@@ -365,12 +392,18 @@ namespace GeometryHelper.Dxf.Viewer
                 meetings.AddRange(Meet(curve, edge, extendEdges));
             }
 
-            List<DxfCurve> kept = TrimmedPieces(c, curve, P3(at), meetings);
+            List<DxfCurve> kept = TrimmedPieces(c, curve, P3(at), meetings, out DxfCurve gone);
 
             if (kept == null)
             {
                 if (quick)
                 {
+                    if (preview != null)
+                    {
+                        preview.Add((DxfEntity)curve.Clone());
+                        return true;
+                    }
+
                     // AutoCAD 2021's Quick mode erases an object that no other object cuts.
                     EraseAll(c, new[] { handle });
                     return true;
@@ -380,15 +413,24 @@ namespace GeometryHelper.Dxf.Viewer
                 return false;
             }
 
+            if (preview != null)
+            {
+                preview.Add(gone);
+                return true;
+            }
+
             return Replace(c, handle, kept, "Trim");
         }
 
         /// <summary>
         /// The pieces left of a curve once the piece about a point between the cuts nearest it on either side is taken out; on
-        /// a closed curve the piece between the two cuts round it. Null where no cut lies on either side.
+        /// a closed curve the piece between the two cuts round it. Null where no cut lies on either side. The piece taken out
+        /// is given apart.
         /// </summary>
-        private static List<DxfCurve> TrimmedPieces(CadCommandContext c, DxfCurve curve, GeoPoint3 pick, IEnumerable<GeoPoint3> cuts)
+        private static List<DxfCurve> TrimmedPieces(CadCommandContext c, DxfCurve curve, GeoPoint3 pick, IEnumerable<GeoPoint3> cuts, out DxfCurve gone)
         {
+            gone = null;
+
             double eps = Slack(c);
             GeoPoint3 near = curve.GetClosestPointTo(pick, false);
             double at = DistanceOf(curve, near) ?? double.NaN;
@@ -431,8 +473,9 @@ namespace GeometryHelper.Dxf.Viewer
                 }
 
                 // The piece the pick lies on goes; the nearer one, the first where both are as near.
-                int gone = pieces[1].GetClosestPointTo(near, false).DistanceTo(near) < pieces[0].GetClosestPointTo(near, false).DistanceTo(near) ? 1 : 0;
-                return new List<DxfCurve> { pieces[1 - gone] };
+                int taken = pieces[1].GetClosestPointTo(near, false).DistanceTo(near) < pieces[0].GetClosestPointTo(near, false).DistanceTo(near) ? 1 : 0;
+                gone = pieces[taken];
+                return new List<DxfCurve> { pieces[1 - taken] };
             }
 
             double? low = null;
@@ -473,6 +516,7 @@ namespace GeometryHelper.Dxf.Viewer
                 return null;
             }
 
+            gone = kept[low.HasValue ? 1 : 0];
             kept.RemoveAt(low.HasValue ? 1 : 0);
             return kept;
         }
@@ -636,7 +680,15 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             c.Session.LastPoint = first;
-            yield return CadPrompt.ForPoint("Specify second break point", null, new[] { "First point" });
+
+            // The part the second point at the cursor would take out, faded as TRIM's.
+            CadPreview Gap(GeoPoint2 from) => CadPreview.Fading(c, input =>
+            {
+                var gone = new List<DxfEntity>();
+                return BreakAt(c, handle, from, input.Point, gone) ? gone : null;
+            });
+
+            yield return CadPrompt.ForPoint("Specify second break point", null, new[] { "First point" }).Previewing(Gap(first));
 
             if (c.Input.Is("First point"))
             {
@@ -648,7 +700,7 @@ namespace GeometryHelper.Dxf.Viewer
                 }
 
                 first = c.Input.Point;
-                yield return CadPrompt.ForPoint("Specify second break point", first);
+                yield return CadPrompt.ForPoint("Specify second break point", first).Previewing(Gap(first));
             }
 
             if (c.Input.IsPoint)
@@ -683,7 +735,11 @@ namespace GeometryHelper.Dxf.Viewer
             }
         }
 
-        private static bool BreakAt(CadCommandContext c, string handle, GeoPoint2 first, GeoPoint2 second)
+        /// <summary>
+        /// Breaks an object between two points, or in two at one. Given a list to preview into, it adds the pieces the break
+        /// takes out to it instead, and changes nothing; false where it takes none out, as a break at one point takes none.
+        /// </summary>
+        private static bool BreakAt(CadCommandContext c, string handle, GeoPoint2 first, GeoPoint2 second, List<DxfEntity> gone = null)
         {
             var curve = (DxfCurve)c.Document.FindEntity(handle);
             double eps = Slack(c);
@@ -696,7 +752,7 @@ namespace GeometryHelper.Dxf.Viewer
                 return false;
             }
 
-            IReadOnlyList<DxfCurve> pieces;
+            IReadOnlyList<DxfCurve> pieces = null;
             var kept = new List<DxfCurve>();
 
             if (curve.Closed)
@@ -763,6 +819,18 @@ namespace GeometryHelper.Dxf.Viewer
                         kept.Add(pieces[pieces.Count - 1]);
                     }
                 }
+            }
+
+            if (gone != null)
+            {
+                if (pieces == null)
+                {
+                    return false;
+                }
+
+                // No cut inside the object takes all of it out.
+                gone.AddRange(pieces.Count == 0 ? new[] { (DxfCurve)curve.Clone() } : pieces.Where(p => !kept.Contains(p)));
+                return gone.Count > 0;
             }
 
             return Replace(c, handle, kept, "Break");
@@ -1145,7 +1213,12 @@ namespace GeometryHelper.Dxf.Viewer
                     if (mode == 3)
                     {
                         GeoPoint3 end = atStart ? curve.StartPoint : curve.EndPoint;
-                        yield return CadPrompt.ForPoint("Specify new end point", new GeoPoint2(end.X, end.Y));
+                        DxfCurve dragged = curve;
+                        yield return CadPrompt.ForPoint("Specify new end point", new GeoPoint2(end.X, end.Y)).Previewing(CadPreview.Making(c, input =>
+                        {
+                            var preview = new List<DxfEntity>();
+                            return MoveEnd(c, dragged, atStart, P3(input.Point), preview) ? preview : null;
+                        }));
 
                         if (!c.Input.IsPoint)
                         {
@@ -1185,8 +1258,11 @@ namespace GeometryHelper.Dxf.Viewer
             }
         }
 
-        /// <summary>Makes a curve a length by its end at one side, run on or cut back; false, with the reason written, where it is not.</summary>
-        private static bool ToLength(CadCommandContext c, DxfCurve curve, bool atStart, double target)
+        /// <summary>
+        /// Makes a curve a length by its end at one side, run on or cut back; false, with the reason written, where it is not.
+        /// Given a list to preview into, it adds the curve as it would be to it instead, and changes nothing.
+        /// </summary>
+        private static bool ToLength(CadCommandContext c, DxfCurve curve, bool atStart, double target, List<DxfEntity> preview = null)
         {
             double eps = Slack(c);
             Span(curve, out _, out double length);
@@ -1201,6 +1277,13 @@ namespace GeometryHelper.Dxf.Viewer
             if (target < length - eps)
             {
                 IReadOnlyList<DxfCurve> pieces = curve.GetSplitCurves(new[] { curve.GetParameterAtDistance(atStart ? length - target : target) });
+
+                if (pieces.Count == 2 && preview != null)
+                {
+                    preview.Add(pieces[atStart ? 1 : 0]);
+                    return true;
+                }
+
                 return pieces.Count == 2 && Replace(c, handle, new List<DxfCurve> { pieces[atStart ? 1 : 0] }, "Lengthen");
             }
 
@@ -1240,14 +1323,22 @@ namespace GeometryHelper.Dxf.Viewer
                     return false;
             }
 
+            var tried = (DxfCurve)curve.Clone();
+
             try
             {
-                ((DxfCurve)curve.Clone()).Extend(parameter);
+                tried.Extend(parameter);
             }
             catch (Exception exception) when (exception is ArgumentException || exception is InvalidOperationException || exception is NotSupportedException)
             {
                 c.Write("Cannot lengthen this object: " + exception.Message);
                 return false;
+            }
+
+            if (preview != null)
+            {
+                preview.Add(tried);
+                return true;
             }
 
             return c.Apply(new[] { new CadEditRecord(CadEditRecordKind.Reshaped, handle, "Lengthen") }, s => ((DxfCurve)s.Document.FindEntity(handle)).Extend(parameter)).Succeeded;
@@ -1293,8 +1384,12 @@ namespace GeometryHelper.Dxf.Viewer
             return atStart ? from - reach : from + reach;
         }
 
-        /// <summary>LENGTHEN DYnamic: the end moved to the point of its line, circle or ellipse nearest a point, run on or cut back.</summary>
-        private static bool MoveEnd(CadCommandContext c, DxfCurve curve, bool atStart, GeoPoint3 point)
+        /// <summary>
+        /// LENGTHEN DYnamic: the end moved to the point of its line, circle or ellipse nearest a point, run on or cut back. Given
+        /// a list to preview into, it adds the curve as it would be to it instead, and changes nothing, as the end previews
+        /// following the cursor.
+        /// </summary>
+        private static bool MoveEnd(CadCommandContext c, DxfCurve curve, bool atStart, GeoPoint3 point, List<DxfEntity> preview = null)
         {
             double eps = Slack(c);
             DxfCurve run = RunOn(c, curve, atStart, out _, out _);
@@ -1304,19 +1399,27 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 Span(curve, out _, out double length);
                 double at = DistanceOf(curve, target) ?? length;
-                return ToLength(c, curve, atStart, atStart ? length - at : at);
+                return ToLength(c, curve, atStart, atStart ? length - at : at, preview);
             }
 
             string handle = curve.Handle;
 
+            var moved = (DxfCurve)curve.Clone();
+
             try
             {
-                ((DxfCurve)curve.Clone()).Extend(atStart, target);
+                moved.Extend(atStart, target);
             }
             catch (Exception exception) when (exception is ArgumentException || exception is InvalidOperationException || exception is NotSupportedException)
             {
                 c.Write("Cannot lengthen this object: " + exception.Message);
                 return false;
+            }
+
+            if (preview != null)
+            {
+                preview.Add(moved);
+                return true;
             }
 
             return c.Apply(new[] { new CadEditRecord(CadEditRecordKind.Reshaped, handle, "Lengthen") }, s => ((DxfCurve)s.Document.FindEntity(handle)).Extend(atStart, target)).Succeeded;

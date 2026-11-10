@@ -485,7 +485,10 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             GeoPoint2 p1 = c.Input.Point;
-            yield return CadPrompt.ForPoint("Specify first destination point", p1);
+
+            // The objects moved by the one pair, as they are moved where no second pair is given.
+            yield return CadPrompt.ForPoint("Specify first destination point", p1)
+                .Previewing(CadPreview.MovingOne(c, c.Selected, input => CadPreview.Flat(GeoTransform3.Translation(new GeoVector3(input.Point.X - p1.X, input.Point.Y - p1.Y, 0.0))), true));
 
             if (!c.Input.IsPoint)
             {
@@ -503,7 +506,11 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             GeoPoint2 p2 = c.Input.Point;
-            yield return CadPrompt.ForPoint("Specify second destination point", p2);
+            double tolerance = c.Session.Tolerance.EqualPoint;
+
+            // The objects moved and turned by the two pairs, as they are where the third is not given and they are not scaled.
+            yield return CadPrompt.ForPoint("Specify second destination point", p2).Previewing(CadPreview.MovingOne(c, c.Selected, input =>
+                (p2 - p1).Length > tolerance && (input.Point - q1).Length > tolerance ? CadPreview.Flat(Aligned(p1, q1, p2, input.Point)) : (Affine2?)null, true));
 
             if (!c.Input.IsPoint)
             {
@@ -511,7 +518,6 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             GeoPoint2 q2 = c.Input.Point;
-            double tolerance = c.Session.Tolerance.EqualPoint;
 
             if ((p2 - p1).Length <= tolerance || (q2 - q1).Length <= tolerance)
             {
@@ -519,8 +525,7 @@ namespace GeometryHelper.Dxf.Viewer
                 yield break;
             }
 
-            double turn = Math.Atan2((q2 - q1).Y, (q2 - q1).X) - Math.Atan2((p2 - p1).Y, (p2 - p1).X);
-            GeoTransform3 moved = GeoTransform3.RotationAxis(P3(q1), Up, turn) * GeoTransform3.Translation(new GeoVector3(q1.X - p1.X, q1.Y - p1.Y, 0.0));
+            GeoTransform3 moved = Aligned(p1, q1, p2, q2);
             yield return CadPrompt.ForPoint("Specify third source point or", null, null, "continue");
 
             if (c.Input.IsPoint)
@@ -577,6 +582,13 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 Transform(c, free, moved, false, "Align");
             }
+        }
+
+        /// <summary>The move ALIGN makes of two pairs of points: the first source onto the first destination, then turned about it so that the line of the sources lies along the line of the destinations.</summary>
+        private static GeoTransform3 Aligned(GeoPoint2 p1, GeoPoint2 q1, GeoPoint2 p2, GeoPoint2 q2)
+        {
+            double turn = Math.Atan2((q2 - q1).Y, (q2 - q1).X) - Math.Atan2((p2 - p1).Y, (p2 - p1).X);
+            return GeoTransform3.RotationAxis(P3(q1), Up, turn) * GeoTransform3.Translation(new GeoVector3(q1.X - p1.X, q1.Y - p1.Y, 0.0));
         }
     }
 }

@@ -738,8 +738,16 @@ namespace GeometryHelper.Dxf.Viewer
         /// <param name="line">The line.</param>
         public void Write(string line)
         {
+            if (Quiet)
+            {
+                return;
+            }
+
             _history.Add(line ?? string.Empty);
         }
+
+        /// <summary>Whether lines written are dropped, as they are while a preview runs the command's code at the cursor.</summary>
+        internal bool Quiet { get; set; }
 
         /// <summary>
         /// Ctrl+Shift+A: switches the picking of groups whole (<see cref="CadDocument.PickStyle"/>) off where it is on and on

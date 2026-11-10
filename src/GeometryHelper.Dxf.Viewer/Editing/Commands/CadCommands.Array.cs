@@ -528,7 +528,13 @@ namespace GeometryHelper.Dxf.Viewer
                 if (c.Input.IsPoint)
                 {
                     GeoPoint2 corner = c.Input.Point;
-                    yield return CadPrompt.ForPoint("Specify opposite corner", corner);
+
+                    // The copies the unit cell to the cursor would make, as the array is made of it.
+                    yield return CadPrompt.ForPoint("Specify opposite corner", corner).Previewing(CadPreview.Moving(c, c.Selected, input =>
+                    {
+                        GeoVector2 drawn = c.Session.Ucs.ToUcs(input.Point - corner);
+                        return RectangularMoves(c, rows, columns, drawn.X, drawn.Y).ConvertAll(CadPreview.Flat);
+                    }));
 
                     if (!c.Input.IsPoint)
                     {
@@ -559,6 +565,15 @@ namespace GeometryHelper.Dxf.Viewer
                 across = c.Input.Number;
             }
 
+            Copies(c, c.Selected, RectangularMoves(c, rows, columns, across, up));
+        }
+
+        /// <summary>
+        /// The moves of the copies of a rectangular array of -ARRAY, the columns and rows apart by distances along the UCS; the
+        /// item in place not moved. Three rows of two columns, 50 across and 30 up, give five copies.
+        /// </summary>
+        private static List<GeoTransform3> RectangularMoves(CadCommandContext c, int rows, int columns, double across, double up)
+        {
             var moves = new List<GeoTransform3>();
 
             for (int row = 0; row < rows; row++)
@@ -575,7 +590,7 @@ namespace GeometryHelper.Dxf.Viewer
                 }
             }
 
-            Copies(c, c.Selected, moves);
+            return moves;
         }
 
         /// <summary>The angle a polar array fills: a whole turn its items share evenly, else as far as its last item.</summary>

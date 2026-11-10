@@ -105,7 +105,8 @@ namespace GeometryHelper.Dxf.Viewer
 
                 while (true)
                 {
-                    yield return CadPrompt.ForEntity("Select second object or shift-select to apply corner", new[] { "Radius" });
+                    yield return CadPrompt.ForEntity("Select second object or shift-select to apply corner", new[] { "Radius" })
+                        .Previewing(CadPreview.Making(c, input => Cornered(c, input, true, (second, pick, preview) => Round(c, first, firstPick, second, pick, c.Database.Filletrad, c.Remembered("trimmode", 1.0) != 0.0, preview))));
 
                     if (c.Input.Is("Radius"))
                     {
@@ -235,7 +236,12 @@ namespace GeometryHelper.Dxf.Viewer
 
                 while (true)
                 {
-                    yield return CadPrompt.ForEntity("Select second line or shift-select to apply corner", new[] { "Distance", "Angle", "Method" });
+                    yield return CadPrompt.ForEntity("Select second line or shift-select to apply corner", new[] { "Distance", "Angle", "Method" })
+                        .Previewing(CadPreview.Making(c, input => Cornered(c, input, false, (second, pick, preview) =>
+                        {
+                            ChamferDistances(c, out double d1, out double d2, out double angle);
+                            return Cut(c, first, firstPick, second, pick, d1, d2, angle, c.Remembered("trimmode", 1.0) != 0.0, preview);
+                        })));
 
                     if (c.Input.Is("Distance") || c.Input.Is("Angle") || c.Input.Is("Method"))
                     {
@@ -269,6 +275,21 @@ namespace GeometryHelper.Dxf.Viewer
                     yield break;
                 }
             }
+        }
+
+        /// <summary>
+        /// What FILLET or CHAMFER would make of the object under the cursor taken as the second: the copies of the objects it
+        /// trims and its arc or line, as AutoCAD 2021 previews them; null where the object cannot be taken or nothing is made.
+        /// </summary>
+        private static IEnumerable<DxfEntity> Cornered(CadCommandContext c, CadInput input, bool fillet, Func<string, GeoPoint2, List<DxfEntity>, bool> pick)
+        {
+            if (input.Kind != CadInputKind.Selection || !Cornerable(c, input.Handles[0], fillet))
+            {
+                return null;
+            }
+
+            var preview = new List<DxfEntity>();
+            return pick(input.Handles[0], input.Point, preview) ? preview : null;
         }
 
         /// <summary>Runs one pick of FILLET or CHAMFER after a savepoint, which Undo goes back to where the pick made a change.</summary>
@@ -472,14 +493,14 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>One FILLET pick: the two objects rounded by an arc of the radius, or run to a corner where it is nought.</summary>
-        private static bool Round(CadCommandContext c, string first, GeoPoint2 firstPick, string second, GeoPoint2 secondPick, double radius, bool trim)
+        private static bool Round(CadCommandContext c, string first, GeoPoint2 firstPick, string second, GeoPoint2 secondPick, double radius, bool trim, List<DxfEntity> preview = null)
         {
             DxfEntity a = c.Document.FindEntity(first);
             DxfEntity b = c.Document.FindEntity(second);
 
             if (a is DxfPolyline || b is DxfPolyline)
             {
-                return PolylineCorner(c, first, firstPick, second, secondPick, true, radius, 0.0, double.NaN, trim);
+                return PolylineCorner(c, first, firstPick, second, secondPick, true, radius, 0.0, double.NaN, trim, preview);
             }
 
             if (string.Equals(first, second, StringComparison.OrdinalIgnoreCase))
@@ -499,7 +520,7 @@ namespace GeometryHelper.Dxf.Viewer
                 {
                     if (parallel)
                     {
-                        return ParallelFillet(c, lineA, firstPick, lineB, trim);
+                        return ParallelFillet(c, lineA, firstPick, lineB, trim, preview);
                     }
 
                     return false;
@@ -572,18 +593,18 @@ namespace GeometryHelper.Dxf.Viewer
                 return false;
             }
 
-            return Write(c, trim ? ends : new List<Trimmed>(), round);
+            return Write(c, trim ? ends : new List<Trimmed>(), round, preview);
         }
 
         /// <summary>One CHAMFER pick of two lines: a line cut across the corner at the distances, or the corner where both are nought.</summary>
-        private static bool Cut(CadCommandContext c, string first, GeoPoint2 firstPick, string second, GeoPoint2 secondPick, double d1, double d2, double angle, bool trim)
+        private static bool Cut(CadCommandContext c, string first, GeoPoint2 firstPick, string second, GeoPoint2 secondPick, double d1, double d2, double angle, bool trim, List<DxfEntity> preview = null)
         {
             DxfEntity a = c.Document.FindEntity(first);
             DxfEntity b = c.Document.FindEntity(second);
 
             if (a is DxfPolyline || b is DxfPolyline)
             {
-                return PolylineCorner(c, first, firstPick, second, secondPick, false, 0.0, d1, double.IsNaN(angle) ? d2 : -angle, trim);
+                return PolylineCorner(c, first, firstPick, second, secondPick, false, 0.0, d1, double.IsNaN(angle) ? d2 : -angle, trim, preview);
             }
 
             if (string.Equals(first, second, StringComparison.OrdinalIgnoreCase))
@@ -651,7 +672,7 @@ namespace GeometryHelper.Dxf.Viewer
                 ends.Add(Trimmed.Line(lineB, corner, u2, to));
             }
 
-            return Write(c, ends, cut);
+            return Write(c, ends, cut, preview);
         }
 
         /// <summary>
@@ -717,7 +738,7 @@ namespace GeometryHelper.Dxf.Viewer
         /// Two parallel lines joined by a half circle as AutoCAD joins them, whatever the radius: at the end of the first line
         /// nearer its pick, the second run on or cut back to stand across from it.
         /// </summary>
-        private static bool ParallelFillet(CadCommandContext c, DxfLine a, GeoPoint2 pickA, DxfLine b, bool trim)
+        private static bool ParallelFillet(CadCommandContext c, DxfLine a, GeoPoint2 pickA, DxfLine b, bool trim, List<DxfEntity> preview)
         {
             GeoPoint2 a0 = P2(a.StartPoint), a1 = P2(a.EndPoint), b0 = P2(b.StartPoint), b1 = P2(b.EndPoint);
             GeoVector2 da = (a1 - a0) / (a1 - a0).Length;
@@ -756,7 +777,7 @@ namespace GeometryHelper.Dxf.Viewer
                 ends.Add(new Trimmed(b.Handle, moveStart, across));
             }
 
-            return Write(c, ends, round);
+            return Write(c, ends, round, preview);
         }
 
         /// <summary>
@@ -809,8 +830,11 @@ namespace GeometryHelper.Dxf.Viewer
             return found;
         }
 
-        /// <summary>Writes the trims and the new arc or line as one edit; gives whether it was made.</summary>
-        private static bool Write(CadCommandContext c, List<Trimmed> ends, DxfEntity added)
+        /// <summary>
+        /// Writes the trims and the new arc or line as one edit; gives whether it was made. Given a list to preview into, it adds
+        /// the copies of the objects trimmed and the arc or line to it instead, and writes nothing.
+        /// </summary>
+        private static bool Write(CadCommandContext c, List<Trimmed> ends, DxfEntity added, List<DxfEntity> preview)
         {
             var planned = new List<CadEditRecord>();
 
@@ -822,6 +846,23 @@ namespace GeometryHelper.Dxf.Viewer
             if (planned.Count == 0 && added == null)
             {
                 return false;
+            }
+
+            if (preview != null)
+            {
+                foreach (Trimmed end in ends)
+                {
+                    var copy = (DxfEntity)c.Document.FindEntity(end.Handle).Clone();
+                    end.Apply(copy);
+                    preview.Add(copy);
+                }
+
+                if (added != null)
+                {
+                    preview.Add(added);
+                }
+
+                return true;
             }
 
             CadEditResult result = c.Apply(planned, s =>
@@ -876,7 +917,7 @@ namespace GeometryHelper.Dxf.Viewer
         /// FILLET or CHAMFER of two straight segments of one polyline that meet at a vertex: the vertex cut back along both and an
         /// arc segment or a straight one put between, or, with No trim, an arc or a line drawn apart from the polyline.
         /// </summary>
-        private static bool PolylineCorner(CadCommandContext c, string first, GeoPoint2 firstPick, string second, GeoPoint2 secondPick, bool fillet, double radius, double d1, double d2, bool trim)
+        private static bool PolylineCorner(CadCommandContext c, string first, GeoPoint2 firstPick, string second, GeoPoint2 secondPick, bool fillet, double radius, double d1, double d2, bool trim, List<DxfEntity> preview)
         {
             if (!string.Equals(first, second, StringComparison.OrdinalIgnoreCase) || !(c.Document.FindEntity(first) is DxfPolyline polyline))
             {
@@ -924,7 +965,15 @@ namespace GeometryHelper.Dxf.Viewer
                 DxfEntity apart = fillet ? (DxfEntity)corner.ArcInWorld(polyline) : corner.LineInWorld(polyline);
                 apart = Current(c, apart);
                 apart.Layer = polyline.Layer;
-                return Write(c, new List<Trimmed>(), apart);
+                return Write(c, new List<Trimmed>(), apart, preview);
+            }
+
+            if (preview != null)
+            {
+                var copy = (DxfPolyline)polyline.Clone();
+                corner.Apply(copy);
+                preview.Add(copy);
+                return true;
             }
 
             CadEditResult result = c.Apply(new[] { new CadEditRecord(CadEditRecordKind.Reshaped, handle, c.Command.Name) }, s =>

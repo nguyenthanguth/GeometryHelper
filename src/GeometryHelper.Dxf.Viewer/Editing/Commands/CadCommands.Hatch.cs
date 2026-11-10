@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using GeometryHelper.Dxf;
+using GeometryHelper.Geometry;
 
 namespace GeometryHelper.Dxf.Viewer
 {
@@ -22,9 +23,51 @@ namespace GeometryHelper.Dxf.Viewer
         {
             var picks = new List<IReadOnlyList<CadBoundaryLoop>>();
 
+            // The area last found under the cursor, kept while the cursor stays in it and the drawing is as it was, which the
+            // pick index (made anew on every change) tells.
+            IReadOnlyList<CadBoundaryLoop> region = null;
+            PickIndex regionIndex = null;
+
+            IEnumerable<DxfEntity> Previewed(CadInput input)
+            {
+                PickIndex index = c.Document.GetPickIndex(c.Space);
+
+                if (region == null || !ReferenceEquals(index, regionIndex) || !Within(region, input.Point))
+                {
+                    regionIndex = index;
+                    region = CadBoundaryFinder.Find(c.Document, c.Space, input.Point, c.Session.Tolerance, c.Session.WorkView?.VisibleBox);
+                }
+
+                if (region == null)
+                {
+                    return null;
+                }
+
+                CadHatchSettings settings = c.Document.HatchSettings;
+                DxfHatch hatch = Current(c, new DxfHatch());
+                string searched = c.Database.PatternSearchPath;
+
+                try
+                {
+                    settings.ApplyTo(hatch, c.Database, c.Document);
+                }
+                finally
+                {
+                    // The search path the settings set is the made hatch's to set, inside its undo step.
+                    if (!string.Equals(c.Database.PatternSearchPath, searched, StringComparison.Ordinal))
+                    {
+                        c.Database.PatternSearchPath = searched;
+                    }
+                }
+
+                AppendLoops(hatch, KeptLoops(new List<IReadOnlyList<CadBoundaryLoop>>(picks) { region }, settings));
+                return new[] { hatch };
+            }
+
             while (true)
             {
-                yield return CadPrompt.ForPoint("Pick internal point", null, new[] { "Select objects", "Undo", "seTtings" });
+                yield return CadPrompt.ForPoint("Pick internal point", null, new[] { "Select objects", "Undo", "seTtings" })
+                    .Previewing(CadPreview.Making(c, Previewed));
 
                 if (c.Input.IsPoint)
                 {
@@ -214,32 +257,13 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         private static void MakeHatch(CadCommandContext c, List<IReadOnlyList<CadBoundaryLoop>> picks, CadHatchSettings settings)
         {
-            var loops = new List<CadBoundaryLoop>();
-
-            foreach (IReadOnlyList<CadBoundaryLoop> pick in picks)
-            {
-                loops.AddRange(CadBoundaryFinder.Kept(pick, settings.IslandStyle));
-            }
-
+            List<CadBoundaryLoop> loops = KeptLoops(picks, settings);
             string fault = null;
             CadEditResult result = c.Apply(null, s =>
             {
                 DxfHatch hatch = s.Append(c.Space, Current(c, new DxfHatch()));
                 fault = settings.ApplyTo(hatch, s.Database, s.Document);
-
-                foreach (CadBoundaryLoop loop in loops)
-                {
-                    DxfHatchLoopTypes type = loop.Depth == 0 ? DxfHatchLoopTypes.External : DxfHatchLoopTypes.Default;
-
-                    if (loop.Curve != null)
-                    {
-                        hatch.AppendLoop(new DxfHatchLoop(type, new[] { loop.Curve }));
-                    }
-                    else
-                    {
-                        hatch.AppendLoop(type, loop.Vertices, loop.Bulges);
-                    }
-                }
+                AppendLoops(hatch, loops);
 
                 if (settings.Associative)
                 {
@@ -263,6 +287,54 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 c.Write(result.Message);
             }
+        }
+
+        /// <summary>The loops of the picks a hatch is made of, each pick's as its island style keeps them.</summary>
+        private static List<CadBoundaryLoop> KeptLoops(List<IReadOnlyList<CadBoundaryLoop>> picks, CadHatchSettings settings)
+        {
+            var loops = new List<CadBoundaryLoop>();
+
+            foreach (IReadOnlyList<CadBoundaryLoop> pick in picks)
+            {
+                loops.AddRange(CadBoundaryFinder.Kept(pick, settings.IslandStyle));
+            }
+
+            return loops;
+        }
+
+        /// <summary>Adds the loops to a hatch: the outer loop of each pick flagged External, the islands with none.</summary>
+        private static void AppendLoops(DxfHatch hatch, List<CadBoundaryLoop> loops)
+        {
+            foreach (CadBoundaryLoop loop in loops)
+            {
+                DxfHatchLoopTypes type = loop.Depth == 0 ? DxfHatchLoopTypes.External : DxfHatchLoopTypes.Default;
+
+                if (loop.Curve != null)
+                {
+                    hatch.AppendLoop(new DxfHatchLoop(type, new[] { loop.Curve }));
+                }
+                else
+                {
+                    hatch.AppendLoop(type, loop.Vertices, loop.Bulges);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Whether a point lies in the area of loops HATCH found: inside the outer loop and in none of its islands, so that the
+        /// same loops are found round it.
+        /// </summary>
+        private static bool Within(IReadOnlyList<CadBoundaryLoop> loops, GeoPoint2 point)
+        {
+            foreach (CadBoundaryLoop loop in loops)
+            {
+                if (loop.Depth == 0 ? !loop.Contains(point) : loop.Contains(point))
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         /// <summary>

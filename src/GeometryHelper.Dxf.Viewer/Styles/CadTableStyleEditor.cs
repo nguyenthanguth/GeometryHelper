@@ -527,6 +527,14 @@ namespace GeometryHelper.Dxf.Viewer
             Write(style, Standard(database));
         }
 
+        /// <summary>The Standard <see cref="EnsureStandard"/> adds, made apart from the drawing, as a preview lays out a table in it.</summary>
+        internal static DxfTableStyle StandardApart(DxfDatabase database)
+        {
+            var style = new DxfTableStyle();
+            Write(style, Standard(database));
+            return style;
+        }
+
         /// <summary>The dictionary of table styles, made where the drawing has none.</summary>
         private static DxfDBDictionary Dictionary(DxfDatabase database)
         {

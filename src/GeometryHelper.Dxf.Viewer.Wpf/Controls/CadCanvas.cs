@@ -1776,7 +1776,20 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     fillContexts[rgb].Close();
                     lines[rgb].Freeze();
                     fills[rgb].Freeze();
-                    var brush = new SolidColorBrush(Color.FromRgb((byte)(rgb >> 16), (byte)(rgb >> 8), (byte)rgb));
+                    int shade = rgb;
+
+                    if (preview.Fades)
+                    {
+                        // A piece about to be cut away: the object drawn there blanked out, and the piece drawn a third of its colour.
+                        var blank = new SolidColorBrush(Color.FromRgb((byte)(background >> 16), (byte)(background >> 8), (byte)background));
+                        blank.Freeze();
+                        var cover = new Pen(blank, 3.0);
+                        cover.Freeze();
+                        dc.DrawGeometry(null, cover, lines[rgb]);
+                        shade = Blend(rgb, background, 1.0 / 3.0);
+                    }
+
+                    var brush = new SolidColorBrush(Color.FromRgb((byte)(shade >> 16), (byte)(shade >> 8), (byte)shade));
                     brush.Freeze();
                     dc.DrawGeometry(brush, null, fills[rgb]);
                     var pen = new Pen(brush, 1.0);
@@ -1817,6 +1830,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             return Luminance(background) < 0.4 && Luminance(rgb) <= 0.02 ? 0xFFFFFF : rgb;
+        }
+
+        /// <summary>A colour mixed into the background, its own share of it given: a third of white on black is a dark grey.</summary>
+        private static int Blend(int rgb, int background, double share)
+        {
+            int Channel(int shift) => (int)Math.Round(share * ((rgb >> shift) & 0xFF) + (1.0 - share) * ((background >> shift) & 0xFF));
+            return (Channel(16) << 16) | (Channel(8) << 8) | Channel(0);
         }
 
         /// <summary>The selection, and while "Select objects:" waits the objects it has gathered, drawn highlighted.</summary>
