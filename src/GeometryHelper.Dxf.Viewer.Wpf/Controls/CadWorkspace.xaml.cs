@@ -867,10 +867,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>
-        /// The dimensional input of a point, a distance or an angle asked from a base point, as AutoCAD draws it: a dimension
-        /// line 18 px off the rubber band with its extension lines and the length in a field at its middle; the X axis of the
-        /// UCS dashed from the base point, the arc of the angle 70 px round it and the angle in a field beyond the arc's
-        /// middle. The view shows the length's part, the angle's or both, as the prompt asks.
+        /// The dimensional input of a point, a distance or an angle asked from a base point, the fields alone with nothing drawn
+        /// under them: the length by the middle of the rubber band, 8 px off it to its left as it runs from the base point, and
+        /// the angle 50 px along the band from the base point, 8 px off it to its right, so that neither covers the band. The
+        /// view shows the length's field, the angle's or both, as the prompt asks.
         /// </summary>
         private void PlaceDimensionalInput(CadView view, double scale, Point cursor)
         {
@@ -882,58 +882,23 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             GeoPoint2 from = prompt.BasePoint.Value;
-            GeoVector2 axisWorld = _model.Session.Ucs.ToWorld(new GeoVector2(1.0, 0.0));
             view.DrawingToPixel(from.X, from.Y, out double bx, out double by);
-            view.DrawingToPixel(from.X + axisWorld.X * 1000.0, from.Y + axisWorld.Y * 1000.0, out double ax, out double ay);
             var origin = new Point(bx / scale, by / scale);
-            Vector axis = new Point(ax / scale, ay / scale) - origin;
             Vector band = cursor - origin;
 
-            if (band.Length < 1.0 || axis.Length <= 0.0)
+            if (band.Length < 1.0)
             {
                 DimensionalInput.Visibility = Visibility.Hidden;
                 return;
             }
 
             DimensionalInput.ClearValue(VisibilityProperty);
-            axis.Normalize();
             Vector along = band / band.Length;
             var normal = new Vector(along.Y, -along.X);
-            const double Gap = 18.0;
-            const double Overshoot = 8.0;
-            const double Radius = 70.0;
-
-            var lines = new StreamGeometry();
-
-            using (StreamGeometryContext context = lines.Open())
-            {
-                context.BeginFigure(origin + normal * Gap, false, false);
-                context.LineTo(cursor + normal * Gap, true, false);
-                context.BeginFigure(origin, false, false);
-                context.LineTo(origin + normal * (Gap + Overshoot), true, false);
-                context.BeginFigure(cursor, false, false);
-                context.LineTo(cursor + normal * (Gap + Overshoot), true, false);
-            }
-
-            DimensionalLines.Data = lines;
-            DimensionalAxis.Data = new LineGeometry(origin, origin + axis * (Radius + 10.0));
-
-            // The angle counterclockwise on the screen from the X axis to the band, 0 to 360 degrees, as the field gives it.
-            double start = Math.Atan2(-axis.Y, axis.X);
-            double sweep = Math.Atan2(-along.Y, along.X) - start;
-            sweep = sweep < 0.0 ? sweep + 2.0 * Math.PI : sweep;
-            Point On(double angle, double radius) => origin + new Vector(Math.Cos(angle), -Math.Sin(angle)) * radius;
-            var arc = new StreamGeometry();
-
-            using (StreamGeometryContext context = arc.Open())
-            {
-                context.BeginFigure(On(start, Radius), false, false);
-                context.ArcTo(On(start + sweep, Radius), new Size(Radius, Radius), 0.0, sweep > Math.PI, SweepDirection.Counterclockwise, true, false);
-            }
-
-            DimensionalArc.Data = arc;
-            Centre(LengthField, origin + band / 2.0 + normal * Gap);
-            Centre(AngleField, On(start + sweep / 2.0, Radius + 25.0));
+            const double Gap = 8.0;
+            const double Near = 50.0;
+            Beside(LengthField, origin + band / 2.0, normal, Gap);
+            Beside(AngleField, origin + along * Near, -normal, Gap);
         }
 
         /// <summary>A number typed into a field of dynamic input, or locked by Tab: the dimensions and the preview are drawn again at the point it holds.</summary>
@@ -955,11 +920,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             Canvas.SetTop(DynamicInputBox, Math.Max(0.0, Math.Min(top, CanvasView.ActualHeight - DynamicInputBox.ActualHeight)));
         }
 
-        private static void Centre(FrameworkElement field, Point at)
+        /// <summary>A field put off a point of the rubber band towards one side, its nearest edge the gap from the point.</summary>
+        private static void Beside(FrameworkElement field, Point at, Vector side, double gap)
         {
             field.UpdateLayout();
-            Canvas.SetLeft(field, at.X - field.ActualWidth / 2.0);
-            Canvas.SetTop(field, at.Y - field.ActualHeight / 2.0);
+            double reach = (Math.Abs(side.X) * field.ActualWidth + Math.Abs(side.Y) * field.ActualHeight) / 2.0;
+            Point centre = at + side * (gap + reach);
+            Canvas.SetLeft(field, centre.X - field.ActualWidth / 2.0);
+            Canvas.SetTop(field, centre.Y - field.ActualHeight / 2.0);
         }
 
         /// <summary>A row of the options menu of dynamic input clicked: the prompt takes its keyword.</summary>

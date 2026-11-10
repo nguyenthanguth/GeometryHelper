@@ -6,6 +6,15 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**CHANGED.** The dynamic input of the presenter shows the length and the angle in their fields alone, with no dimension
+line, extension lines, angle arc or dashed base line drawn under them. That is every prompt with these fields: the
+second point of LINE, PLINE, ARC, CIRCLE's 2P, ELLIPSE's axis, POLYGON's edge, XLINE, RAY, MOVE, COPY, STRETCH, OFFSET
+by two points and a grip stretched or moved, a distance asked from a base point and an angle asked from one. The length
+sits beside the middle of the rubber band, 8 pixels off it on one side, and the angle 50 pixels along the band from the
+base point, 8 pixels off it on the other, so that neither covers the band. Typing, Tab to lock and a held value holding
+the band work as before: 300 locked at a line from (1 000, 1 000) with the cursor at (1 300, 1 400) still ends it at
+(1 180, 1 240). RECTANG's X and Y fields and the X and Y of pointer input are unchanged.
+
 **FIXED.** The presenter's dimension pictures follow DIMTMOVE as AutoCAD 2021 draws them. Words the fit moves out of a
 linear dimension stand over its line under DIMTMOVE 2, on the side away from the points, DIMEXE, one and a half DIMGAP
 and half their height out, their height more where they read below it ("4" of a dimension of 4, 5.9375 below the middle
