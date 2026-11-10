@@ -102,6 +102,21 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         public bool Tracks { get; private set; }
 
+        /// <summary>
+        /// Gets what the canvas draws under the cursor while the prompt waits, as AutoCAD 2021 drags the object about to be
+        /// made: the rectangle RECTANG would make with the cursor as its other corner, the circle CIRCLE would make with the
+        /// cursor on it, the copies ROTATE would turn by a reference. Null where the prompt draws no more than its rubber band.
+        /// </summary>
+        public CadPreview Preview { get; private set; }
+
+        /// <summary>Gives the prompt what it draws under the cursor (<see cref="Preview"/>).</summary>
+        internal CadPrompt Previewing(CadPreview preview)
+        {
+            Preview = preview;
+            preview.Prompt = this;
+            return this;
+        }
+
         /// <summary>Makes the prompt one the cursor's moves answer (<see cref="Tracks"/>).</summary>
         internal CadPrompt Tracking()
         {

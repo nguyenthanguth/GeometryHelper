@@ -87,7 +87,10 @@ namespace GeometryHelper.Dxf.Viewer
             while (true)
             {
                 string[] keywords = aligned ? new[] { "Text" } : new[] { "Text", "Horizontal", "Vertical" };
-                yield return CadPrompt.ForPoint("Specify dimension line location", p2, keywords);
+                string words = text;
+                double? fixedTo = fixedAngle;
+                yield return CadPrompt.ForPoint("Specify dimension line location", p2, keywords)
+                    .Previewing(DimPreview(c, input => LinearMade(c,style, aligned, p1, p2, input.Point, words, fixedTo, null, out _, out _)));
 
                 if (c.Input.Is("Text"))
                 {
@@ -131,28 +134,80 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         private static string MakeLinear(CadCommandContext c, DxfDimStyleTableRecord style, bool aligned, GeoPoint2 p1, GeoPoint2 p2, GeoPoint2 location, string text, double? fixedAngle, double? textAngle)
         {
+            List<DxfEntity> picture = LinearMade(c,style, aligned, p1, p2, location, text, fixedAngle, textAngle, out DxfDimension made, out string words);
+
+            if (picture == null)
+            {
+                c.Write("*Invalid* The dimension measures nothing.");
+                return null;
+            }
+
+            c.Write("Dimension text = " + words);
+            return AddedHandle(Place(c, style, TextHeight(c, style), made, picture));
+        }
+
+        /// <summary>
+        /// The picture of a linear (or an aligned) dimension of two origins, its line through a point, and the dimension it is
+        /// the picture of, as <see cref="MakeLinear"/> adds them and the prompt of the line's place previews them; null where
+        /// it measures nothing.
+        /// </summary>
+        private static List<DxfEntity> LinearMade(CadCommandContext c, DxfDimStyleTableRecord style, bool aligned, GeoPoint2 p1, GeoPoint2 p2, GeoPoint2 location, string text, double? fixedAngle, double? textAngle, out DxfDimension made, out string words)
+        {
             // A linear dimension measures along the X or Y axis of the UCS, as AutoCAD's: in a UCS turned 30 degrees it is a
             // rotated dimension of 30 or 120 degrees.
             CadUcs ucs = c.Session.Ucs;
             double angle = aligned ? Math.Atan2(p2.Y - p1.Y, p2.X - p1.X) : ucs.AngleToWorld(fixedAngle ?? LinearAngle(ucs.ToUcs(p1), ucs.ToUcs(p2), ucs.ToUcs(location)));
             var along = new GeoVector2(Math.Cos(angle), Math.Sin(angle));
             double measured = Math.Abs((p2 - p1).X * along.X + (p2 - p1).Y * along.Y);
+            made = null;
+            words = null;
 
             if (measured <= c.Session.Tolerance.EqualPoint)
             {
-                c.Write("*Invalid* The dimension measures nothing.");
                 return null;
             }
 
             GeoPoint2 q1 = location + along * ((p1 - location).X * along.X + (p1 - location).Y * along.Y);
             GeoPoint2 q2 = location + along * ((p2 - location).X * along.X + (p2 - location).Y * along.Y);
-            DxfDimension made = aligned
+            made = aligned
                 ? (DxfDimension)new DxfAlignedDimension(P3(p1), P3(p2), P3(q2), text ?? string.Empty, null)
                 : new DxfRotatedDimension(angle, P3(p1), P3(p2), P3(q2), text ?? string.Empty, null);
-            string words = Words(style, made, measured, text, string.Empty);
-            c.Write("Dimension text = " + words);
+            words = Words(style, made, measured, text, string.Empty);
             double textHeight = TextHeight(c, style);
-            return AddedHandle(Place(c, style, textHeight, made, WithTextAngle(made, Linear(style, Dimscale(c), textHeight, p1, p2, q1, q2, words), textAngle)));
+            return WithTextAngle(made, Linear(style, Dimscale(c), textHeight, p1, p2, q1, q2, words), textAngle);
+        }
+
+        /// <summary>
+        /// The preview of the dimension the point at the cursor would make: its picture, each part on the layer and in the
+        /// colour the dimension gives it once made, as a picture of layer 0 and colour ByBlock takes the dimension's.
+        /// </summary>
+        private static CadPreview DimPreview(CadCommandContext c, Func<CadInput, List<DxfEntity>> picture)
+        {
+            string layer = !string.IsNullOrEmpty(c.Session.DimLayer) && c.Database.LayerTable.Has(c.Session.DimLayer) ? c.Session.DimLayer : c.Database.Clayer;
+            return CadPreview.Making(c, input =>
+            {
+                List<DxfEntity> parts = picture(input);
+
+                if (parts == null)
+                {
+                    return null;
+                }
+
+                foreach (DxfEntity part in parts)
+                {
+                    if (string.IsNullOrEmpty(part.Layer) || part.Layer == "0")
+                    {
+                        part.Layer = layer;
+                    }
+
+                    if (part.Color.IsByBlock)
+                    {
+                        part.Color = DxfColor.ByLayer;
+                    }
+                }
+
+                return parts;
+            });
         }
 
         /// <summary>Gives a dimension to be made the angle its words were given (Text angle), and its picture's words that turn.</summary>
@@ -221,7 +276,9 @@ namespace GeometryHelper.Dxf.Viewer
 
             while (true)
             {
-                yield return CadPrompt.ForPoint("Specify dimension line location", center, new[] { "Text" });
+                string words = text;
+                yield return CadPrompt.ForPoint("Specify dimension line location", center, new[] { "Text" })
+                    .Previewing(DimPreview(c, input => RadialMade(c, style, center, radius, diameter, input.Point, words, null, pickedAt, out _)));
 
                 if (c.Input.Is("Text"))
                 {
@@ -259,6 +316,17 @@ namespace GeometryHelper.Dxf.Viewer
         /// </remarks>
         private static string MakeRadial(CadCommandContext c, DxfDimStyleTableRecord style, GeoPoint2 center, double radius, bool diameter, GeoPoint2 location, string text, double? textAngle, GeoPoint2? pickedAt = null)
         {
+            List<DxfEntity> picture = RadialMade(c, style, center, radius, diameter, location, text, textAngle, pickedAt, out DxfDimension made);
+            return AddedHandle(Place(c, style, TextHeight(c, style), made, picture));
+        }
+
+        /// <summary>
+        /// The picture of a radius (or a diameter) dimension of a circle, its line toward a point (or through the point the
+        /// circle was picked at, under DIMTMOVE 1 and 2), and the dimension it is the picture of, as <see cref="MakeRadial"/>
+        /// adds them and the prompt of the line's place previews them.
+        /// </summary>
+        private static List<DxfEntity> RadialMade(CadCommandContext c, DxfDimStyleTableRecord style, GeoPoint2 center, double radius, bool diameter, GeoPoint2 location, string text, double? textAngle, GeoPoint2? pickedAt, out DxfDimension made)
+        {
             double measured = diameter ? 2.0 * radius : radius;
             string prefix = diameter ? "%%c" : "R";
             int move = style.Dimtmove;
@@ -273,7 +341,7 @@ namespace GeometryHelper.Dxf.Viewer
             GeoPoint2 chord = center + unit * radius;
             GeoPoint2 far = center - unit * radius;
             double leader = Math.Max(0.0, (location - chord).Length);
-            DxfDimension made = diameter
+            made = diameter
                 ? (DxfDimension)new DxfDiametricDimension(P3(chord), P3(far), leader, text ?? string.Empty, null)
                 : new DxfRadialDimension(P3(center), P3(chord), leader, text ?? string.Empty, null);
             string words = Words(style, made, measured, text, prefix);
@@ -291,7 +359,7 @@ namespace GeometryHelper.Dxf.Viewer
                 made.UsingDefaultTextPosition = false;
             }
 
-            return AddedHandle(Place(c, style, textHeight, made, WithTextAngle(made, Radial(style, Dimscale(c), textHeight, center, radius, chord, far, wordsAt, diameter, words, slid, free), textAngle)));
+            return WithTextAngle(made, Radial(style, Dimscale(c), textHeight, center, radius, chord, far, wordsAt, diameter, words, slid, free), textAngle);
         }
 
         private static IEnumerable<CadPrompt> DimAngular(CadCommandContext c) => DimAngularFrom(c, null, null);
@@ -402,9 +470,32 @@ namespace GeometryHelper.Dxf.Viewer
 
             string text = null;
 
+            // The picture of the angular dimension of an arc through a point, and the dimension, as it is previewed and made;
+            // null where it measures nothing.
+            List<DxfEntity> AngularMade(GeoPoint2 location, string typed, out DxfDimension made, out string words)
+            {
+                double radius = (location - vertex).Length;
+                AngularSector(first, second, vertex, points, location, rays, near, far, out double from, out double sweep);
+                made = null;
+                words = null;
+
+                if (sweep <= c.Session.Tolerance.EqualAngleRad / 1000.0 || radius <= c.Session.Tolerance.EqualPoint)
+                {
+                    return null;
+                }
+
+                made = first != null
+                    ? (DxfDimension)new DxfLineAngularDimension2(first.StartPoint, first.EndPoint, second.StartPoint, second.EndPoint, P3(location), typed ?? string.Empty, null)
+                    : new DxfPoint3AngularDimension(P3(vertex), P3(points[0]), P3(points[1]), P3(location), typed ?? string.Empty, null);
+                words = Words(style, made, sweep, typed, string.Empty);
+                return Angular(style, Dimscale(c), TextHeight(c, style), vertex, radius, from, sweep, near, far, words);
+            }
+
             while (true)
             {
-                yield return CadPrompt.ForPoint("Specify dimension arc line location", vertex, new[] { "Text" });
+                string shown = text;
+                yield return CadPrompt.ForPoint("Specify dimension arc line location", vertex, new[] { "Text" })
+                    .Previewing(DimPreview(c, input => AngularMade(input.Point, shown, out _, out _)));
 
                 if (c.Input.Is("Text"))
                 {
@@ -426,23 +517,16 @@ namespace GeometryHelper.Dxf.Viewer
                 yield break;
             }
 
-            GeoPoint2 location = c.Input.Point;
-            double radius = (location - vertex).Length;
-            AngularSector(first, second, vertex, points, location, rays, near, far, out double from, out double sweep);
+            List<DxfEntity> picture = AngularMade(c.Input.Point, text, out DxfDimension made, out string words);
 
-            if (sweep <= c.Session.Tolerance.EqualAngleRad / 1000.0 || radius <= c.Session.Tolerance.EqualPoint)
+            if (picture == null)
             {
                 c.Write("*Invalid* The angle measures nothing.");
                 yield break;
             }
 
-            DxfDimension made = first != null
-                ? (DxfDimension)new DxfLineAngularDimension2(first.StartPoint, first.EndPoint, second.StartPoint, second.EndPoint, P3(location), text ?? string.Empty, null)
-                : new DxfPoint3AngularDimension(P3(vertex), P3(points[0]), P3(points[1]), P3(location), text ?? string.Empty, null);
-            string words = Words(style, made, sweep, text, string.Empty);
             c.Write("Dimension text = " + words);
-            double textHeight = TextHeight(c, style);
-            string handle = AddedHandle(Place(c, style, textHeight, made, Angular(style, Dimscale(c), textHeight, vertex, radius, from, sweep, near, far, words)));
+            string handle = AddedHandle(Place(c, style, TextHeight(c, style), made, picture));
 
             CadDimAssociation.Tie(c, handle, tiedArc != null ? CadDimAssociation.ArcEnds(tiedArc) : first != null ? CadDimAssociation.TwoLines(first, second) : snapped);
         }

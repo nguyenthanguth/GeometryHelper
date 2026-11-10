@@ -25,6 +25,19 @@ there, above it as they read; a radius's or a diameter's words slide along its l
 1, and stand at the point under 2. A radius or a diameter made under DIMTMOVE 1 or 2 keeps its line through the point
 the circle was picked at, as AutoCAD 2021 does. The grips drag the words as before.
 
+**NEW.** The presenter previews the object a prompt is about to make, as AutoCAD 2021 drags it: `CadPrompt.Preview`
+(`CadPreview`) gives the display items of what a point picked at the cursor would make, made by the command's own code,
+and the canvas draws them in the current layer's colour. RECTANG asking its other corner draws the rectangle, not a dashed
+line to the cursor; CIRCLE (radius, diameter, 2P, 3P, Ttr, Tan Tan Tan), ARC (every way, and on from the last line),
+ELLIPSE and its Arc, POLYGON, DONUT, XLINE, RAY, PLINE (lines and every arc option, widths drawn), REVCLOUD, OFFSET,
+STRETCH, the frame of MTEXT and DIMLINEAR, DIMALIGNED, DIMRADIUS, DIMDIAMETER, DIMANGULAR, DIMORDINATE, DIMCONTINUE and
+DIMBASELINE do the same. ROTATE and SCALE move their ghost by a Reference too, and ARRAYRECT and ARRAYPOLAR show every
+copy while their options are offered. A preview costs 6 to 26 microseconds for a circle or a rectangle, 0.2 ms for a
+linear dimension.
+
+**FIXED.** ROTATE's ghost in a UCS turned from the world's now turns by the angle the objects are turned: in a UCS turned
+30 degrees it turned 30 degrees more than the result.
+
 **NEW.** BATTMAN, the presenter's Block Attribute Manager: the attribute definitions of a block in its order, with the
 INSERTs of it counted in the drawing and in model space, the modes as AutoCAD's letters I C V P L M and a tag given twice
 in red; Move Up, Move Down, Edit Attribute (Attribute, Text Options and Properties) and Remove, written into the block by

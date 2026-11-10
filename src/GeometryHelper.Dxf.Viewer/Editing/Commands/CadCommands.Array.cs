@@ -101,9 +101,33 @@ namespace GeometryHelper.Dxf.Viewer
             var count = new Ref<int?>();
             var distance = new Ref<double?>();
 
+            // The moves of the copies, each column and row but the first, along the axes of the UCS.
+            List<GeoTransform3> Moves()
+            {
+                var moves = new List<GeoTransform3>();
+
+                for (int row = 0; row < rows; row++)
+                {
+                    for (int column = 0; column < columns; column++)
+                    {
+                        if (row == 0 && column == 0)
+                        {
+                            continue;
+                        }
+
+                        GeoVector2 step = c.Session.Ucs.ToWorld(new GeoVector2(column * across, row * up));
+                        moves.Add(GeoTransform3.Translation(new GeoVector3(step.X, step.Y, 0.0)));
+                    }
+                }
+
+                return moves;
+            }
+
             while (true)
             {
-                yield return CadPrompt.ForPoint("Select grip to edit array", null, RectangularOptions, "eXit");
+                // The array as it stands, as AutoCAD 2021 shows it while its grips and options are offered.
+                yield return CadPrompt.ForPoint("Select grip to edit array", null, RectangularOptions, "eXit")
+                    .Previewing(CadPreview.Moving(c, c.Selected, input => Moves().ConvertAll(CadPreview.Flat)));
 
                 if (c.Input.IsPoint)
                 {
@@ -227,23 +251,7 @@ namespace GeometryHelper.Dxf.Viewer
                 yield break;
             }
 
-            var moves = new List<GeoTransform3>();
-
-            for (int row = 0; row < rows; row++)
-            {
-                for (int column = 0; column < columns; column++)
-                {
-                    if (row == 0 && column == 0)
-                    {
-                        continue;
-                    }
-
-                    GeoVector2 step = c.Session.Ucs.ToWorld(new GeoVector2(column * across, row * up));
-                    moves.Add(GeoTransform3.Translation(new GeoVector3(step.X, step.Y, 0.0)));
-                }
-            }
-
-            Copies(c, c.Selected, moves);
+            Copies(c, c.Selected, Moves());
         }
 
         /// <summary>
@@ -298,7 +306,9 @@ namespace GeometryHelper.Dxf.Viewer
 
             while (true)
             {
-                yield return CadPrompt.ForPoint("Select grip to edit array", null, PolarOptions, "eXit");
+                // The array as it stands, as AutoCAD 2021 shows it while its grips and options are offered.
+                yield return CadPrompt.ForPoint("Select grip to edit array", null, PolarOptions, "eXit")
+                    .Previewing(CadPreview.Moving(c, c.Selected, input => PolarMoves(centre, basePoint, items, step, rows, apart, turn).ConvertAll(CadPreview.Flat)));
 
                 if (c.Input.IsPoint)
                 {

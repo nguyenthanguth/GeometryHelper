@@ -320,7 +320,25 @@ namespace GeometryHelper.Dxf.Viewer
 
             while (true)
             {
-                yield return CadPrompt.ForPoint("Specify opposite corner", a, options);
+                // The frame of the text the opposite corner at the cursor would give, square to the text's rotation in the UCS,
+                // as AutoCAD 2021 draws it while the corner is asked.
+                double framed = rotation;
+                yield return CadPrompt.ForPoint("Specify opposite corner", a, options).Previewing(CadPreview.MakingOne(c, input =>
+                {
+                    GeoPoint2 from = ucs.ToUcs(a);
+                    GeoVector2 way = ucs.ToUcs(input.Point) - from;
+                    var along = new GeoVector2(Math.Cos(framed), Math.Sin(framed));
+                    var up = new GeoVector2(-along.Y, along.X);
+                    double w = way.X * along.X + way.Y * along.Y;
+                    double h = way.X * up.X + way.Y * up.Y;
+                    var frame = new DxfPolyline();
+                    frame.AddVertexAt(0, ucs.ToWorld(from), 0.0, 0.0, 0.0);
+                    frame.AddVertexAt(1, ucs.ToWorld(from + along * w), 0.0, 0.0, 0.0);
+                    frame.AddVertexAt(2, ucs.ToWorld(from + along * w + up * h), 0.0, 0.0, 0.0);
+                    frame.AddVertexAt(3, ucs.ToWorld(from + up * h), 0.0, 0.0, 0.0);
+                    frame.Closed = true;
+                    return Current(c, frame);
+                }));
 
                 if (c.Input.Is("Height"))
                 {

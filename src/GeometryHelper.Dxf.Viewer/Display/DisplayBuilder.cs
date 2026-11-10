@@ -186,6 +186,30 @@ namespace GeometryHelper.Dxf.Viewer
         public DisplayList2 Build(DxfBlockTableRecord space, bool isModel) => Patch(space, isModel, null, null, 0);
 
         /// <summary>
+        /// Draws entities that are in no space, as a command's preview makes them before it adds one: each as it would be drawn
+        /// once appended to the space, in the order given; one that cannot be drawn gives nothing.
+        /// </summary>
+        internal IReadOnlyList<DisplayItem2> BuildLoose(IEnumerable<DxfEntity> entities)
+        {
+            var list = new DisplayList2 { PointViewHeight = _pointViewHeight, FontFolder = _document?.FontFolder };
+            var root = new Frame(Affine2.Identity);
+
+            foreach (DxfEntity entity in entities)
+            {
+                try
+                {
+                    Draw(entity, root, list, null);
+                }
+                catch (Exception)
+                {
+                    // One entity that cannot be drawn never stops the others.
+                }
+            }
+
+            return list.Items;
+        }
+
+        /// <summary>
         /// Draws a space again from the list made of it before an edit: the entities whose handles are in
         /// <paramref name="handles"/>, those that read a layer of <paramref name="layers"/> (bits of the older list's
         /// <see cref="DisplayList2.LayerBit"/>), those of no handle and those the older list did not draw are drawn anew, and
