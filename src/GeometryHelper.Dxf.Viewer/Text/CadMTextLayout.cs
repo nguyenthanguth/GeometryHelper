@@ -141,6 +141,9 @@ namespace GeometryHelper.Dxf.Viewer
             internal double Y1 { get; set; }
 
             internal CadMTextLook Look { get; set; }
+
+            /// <summary>Whether it is the bar of a stack, which EXPLODE makes a LINE of; a line under, over or through letters is written in their TEXT.</summary>
+            internal bool IsBar { get; set; }
         }
 
         private enum Kind
@@ -1202,7 +1205,7 @@ namespace GeometryHelper.Dxf.Viewer
 
                         if (a.Bar != null)
                         {
-                            _layout._strokes.Add(new Stroke { X0 = ax + a.Bar[0], Y0 = y + a.Bar[1], X1 = ax + a.Bar[2], Y1 = y + a.Bar[3], Look = a.Look });
+                            _layout._strokes.Add(new Stroke { X0 = ax + a.Bar[0], Y0 = y + a.Bar[1], X1 = ax + a.Bar[2], Y1 = y + a.Bar[3], Look = a.Look, IsBar = true });
                         }
 
                         continue;

@@ -21,6 +21,14 @@ AutoCAD's own fragments of 155 MTEXTs (536 lines), in an SHX font and in Arial: 
 within 0.2 % of the height of where AutoCAD puts it. `DisplayText2.Parts` is now set for every MTEXT: a text for each
 run of each line, the mask (`DisplayFill2`) and the frame first; the box of the MTEXT's item is that of its parts.
 
+**CHANGED.** The presenter's grips and EXPLODE of an MTEXT follow its new layout, as AutoCAD 2021's do. An MTEXT with a
+width has a grip at each corner of its box besides its location (`CadGripKind.Corner`; the location alone for no width
+or for columns), and a corner dragged takes its two sides of the box to the point: "II" over "II" 240 wide at the
+origin, its top right corner dragged to (260, -12), is 260 wide with a defined height of 14.67 and located at (0, -12).
+`CadGrips.Of` therefore gives four or five grips where it gave one, the location no longer always the first. EXPLODE
+makes a TEXT of each run of each line where the picture draws it, and a LINE of the bar of each stack, where it made the
+TEXTs of the library's own simpler layout.
+
 **FIXED.** `DxfMText.ShowBorders` set in a drawing of R2018 with no background writes the colour and the scale of a
 background (63 256, 45 1.5, 441 0) after its group 90 of 16: AutoCAD 2021 discarded the whole drawing without them
 ("Missing DXF group code: 90"). In a drawing of R2004 to R2013 it writes none, as before: there AutoCAD discards the
