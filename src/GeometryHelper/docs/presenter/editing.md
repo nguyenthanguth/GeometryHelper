@@ -231,7 +231,16 @@ in the sector the arc does not sweep dimensions the rest of its circle. DIMORDIN
 (300, 40) with its leader ending at (310, 80) is an X datum of 300, the leader jogged two arrowheads before its end.
 DIMCONTINUE, DIMBASELINE and QDIM's Ordinate go on from an ordinate dimension, each leader ending level with the last.
 DIMJOGLINE (DJL) puts a jog in the line of a linear dimension, kept as AutoCAD keeps it (ACAD_DSTYLE_DIMJAG_POSITION) and
-drawn 1.5 times the height of the words; Remove takes it out. DIMJOGGED (DJO, JOG) draws a jogged radius of an arc or a
+drawn 1.5 times the height of the words; Remove takes it out. DIMEDIT Oblique slants the extension lines of a linear or
+an aligned dimension to the angle typed, from the x axis, and keeps it as AutoCAD 2021 keeps it, from the dimension line
+(group 52, Oblique): 60 typed for a dimension rotated 30 is kept as 30, for an aligned one from (0, 100) to (100, 150) as
+33.435, and -30 for a level one as 330. DIMBREAK keeps its breaks as AutoCAD 2021 keeps them, a BREAKDATA under
+ACAD_BREAKDATA in the dimension's extension dictionary: Auto one break for each object that crosses the dimension, naming
+it (the object naming the BREAKDATA among its reactors), Manual the two points picked and the line they break (0 and 1
+the extension lines, 3 the dimension line); Remove takes it out. A dimension drawn anew, by DIMEDIT, a change of its
+style or a grip, is broken again where it keeps breaks, whether DIMBREAK here or AutoCAD broke it, and AutoCAD 2021 opening
+the drawing breaks it again from what the presenter kept: a dimension broken here by hand from (20, -130) to (30, -130),
+given new words in AutoCAD, has its line from 0.18 to 20 and from 30 on. DIMJOGGED (DJO, JOG) draws a jogged radius of an arc or a
 circle, its line from a centre put in place of one off the drawing: along the radius's parallel, across at DIMJOGANG and
 on to the rim, the jog half way between the two lines. A circle of 50 about the origin, its centre drawn at (0, -100),
 its words put at (30, 0) and its jog at (15, -50) has its lines from (0, -100) to (65, -100), on to (-35, 0) and on to the
@@ -386,8 +395,11 @@ With SELECTIONCYCLING 2, AutoCAD's default, a
 click where two lines cross shows the list of both near the cursor, the one drawn on top first, `Line · 0` and
 `Line · WALLS`, and the row chosen is taken as a click on that line alone; with 1 or 2, Shift+Space arms cycling, and each
 click at the crossing then takes the other line in place of the one before. A plain click there takes the line on top, as
-AutoCAD's does while SORTENTS holds its bit 1 (its default 127 does): of the objects within a tenth of the pickbox of the
-nearest, the one last in the draw order wins, so a line sent to the back with DRAWORDER is no longer the one picked. Ctrl+W
+AutoCAD's does while SORTENTS holds its bit 1 (its default 127 does): of all the objects within the pickbox, the one last
+in the draw order wins, however much nearer the others lie, so a line sent to the back with DRAWORDER is no longer the one
+picked. Under SORTENTS without that bit the one drawn first wins. AutoCAD 2021's `(ssget pt)` on two level lines, one
+through the point and one drawn later 0.9 of the pickbox above it, picks the later one; 1.1 of the pickbox above, outside
+the box, the other; under SORTENTS 0, the one drawn first. Ctrl+W
 switches cycling between 0 and 2, as in AutoCAD.
 
 XATTACH and -XREF Attach or Overlay attach a DXF as an external reference: a block flagged 4 (12 overlaid) naming the

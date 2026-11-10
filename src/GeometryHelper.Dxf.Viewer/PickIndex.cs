@@ -349,24 +349,25 @@ namespace GeometryHelper.Dxf.Viewer
         public DisplayList2 List => _list;
 
         /// <summary>
-        /// Gets whether a pick puts the entity drawn on top first among those at about the same distance, as AutoCAD does
-        /// while bit 1 of SORTENTS (object selection) is set; true until set. <see cref="CadDocument.GetPickIndex"/> sets it
-        /// from the drawing's <see cref="DxfDatabase.SortEnts"/> each time it gives the index.
+        /// Gets whether a pick puts the entity drawn on top first, as AutoCAD does while bit 1 of SORTENTS (object selection)
+        /// is set, else the one drawn first; true until set. <see cref="CadDocument.GetPickIndex"/> sets it from the drawing's
+        /// <see cref="DxfDatabase.SortEnts"/> each time it gives the index.
         /// </summary>
         internal bool ByDrawOrder { get; set; } = true;
 
         /// <summary>
-        /// Gets the entities whose drawing lies within a distance of a point, the nearest first. The distance is in drawing
-        /// units, so a caller working in pixels divides by the zoom first. Entities whose distances lie within a tenth of the
-        /// tolerance of the nearest of them are of one distance class: while the drawing's SORTENTS holds its bit 1 for object
-        /// selection, as AutoCAD's default 127 does, the one drawn on top (last in the draw order) comes first among them, as
-        /// AutoCAD picks it; else the handle decides. Two lines crossing at the point come back the one drawn later first; at
-        /// 0.6 from the one drawn later and on the other, with a tolerance of 3, the other first.
+        /// Gets the entities whose drawing lies within a distance of a point, in the order AutoCAD picks them. The distance is
+        /// in drawing units, so a caller working in pixels divides by the zoom first. While the drawing's SORTENTS holds its bit
+        /// 1 for object selection, as AutoCAD's default 127 does, the one drawn on top (last in the draw order) comes first,
+        /// however much nearer the others lie; else the one drawn first. AutoCAD 2021's <c>(ssget pt)</c> on two level lines,
+        /// the one drawn later 0.9 of the pickbox off the point and the other through it, picks the later one, and under
+        /// SORTENTS 0 the one drawn first. A line through the point and one drawn on top of it 2.7 off, with a tolerance of 3,
+        /// come back the one on top first.
         /// </summary>
         /// <param name="x">The X of the point.</param>
         /// <param name="y">The Y of the point.</param>
         /// <param name="tolerance">The greatest distance.</param>
-        /// <returns>The handles, the nearest first.</returns>
+        /// <returns>The handles, the one AutoCAD picks first.</returns>
         public IReadOnlyList<string> Pick(double x, double y, double tolerance)
         {
             var best = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
@@ -390,50 +391,18 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             var handles = new List<string>(best.Keys);
-            handles.Sort((a, b) =>
-            {
-                int byDistance = best[a].CompareTo(best[b]);
-                return byDistance != 0 ? byDistance : string.CompareOrdinal(a, b);
-            });
 
-            if (ByDrawOrder && handles.Count > 1)
+            if (handles.Count > 1)
             {
-                TopFirst(handles, best, tolerance / 10.0);
+                // On top is last in the list, an entity's items lying together; drawn first is first in it.
+                handles.Sort((a, b) =>
+                {
+                    int byOrder = ByDrawOrder ? Top(b).CompareTo(Top(a)) : First(a).CompareTo(First(b));
+                    return byOrder != 0 ? byOrder : string.CompareOrdinal(a, b);
+                });
             }
 
             return handles;
-        }
-
-        /// <summary>
-        /// Puts the entity drawn on top first in each distance class of handles sorted nearest first: a class runs from its
-        /// nearest to the last within <paramref name="slack"/> of it; on top is last in the list, an entity's items lying
-        /// together; the handle decides a tie.
-        /// </summary>
-        private void TopFirst(List<string> handles, Dictionary<string, double> distances, double slack)
-        {
-            IComparer<string> topFirst = null;
-
-            for (int start = 0; start < handles.Count;)
-            {
-                int end = start + 1;
-
-                while (end < handles.Count && distances[handles[end]] - distances[handles[start]] <= slack)
-                {
-                    end++;
-                }
-
-                if (end - start > 1)
-                {
-                    topFirst = topFirst ?? Comparer<string>.Create((a, b) =>
-                    {
-                        int byOrder = Top(b).CompareTo(Top(a));
-                        return byOrder != 0 ? byOrder : string.CompareOrdinal(a, b);
-                    });
-                    handles.Sort(start, end - start, topFirst);
-                }
-
-                start = end;
-            }
         }
 
         /// <summary>The place in the list of the last item an entity is drawn as: the higher, the nearer the top.</summary>
@@ -442,6 +411,9 @@ namespace GeometryHelper.Dxf.Viewer
             List<int> group = ByHandle()[handle];
             return group[group.Count - 1];
         }
+
+        /// <summary>The place in the list of the first item an entity is drawn as: the lower, the earlier it is drawn.</summary>
+        private int First(string handle) => ByHandle()[handle][0];
 
         /// <summary>Gets the entities drawn wholly inside a box, as a window selection takes them.</summary>
         /// <param name="box">The box.</param>

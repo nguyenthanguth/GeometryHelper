@@ -75,7 +75,12 @@ namespace GeometryHelper.Dxf
             set => SetAngle(50, value, Rotation, true);
         }
 
-        /// <summary>Gets or sets the angle of the extension lines from the square of the dimension line (group 52, in degrees), as AutoCAD's <c>Oblique</c>: in radians.</summary>
+        /// <summary>
+        /// Gets or sets the angle of the extension lines from the dimension line (group 52, in degrees), as AutoCAD's
+        /// <c>Oblique</c>: in radians; nought where the record gives none, the extension lines then square to the line. The
+        /// extension lines run at <see cref="Rotation"/> and this together from the x axis: AutoCAD 2021 gives an Oblique of 30
+        /// to a dimension rotated 30 that DIMEDIT slants to 60.
+        /// </summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the angle set is not a finite number.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased.</exception>
         public double Oblique { get => ObliqueAngle(); set => SetOblique(value); }

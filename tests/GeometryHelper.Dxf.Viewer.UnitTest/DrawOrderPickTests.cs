@@ -5,8 +5,8 @@ using Xunit;
 namespace GeometryHelper.Dxf.Viewer.UnitTest
 {
     /// <summary>
-    /// A pick among objects at the same distance takes the one drawn on top, as AutoCAD's does while SORTENTS holds its bit 1
-    /// for object selection (its default 127 does); objects plainly nearer still come first.
+    /// A pick takes the object drawn on top among all those within the pickbox, as AutoCAD's does while SORTENTS holds its bit
+    /// 1 for object selection (its default 127 does), and the one drawn first while it does not, however near the others lie.
     /// </summary>
     public class DrawOrderPickTests
     {
@@ -44,7 +44,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         [Fact]
-        public void WithoutBitOneOfSortents_ThePickGoesByDistanceThenHandle_AsBefore()
+        public void WithoutBitOneOfSortents_ThePickGoesByTheOrderTheObjectsWereDrawnIn()
         {
             CadDocument document = Three(out DxfEntity a, out _, out DxfEntity c);
             document.Database.SortEnts = 126;
@@ -57,15 +57,27 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         [Fact]
-        public void AnObjectPlainlyNearer_StillComesFirst_WhateverIsOnTop()
+        public void TheObjectOnTop_ComesFirstAnywhereInThePickbox_AsAutoCad()
         {
-            // At (0.6, 0) the line A runs under the pick and the line C on top of it lies 0.6 off, a fifth of the pickbox of 3.
+            // AutoCAD 2021, (ssget pt) on two level lines, the one drawn later 0.05 to 0.9 of PICKBOX above the point and the
+            // other through it: the later one, on top, is picked every time; 1.1 of PICKBOX above, outside the box, the other.
+            // At (2.7, 0) the line A runs under the pick and the line C on top of it lies 2.7 off, within the pickbox of 3.
             CadDocument document = Three(out DxfEntity a, out _, out DxfEntity c);
 
-            Assert.Equal(new[] { a.Handle, c.Handle }, document.GetPickIndex(document.ModelSpace).Pick(0.6, 0, 3.0));
+            Assert.Equal(new[] { c.Handle, a.Handle }, document.GetPickIndex(document.ModelSpace).Pick(2.7, 0, 3.0));
+            Assert.Equal(new[] { a.Handle }, document.GetPickIndex(document.ModelSpace).Pick(3.3, 0, 3.0));
+        }
 
-            // At (0.2, 0) the two lie within a tenth of the pickbox of each other: the one on top comes first.
-            Assert.Equal(new[] { c.Handle, a.Handle }, document.GetPickIndex(document.ModelSpace).Pick(0.2, 0, 3.0));
+        [Fact]
+        public void WithoutBitOneOfSortents_TheObjectDrawnFirst_ComesFirstAnywhereInThePickbox_AsAutoCad()
+        {
+            // AutoCAD 2021 under SORTENTS 0, (ssget pt) on two level lines, the one drawn later through the point and the one
+            // drawn first 0.1 or 0.5 of PICKBOX above it: the one drawn first is picked. At (0, 2.7) the line C runs under the
+            // pick and the line A, drawn first, lies 2.7 off.
+            CadDocument document = Three(out DxfEntity a, out _, out DxfEntity c);
+            document.Database.SortEnts = 126;
+
+            Assert.Equal(new[] { a.Handle, c.Handle }, document.GetPickIndex(document.ModelSpace).Pick(0, 2.7, 3.0));
         }
     }
 }

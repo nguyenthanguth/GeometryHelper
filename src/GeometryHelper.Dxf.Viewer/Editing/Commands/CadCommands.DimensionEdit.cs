@@ -20,7 +20,8 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>
         /// DIMEDIT: Home puts the words of the dimensions selected back where their style puts them, level with the line; New
         /// gives them a text (&lt;&gt; for the measurement); Rotate turns their words to an angle (0 for the style's); Oblique
-        /// slants the extension lines of the linear ones to an angle from the x axis, as for an isometric view.
+        /// slants the extension lines of the linear ones to an angle from the x axis, as for an isometric view, and keeps it as
+        /// AutoCAD keeps it, from the dimension line: 30 for a dimension rotated 30 slanted to 60.
         /// </summary>
         private static IEnumerable<CadPrompt> DimEdit(CadCommandContext c)
         {
@@ -34,6 +35,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             string text = null;
             double angle = 0.0;
+            bool slanted = false;
 
             if (kind == "New")
             {
@@ -64,6 +66,7 @@ namespace GeometryHelper.Dxf.Viewer
                 if (c.Input.Kind == CadInputKind.Number)
                 {
                     angle = Turned(c.Session.Ucs.AngleToWorld(c.Input.Number));
+                    slanted = true;
                 }
                 else if (!c.Input.IsNone)
                 {
@@ -90,13 +93,15 @@ namespace GeometryHelper.Dxf.Viewer
                         d.TextRotation = angle;
                         break;
                     default:
+                        double oblique = slanted ? Turned(angle - LineAngleOf(d)) : 0.0;
+
                         if (d is DxfRotatedDimension rotated)
                         {
-                            rotated.Oblique = angle;
+                            rotated.Oblique = oblique;
                         }
                         else
                         {
-                            ((DxfAlignedDimension)d).Oblique = angle;
+                            ((DxfAlignedDimension)d).Oblique = oblique;
                         }
 
                         break;
@@ -233,9 +238,10 @@ namespace GeometryHelper.Dxf.Viewer
         /// the breaks out. Multiple breaks or restores several at once.
         /// </summary>
         /// <remarks>
-        /// The break is drawn into the dimension's picture only: AutoCAD keeps its breaks in BREAKDATA and BREAKPOINTREF objects
-        /// under the dimension's extension dictionary, whose groups are not published, so a dimension drawn anew (by DIMEDIT, a
-        /// change of its style, or AutoCAD) is drawn whole again.
+        /// The break is drawn into the dimension's picture and kept as AutoCAD 2021 keeps it, a BREAKDATA under ACAD_BREAKDATA in
+        /// the dimension's extension dictionary, each object breaking it named there and naming the BREAKDATA among its
+        /// reactors, so that a dimension drawn anew (by DIMEDIT, a change of its style, or AutoCAD) is broken again; Remove
+        /// takes the BREAKDATA out, and the extension dictionary where nothing else is in it.
         /// </remarks>
         private static IEnumerable<CadPrompt> DimBreak(CadCommandContext c)
         {
@@ -262,9 +268,13 @@ namespace GeometryHelper.Dxf.Viewer
                 List<DxfDimension> many = Changeable(c, handles, "Dimension break", d => true);
                 CadEditResult result = ChangeDimensions(c, many, "Dimension break", remove ? "Remove" : "Auto", d =>
                 {
-                    if (!remove)
+                    if (remove)
                     {
-                        BreakAt(d, Cutters(c.Document, c.Space, d, null), null);
+                        ForgetBreaks(d);
+                    }
+                    else
+                    {
+                        KeepObjectBreaks(d, BreakAt(d, Cutters(c.Document, c.Space, d, null), null));
                     }
                 }, remove);
 
@@ -298,11 +308,11 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (c.Input.Is("Auto"))
             {
-                done = ChangeDimensions(c, only, "Dimension break", "Auto", d => BreakAt(d, Cutters(c.Document, c.Space, d, null), null), false);
+                done = ChangeDimensions(c, only, "Dimension break", "Auto", d => KeepObjectBreaks(d, BreakAt(d, Cutters(c.Document, c.Space, d, null), null)), false);
             }
             else if (c.Input.Is("Remove"))
             {
-                done = ChangeDimensions(c, only, "Dimension break", "Remove", d => { });
+                done = ChangeDimensions(c, only, "Dimension break", "Remove", ForgetBreaks);
             }
             else if (c.Input.Is("Manual"))
             {
@@ -322,7 +332,11 @@ namespace GeometryHelper.Dxf.Viewer
                 }
 
                 GeoPoint2 second = c.Input.Point;
-                done = ChangeDimensions(c, only, "Dimension break", Values(first.X, first.Y, second.X, second.Y), d => BreakAt(d, null, new[] { first, second }), false);
+                done = ChangeDimensions(c, only, "Dimension break", Values(first.X, first.Y, second.X, second.Y), d =>
+                {
+                    BreakAt(d, null, new[] { first, second });
+                    KeepManualBreak(d, first, second);
+                }, false);
             }
             else if (c.Input.Kind == CadInputKind.Selection)
             {
@@ -340,7 +354,7 @@ namespace GeometryHelper.Dxf.Viewer
                     picked.Add(c.Input.Handles[0]);
                 }
 
-                done = ChangeDimensions(c, only, "Dimension break", string.Join(",", picked), d => BreakAt(d, Cutters(c.Document, c.Space, d, picked), null), false);
+                done = ChangeDimensions(c, only, "Dimension break", string.Join(",", picked), d => KeepObjectBreaks(d, BreakAt(d, Cutters(c.Document, c.Space, d, picked), null)), false);
             }
 
             if (done != null && done.Succeeded)
@@ -542,12 +556,12 @@ namespace GeometryHelper.Dxf.Viewer
             switch (dimension)
             {
                 case DxfRotatedDimension rotated when withLine:
-                    rotated.DimLinePoint = P3(LineUnder(P2(rotated.XLine2Point), rotated.Rotation, rotated.Oblique, at));
+                    rotated.DimLinePoint = P3(LineUnder(P2(rotated.XLine2Point), rotated.Rotation, ObliqueOf(rotated), at));
                     break;
                 case DxfAlignedDimension aligned when withLine:
                     GeoPoint2 a = P2(aligned.XLine1Point);
                     GeoPoint2 b = P2(aligned.XLine2Point);
-                    aligned.DimLinePoint = P3(LineUnder(b, Math.Atan2(b.Y - a.Y, b.X - a.X), aligned.Oblique, at));
+                    aligned.DimLinePoint = P3(LineUnder(b, Math.Atan2(b.Y - a.Y, b.X - a.X), ObliqueOf(aligned), at));
                     break;
                 case DxfPoint3AngularDimension three when withLine:
                     at = OnArcUnder(dimension, data, P2(three.CenterPoint), at);
@@ -860,15 +874,16 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>
         /// Breaks the lines of a dimension's picture (its extension lines and dimension line, not its points of definition): a
         /// gap of the break size about each place an object crosses one, or between where two points fall on the line nearest
-        /// them.
+        /// them. Gives the objects that cross a line, in the order given; none for a break between two points.
         /// </summary>
-        private static void BreakAt(DxfDimension dimension, List<DxfEntity> cutters, GeoPoint2[] manual)
+        private static List<DxfEntity> BreakAt(DxfDimension dimension, List<DxfEntity> cutters, GeoPoint2[] manual)
         {
             DxfBlockTableRecord picture = dimension.DimBlock;
+            var crossed = new List<DxfEntity>();
 
             if (picture == null)
             {
-                return;
+                return crossed;
             }
 
             GeoVector2 shift = new GeoVector2(dimension.DimBlockPosition.X, dimension.DimBlockPosition.Y);
@@ -902,7 +917,7 @@ namespace GeometryHelper.Dxf.Viewer
                     Cut(picture, nearest, new List<KeyValuePair<double, double>> { new KeyValuePair<double, double>(Math.Min(t1, t2), Math.Max(t1, t2)) });
                 }
 
-                return;
+                return crossed;
             }
 
             foreach (DxfLine line in lines)
@@ -911,16 +926,30 @@ namespace GeometryHelper.Dxf.Viewer
                 GeoPoint2 b = P2(line.EndPoint) + shift;
                 var gaps = new List<KeyValuePair<double, double>>();
 
-                foreach (double t in Crossings(a, b, cutters))
+                foreach (DxfEntity cutter in cutters)
                 {
-                    gaps.Add(new KeyValuePair<double, double>(t - size / 2.0, t + size / 2.0));
+                    List<double> at = Crossings(a, b, new List<DxfEntity> { cutter });
+
+                    if (at.Count > 0 && !crossed.Contains(cutter))
+                    {
+                        crossed.Add(cutter);
+                    }
+
+                    foreach (double t in at)
+                    {
+                        gaps.Add(new KeyValuePair<double, double>(t - size / 2.0, t + size / 2.0));
+                    }
                 }
 
                 if (gaps.Count > 0)
                 {
+                    gaps.Sort((x, y) => x.Key.CompareTo(y.Key));
                     Cut(picture, line, gaps);
                 }
             }
+
+            crossed.Sort((x, y) => cutters.IndexOf(x).CompareTo(cutters.IndexOf(y)));
+            return crossed;
         }
 
         /// <summary>The break size of a dimension: DIMBREAK from its style's extended data (ACAD_DSTYLE_DIMBREAK), else 1.5 arrowheads, by DIMSCALE.</summary>

@@ -6,6 +6,31 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** DIMBREAK in the presenter keeps its breaks as AutoCAD 2021 keeps them, so a dimension drawn anew is broken
+again. It cut the lines of the dimension's picture only, and DIMEDIT, a change of style or a grip drew the dimension
+whole again. AutoCAD, probed in its console, keeps a BREAKDATA under ACAD_BREAKDATA in the dimension's extension
+dictionary: one AcDbBreakPointRef for each object Auto finds crossing (71 0, the object in 331, the object naming the
+BREAKDATA among its reactors), one for each break by hand (71 2, the two points picked, in 91 the line: 0 and 1 the
+extension lines, 3 the dimension line), and Remove takes it out with the extension dictionary. The presenter writes the
+same, and breaks a dimension it draws anew from what it keeps, whether it broke the dimension or AutoCAD did; AutoCAD 2021
+opening the drawing reads it, finds no errors in AUDIT, and breaks the dimensions again when it draws them anew.
+
+**CHANGED.** A click in the presenter picks the object drawn on top among all those within the pickbox, as AutoCAD 2021
+does, not only among those within a tenth of the pickbox of the nearest. AutoCAD's `(ssget pt)` on two level lines, one
+through the point and one drawn later 0.05 to 0.9 of the pickbox above it, picks the later one every time, and 1.1 of
+the pickbox above, outside the box, the other; sent to the back by DRAWORDER, the later one loses. Under SORTENTS without
+its bit 1 AutoCAD picks the one drawn first, however much nearer the other lies, and so does the presenter, which went by
+distance and handle. `PickIndex.Pick` gives its handles in that order.
+
+**FIXED.** DIMEDIT Oblique in the presenter keeps the angle as AutoCAD 2021 keeps it, from the dimension line. It kept the
+angle typed, from the x axis, in group 52, where AutoCAD's Oblique is that angle less the line's: AutoCAD 2021, slanting
+three dimensions to 60, gives 60 to a level DIMLINEAR, 30 to one rotated 30 and 33.435 to a DIMALIGNED from (0, 100) to
+(100, 150), and draws the extension lines of all three at 60. The presenter now writes the same, so a dimension slanted
+in it reads the same in other programs, and one slanted elsewhere draws at its angle. The documentation of
+[`DxfRotatedDimension.Oblique`](xref:GeometryHelper.Dxf.DxfRotatedDimension.Oblique) and
+[`DxfAlignedDimension.Oblique`](xref:GeometryHelper.Dxf.DxfAlignedDimension.Oblique) said the angle ran from the square
+of the dimension line; it runs from the line, nought standing for none.
+
 **NEW.** The snap and grid a drawing keeps. `db.ViewportTable` holds the tiled viewports of model space as AutoCAD's
 `ViewportTable`, each a [`DxfViewportTableRecord`](xref:GeometryHelper.Dxf.DxfViewportTableRecord), and
 `db.ViewportTable["*Active"]` gives SNAPMODE, GRIDMODE, SNAPUNIT, GRIDUNIT, SNAPBASE, SNAPANG, SNAPSTYL, SNAPISOPAIR,

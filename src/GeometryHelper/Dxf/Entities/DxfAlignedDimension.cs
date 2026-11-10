@@ -62,8 +62,10 @@ namespace GeometryHelper.Dxf
         public GeoPoint3 DimLinePoint { get => DefinitionPoint; set => SetDefinitionPoint(value); }
 
         /// <summary>
-        /// Gets or sets the angle of the extension lines from the square of the dimension line (group 52, in degrees), as
-        /// AutoCAD's <c>Oblique</c>: in radians; nought where the record gives none.
+        /// Gets or sets the angle of the extension lines from the dimension line (group 52, in degrees), as AutoCAD's
+        /// <c>Oblique</c>: in radians; nought where the record gives none, the extension lines then square to the line. The
+        /// line runs from the first extension line's origin to the second's: AutoCAD 2021 gives an Oblique of 33.435 to a
+        /// dimension from (0, 100) to (100, 150), whose line runs at 26.565, that DIMEDIT slants to 60.
         /// </summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the angle set is not a finite number.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased.</exception>
