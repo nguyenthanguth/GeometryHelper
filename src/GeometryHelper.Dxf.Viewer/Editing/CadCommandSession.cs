@@ -774,6 +774,13 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         public Dictionary<string, double> Remembered { get; } = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
 
+        /// <summary>
+        /// Gets whether a command asks the window for a file by its file dialog, as AutoCAD's FILEDIA 1, the default; FILEDIA 0
+        /// typed makes PNGOUT, JPGOUT, BMPOUT and the window's SAVEAS ask "Enter file name:" or "Save drawing as" on the
+        /// command line instead, as AutoCAD does in a script.
+        /// </summary>
+        public bool FileDialogs => !(Remembered.TryGetValue("filedia", out double value) && value == 0.0);
+
         internal void EnsureGroup(string name)
         {
             if (!_grouped)

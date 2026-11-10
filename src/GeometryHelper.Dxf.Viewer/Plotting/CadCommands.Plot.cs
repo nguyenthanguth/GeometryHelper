@@ -27,16 +27,17 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>
         /// PLOT, PREVIEW and PAGESETUP: the window's dialog or preview, handed the space's page setup. A dialog closed for its
         /// Window&lt; button has the window picked here, "Specify first corner:" and "Specify opposite corner:", and is shown
-        /// again with it. With no window to show them, PLOT asks -PLOT's prompts, as AutoCAD's PLOT with FILEDIA 0.
+        /// again with it. With no window to show them, or CMDDIA 0, PLOT asks -PLOT's prompts, as AutoCAD's PLOT with CMDDIA 0.
         /// </summary>
         private static IEnumerable<CadPrompt> PlotDialog(CadCommandContext c, string name)
         {
             CadSpace space = c.Space;
             var job = new CadPlotJob(space, CadPlotSettings.Read(c.Document, space), c.Session.View?.VisibleBox ?? DisplayBox.Empty, null);
+            bool dialogs = name != "PLOT" || Kept(c.Session, "cmddia", 1.0) != 0.0;
 
             while (true)
             {
-                if (!c.Session.Request(name, c.Document, job))
+                if (!dialogs || !c.Session.Request(name, c.Document, job))
                 {
                     if (name != "PLOT")
                     {

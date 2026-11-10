@@ -21,6 +21,17 @@ spacing their lines DIMDLI times 10 apart.
 typed going along the axis nearest the cursor. CIRCLE with TK from 100,0 and a click at (130, 50) is centred at
 (100, 50).
 
+**NEW.** The presenter's variables POLARMODE, FILEDIA and CMDDIA, and AUTOSNAP's other bits, as AutoCAD's. POLARMODE
+(kept in the settings file, `"polarMode"`) 2 runs object snap tracking on every polar angle and 8 acquires points only
+with Shift held (`ObjectSnap.TracksPolarAngles`, `ObjectSnap.AcquiresWithShift`); 1 and 4 are kept, not followed.
+AUTOSNAP 1, 2, 4 and 32 switch the snap marker, its name by the cursor, the magnet and the tip of ortho, polar and
+tracking (`ObjectSnap.ShowsMarker`, `ShowsSnapTip`, `Magnet`, `ShowsTrackingTip`). FILEDIA 0 makes PNGOUT, JPGOUT,
+BMPOUT and the window's SAVEAS ask for the file on the command line (`CadCommandSession.FileDialogs`); CMDDIA 0 makes
+PLOT ask -PLOT's prompts. Global settings › Canvas and cursor has a Polar angle field (POLARANG).
+
+**CHANGED.** Object snap tracking with POLAR on runs level and upright alone unless POLARMODE 2 is set, as AutoCAD's
+default POLARMODE 0 does; before, it ran on every polar angle whenever POLAR was on.
+
 **FIXED.** INSERT with Basepoint of a block in other units than the drawing landed off: a block in centimetres in a
 millimetre drawing, its base point 30 above its origin, came 270 too high. The shift is now scaled by the units too, in
 the drag and in the INSERT placed.

@@ -331,6 +331,25 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         }
 
         [Fact]
+        public void ThePolarAngleOfCanvasAndCursor_IsPolarang_SavedAndGivenToTheSnaps()
+        {
+            var model = new MainViewModel { SettingsPath = Path.Combine(_folder.FullPath, "settings.json") };
+            GlobalSettingsViewModel dialog = model.CreateGlobalSettings();
+            GlobalSettingRow row = dialog.Row("Canvas and cursor", "Polar angle");
+
+            Assert.Equal("90", row.Value);
+            Assert.Equal("°", row.Unit);
+            row.Value = "400";
+            Assert.True(row.HasError);
+            row.Value = "45";
+            Assert.True(dialog.Ok());
+
+            Assert.Equal(45.0, model.Settings.PolarAngle);
+            Assert.Equal(45.0, GlobalSettings.Load(model.SettingsPath).PolarAngle);
+            Assert.Equal(Math.PI / 4.0, model.Snap.PolarAngle, 12);
+        }
+
+        [Fact]
         public void SelectByDraggingIsOffByDefaultIsSwitchedInTheDialogSavedAndGivenToTheCanvas()
         {
             Assert.False(new GlobalSettings().SelectByDragging);

@@ -86,6 +86,57 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         }
 
         [Fact]
+        public void Autosnap_SetsTheMarkerTheTipsAndTheMagnet_ByItsBits_AsAutoCad()
+        {
+            MainViewModel model = Room();
+
+            model.Execute("AUTOSNAP");
+            model.Execute("0");
+            Assert.False(model.Snap.ShowsMarker);
+            Assert.False(model.Snap.ShowsSnapTip);
+            Assert.False(model.Snap.Magnet);
+            Assert.False(model.Snap.ShowsTrackingTip);
+            Assert.False(model.Toggles.Single(t => t.Name == "POLAR").IsOn);
+            Assert.False(model.Toggles.Single(t => t.Name == "OTRACK").IsOn);
+
+            model.Execute("AUTOSNAP");
+            Assert.Equal("Enter new value for AUTOSNAP <0>:", model.Prompt);
+            model.Execute("37");
+            Assert.True(model.Snap.ShowsMarker);
+            Assert.False(model.Snap.ShowsSnapTip);
+            Assert.True(model.Snap.Magnet);
+            Assert.True(model.Snap.ShowsTrackingTip);
+            model.Execute("AUTOSNAP");
+            Assert.Equal("Enter new value for AUTOSNAP <37>:", model.Prompt);
+        }
+
+        [Fact]
+        public void Polarmode_TracksOnThePolarAnglesBy2_AcquiresWithShiftBy8_AndIsKeptInTheSettingsFile()
+        {
+            MainViewModel model = Room();
+            model.SettingsPath = System.IO.Path.Combine(_folder.FullPath, "settings.json");
+            model.SettingsChanged += (s, e) => model.Settings.Save(model.SettingsPath);
+            Assert.False(model.Snap.TracksPolarAngles);
+
+            model.Execute("POLARMODE");
+            Assert.Equal("Enter new value for POLARMODE <0>:", model.Prompt);
+            model.Execute("16");
+            Assert.Equal("Requires an integer between 0 and 15.", model.History.Last());
+            model.Execute("10");
+
+            Assert.True(model.Snap.TracksPolarAngles);
+            Assert.True(model.Snap.AcquiresWithShift);
+            GlobalSettings saved = GlobalSettings.Load(model.SettingsPath);
+            Assert.Equal(10, saved.PolarMode);
+            Assert.Contains("\"polarMode\": 10", System.IO.File.ReadAllText(model.SettingsPath));
+
+            var again = new MainViewModel();
+            again.ApplySettings(saved);
+            Assert.True(again.Snap.TracksPolarAngles);
+            Assert.True(again.Snap.AcquiresWithShift);
+        }
+
+        [Fact]
         public void Dynmode_KeepsWhichInputIsOn_ANegativeValueWhileDynIsOff_AndF12BringsItBack()
         {
             MainViewModel model = Room();

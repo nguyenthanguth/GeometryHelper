@@ -190,7 +190,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         [Fact]
-        public void TrackingWithPolarOnFollowsEveryPolarAngle()
+        public void TrackingWithPolarOn_FollowsEveryPolarAngle_OnlyWithPolarmode2_AsAutoCad()
         {
             PickIndex index = Index(TestDrawings.Line(0, 0, 100, 0, handle: "L1"));
             var snap = new ObjectSnap(Tight) { Modes = CadSnapModes.Endpoint, Tracking = true };
@@ -200,6 +200,9 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             snap.Polar = true;
             snap.PolarAngle = Math.PI / 4.0;
 
+            // POLARMODE 0, AutoCAD's default, tracks orthogonally only; 2 tracks on all the polar angles.
+            Assert.Equal(CadSnapKind.None, snap.Snap(index, P(130, 30.4), 1.0).Kind);
+            snap.TracksPolarAngles = true;
             Snapped(snap.Snap(index, P(130, 30.4), 1.0), CadSnapKind.Tracking, 130.2, 30.2);
         }
 

@@ -339,15 +339,29 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     return string.Empty;
                 }
 
+                // AUTOSNAP 2 off leaves out the name of an object snap, and 32 off the tip where ortho, polar or tracking hold the cursor.
+                ObjectSnap snap = Snap;
+                bool tracked = _snapped != null && (_snapped.Kind == CadSnapKind.Ortho || _snapped.Kind == CadSnapKind.Polar || _snapped.Kind == CadSnapKind.Tracking || _snapped.Tracks.Count > 0);
+                bool shown = snap == null || (tracked ? snap.ShowsTrackingTip : snap.ShowsSnapTip);
+
                 if (DynamicInput)
                 {
                     CadSnapKind kind = _snapped?.Kind ?? CadSnapKind.None;
-                    return kind == CadSnapKind.None || kind == CadSnapKind.Grid || kind == CadSnapKind.Ortho || kind == CadSnapKind.Polar ? string.Empty : CadSnapMarker.NameOf(kind);
+                    return !shown || kind == CadSnapKind.None || kind == CadSnapKind.Grid || kind == CadSnapKind.Ortho || kind == CadSnapKind.Polar ? string.Empty : CadSnapMarker.NameOf(kind);
                 }
 
-                return TipText(_snapped, Session.Prompt.BasePoint, _snapped?.Point ?? _cursor.Value, Session.Ucs);
+                if (tracked && !shown)
+                {
+                    return string.Empty;
+                }
+
+                return TipText(shown ? _snapped : null, Session.Prompt.BasePoint, _snapped?.Point ?? _cursor.Value, Session.Ucs);
             }
         }
+
+        /// <summary>Whether a snap is an object snap, whose marker the magnet holds the cursor on: not the grid, ortho, polar or a tracking line.</summary>
+        private static bool IsObjectSnap(CadSnapKind kind)
+            => kind != CadSnapKind.None && kind != CadSnapKind.Grid && kind != CadSnapKind.Ortho && kind != CadSnapKind.Polar && kind != CadSnapKind.Tracking;
 
         /// <summary>Gets or sets the spacing of the grid in drawing units; 10 by default, as the snap grid.</summary>
         public double GridSpacing
@@ -1742,7 +1756,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>
         /// The cursor has rested for <see cref="RestMilliseconds"/> at a point prompt: the point under it is acquired, or let go,
-        /// as AutoCAD acquires one when the cursor pauses on it, and the snap is worked out again from it.
+        /// as AutoCAD acquires one when the cursor pauses on it, and the snap is worked out again from it; only with Shift held
+        /// where the snap acquires so (<see cref="ObjectSnap.AcquiresWithShift"/>, POLARMODE 8).
         /// </summary>
         /// <returns>Whether a point was acquired or let go.</returns>
         internal bool AcquireAtRest()
@@ -1752,6 +1767,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             CadDocument document = Document;
 
             if (!_restAt.HasValue || document == null || WorkSpace == null || !CadPicking.WantsPoint(session))
+            {
+                return false;
+            }
+
+            if (Snap != null && Snap.AcquiresWithShift && (Keyboard.Modifiers & ModifierKeys.Shift) == 0)
             {
                 return false;
             }
@@ -2589,7 +2609,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return;
             }
 
-            GeoPoint2 target = _snapped?.Point ?? _cursor.Value;
+            // Without the magnet (AUTOSNAP 4) the rubber band and the ghost stay at the cursor while an object snap is shown.
+            bool held = _snapped != null && (Snap == null || Snap.Magnet || !IsObjectSnap(_snapped.Kind));
+            GeoPoint2 target = held ? _snapped.Point : _cursor.Value;
             Point to = ToScreen(view, target, scale);
             GeoPoint2? basePoint = session.Prompt.BasePoint;
             DrawGhost(dc, view, scale, target);
@@ -2602,7 +2624,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             DrawTracking(dc, view, scale);
-            DrawMarker(dc, _snapped, to);
+
+            if (_snapped != null && (Snap == null || Snap.ShowsMarker))
+            {
+                DrawMarker(dc, _snapped, ToScreen(view, _snapped.Point, scale));
+            }
+
             string tip = PromptTip;
 
             if (tip.Length > 0)

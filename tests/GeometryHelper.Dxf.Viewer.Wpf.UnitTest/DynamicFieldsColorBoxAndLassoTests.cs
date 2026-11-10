@@ -220,6 +220,42 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         }
 
         [Fact]
+        public void AutosnapWithoutBit2_NamesNoSnap_AndWithoutBit32_ShowsNoDistanceWhereOrthoHoldsTheCursor()
+        {
+            OnCanvas((model, canvas, column) =>
+            {
+                // AUTOSNAP 61: all but the AutoSnap tooltip.
+                model.Execute("AUTOSNAP");
+                model.Execute("61");
+                canvas.DynamicInput = true;
+                model.StartCommand("LINE");
+                CanvasMouseTests.Click(canvas, At(canvas, 500, 500));
+                CanvasMouseTests.Mouse(canvas, UIElement.MouseMoveEvent, At(canvas, 4005, 5));
+
+                Assert.Equal(string.Empty, canvas.PromptTip);
+
+                // ORTHO holds the cursor: its distance and angle are shown with bit 32, and left out without it.
+                model.Escape();
+                canvas.DynamicInput = false;
+                model.Toggles.Single(t => t.Name == "OSNAP").IsOn = false;
+                model.Toggles.Single(t => t.Name == "ORTHO").IsOn = true;
+                model.StartCommand("LINE");
+                CanvasMouseTests.Click(canvas, At(canvas, 500, 500));
+                CanvasMouseTests.Mouse(canvas, UIElement.MouseMoveEvent, At(canvas, 800, 520));
+
+                Assert.Contains(" < ", canvas.PromptTip);
+                model.Escape();
+                model.Execute("AUTOSNAP");
+                model.Execute("31");
+                model.StartCommand("LINE");
+                CanvasMouseTests.Click(canvas, At(canvas, 500, 500));
+                CanvasMouseTests.Mouse(canvas, UIElement.MouseMoveEvent, At(canvas, 800, 520));
+
+                Assert.Equal(string.Empty, canvas.PromptTip);
+            });
+        }
+
+        [Fact]
         public void MoreColorsOfTheColourBoxShowsSelectColor_AndALineDrawnAfterTakesTheColourChosen()
         {
             using (var folder = new TestFolder())

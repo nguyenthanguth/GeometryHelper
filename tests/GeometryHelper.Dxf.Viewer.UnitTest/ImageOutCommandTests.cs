@@ -124,6 +124,35 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         [Fact]
+        public void PngOutWithFiledia0_AsksTheFileOnTheCommandLine_ThoughAWindowWouldShowItsDialog()
+        {
+            CadDocument document = TwoLines();
+            var jobs = new List<CadImageJob>();
+            CadCommandSession session = Windowless(document, jobs);
+            var dialogs = new List<string>();
+            session.UiRequested += (sender, e) =>
+            {
+                if (e.Name == "PNGOUT")
+                {
+                    dialogs.Add(e.Name);
+                    e.Handled = true;
+                }
+            };
+            string file = Path.Combine(_folder, "typed");
+
+            Assert.True(session.FileDialogs);
+            Run(session, "FILEDIA", "0");
+            Assert.False(session.FileDialogs);
+            Run(session, "PNGOUT");
+            Assert.Equal("Enter file name <" + Path.Combine(_folder, "two-lines.png") + ">:", session.PromptText);
+            Run(session, file, Enter);
+
+            Assert.Empty(dialogs);
+            Assert.Equal(file + ".png", Assert.Single(jobs).FileName);
+            Assert.True(File.Exists(file + ".png"));
+        }
+
+        [Fact]
         public void TheSessionsView_GivesTheSizeAndThePartShown_AndEnterWritesBothLines()
         {
             CadDocument document = TwoLines();

@@ -313,8 +313,8 @@ and set where the presenter keeps it, listed in [`CadCommandRegistry.Variables`]
 | Kept in | Variables | A change |
 |---|---|---|
 | the header of the drawing, written as AutoCAD writes it | CLAYER, CECOLOR, CELTYPE, CELWEIGHT, CELTSCALE, LTSCALE, PSLTSCALE, MSLTSCALE, DIMSCALE, DIMASSOC, TEXTSIZE, TEXTSTYLE, FILLETRAD, CHAMFERA, CHAMFERB, PDMODE, PDSIZE, MIRRTEXT, SORTENTS, IMAGEFRAME, CANNOSCALE, INSBASE, LIMMIN, LIMMAX | one undo step |
-| the document or the session | PICKSTYLE, SELECTIONCYCLING, PICKFIRST, PICKADD, ATTREQ, OFFSETDIST, TILEMODE (the space shown) | at once, no undo step |
-| the window: the status bar, the snaps and Global settings | OSMODE, ORTHOMODE, SNAPMODE, GRIDMODE, POLARANG, AUTOSNAP, DYNMODE, PICKBOX, APERTURE, LWDISPLAY | at once, no undo step; kept in the settings file |
+| the document or the session | PICKSTYLE, SELECTIONCYCLING, PICKFIRST, PICKADD, ATTREQ, FILEDIA, CMDDIA, OFFSETDIST, TILEMODE (the space shown) | at once, no undo step |
+| the window: the status bar, the snaps and Global settings | OSMODE, ORTHOMODE, SNAPMODE, GRIDMODE, POLARANG, POLARMODE, AUTOSNAP, DYNMODE, PICKBOX, APERTURE, LWDISPLAY | at once, no undo step; kept in the settings file |
 | read only | DIMSTYLE, EXTMIN, EXTMAX, UCSNAME, UCSORG, DWGNAME, DWGPREFIX, DATE, CDATE | |
 
 FILLETRAD 5 writes `$FILLETRAD` 40 `5` into the header and U takes it back to 10. OSMODE 4133 ticks Endpoint, Center,
@@ -327,8 +327,15 @@ adding to it, at `Select objects:` and on the canvas: a click on line A, then on
 and 2 add, Shift taking out. ATTREQ 0 makes INSERT give each attribute its default without asking. DYNMODE keeps -3 to
 3, negative while DYN is off, so that F12 brings the same value back; the one box of dynamic input shows both pointer and
 dimensional input whichever of 1 to 3 is set. The window keeps PICKBOX, APERTURE, LWDISPLAY and POLARANG in
-the settings file as it keeps DYN and the snaps, POLARANG 30 written `"polarAngle": 30`. POLARMODE, ATTDIA, FILEDIA and
-CMDDIA are not variables of the presenter yet.
+the settings file as it keeps DYN and the snaps, POLARANG 30 written `"polarAngle": 30`, and POLARMODE too: its 2 runs
+the lines of object snap tracking on every polar angle (0, AutoCAD's default, runs them level and upright alone), and its 8
+acquires a point only with Shift held; 1 and 4 (angles from the last segment, additional angles) are kept and not
+followed. AUTOSNAP's bits are AutoCAD's: 1 the marker, 2 the snap's name by the cursor, 4 the magnet (off, the rubber
+band stays at the cursor while the marker shows the snap, which a click still takes), 8 POLAR, 16 OTRACK, 32 the tip
+of ortho, polar and tracking; the marker, tips and magnet are kept for the session of the window. FILEDIA 0 makes PNGOUT,
+JPGOUT, BMPOUT and the window's SAVEAS ask for the file on the command line, as in a script; CMDDIA 0 makes PLOT ask
+-PLOT's prompts. Both are kept by the session, as ATTREQ. ATTDIA is not a variable of the presenter yet: it needs an
+Edit Attributes dialog.
 CECOLOR, CELTYPE and LTSCALE typed alone ask their own prompts, as before (`Enter new object color [Truecolor/COlorbook]
 <BYLAYER>:`); SETVAR asks them in its words, a text in quotes, `<"ByLayer">`. A window adds its own with
 `registry.AddVariable(CadSystemVariable.Integer(...))` or `CadSystemVariable.Real(...)`.
