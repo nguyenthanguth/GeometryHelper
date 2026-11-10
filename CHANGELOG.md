@@ -8,7 +8,8 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 **FIXED.** The presenter's -GROUP on a DXF of R2000 written without its OBJECTS section said "Object reference not set to
 an instance of an object."; the drawing is now given the named object dictionary AutoCAD makes on opening it, and the
-group goes in, one undo taking both back.
+group goes in, one undo taking both back. New of the Table Style and Multileader Style dialogs, and TABLE making
+Standard, failed the same way on such a drawing, and are given the dictionary now too.
 
 **FIXED.** INSERT with Basepoint of a block in other units than the drawing landed off: a block in centimetres in a
 millimetre drawing, its base point 30 above its origin, came 270 too high. The shift is now scaled by the units too, in
