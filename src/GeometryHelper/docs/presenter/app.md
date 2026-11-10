@@ -154,7 +154,9 @@ the piece its second point would take out, faded as TRIM's. HATCH, at "Pick inte
 make of the areas picked so far and the one under the cursor. TEXT draws a square of the height on the baseline while
 its height and rotation are asked, TABLE the outline of the table at the cursor, MLEADER the leader and its landing, QDIM
 the whole row of dimensions. ROTATE and SCALE by Reference Points move the ghost at the second point, -ARRAY's unit cell
-shows every copy, and ALIGN moves the ghost by its first pair and turns it by its second.
+shows every copy, and ALIGN moves the ghost by its first pair and turns it by its second. -ARRAY shows its copies too
+while the distance between columns is shown by two points, and in a Polar array while the angle to fill and the angle
+between items are asked, each measured from the centre to the cursor, and while it asks whether to rotate them.
 
 ### The command line
 

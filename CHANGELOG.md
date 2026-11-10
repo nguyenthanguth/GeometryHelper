@@ -101,6 +101,12 @@ they preview what the other does, as the pick with Shift then does: `CadPreview.
 keyboard, is carried by the answer previewed, and `Fades` follows it. A line from (0, 0) to (50, 0) hovered in TRIM with
 Shift held previews itself run on to the wall at 100, not faded.
 
+**NEW.** -ARRAY previews its copies at the prompts that had none. The distance between columns can be shown by two
+points, as AutoCAD takes it, and the copies follow the second; a Polar array shows its copies while the angle to fill
+and the angle between items are asked, each measured from the centre to the cursor, and while it asks whether to rotate
+them. Four items round the origin with the cursor at (-10, 10) preview three copies 45 degrees apart, the 135 degrees
+the pick there fills.
+
 **FIXED.** ROTATE's ghost in a UCS turned from the world's now turns by the angle the objects are turned: in a UCS turned
 30 degrees it turned 30 degrees more than the result.
 

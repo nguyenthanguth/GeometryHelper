@@ -846,6 +846,61 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Equal(made, previewed);
         }
 
+        /// <summary>
+        /// Checks that the prompt waiting previews, with the cursor at a point, the copies of the one line that the inputs given
+        /// then make, and returns how many.
+        /// </summary>
+        private static int CopiesAsMade(CadCommandSession session, string line, GeoPoint2 cursor, params object[] then)
+        {
+            CadPreview preview = session.Prompt?.Preview;
+            Assert.NotNull(preview);
+            IReadOnlyList<Affine2> moves = preview.Moves(cursor);
+            HashSet<string> before = Handles(session.Document);
+            int history = session.History.Count;
+            List<string> previewed = moves.SelectMany(m => Ends(session.Document, new[] { line }, m)).OrderBy(s => s, StringComparer.Ordinal).ToList();
+            Assert.Equal(history, session.History.Count);
+
+            Run(session, then);
+
+            List<string> made = Ends(session.Document, Handles(session.Document).Where(h => !before.Contains(h)), Affine2.Identity).OrderBy(s => s, StringComparer.Ordinal).ToList();
+            Assert.Equal(made, previewed);
+            return moves.Count;
+        }
+
+        [Fact]
+        public void TypedRectangularArrayWithTheColumnDistanceShownByTwoPoints_PreviewsEveryCopyAtTheSecond()
+        {
+            CadCommandSession session = WithALine(out string line);
+            Run(session, "-ARRAY", new[] { line }, Enter, "R", "2", "3", "25", P(5, 5));
+            Assert.StartsWith("Specify second point", session.PromptText);
+            Assert.Equal(5, CopiesAsMade(session, line, P(35, 45), P(35, 45)));
+
+            // One row asks the columns alone, and a distance typed there is taken as before.
+            Run(session, "-ARRAY", new[] { line }, Enter, "R", "1", "3", P(0, 0));
+            Assert.Equal(2, CopiesAsMade(session, line, P(0, 40), P(0, 40)));
+            int lines = All<DxfLine>(session.Document.ModelSpace).Count();
+            Run(session, "-ARRAY", new[] { line }, Enter, "R", "1", "3", "40");
+            Assert.Null(session.Prompt);
+            Assert.Equal(lines + 2, All<DxfLine>(session.Document.ModelSpace).Count());
+        }
+
+        [Fact]
+        public void TypedPolarArray_PreviewsTheCopiesOfTheAngleToFill_TheAngleBetween_AndBeforeTheyAreTurned()
+        {
+            CadCommandSession session = WithALine(out string line);
+            Run(session, "-ARRAY", new[] { line }, Enter, "P", P(0, 0), "4");
+            Assert.StartsWith("Specify the angle to fill", session.PromptText);
+            Assert.Equal(3, CopiesAsMade(session, line, P(-10, 10), P(-10, 10), Enter));
+
+            Run(session, "-ARRAY", new[] { line }, Enter, "P", P(0, 0), Enter, "180");
+            Assert.StartsWith("Angle between items", session.PromptText);
+            Assert.Equal(4, CopiesAsMade(session, line, P(10, 10), P(10, 10), Enter));
+
+            Run(session, "-ARRAY", new[] { line }, Enter, "P", P(0, 0), "6", Enter);
+            Assert.StartsWith("Rotate arrayed objects", session.PromptText);
+            Assert.Equal(5, CopiesAsMade(session, line, P(0, 0), Enter));
+        }
+
         [Fact]
         public void BreakAskingItsSecondPoint_PreviewsThePieceTakenOut_Faded()
         {

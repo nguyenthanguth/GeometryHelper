@@ -3016,8 +3016,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             CadCommandSession session = Session;
 
-            // A prompt for objects previews what the object under the cursor would give, as FILLET its arc.
-            if (CadPicking.WantsObjects(session) && _cursor.HasValue)
+            // A prompt for objects previews what the object under the cursor would give, as FILLET its arc; a prompt for a
+            // keyword what Enter would, as -ARRAY's copies while it asks whether to rotate them.
+            if ((CadPicking.WantsObjects(session) || session?.Prompt?.Kind == CadPromptKind.Keyword) && _cursor.HasValue)
             {
                 DrawPreview(dc, view, scale, _cursor.Value);
                 return;
