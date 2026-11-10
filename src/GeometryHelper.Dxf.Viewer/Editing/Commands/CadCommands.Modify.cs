@@ -1189,7 +1189,12 @@ namespace GeometryHelper.Dxf.Viewer
                     if (mode == 3)
                     {
                         GeoPoint3 end = atStart ? curve.StartPoint : curve.EndPoint;
-                        yield return CadPrompt.ForPoint("Specify new end point", new GeoPoint2(end.X, end.Y));
+                        DxfCurve dragged = curve;
+                        yield return CadPrompt.ForPoint("Specify new end point", new GeoPoint2(end.X, end.Y)).Previewing(CadPreview.Making(c, input =>
+                        {
+                            var preview = new List<DxfEntity>();
+                            return MoveEnd(c, dragged, atStart, P3(input.Point), preview) ? preview : null;
+                        }));
 
                         if (!c.Input.IsPoint)
                         {
@@ -1229,8 +1234,11 @@ namespace GeometryHelper.Dxf.Viewer
             }
         }
 
-        /// <summary>Makes a curve a length by its end at one side, run on or cut back; false, with the reason written, where it is not.</summary>
-        private static bool ToLength(CadCommandContext c, DxfCurve curve, bool atStart, double target)
+        /// <summary>
+        /// Makes a curve a length by its end at one side, run on or cut back; false, with the reason written, where it is not.
+        /// Given a list to preview into, it adds the curve as it would be to it instead, and changes nothing.
+        /// </summary>
+        private static bool ToLength(CadCommandContext c, DxfCurve curve, bool atStart, double target, List<DxfEntity> preview = null)
         {
             double eps = Slack(c);
             Span(curve, out _, out double length);
@@ -1245,6 +1253,13 @@ namespace GeometryHelper.Dxf.Viewer
             if (target < length - eps)
             {
                 IReadOnlyList<DxfCurve> pieces = curve.GetSplitCurves(new[] { curve.GetParameterAtDistance(atStart ? length - target : target) });
+
+                if (pieces.Count == 2 && preview != null)
+                {
+                    preview.Add(pieces[atStart ? 1 : 0]);
+                    return true;
+                }
+
                 return pieces.Count == 2 && Replace(c, handle, new List<DxfCurve> { pieces[atStart ? 1 : 0] }, "Lengthen");
             }
 
@@ -1284,14 +1299,22 @@ namespace GeometryHelper.Dxf.Viewer
                     return false;
             }
 
+            var tried = (DxfCurve)curve.Clone();
+
             try
             {
-                ((DxfCurve)curve.Clone()).Extend(parameter);
+                tried.Extend(parameter);
             }
             catch (Exception exception) when (exception is ArgumentException || exception is InvalidOperationException || exception is NotSupportedException)
             {
                 c.Write("Cannot lengthen this object: " + exception.Message);
                 return false;
+            }
+
+            if (preview != null)
+            {
+                preview.Add(tried);
+                return true;
             }
 
             return c.Apply(new[] { new CadEditRecord(CadEditRecordKind.Reshaped, handle, "Lengthen") }, s => ((DxfCurve)s.Document.FindEntity(handle)).Extend(parameter)).Succeeded;
@@ -1337,8 +1360,12 @@ namespace GeometryHelper.Dxf.Viewer
             return atStart ? from - reach : from + reach;
         }
 
-        /// <summary>LENGTHEN DYnamic: the end moved to the point of its line, circle or ellipse nearest a point, run on or cut back.</summary>
-        private static bool MoveEnd(CadCommandContext c, DxfCurve curve, bool atStart, GeoPoint3 point)
+        /// <summary>
+        /// LENGTHEN DYnamic: the end moved to the point of its line, circle or ellipse nearest a point, run on or cut back. Given
+        /// a list to preview into, it adds the curve as it would be to it instead, and changes nothing, as the end previews
+        /// following the cursor.
+        /// </summary>
+        private static bool MoveEnd(CadCommandContext c, DxfCurve curve, bool atStart, GeoPoint3 point, List<DxfEntity> preview = null)
         {
             double eps = Slack(c);
             DxfCurve run = RunOn(c, curve, atStart, out _, out _);
@@ -1348,19 +1375,27 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 Span(curve, out _, out double length);
                 double at = DistanceOf(curve, target) ?? length;
-                return ToLength(c, curve, atStart, atStart ? length - at : at);
+                return ToLength(c, curve, atStart, atStart ? length - at : at, preview);
             }
 
             string handle = curve.Handle;
 
+            var moved = (DxfCurve)curve.Clone();
+
             try
             {
-                ((DxfCurve)curve.Clone()).Extend(atStart, target);
+                moved.Extend(atStart, target);
             }
             catch (Exception exception) when (exception is ArgumentException || exception is InvalidOperationException || exception is NotSupportedException)
             {
                 c.Write("Cannot lengthen this object: " + exception.Message);
                 return false;
+            }
+
+            if (preview != null)
+            {
+                preview.Add(moved);
+                return true;
             }
 
             return c.Apply(new[] { new CadEditRecord(CadEditRecordKind.Reshaped, handle, "Lengthen") }, s => ((DxfCurve)s.Document.FindEntity(handle)).Extend(atStart, target)).Succeeded;

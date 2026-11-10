@@ -647,5 +647,34 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Equal("DisplayPolyline2 open 0.000000 0.000000 100.000000 0.000000", Assert.Single(previewed));
             Assert.Equal(ShapesOf(session.Document, first), previewed);
         }
+
+        [Fact]
+        public void LengthenDynamic_PreviewsTheEndRunOnOrCutBackToTheCursor()
+        {
+            CadCommandSession session = Started("LINE", P(0, 0), P(100, 0), Enter, "LENGTHEN", "DY", P(90, 0));
+            Assert.StartsWith("Specify new end point", session.PromptText);
+
+            Assert.Equal("DisplayPolyline2 open 0.000000 0.000000 150.000000 0.000000", Assert.Single(PreviewReshapes(session, P(150, 10))));
+
+            Run(session, P(140, 0));
+            Assert.Equal("DisplayPolyline2 open 0.000000 0.000000 60.000000 0.000000", Assert.Single(PreviewReshapes(session, P(60, -5), Esc)));
+        }
+
+        [Fact]
+        public void HatchPickingPoints_PreviewsTheHatchOfTheAreaUnderTheCursor_WithThosePickedBefore()
+        {
+            CadCommandSession session = Started("RECTANG", P(0, 0), P(100, 100), "RECTANG", P(200, 0), P(300, 100), "HATCH");
+            Assert.StartsWith("Pick internal point", session.PromptText);
+            CadPreview preview = session.Prompt.Preview;
+
+            Assert.Empty(preview.Items(P(150, 50)));
+            List<string> one = Shapes(preview.Items(P(50, 50)));
+            Assert.Equal(one, Shapes(preview.Items(P(60, 40))));
+            Run(session, P(50, 50));
+
+            List<string> both = Shapes(session.Prompt.Preview.Items(P(250, 50)));
+            Assert.NotEqual(one, both);
+            PreviewMakes(session, P(250, 50), Enter);
+        }
     }
 }
