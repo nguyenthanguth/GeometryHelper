@@ -1,4 +1,4 @@
-# 78 Our own DWG reader (W1: the bit layer and R2000; W2: R2004 to R2018; W3: R2007)
+# 78 Our own DWG reader (W1: the bit layer and R2000; W2: R2004 to R2018; W3: R2007; W4: the types left out)
 
 A DWG is read by code of our own into the records the library already has for a DXF, so that everything built on a DXF
 document works on a DWG: `DxfDatabase`, `DxfReader`, the presenter. Stage W1, done here, is the bit layer and the format
@@ -352,14 +352,106 @@ Speed, best of five, 100 000 lines in AC1021: `DwgReader.Read` 750 to 816 ms (47
 796 ms (448 to 470 ms) for AC1018 in the same runs on a machine under other load; `DxfReader.Read` of AutoCAD's DXF 270
 to 305 ms. Taking the data out of the blocks one block at a time, not by a division per byte, took 829 ms to 750 ms.
 
+## W4: the entities and objects left out
+
+| Path | What it holds |
+|---|---|
+| `src/GeometryHelper/Dwg/DwgObjectReader.Entities.cs` | also VIEWPORT, HATCH, LEADER, TOLERANCE, MLINE, IMAGE and WIPEOUT, REGION, 3DSOLID and BODY, ACAD_TABLE, the MTEXT of an attribute of several lines |
+| `src/GeometryHelper/Dwg/DwgObjectReader.Leaders.cs` | MULTILEADER and MLEADERSTYLE |
+| `src/GeometryHelper/Dwg/DwgObjectReader.Objects.cs` | also IMAGEDEF, IMAGEDEF_REACTOR, DBCOLOR, TABLESTYLE |
+
+Probe `GhDwg4` (W1's route: side databases, `Database.SaveAs`, `ReadDwgFile`, `DxfOut` with 16 places, no system
+variable set) drew eight drawings in all six versions: `vports`, `hatch`, `leaders`, `images`, `mline`, `table`,
+`solids`, `meshes`. AC1015 and AC1032 of each (AC1018 and AC1021 of `table` too) are in the tests, 365 KB gzipped.
+
+DECIDED: a DWG holds no number (69) and no status (68) of a viewport. From R2004 the layout lists its viewports, the one
+showing the paper first, and they are numbered from 1 in that order; R2000 lists none, and the viewport whose view
+centre and height are its own centre and height (the one showing the paper) is number 1, the others following by
+handle. The status is the number from R2004 and -1 in R2000 (AutoCAD 2021's console writes "on but off screen" there),
+0 for a viewport that is off (flag 0x20000) or of another layout. A layout of R2004 and later whose last active viewport
+is null names the first of its list under 331. One drawing of four viewports in Layout1 and one in Layout2.
+
+DECIDED: frozen layers of a viewport are 341 in a DXF of R2000 and 331 later, as AutoCAD writes them;
+`DxfViewport.GetFrozenLayers` now reads both (a surgical change in the DXF entity, outside the stage's folder).
+
+DECIDED: an entity's proxy graphics are kept and written (92, from R2010 160, then 310 pieces of 127 bytes), after the
+common groups. AutoCAD saves them for a multileader, an image, a wipeout and a table in every version.
+
+DECIDED: from R2010 a LEADER keeps no box of its text; AutoCAD writes the extents the annotating MTEXT keeps (its two
+values after the flow direction), and so does the reader; 0 where the annotation is no MTEXT.
+
+DECIDED: a MULTILEADER's colours are written as the one number of a CMC colour (0xC0000000 by layer), made from the index
+before R2004; its context goes between `CONTEXT_DATA{` and `}`, its leaders after its content, a leader line's own
+properties only where its override flags are set (no drawing has one). An MLEADERSTYLE holds "annotative" before
+"property changed": the Standard style of the R2018 template has the second bit set and AutoCAD writes 295 1, 296 0.
+
+DECIDED: a clip polygon of an IMAGE or WIPEOUT is kept open in the file; DXF closes it with its first vertex again. A
+wipeout's definition and reactor (340, 360) are written as 0. RASTERVARIABLES and WIPEOUTVARIABLES are not read: the probe
+could make neither, so nothing would check them.
+
+DECIDED: an MLINESTYLE before R2018 names an element's linetype by its place among the records of the table (32767
+ByLayer, 32766 ByBlock); the records follow ByBlock and ByLayer in the control's list. W1 wrote BYLAYER for every place.
+
+DECIDED: the ACIS data of R2000 is SAT text, each character but the line ends kept as 0x9F less it, and DXF keeps it so:
+a line a group 1, its carriage return dropped, pieces past 255 bytes under 3. R2004 to R2010 keep SAB (version 2),
+which DXF does not carry before R2013 (AutoCAD writes SAT text made by its modeller): not read. From R2013 the data is in
+the data store (AcDs), which DXF writes in an ACDSDATA section; the entity is written with the GUID of its record (290,
+2), read after the wireframe and silhouettes, and a 3DSOLID with its history (350). The ACDSDATA section is not written.
+
+DECIDED: a colour of a book sets both 0x8000 and 0x4000 of an entity's colour, but its RGB is in the DBCOLOR the handles
+name, not after the index; W2 read a bit long too many and left the entity out. The index, the RGB and the book$name
+(62, 420, 430) are the DBCOLOR's, which is read too (a CMC from R2004; before, an index DXF does not write).
+
+DECIDED: an attribute of several lines of R2018 (attribute type 2, a definition 4) holds an MTEXT with its own common
+entity data, read past, its MTEXT data and its annotative data; DXF writes 71, 72 (the last annotative value), the
+alignment point under 11 and the MTEXT's groups after `101 Embedded Object`. Its text style handle comes before the
+MTEXT's handles in the handle stream.
+
+DECIDED: ACAD_TABLE is read to R2007 and TABLESTYLE to R2007, in the form DXF writes in every version. In an R2000 file
+a table's and a table style's colours are CMC of the R2004 form (a class newer than R2004). A cell's override flags
+keep bit 0x40000, which R2000's DXF masks (177) and R2007's writes whole (91). From R2007 a cell's content is a value:
+flags, type, the value (a UTF-16 string counted in bytes, a long, a double), units, format and text, between `301
+CELL_VALUE` and `304 ACVALUE_END`; another kind of value is refused as broken (no drawing has one). AutoCAD 2021 names
+the class DATATABLE in an R2000 DWG and ACDBDATATABLE in its DXF; the reader writes the DXF name.
+
+DECIDED (parked, with numbers):
+- ACAD_TABLE and TABLESTYLE from R2010: the table keeps a TABLECONTENT of cell styles, contents and merged ranges, and
+  DXF still writes the form of R2007 (each cell's 171 to 178, 91 262144 for a cell with content); the mapping needs a
+  drawing of every cell kind, and the R2010 TABLESTYLE's cell styles have to be folded into three row styles. Not read.
+- SHAPE: decodes, but DXF names the shape (2 TRACK1), and only the SHX file of its style gives the name of its number.
+- MATERIAL: the order of ACadSharp reads the three materials of the template to their end in every version, but which
+  groups AutoCAD writes (it left out the projections, wrote one source of 0 and not another) cannot be settled from three
+  identical materials: a probe of varied materials is needed. Not read.
+- VISUALSTYLE (a property bag from R2013, undocumented), the detail and section view styles, CELLSTYLEMAP, TABLECONTENT,
+  TABLEGEOMETRY, DATATABLE, ACDBASSOCPERSSUBENTMANAGER: not read.
+- OLE2FRAME, proxies (ACAD_PROXY_ENTITY and OBJECT), the data of dynamic blocks: the probe cannot make them in the
+  console (an OLE object needs the GUI, a proxy the missing application, a dynamic block's parameters have no API).
+
+What AutoCAD changes as it writes the DXF, which the comparer allows and names in its remarks: the proxy graphics of an
+entity, compared by size (AutoCAD draws them anew and the padding after a text holds whatever its memory held); the
+date at the end of the second line of SAT data, which AutoCAD writes empty; the entry AcDsDecomposeData of an R2013 root
+dictionary, dropped with what it holds (the drop now follows ownership to any depth); R2000 round-trip records of which
+AutoCAD keeps a part (a viewport's keeps SHADEPLOT, the rest it takes into the viewport); the extended data DBColXD of a
+DBCOLOR, which AutoCAD takes away from R2000 and doubles in R2004 to R2013; and the flag 4 of an empty cell value of
+R2007, written for some cells and not others.
+
+Proof: the eight drawings of W4 compare with AutoCAD's DXF in all six versions with 0 differences but the types listed
+above as not read; the drawings of W1 to W3 compare as before. The polygon mesh, polyface mesh and MINSERT, decoded in
+W1 from the specification alone, compare with no change.
+
+Fuzz: 19 200 changed copies of the 48 drawings of W4, 400 each, half with raw bytes of the file changed and half with
+bytes changed inside objects of the new types (and the layouts, MTEXTs, dictionaries and attributes they lean on)
+under a repaired check sum: 11 867 read, 7 333 refused, 0 faults of another kind, each in under 0.22 s, the process
+under 75 MB. In the suite: sixteen W4 drawings more in the two seeded theories of bytes changed inside objects.
+
 ## Left open by W1
 
 | What | State |
 |---|---|
-| VIEWPORT, HATCH, LEADER, TOLERANCE, MLINE, SHAPE, REGION, 3DSOLID, BODY, OLE2FRAME, IMAGE, WIPEOUT, proxies | not read; counted in the Debug line. A layout's viewports are therefore missing |
-| MATERIAL, VISUALSTYLE, TABLESTYLE, MLEADERSTYLE, CELLSTYLEMAP, the two view styles, and other objects of classes | not read; a drawing opens without them, and AutoCAD makes them anew |
+| VIEWPORT, HATCH, LEADER, TOLERANCE, MLINE, SHAPE, REGION, 3DSOLID, BODY, OLE2FRAME, IMAGE, WIPEOUT, proxies | W4: read but SHAPE, OLE2FRAME, proxies and the ACIS data of R2004 to R2010 (see W4) |
+| MATERIAL, VISUALSTYLE, TABLESTYLE, MLEADERSTYLE, CELLSTYLEMAP, the two view styles, and other objects of classes | W4: MLEADERSTYLE read, TABLESTYLE to R2007; the rest not read (see W4) |
 | true colour in R2000 | the round-trip data is passed on as it is; it is not turned into group 420 |
-| polygon mesh, polyface mesh, MINSERT | decoded from the specification, with no test drawing from AutoCAD yet |
+| polygon mesh, polyface mesh, MINSERT | W4: compared with AutoCAD's DXF in all six versions, no change needed |
 | `$TDCREATE`, `$TDUPDATE` | not written (the file holds universal time only) |
 | anonymous blocks | settled in W2: one counter for every letter, as AutoCAD |
 | normal of a spline off the XY plane | W2: AutoCAD agrees on 8 of 10 tilted splines; parked (see W2) |
@@ -372,7 +464,7 @@ to 305 ms. Taking the data out of the blocks one block at a time, not by a divis
 |---|---|
 | W2: R2004, R2010, R2013, R2018 (AC1018 to AC1032) | done, see W2 above. As planned: a second container behind the same hand-over (`Header`, `Classes`, `ObjectMap`, the bytes of the objects): the encrypted file header, the page map and section map, the LZ77 decompression of pages, the 32-bit check sum. Objects are no longer at offsets of the file but of the decompressed AcDbObjects section, so `DwgObjectReader` is to take that array. The decoders take the version: R2004 colours (CMC with a true colour and a book name), the count of owned objects in place of first and last handles, no next and previous links; R2010 the type as two bits and bytes, the size of the handle stream in the object's head; R2013 and R2018 a few more fields. The probe already wrote the eight drawings in AC1018, AC1021, AC1024, AC1027 and AC1032 with their answer keys (scratch, `out/`), ready to be the proof |
 | W3: R2007 (AC1021) | done, see W3 above |
-| later: the entities and objects left out | a decoder each in `DwgObjectReader`, a drawing each from the probe; nothing in the container changes |
+| W4: the entities and objects left out | done in part, see W4 above; what is parked is listed there |
 | later: writing a DWG | the bit writer as the mirror of `DwgBitReader`, and the tables of `DwgHeaderVariables` and the decoders read the other way |
 
 W1's open questions for W2 were answered by the maintainer and are DECIDED in the W2 section.

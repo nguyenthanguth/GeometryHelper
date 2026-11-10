@@ -48,6 +48,15 @@ namespace GeometryHelper.UnitTest.Dwg
     /// it holds, and the visual styles <c>$INTERFEREOBJVS</c> and <c>$INTERFEREVPVS</c>, which a file of R2010 and later
     /// holds as no handle.
     /// </para>
+    /// <para>
+    /// And what AutoCAD changes in the records the reader reads since W4: the proxy graphics of an entity, compared by size,
+    /// as AutoCAD draws them anew and the padding after a text in them holds whatever its memory held; the date at the end of
+    /// the second line of the SAT data of an ACIS entity, which AutoCAD writes empty; the entry <c>AcDsDecomposeData</c> of
+    /// the root dictionary of R2013, with what it holds; the part of an R2000 round-trip record that AutoCAD takes into its
+    /// object (the record must start as the key's); the extended data <c>DBColXD</c> of a DBCOLOR, which AutoCAD takes away
+    /// from R2000 and doubles writing R2004 to R2013; and flag 4 of an empty cell value of a table of R2007, which AutoCAD
+    /// writes for some cells and not for others.
+    /// </para>
     /// </remarks>
     internal static class DwgAnswerKey
     {
