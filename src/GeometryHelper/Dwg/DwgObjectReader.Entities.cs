@@ -1521,6 +1521,175 @@ namespace GeometryHelper.Dwg
             }
         }
 
+        /// <summary>
+        /// A REGION, a 3DSOLID or a BODY (<paramref name="solid"/> for a 3DSOLID): its ACIS data as DXF carries it. Before
+        /// R2013 the data is SAT text in blocks, each character but a line end kept as 0x9F less it, and DXF writes it so,
+        /// a line a group 1 (pieces past 255 under 3). From R2013 the data is in the data store of the file, which DXF
+        /// writes in its own section; the entity carries its GUID, after the wireframe and silhouettes, which are read past.
+        /// False where the data is SAB (version 2), which DXF before R2013 does not carry.
+        /// </summary>
+        private bool ReadModelerGeometry(bool solid)
+        {
+            _object.Add(100, "AcDbModelerGeometry");
+
+            if (!R2013Plus)
+            {
+                bool empty = _data.Bit();
+                var text = new List<byte>();
+
+                if (!empty)
+                {
+                    _data.Bit();
+                    int version = _data.BitShort();
+
+                    if (version != 1)
+                    {
+                        return false;
+                    }
+
+                    for (int size = _data.BitLong(); size != 0; size = _data.BitLong())
+                    {
+                        if (size < 0 || size * 8L > _data.Remaining)
+                        {
+                            throw new FormatException("The ACIS data of the entity run past its end.");
+                        }
+
+                        text.AddRange(_data.Bytes(size));
+                    }
+                }
+
+                _object.Add(70, 1);
+                AddSatLines(text);
+            }
+            else
+            {
+                ReadWireframe();
+
+                int materials = Count(_data.BitLong());
+
+                for (int i = 0; i < materials; i++)
+                {
+                    _data.BitLong();
+                    _data.BitLong();
+                    H();
+                }
+
+                _object.Add(290, _data.Bit() ? 1 : 0);
+                int a = _data.BitLong();
+                short b = (short)_data.BitShort();
+                short c = (short)_data.BitShort();
+                byte[] rest = _data.Bytes(8);
+                _data.BitLong();
+                _object.Add(2, new Guid(a, b, c, rest).ToString("B"));
+            }
+
+            if (solid && R2007Plus)
+            {
+                _object.Add(100, "AcDb3dSolid");
+                _object.Add(350, H());
+            }
+
+            return true;
+        }
+
+        /// <summary>The SAT text of an ACIS entity, a line a group 1 and its pieces past 255 bytes under 3.</summary>
+        private void AddSatLines(List<byte> text)
+        {
+            int start = 0;
+
+            for (int i = 0; i <= text.Count; i++)
+            {
+                if (i < text.Count && text[i] != (byte)'\n')
+                {
+                    continue;
+                }
+
+                // A line of SAT ends in a carriage return and a line feed, which DXF does not keep.
+                int end = i > start && text[i - 1] == (byte)'\r' ? i - 1 : i;
+
+                if (i > start || i < text.Count)
+                {
+                    for (int at = start, code = 1; at < end || code == 1; at += 255, code = 3)
+                    {
+                        _object.Add(code, text.GetRange(at, Math.Min(255, end - at)).ToArray());
+                    }
+                }
+
+                start = i + 1;
+            }
+        }
+
+        /// <summary>The wireframe and the silhouettes of an ACIS entity from R2013, read past.</summary>
+        private void ReadWireframe()
+        {
+            if (!_data.Bit())
+            {
+                return;
+            }
+
+            if (_data.Bit())
+            {
+                _data.Point3();
+            }
+
+            _data.BitLong();
+
+            if (_data.Bit())
+            {
+                ReadWires();
+            }
+
+            int silhouettes = Count(_data.BitLong());
+
+            for (int i = 0; i < silhouettes; i++)
+            {
+                _data.BitLongLong();
+                _data.Point3();
+                _data.Point3();
+                _data.Point3();
+                _data.Bit();
+
+                if (_data.Bit())
+                {
+                    ReadWires();
+                }
+            }
+
+            _data.Bit();
+        }
+
+        private void ReadWires()
+        {
+            int wires = Count(_data.BitLong());
+
+            for (int i = 0; i < wires; i++)
+            {
+                _data.RawChar();
+                _data.BitLong();
+                _data.BitShort();
+                _data.BitLong();
+                int points = Count(_data.BitLong());
+
+                for (int j = 0; j < points; j++)
+                {
+                    _data.Point3();
+                }
+
+                if (_data.Bit())
+                {
+                    for (int j = 0; j < 4; j++)
+                    {
+                        _data.Point3();
+                    }
+
+                    _data.BitDouble();
+                    _data.Bit();
+                    _data.Bit();
+                    _data.Bit();
+                }
+            }
+        }
+
         private void ReadDimension(int type)
         {
             int version = R2010Plus ? _data.RawChar() : 0;

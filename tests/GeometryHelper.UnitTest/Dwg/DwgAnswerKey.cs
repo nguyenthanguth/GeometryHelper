@@ -313,6 +313,16 @@ namespace GeometryHelper.UnitTest.Dwg
                     bool same = code == groups[i].Key;
                     graphics = code == 310 ? graphics : (code == 92 || code == 160) && a.Section != "OBJECTS";
 
+                    string head = v1.TrimEnd();
+
+                    if (same && code == 1 && (a.Type == "REGION" || a.Type == "3DSOLID" || a.Type == "BODY") && a.Groups.FindIndex(g => g.Key == 1) + 1 == i
+                        && head.EndsWith(" o", StringComparison.Ordinal) && v2.StartsWith(head.Substring(0, head.Length - 1), StringComparison.Ordinal))
+                    {
+                        // The second line of the SAT data of an ACIS entity ends in the date it was saved, counted by its
+                        // length; AutoCAD writes it empty (the count 0, "o" as SAT data keeps it) as it writes the DXF.
+                        continue;
+                    }
+
                     if (same && graphics && code == 310 && v1.Length == v2.Length)
                     {
                         // The proxy graphics of an entity: AutoCAD draws them anew as it writes the DXF, and the padding
@@ -431,18 +441,35 @@ namespace GeometryHelper.UnitTest.Dwg
                     one.Groups.RemoveRange(saveVersion - 1, Math.Min(3, one.Groups.Count - saveVersion + 1));
                 }
 
-                int recompose = one.Groups.FindIndex(g => g.Key == 3 && g.Value == "ACDB_RECOMPOSE_DATA");
-
-                if (one.Type == "DICTIONARY" && recompose >= 0 && recompose + 1 < one.Groups.Count)
+                foreach (string added in new[] { "ACDB_RECOMPOSE_DATA", "AcDsDecomposeData" })
                 {
-                    dropped.Add("X:" + one.Groups[recompose + 1].Value.ToUpperInvariant());
-                    one.Groups.RemoveRange(recompose, 2);
+                    int recompose = one.Groups.FindIndex(g => g.Key == 3 && g.Value == added);
+
+                    if (one.Type == "DICTIONARY" && recompose >= 0 && recompose + 1 < one.Groups.Count)
+                    {
+                        dropped.Add("X:" + one.Groups[recompose + 1].Value.ToUpperInvariant());
+                        one.Groups.RemoveRange(recompose, 2);
+                    }
                 }
 
                 if (one.Type == "DICTIONARY" && one.Groups.Any(g => g.Key == 3 && g.Value == "ACAD_ROUNDTRIP_2008_TABLESTYLE_CELLSTYLEMAP"))
                 {
                     dropped.Add(one.Key);
                     dropped.UnionWith(one.Groups.Where(g => g.Key == 360 || g.Key == 350).Select(g => "X:" + g.Value.ToUpperInvariant()));
+                }
+            }
+
+            // And what those records own, at any depth.
+            for (bool more = true; more;)
+            {
+                more = false;
+
+                foreach (Record one in records)
+                {
+                    if (one.Section == "OBJECTS" && one.Owner != null && !dropped.Contains(one.Key) && dropped.Contains("X:" + one.Owner.ToUpperInvariant()))
+                    {
+                        more |= dropped.Add(one.Key);
+                    }
                 }
             }
 

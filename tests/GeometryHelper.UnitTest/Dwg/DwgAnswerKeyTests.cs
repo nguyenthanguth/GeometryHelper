@@ -20,6 +20,10 @@ namespace GeometryHelper.UnitTest.Dwg
         private static readonly string[] NotReadYet =
         {
             "ACDBDETAILVIEWSTYLE", "ACDBSECTIONVIEWSTYLE", "CELLSTYLEMAP", "MATERIAL", "TABLESTYLE", "VISUALSTYLE",
+            "ACDBASSOCPERSSUBENTMANAGER", "SHAPE",
+
+            // The records of the ACDSDATA section of R2013 and later, which holds the ACIS data of the solids.
+            "ACDSRECORD", "ACDSSCHEMA",
         };
 
         private readonly List<(GeometryHelperLogLevel Level, string Message)> _written = new List<(GeometryHelperLogLevel Level, string Message)>();
@@ -91,6 +95,8 @@ namespace GeometryHelper.UnitTest.Dwg
         [InlineData("images_AC1032")]
         [InlineData("mline_AC1015")]
         [InlineData("mline_AC1032")]
+        [InlineData("solids_AC1015")]
+        [InlineData("solids_AC1032")]
         public void ADrawingOfTheTypesOfW4_ReadFromItsDwg_IsTheDxfAutoCadWroteOfIt(string drawing)
         {
             // Made by probe GhDwg4 in all six versions; the repository holds the oldest and the newest of each.
@@ -187,6 +193,28 @@ namespace GeometryHelper.UnitTest.Dwg
             Assert.Equal(3, database.ModelSpace.OfType<DxfUnknownEntity>().Count(e => e.DxfName == "MLINE"));
             DwgAnswerKey.Record style = Assert.Single(records, r => r.Type == "MLINESTYLE" && r.Groups.Any(g => g.Key == 2 && g.Value == "GH3"));
             Assert.Equal(new[] { "Continuous", "BYLAYER", "BYBLOCK" }, style.Groups.Where(g => g.Key == 6).Select(g => g.Value));
+        }
+
+        [Fact]
+        public void TheSolidAndTheRegionOfR2000_AreRead_WithTheirSatData()
+        {
+            // A circle made a region and a box of 10 by 20 by 30: their SAT data, a line a group, as the file holds it.
+            List<DwgAnswerKey.Record> records = DwgAnswerKey.Parse(DwgReader.ToDxf(DwgAnswerKey.Dwg("solids_AC1015")));
+
+            DwgAnswerKey.Record region = Assert.Single(records, r => r.Type == "REGION");
+            DwgAnswerKey.Record box = Assert.Single(records, r => r.Type == "3DSOLID");
+            Assert.Equal(14, region.Groups.Count(g => g.Key == 1));
+            Assert.Equal(95, box.Groups.Count(g => g.Key == 1));
+        }
+
+        [Fact]
+        public void TheSolidAndTheRegionOfR2018_AreRead_WithTheGuidOfTheirDataInTheStore()
+        {
+            List<DwgAnswerKey.Record> records = DwgAnswerKey.Parse(DwgReader.ToDxf(DwgAnswerKey.Dwg("solids_AC1032")));
+
+            DwgAnswerKey.Record box = Assert.Single(records, r => r.Type == "3DSOLID");
+            Assert.Matches("^\\{[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\}$", box.Groups.Single(g => g.Key == 2).Value);
+            Assert.Contains(box.Groups, g => g.Key == 100 && g.Value == "AcDb3dSolid");
         }
 
         [Fact]

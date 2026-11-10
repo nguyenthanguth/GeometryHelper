@@ -725,6 +725,9 @@ namespace GeometryHelper.Dwg
                 case 0x22: ReadViewport(); return true;
                 case 0x23: ReadEllipse(); return true;
                 case 0x24: ReadSpline(); return true;
+                case 0x25:
+                case 0x27: return ReadModelerGeometry(false);
+                case 0x26: return ReadModelerGeometry(true);
                 case 0x28: ReadRay("AcDbRay"); return true;
                 case 0x29: ReadRay("AcDbXline"); return true;
                 case 0x2A: ReadDictionary(false); return true;
