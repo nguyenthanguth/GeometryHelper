@@ -20,6 +20,8 @@ namespace GeometryHelper.Dxf.Viewer
         private readonly CadCommandSession _session;
         private readonly Func<CadInput, IEnumerable<DxfEntity>> _make;
         private readonly Func<CadInput, IReadOnlyList<Affine2>> _moves;
+        private bool _fades;
+        private bool _swaps;
         private DisplayBuilder _builder;
         private DxfDatabase _database;
 
@@ -41,9 +43,17 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>
         /// Gets whether <see cref="Items"/> are pieces the answer takes out of the drawing rather than objects it makes, drawn
         /// faded as AutoCAD 2021's TRIM draws the piece under the cursor it would cut away: of a line 150 long crossed at 50,
-        /// the 50 on the cursor's side.
+        /// the 50 on the cursor's side. With <see cref="Shift"/> held at TRIM or EXTEND it is the other command's: TRIM then
+        /// previews the object extended, not faded, and EXTEND fades the piece a trim takes out.
         /// </summary>
-        public bool Fades { get; private set; }
+        public bool Fades => _fades != (_swaps && Shift);
+
+        /// <summary>
+        /// Gets or sets whether Shift is held, which a window sets before it asks for the preview: the answer previewed then
+        /// carries it (<see cref="CadInput.Shift"/>), as a pick with Shift held does, so that TRIM previews what EXTEND would
+        /// do to the object under the cursor and EXTEND what TRIM would.
+        /// </summary>
+        public bool Shift { get; set; }
 
         /// <summary>Gets the objects whose copies <see cref="Moves"/> places, in ordinal order; empty where the preview moves none.</summary>
         public IReadOnlyList<string> Handles { get; }
@@ -132,6 +142,13 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         private CadInput Answer(GeoPoint2 cursor)
         {
+            CadInput answer = AnswerAt(cursor);
+            answer.Shift = Shift;
+            return answer;
+        }
+
+        private CadInput AnswerAt(GeoPoint2 cursor)
+        {
             CadPrompt prompt = Prompt;
             GeoPoint2? from = prompt?.BasePoint;
 
@@ -162,7 +179,14 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>A preview of the pieces the answer at the cursor takes out of the drawing, drawn faded, as TRIM previews them.</summary>
         internal static CadPreview Fading(CadCommandContext c, Func<CadInput, IEnumerable<DxfEntity>> make)
-            => new CadPreview(c.Session, make, null, null, false) { Fades = true };
+            => new CadPreview(c.Session, make, null, null, false) { _fades = true };
+
+        /// <summary>
+        /// A preview of TRIM or EXTEND, which Shift held turns into the other's: faded for the piece a trim takes out, and not
+        /// for the object an extension runs on.
+        /// </summary>
+        internal static CadPreview Cutting(CadCommandContext c, Func<CadInput, IEnumerable<DxfEntity>> make, bool extend)
+            => new CadPreview(c.Session, make, null, null, false) { _fades = !extend, _swaps = true };
 
         /// <summary>A preview of one entity made from the answer a point picked at the cursor gives; null from the maker previews nothing.</summary>
         internal static CadPreview MakingOne(CadCommandContext c, Func<CadInput, DxfEntity> make, bool band = false)

@@ -96,6 +96,11 @@ Reference Points, -ARRAY's unit cell and ALIGN move the ghost as the objects mov
 of the object under the cursor, and writes nothing into the history. A FILLET of two lines costs 38 microseconds, a TRIM
 26, a hatch of a square with an island 0.1 ms, a QDIM row of three dimensions 0.76 ms.
 
+**NEW.** TRIM and EXTEND preview in Standard mode too, against the cutting or boundary edges chosen, and with Shift held
+they preview what the other does, as the pick with Shift then does: `CadPreview.Shift`, which the canvas sets from the
+keyboard, is carried by the answer previewed, and `Fades` follows it. A line from (0, 0) to (50, 0) hovered in TRIM with
+Shift held previews itself run on to the wall at 100, not faded.
+
 **FIXED.** ROTATE's ghost in a UCS turned from the world's now turns by the angle the objects are turned: in a UCS turned
 30 degrees it turned 30 degrees more than the result.
 

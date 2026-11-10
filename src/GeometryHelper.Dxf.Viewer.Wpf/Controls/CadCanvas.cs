@@ -1242,6 +1242,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
         }
 
+        /// <summary>Shift pressed or released: a preview that follows it, as TRIM's, is drawn anew.</summary>
+        internal void OnShiftChanged()
+        {
+            if (Session?.Prompt?.Preview != null)
+            {
+                InvalidateVisual();
+            }
+        }
+
         /// <summary>Gets or sets where a mouse event happened; null for the mouse itself. A test sets it, having no mouse to move.</summary>
         internal Func<MouseEventArgs, Point> Pointer { get; set; }
 
@@ -1651,6 +1660,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return true;
             }
 
+            // TRIM and EXTEND preview the other's result while Shift is held, as a pick with it gives.
+            preview.Shift = (Keyboard.Modifiers & ModifierKeys.Shift) != 0;
             double tolerance = 0.5 * scale / view.PixelsPerUnit;
             DisplayBox grown = view.VisibleBox.Inflate(4.0 * scale / view.PixelsPerUnit);
             IReadOnlyList<Affine2> moves = preview.Moves(target);

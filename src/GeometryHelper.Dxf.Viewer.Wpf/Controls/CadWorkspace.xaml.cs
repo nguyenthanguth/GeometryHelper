@@ -251,6 +251,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             Key key = e.Key == Key.System ? e.SystemKey : e.Key;
+
+            if (key == Key.LeftShift || key == Key.RightShift)
+            {
+                CanvasView.OnShiftChanged();
+            }
+
             ModifierKeys modifiers = Keyboard.Modifiers;
             bool inEditor = (Keyboard.FocusedElement is TextBox box && box != CommandBox) || Keyboard.FocusedElement is CadMTextEditBox;
 
@@ -356,6 +362,17 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 }
 
                 e.Handled = true;
+            }
+        }
+
+        /// <inheritdoc/>
+        protected override void OnPreviewKeyUp(KeyEventArgs e)
+        {
+            base.OnPreviewKeyUp(e);
+
+            if (e.Key == Key.LeftShift || e.Key == Key.RightShift)
+            {
+                CanvasView.OnShiftChanged();
             }
         }
 

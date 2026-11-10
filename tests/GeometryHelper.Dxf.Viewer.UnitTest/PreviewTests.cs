@@ -649,6 +649,76 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         [Fact]
+        public void StandardTrim_PreviewsThePieceUpToTheCuttingEdgeChosen_AndNothingWhereNoneCuts()
+        {
+            // Two walls cross the line; only the one at 60 is a cutting edge, so the cut runs from the end to it.
+            CadCommandSession session = Started("LINE", P(-50, 0), P(100, 0), Enter, "LINE", P(0, -50), P(0, 100), Enter, "LINE", P(60, -50), P(60, 100), Enter);
+            string first = All<DxfLine>(session.Document.ModelSpace).First().Handle;
+            string wall = All<DxfLine>(session.Document.ModelSpace).Last().Handle;
+            Run(session, "TRIM", "O", "Standard", new[] { wall }, Enter);
+            Assert.StartsWith("Select object to trim", session.PromptText);
+            CadPreview preview = session.Prompt.Preview;
+            Assert.True(preview.Fades);
+            int lines = session.History.Count;
+
+            List<string> gone = Shapes(preview.Items(P(-25, 0)));
+            Assert.Empty(preview.Items(P(60, 80)));
+            Assert.Equal(lines, session.History.Count);
+            Run(session, P(-25, 0));
+
+            Assert.Equal("DisplayPolyline2 open -50.000000 0.000000 60.000000 0.000000", Assert.Single(gone));
+            Assert.Equal("DisplayPolyline2 open 60.000000 0.000000 100.000000 0.000000", Assert.Single(ShapesOf(session.Document, first)));
+        }
+
+        [Fact]
+        public void StandardExtend_PreviewsTheObjectRunOnToTheBoundaryChosen()
+        {
+            CadCommandSession session = Started("LINE", P(0, 0), P(50, 0), Enter, "LINE", P(100, -50), P(100, 50), Enter, "LINE", P(150, -50), P(150, 50), Enter);
+            string first = All<DxfLine>(session.Document.ModelSpace).First().Handle;
+            string far = All<DxfLine>(session.Document.ModelSpace).Last().Handle;
+            Run(session, "EXTEND", "O", "Standard", new[] { far }, Enter);
+            Assert.StartsWith("Select object to extend", session.PromptText);
+            Assert.False(session.Prompt.Preview.Fades);
+
+            List<string> previewed = Shapes(session.Prompt.Preview.Items(P(40, 0)));
+            Run(session, P(40, 0));
+
+            Assert.Equal("DisplayPolyline2 open 0.000000 0.000000 150.000000 0.000000", Assert.Single(previewed));
+            Assert.Equal(ShapesOf(session.Document, first), previewed);
+        }
+
+        [Fact]
+        public void ShiftHeldInTrim_PreviewsTheExtension_AndInExtendThePieceTrimmed()
+        {
+            CadCommandSession session = Started("LINE", P(0, 0), P(50, 0), Enter, "LINE", P(100, -50), P(100, 50), Enter, "TRIM");
+            string first = All<DxfLine>(session.Document.ModelSpace).First().Handle;
+            CadPreview preview = session.Prompt.Preview;
+            Assert.True(preview.Fades);
+            preview.Shift = true;
+            Assert.False(preview.Fades);
+
+            List<string> previewed = Shapes(preview.Items(P(40, 0)));
+            session.Feed(P(40, 0), true);
+
+            Assert.Equal("DisplayPolyline2 open 0.000000 0.000000 100.000000 0.000000", Assert.Single(previewed));
+            Assert.Equal(ShapesOf(session.Document, first), previewed);
+
+            // EXTEND with Shift trims: the 50 past the wall, faded.
+            session = Started("LINE", P(0, 0), P(150, 0), Enter, "LINE", P(100, -50), P(100, 50), Enter, "EXTEND");
+            first = All<DxfLine>(session.Document.ModelSpace).First().Handle;
+            preview = session.Prompt.Preview;
+            Assert.False(preview.Fades);
+            preview.Shift = true;
+            Assert.True(preview.Fades);
+
+            List<string> gone = Shapes(preview.Items(P(140, 0)));
+            session.Feed(P(140, 0), true);
+
+            Assert.Equal("DisplayPolyline2 open 100.000000 0.000000 150.000000 0.000000", Assert.Single(gone));
+            Assert.Equal("DisplayPolyline2 open 0.000000 0.000000 100.000000 0.000000", Assert.Single(ShapesOf(session.Document, first)));
+        }
+
+        [Fact]
         public void LengthenDynamic_PreviewsTheEndRunOnOrCutBackToTheCursor()
         {
             CadCommandSession session = Started("LINE", P(0, 0), P(100, 0), Enter, "LENGTHEN", "DY", P(90, 0));

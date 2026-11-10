@@ -74,19 +74,16 @@ namespace GeometryHelper.Dxf.Viewer
 
                 CadPrompt asked = CadPrompt.ForEntity(extend ? "Select object to extend or shift-select to trim" : "Select object to trim or shift-select to extend", keywords);
 
-                if (quick)
+                // The object under the cursor previews the piece a trim takes out, faded, or the object an extension runs on,
+                // and with Shift held what the other command does to it.
+                IReadOnlyList<string> cutting = edges.Value;
+                Func<CadInput, IEnumerable<DxfEntity>> cut = input =>
                 {
-                    // Quick mode previews the piece a trim takes out, faded, or the object an extension runs on.
-                    IReadOnlyList<string> cutting = edges.Value;
-                    Func<CadInput, IEnumerable<DxfEntity>> cut = input =>
-                    {
-                        var preview = new List<DxfEntity>();
-                        return input.Kind == CadInputKind.Selection && CutOne(c, input.Handles[0], input.Point, extend, cutting, preview) ? preview : null;
-                    };
-                    asked = asked.Previewing(extend ? CadPreview.Making(c, cut) : CadPreview.Fading(c, cut));
-                }
+                    var preview = new List<DxfEntity>();
+                    return input.Kind == CadInputKind.Selection && CutOne(c, input.Handles[0], input.Point, extend != input.Shift, cutting, preview) ? preview : null;
+                };
 
-                yield return asked;
+                yield return asked.Previewing(CadPreview.Cutting(c, cut, extend));
 
                 if (c.Input.Kind == CadInputKind.Selection)
                 {
@@ -351,7 +348,7 @@ namespace GeometryHelper.Dxf.Viewer
             => Splits(c, extend ? "extended" : "trimmed", () => CutOne(c, handle, at, extend, edges));
 
         /// <summary>
-        /// Trims or extends one object picked at a point. Given a list to preview into, it adds to it what Quick mode's preview
+        /// Trims or extends one object picked at a point. Given a list to preview into, it adds to it what the preview
         /// shows instead, and changes nothing: the piece a trim takes out (the whole object where Quick erases it), or a copy of
         /// the object run on.
         /// </summary>

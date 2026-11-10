@@ -147,8 +147,9 @@ gives; where AutoCAD shows a radius or an angle with it, as CIRCLE does, the rub
 
 The commands that change objects preview the change at the object under the cursor. FILLET and CHAMFER, hovering the
 second object, draw both objects trimmed and the arc or line between them: two lines crossing at the origin, filleted with
-a radius of 12, show the arc from (0, 12) to (12, 0). TRIM in Quick mode draws the piece a pick would cut away faded over
-the object, and EXTEND the object run on to its edge. LENGTHEN DYnamic draws the object with its end at the cursor, BREAK
+a radius of 12, show the arc from (0, 12) to (12, 0). TRIM, in Quick mode and in Standard, draws the piece a pick would cut away faded
+over the object, and EXTEND the object run on to its edge; while Shift is held each draws what the other would do, as a
+pick with Shift does. LENGTHEN DYnamic draws the object with its end at the cursor, BREAK
 the piece its second point would take out, faded as TRIM's. HATCH, at "Pick internal point", draws the hatch Enter would
 make of the areas picked so far and the one under the cursor. TEXT draws a square of the height on the baseline while
 its height and rotation are asked, TABLE the outline of the table at the cursor, MLEADER the leader and its landing, QDIM
