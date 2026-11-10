@@ -50,6 +50,15 @@ as it stood before the first edit and after every step, each saved to bytes and 
 tenth of that), and undoing a step reads the drawing it stood at before. Undoing every step gives the drawing back byte
 for byte: the plate, saved after six edits and every one undone, is the 5 127 bytes it was opened as.
 
+On a large drawing most of an undo was reading those bytes back and meeting every entity of the drawing read for the first
+time, when the display is patched. So after every step, undo and redo, a worker thread reads ahead the drawings the next
+undo and the next redo go to, from the same bytes, and makes their index of handles; the undo then takes the drawing ready
+and draws again only the entities its step touched. On a drawing of 1 000 000 entities the undo of a one-line MOVE and its
+display take about 0.4 s where they took about 2.2 s, once the drawing has been read ahead (about 2 s after the step). An
+undo asked sooner waits for a reading already begun, or reads the bytes itself as before, and takes about 1.5 s where it
+took 2.6 s. The drawing it gives is the one read from the bytes before, byte for byte. Up to three such drawings are held
+besides the one shown, each about 330 MB at that size, and an edit made while one is read shares the processor with it.
+
 After an undo or a redo `Database` is a new [`DxfDatabase`](xref:GeometryHelper.Dxf.DxfDatabase) read from those bytes. The
 circle that `FindEntity(handle)` gave before the undo is not the object it gives after, so keep handles, not entities, across
 a step. The [`CadSpace`](xref:GeometryHelper.Dxf.Viewer.CadSpace) objects stay and are pointed at the new drawing.

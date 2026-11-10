@@ -178,7 +178,7 @@ namespace GeometryHelper.Dxf.Viewer
         private readonly List<CadSpace> _spaces = new List<CadSpace>();
         private DisplayBuilder _builder;
         private Dictionary<string, DxfEntity> _byHandle;
-        private Dictionary<string, CadSpace> _spaceByHandle;
+        private Dictionary<string, DxfBlockTableRecord> _blockByHandle;
 
         /// <summary>The width the display gives the words of a text, as MIRROR measures one it keeps readable.</summary>
         internal double TextWidth(DxfDBText text) => _builder.WidthOf(text);
@@ -437,7 +437,7 @@ namespace GeometryHelper.Dxf.Viewer
                 return null;
             }
 
-            return _spaceByHandle.TryGetValue(handle, out CadSpace space) ? space : null;
+            return _blockByHandle.TryGetValue(handle, out DxfBlockTableRecord block) ? AllSpaces.Find(s => ReferenceEquals(s.Block, block)) : null;
         }
 
         private void IndexHandles()
@@ -447,21 +447,45 @@ namespace GeometryHelper.Dxf.Viewer
                 return;
             }
 
-            // The entities of every space by handle, made once; the first of a handle met in tab order wins.
-            _byHandle = new Dictionary<string, DxfEntity>(StringComparer.OrdinalIgnoreCase);
-            _spaceByHandle = new Dictionary<string, CadSpace>(StringComparer.OrdinalIgnoreCase);
+            var blocks = new List<DxfBlockTableRecord>();
 
             foreach (CadSpace space in AllSpaces)
             {
-                foreach (DxfEntity entity in space.Block)
+                blocks.Add(space.Block);
+            }
+
+            IndexHandles(blocks, out _byHandle, out _blockByHandle);
+        }
+
+        /// <summary>
+        /// The entities of some spaces by handle, and the space each is in, made once; the first of a handle met in the order
+        /// of the spaces given (their tab order) wins. Made on a worker thread too, for a drawing of the undo list read ahead,
+        /// which <paramref name="stop"/>, asked every 4 096 entities, stops; false where it stopped.
+        /// </summary>
+        private static bool IndexHandles(List<DxfBlockTableRecord> blocks, out Dictionary<string, DxfEntity> byHandle, out Dictionary<string, DxfBlockTableRecord> blockByHandle, Func<bool> stop = null)
+        {
+            byHandle = new Dictionary<string, DxfEntity>(StringComparer.OrdinalIgnoreCase);
+            blockByHandle = new Dictionary<string, DxfBlockTableRecord>(StringComparer.OrdinalIgnoreCase);
+            int met = 0;
+
+            foreach (DxfBlockTableRecord block in blocks)
+            {
+                foreach (DxfEntity entity in block)
                 {
-                    if (!string.IsNullOrEmpty(entity.Handle) && !_byHandle.ContainsKey(entity.Handle))
+                    if (stop != null && (++met & 4095) == 0 && stop())
                     {
-                        _byHandle[entity.Handle] = entity;
-                        _spaceByHandle[entity.Handle] = space;
+                        return false;
+                    }
+
+                    if (!string.IsNullOrEmpty(entity.Handle) && !byHandle.ContainsKey(entity.Handle))
+                    {
+                        byHandle[entity.Handle] = entity;
+                        blockByHandle[entity.Handle] = block;
                     }
                 }
             }
+
+            return true;
         }
     }
 }

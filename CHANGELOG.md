@@ -13,6 +13,16 @@ entities the layer of a third of them switched off is drawn again in 23 ms, not 
 as before. The three tests that time this drawing now run alone: run beside each other, each one's garbage collections
 stopped the others' timers, and the layer switched back on, 110 to 160 ms alone, was timed at 230 to 540 ms.
 
+**CHANGED.** Undo and redo in the presenter no longer wait for the whole drawing to be read back on a large drawing. After
+every step, undo and redo, a worker thread reads ahead the drawings the next undo and the next redo go to, from the bytes
+an undo has always read them from, and makes their index of handles; the undo then takes the drawing ready and draws
+again only the entities its step touched. The undo states are also packed and unpacked in pieces of 4 MB side by side. On
+a drawing of 1 000 000 entities, medians of five, the undo of a one-line MOVE and its display take 0.4 s where they took
+2.2 s once the drawing is read ahead (about 2 s after the step), and 1.5 s where they took 2.6 s when asked at once; the
+undo of an ERASE of 10 000 objects takes 0.8 s where it took 3.0 s, and finding an entity by its handle after an undo 0 ms
+where it took 0.2 s. Every drawing an undo or a redo gives is the one saved at that step, byte for byte. The read-ahead
+holds up to three more drawings, each about 330 MB at that size, so the peak working set rose from about 3.2 GB to 3.7 GB.
+
 **CHANGED.** The presenter's MTEXT editor lays out its words as the canvas draws them, as AutoCAD 2021's in-place
 editor does. It used to set each paragraph on one line, 1.25 times its tallest letters below the last, in WPF's own
 measure, with stacks written inline. It now wraps at the width and spaces its lines at least or exactly as the MTEXT says,
