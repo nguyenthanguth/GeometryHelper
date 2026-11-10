@@ -402,6 +402,34 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Throws<InvalidOperationException>(() => ByHandle<DxfLine>(DxfDatabase.Parse(DxfFileEzdxfDrawings.R2000), "3E").Color = DxfColor.FromRgb(1, 2, 3));
         }
 
+        [Theory]
+        [InlineData(7, 0xFFFFFF)]
+        [InlineData(12, 0xCC0000)]
+        [InlineData(14, 0x990000)]
+        [InlineData(109, 0x264C2F)]
+        [InlineData(149, 0x26424C)]
+        [InlineData(209, 0x42264C)]
+        [InlineData(250, 0x333333)]
+        [InlineData(251, 0x5B5B5B)]
+        [InlineData(252, 0x848484)]
+        [InlineData(253, 0xADADAD)]
+        [InlineData(254, 0xD6D6D6)]
+        [InlineData(255, 0xFFFFFF)]
+        public void AColourOfTheIndex_HasTheRgbAutoCad2021GivesIt(short index, int rgb)
+        {
+            // AutoCAD 2021: Color.FromColorIndex(ColorMethod.ByAci, index).ColorValue, the same as EntityColor.LookUpRgb.
+            Assert.Equal(rgb, DxfColor.FromColorIndex(DxfColorMethod.ByAci, index).ColorValue);
+        }
+
+        [Fact]
+        public void TheNearestIndexOfATrueColour_IsFoundAmongAutoCadsColours()
+        {
+            Assert.Equal(250, DxfColor.FromRgb(0x33, 0x33, 0x33).ColorIndex);
+            Assert.Equal(251, DxfColor.FromRgb(0x5B, 0x5B, 0x5B).ColorIndex);
+            Assert.Equal(102, DxfColor.FromRgb(10, 200, 30).ColorIndex);
+            Assert.Equal(12, DxfColor.FromRgb(0xCC, 0, 0).ColorIndex);
+        }
+
         #endregion
 
         #region What the library keeps raw

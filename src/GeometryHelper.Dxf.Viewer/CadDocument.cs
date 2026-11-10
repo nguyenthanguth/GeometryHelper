@@ -257,7 +257,7 @@ namespace GeometryHelper.Dxf.Viewer
                 throw new ArgumentNullException(nameof(path));
             }
 
-            return new CadDocument(DxfDatabase.Open(path), Path.GetFullPath(path)) { _hasPath = true };
+            return new CadDocument(WithHandles(DxfDatabase.Open(path)), Path.GetFullPath(path)) { _hasPath = true };
         }
 
         /// <summary>Opens a DXF from a stream.</summary>
@@ -272,10 +272,14 @@ namespace GeometryHelper.Dxf.Viewer
                 throw new ArgumentNullException(nameof(stream));
             }
 
-            return new CadDocument(DxfDatabase.Open(stream), name);
+            return new CadDocument(WithHandles(DxfDatabase.Open(stream)), name);
         }
 
-        /// <summary>Shows a database already in memory.</summary>
+        /// <summary>
+        /// Shows a database already in memory. One that writes no handles, as a drawing of R12 written by hand, is shown as a
+        /// copy read anew with a handle for each entity, as AutoCAD gives them on opening it; <see cref="Database"/> is then
+        /// that copy.
+        /// </summary>
         /// <param name="database">The database.</param>
         /// <param name="name">A name to show for it; null for none.</param>
         /// <returns>The document.</returns>
@@ -287,7 +291,7 @@ namespace GeometryHelper.Dxf.Viewer
                 throw new ArgumentNullException(nameof(database));
             }
 
-            return new CadDocument(database, name);
+            return new CadDocument(WithHandles(database), name);
         }
 
         /// <summary>Gets the drawing.</summary>

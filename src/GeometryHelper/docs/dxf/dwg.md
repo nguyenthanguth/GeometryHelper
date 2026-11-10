@@ -27,25 +27,26 @@ DXF: the library does not write DWG files.
 |---|---|---|
 | AC1015 | AutoCAD 2000, 2000i, 2002, and every later AutoCAD on "Save as AutoCAD 2000" | yes |
 | AC1018 | AutoCAD 2004, 2005, 2006 | yes |
-| AC1021 | AutoCAD 2007, 2008, 2009 | not yet: refused |
+| AC1021 | AutoCAD 2007, 2008, 2009 | yes |
 | AC1024 | AutoCAD 2010, 2011, 2012 | yes |
 | AC1027 | AutoCAD 2013 to 2017 | yes |
 | AC1032 | AutoCAD 2018 and later | yes |
 
-A DWG of a version not read, AC1021 among them and R13 and R14 (AC1012, AC1014), is refused with a
+A DWG of a version not read, R13 and R14 (AC1012, AC1014) among them, is refused with a
 `NotSupportedException` whose message names the version and the release. A file protected by a password is refused the
 same way.
 
 From AutoCAD 2004 a DWG is a set of pages, compressed and each with its own check sums, and from AutoCAD 2007 its texts
-are UTF-16. The DXF a DWG is turned into is of the DWG's own version, as AutoCAD's DXF of it would be, so a drawing of
-AutoCAD 2018 opens as a `DxfDatabase` of AC1032, with what that version has: true colours and transparencies, the
-material of a layer, the units of a block.
+are UTF-16. AutoCAD 2007 to 2009 code their pages by Reed-Solomon, with a compression and CRCs of 64 bits of their own.
+The DXF a DWG is turned into is of the DWG's own version, as AutoCAD's DXF of it would be, so a drawing of AutoCAD 2018
+opens as a `DxfDatabase` of AC1032, with what that version has: true colours and transparencies, the material of a
+layer, the units of a block.
 
 ## What is read
 
 The file is turned, in memory, into the DXF that says the same, record for record and with the handles of the file,
 and that DXF is read. Compared with the DXF AutoCAD itself writes of the same DWG, the records are the same group for
-group, numbers to nine places: eight drawings in each of the five versions read, and a drawing of 100 000 lines in each.
+group, numbers to nine places: eight drawings in each of the six versions read, and a drawing of 100 000 lines in each.
 
 | Part | Read |
 |---|---|
@@ -62,7 +63,8 @@ drawing's code page, with letters beyond it as `\U+XXXX`, and from AutoCAD 2007 
 the DXF, as AutoCAD's DXF of those versions is.
 
 A true colour of a table record (a layer, a viewport's ambient light) is given with the nearest colour index of the
-palette, as AutoCAD writes it; the file holds no index beside it. A layer of RGB 10, 200, 30 gets index 102.
+palette, as AutoCAD writes it; the file holds no index beside it. A layer of RGB 10, 200, 30 gets index 102. The
+palette is AutoCAD 2021's (see [`DxfColor`](xref:GeometryHelper.Dxf.DxfColor)).
 
 ## What is not read yet
 
@@ -107,12 +109,14 @@ Every check sum of the file is checked.
 | is a DWG of another version, or protected by a password | `NotSupportedException` naming the version |
 | has a wrong check sum in the file header, the header variables, the classes or the object map, or is cut short there | `FormatException` naming the part |
 | from AutoCAD 2004: has a page whose check sum is wrong, that does not decompress to its size, or that names more data than the file can hold | `FormatException` |
-| has one object with a wrong check sum, or one that cannot be decoded | that object is left out and the others are read; one Warn line gives the count and the first fault |
+| from AutoCAD 2007 to 2009: has a wrong CRC in its file header, its page map, its section map or a page | `FormatException`; a byte changed in the parity of a Reed-Solomon block changes nothing read, and the file reads |
+| has one object with a wrong check sum, one that cannot be decoded, or one whose values the library's geometry refuses (a damaged spline whose plane cannot be worked out) | that object is left out and the others are read; one Warn line gives the count and the first fault |
 
 Where an entity is left out, those after it in its block are still read. No broken file makes the reader hang or eat
 memory. 10 500 copies of the drawings of AutoCAD 2000 and 12 800 of the later versions, with bits changed at random
 (half of the later ones inside the decompressed objects under a repaired check sum), were each read or refused in under
-0.14 s, the process never above 36 MB. The sections of one file may decompress to at most 64 times the size of the file
+0.14 s, the process never above 36 MB; 8 000 copies of the drawings of AutoCAD 2007, changed the same way, in under
+0.15 s and 58 MB. The sections of one file may decompress to at most 64 times the size of the file
 and 8 MB more, a page to at most 1 MB; AutoCAD's drawings take 5 times their size or less.
 
 ## Speed
@@ -124,8 +128,10 @@ first. A drawing of 100 000 lines, 1.9 MB as a DWG of AutoCAD 2018 and 14 MB as 
 |---|---|---|---|
 | AC1015 (5.2 MB) | 758 ms | 477 ms | 292 ms |
 | AC1018 | 720 ms | 447 ms | 266 ms |
+| AC1021 (2.0 MB) | 750 ms | 471 ms | 270 ms |
 | AC1024 | 762 ms | 456 ms | 246 ms |
 | AC1027 | 748 ms | 418 ms | 247 ms |
 | AC1032 | 771 ms | 445 ms | 303 ms |
 
-The best of five reads on one machine, .NET Framework 4.8. A small drawing of a few hundred objects reads in 1 or 2 ms.
+The best of five reads on one machine, .NET Framework 4.8; AC1021 was timed later, on the machine under other load,
+where AC1018 took 747 to 796 ms in the same runs. A small drawing of a few hundred objects reads in 1 or 2 ms.

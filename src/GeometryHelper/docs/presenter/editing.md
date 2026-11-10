@@ -503,7 +503,14 @@ intersection, insertion, the crossing of two tracking lines) wins, the nearest o
 the cursor gives wherever its point lies (perpendicular, tangent, the centre of a circle whose rim is under the cursor, the
 insertion point of a block or a text under it); then a point on an extension, a parallel or a tracking line; then nearest.
 Where none is found the cursor is put on the grid, then held level or upright from the base point (ortho) or on a polar
-angle. The result is a [`CadSnapResult`](xref:GeometryHelper.Dxf.Viewer.CadSnapResult): the point, which
+angle. So an object snap under the aperture beats grid snap, ortho and polar tracking, as AutoCAD 2021's help has it:
+"Ortho is ignored when you enter coordinates or specify an object snap" (About Orthogonal Locking), and "coordinates
+and object snaps take precedence over an angle override", which itself overrides Grid Snap, Ortho mode and PolarSnap
+(About Specifying Distances, Lengths, and Angles). A point typed at the prompt is taken as typed, never snapped. With
+SNAP and OSNAP on and a grid of 10, LINE's next point from (1 000, 500) with the cursor at (3 987, 2 988) takes the
+endpoint (4 000, 3 000), 3 905.12 long, not the grid point (3 990, 2 990). The entities of a file with no handles, as
+one of R12 written by hand, snap as those of any other: the document gives each a handle on opening it (see [The document](display.md#the-document)). The result is a
+[`CadSnapResult`](xref:GeometryHelper.Dxf.Viewer.CadSnapResult): the point, which
 [`CadSnapKind`](xref:GeometryHelper.Dxf.Viewer.CadSnapKind) gave it, the handle of the object, and the dotted `Tracks` drawn
 to it.
 

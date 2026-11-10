@@ -59,6 +59,8 @@ namespace GeometryHelper.UnitTest.Dwg
         [InlineData("curves", "AC1018")]
         [InlineData("blocks", "AC1018")]
         [InlineData("props", "AC1018")]
+        [InlineData("curves", "AC1021")]
+        [InlineData("props", "AC1021")]
         [InlineData("curves", "AC1024")]
         [InlineData("blocks", "AC1024")]
         [InlineData("props", "AC1024")]
@@ -98,7 +100,7 @@ namespace GeometryHelper.UnitTest.Dwg
                 string dxf = Path.ChangeExtension(dwg, ".dxf");
                 byte[] file = File.ReadAllBytes(dwg);
 
-                if (!File.Exists(dxf) || DwgContainer.VersionOf(file) == "AC1021")
+                if (!File.Exists(dxf))
                 {
                     continue;
                 }
@@ -113,18 +115,18 @@ namespace GeometryHelper.UnitTest.Dwg
         }
 
         [Fact]
-        public void ADwgOfR2007_IsRefusedByName_TillItsOwnContainerIsRead()
+        public void ADwgOfR2004_LabelledAsR2007_IsRefusedAsBroken()
         {
+            // AC1021 is read through its own container, which an R2004 file does not have.
             byte[] file = DwgAnswerKey.Dwg("curves_AC1018");
             Encoding.ASCII.GetBytes("AC1021").CopyTo(file, 0);
 
-            NotSupportedException fault = Assert.Throws<NotSupportedException>(() => DwgReader.ToDxf(file));
-            Assert.Contains("AC1021", fault.Message);
-            Assert.Contains("AutoCAD 2007", fault.Message);
+            Assert.Throws<FormatException>(() => DwgReader.ToDxf(file));
         }
 
         [Theory]
         [InlineData("AC1018")]
+        [InlineData("AC1021")]
         [InlineData("AC1024")]
         [InlineData("AC1032")]
         public void ALayerNamedInVietnamese_ComesOutWithItsLetters(string version)

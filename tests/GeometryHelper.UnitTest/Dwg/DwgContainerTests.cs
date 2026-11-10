@@ -9,7 +9,8 @@ namespace GeometryHelper.UnitTest.Dwg
     /// <summary>
     /// The check sums of a DWG file and its containers: of R2000 the version at the start, the section locator, and the
     /// sections with their sentinels and check sums; of R2004 and later the masked file header, the pages with their sums
-    /// and their compression.
+    /// and their compression; of R2007 the file header and the pages coded by Reed-Solomon, their CRCs and their
+    /// compression.
     /// </summary>
     public class DwgContainerTests
     {
@@ -120,7 +121,6 @@ namespace GeometryHelper.UnitTest.Dwg
 
         [Theory]
         [InlineData("AC1014", "AutoCAD R14")]
-        [InlineData("AC1021", "AutoCAD 2007")]
         [InlineData("AC1036", "a release not known")]
         public void AnotherVersion_IsNotSupported_AndTheMessageNamesIt(string version, string release)
         {
@@ -293,6 +293,111 @@ namespace GeometryHelper.UnitTest.Dwg
             }
 
             Assert.True(caught > 30, "Only " + caught + " changed bytes were caught.");
+        }
+
+        [Theory]
+        [InlineData("curves_AC1021")]
+        [InlineData("props_AC1021")]
+        public void TheContainerOfR2007_GivesTheSectionsTheDecodersNeed(string name)
+        {
+            DwgContainer container = DwgContainer.Read(DwgAnswerKey.Dwg(name));
+
+            Assert.Equal("AC1021", container.Version);
+            Assert.Equal("ANSI_1252", container.CodePage);
+            Assert.Equal(0, container.Measurement);
+            Assert.True(container.Header.Length > 700, "The header variables hold " + container.Header.Length + " bytes.");
+            Assert.True(container.ObjectMap.Count > 190, "The object map holds " + container.ObjectMap.Count + " objects.");
+            Assert.All(container.ObjectMap, entry => Assert.InRange(entry.Value, 1, container.Objects.LongLength - 1));
+        }
+
+        [Fact]
+        public void AByteChangedInThePagesOfR2007_IsCaughtByTheirCrcs_OrChangesNothingRead()
+        {
+            // Of R2007 a page is Reed-Solomon blocks: a byte of data changed is a wrong CRC of 64 bits or a wrong sum; a
+            // byte of parity, of padding or of a section the reader does not take changes nothing it gives.
+            byte[] file = DwgAnswerKey.Dwg("curves_AC1021");
+            DwgContainer whole = DwgContainer.Read(file);
+            int caught = 0;
+            int same = 0;
+
+            for (int at = 0x80; at < file.Length; at += 97)
+            {
+                byte[] changed = (byte[])file.Clone();
+                changed[at] ^= 0x10;
+                DwgContainer read;
+
+                try
+                {
+                    read = DwgContainer.Read(changed);
+                }
+                catch (FormatException fault)
+                {
+                    Assert.True(fault.Message.Contains("check sum") || fault.Message.Contains("broken"), fault.Message);
+                    caught++;
+                    continue;
+                }
+
+                Assert.Equal(whole.Header, read.Header);
+                Assert.Equal(whole.Classes, read.Classes);
+                Assert.Equal(whole.Objects, read.Objects);
+                Assert.Equal(whole.ObjectMap, read.ObjectMap);
+                same++;
+            }
+
+            Assert.True(caught > 30, "Only " + caught + " changed bytes were caught.");
+            Assert.True(same > 30, "Only " + same + " changed bytes fell where nothing is read.");
+        }
+
+        [Theory]
+        [InlineData(0x80)]
+        [InlineData(0x83)]
+        [InlineData(0x80 + (3 * 40))]
+        [InlineData(0x80 + (3 * 16))]
+        [InlineData(0x80 + (3 * 60))]
+        public void AByteChangedInTheDataOfTheFileHeaderOfR2007_IsAWrongCheckSum(int at)
+        {
+            // The three blocks are interleaved: byte i of the data of block j lies at 0x80 + 3 i + j. The bytes changed are
+            // those of block 0 at 0 (the CRC of the check sequence), 1, 16 (the CRC of the compressed data), 40 and 60 (the
+            // compressed data).
+            byte[] file = DwgAnswerKey.Dwg("props_AC1021");
+            file[at] ^= 0x01;
+
+            FormatException fault = Assert.Throws<FormatException>(() => DwgContainer.Read(file));
+            Assert.Contains("file header", fault.Message);
+        }
+
+        [Fact]
+        public void TheDecompressionOfR2007_OnNoise_ReturnsOrRefuses_WithinItsOutput()
+        {
+            var random = new Random(2007);
+
+            for (int round = 0; round < 3000; round++)
+            {
+                var input = new byte[1 + random.Next(600)];
+                random.NextBytes(input);
+                var output = new byte[random.Next(4000)];
+
+                try
+                {
+                    int written = DwgLz21.Decompress(input, 0, input.Length, output);
+                    Assert.InRange(written, 0, output.Length);
+                }
+                catch (FormatException)
+                {
+                }
+            }
+        }
+
+        [Fact]
+        public void TheDecompressionOfR2007_LaysALiteralRunInItsOwnOrder()
+        {
+            // A first code of 0x20 takes its length, 3, from the third byte after it; the three bytes then come out
+            // reversed, as the specification lays a run of three.
+            byte[] input = { 0x20, 0x00, 0x00, 0x03, 0x41, 0x42, 0x43 };
+            var output = new byte[3];
+
+            Assert.Equal(3, DwgLz21.Decompress(input, 0, input.Length, output));
+            Assert.Equal(new byte[] { 0x43, 0x42, 0x41 }, output);
         }
 
         /// <summary>Where a section starts: record <paramref name="section"/> of the locator, nine bytes each from 0x19, its seeker after its number.</summary>

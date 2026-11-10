@@ -131,7 +131,6 @@ namespace GeometryHelper.UnitTest.Dwg
         [Theory]
         [InlineData("AC1012", "AutoCAD R13")]
         [InlineData("AC1014", "AutoCAD R14")]
-        [InlineData("AC1021", "AutoCAD 2007")]
         public void ADwgOfAnotherVersion_IsNotSupported_AndTheMessageNamesIt(string version, string release)
         {
             byte[] file = DwgAnswerKey.Dwg("empty");
@@ -273,6 +272,8 @@ namespace GeometryHelper.UnitTest.Dwg
         [InlineData("props_AC1024", 22)]
         [InlineData("blocks_AC1027", 23)]
         [InlineData("props_AC1032", 24)]
+        [InlineData("curves_AC1021", 25)]
+        [InlineData("props_AC1021", 26)]
         public void BytesChangedAnywhereInALaterVersion_AreRefusedOrRead_NeverAnythingElse(string name, int seed)
         {
             byte[] file = DwgAnswerKey.Dwg(name);
@@ -320,6 +321,8 @@ namespace GeometryHelper.UnitTest.Dwg
         [InlineData("props_AC1027", 36)]
         [InlineData("curves_AC1032", 37)]
         [InlineData("blocks_AC1032", 38)]
+        [InlineData("curves_AC1021", 39)]
+        [InlineData("props_AC1021", 40)]
         public void BytesChangedInsideTheObjectsOfALaterVersion_UnderARightCheckSum_AreLeftOutOrRead_NeverAnythingElse(string name, int seed)
         {
             // The pages carry their own sums, so the changes are made in the decompressed objects, each object's own check
@@ -349,6 +352,33 @@ namespace GeometryHelper.UnitTest.Dwg
 
                 TranscodesOrRefuses(container, name + " with an object byte changed at " + string.Join(", ", places));
             }
+        }
+
+        [Fact]
+        public void ASplineChangedSoThatItsPlaneCannotBeWorkedOut_IsLeftOut_AndTheOthersAreRead()
+        {
+            // Found by the fuzz of W3: byte 7413 of the objects of curves_AC1021, inside the SPLINE at 7261, set to 252
+            // gives the spline points whose plane the library's geometry refuses with an InvalidOperationException. It is
+            // one broken object, not a broken file.
+            byte[] file = DwgAnswerKey.Dwg("curves_AC1021");
+            DwgContainer container = DwgContainer.Read(file);
+            var reader = new DwgObjectReader(container.Objects, DwgClass.ReadAll(container.Classes, container.Version), container.Version);
+            KeyValuePair<ulong, long> spline = Assert.Single(container.ObjectMap, entry => entry.Value == 7261);
+            Assert.Equal("SPLINE", reader.Read(spline.Key, spline.Value).Name);
+
+            long[] data = DataOf(container.Objects, 7261, container.Version);
+            container.Objects[7413] = 252;
+            int crc = DwgCrc.Of(container.Objects, 7261, data[0] - 7261 + data[1], DwgCrc.Seed);
+            container.Objects[data[0] + data[1]] = (byte)crc;
+            container.Objects[data[0] + data[1] + 1] = (byte)(crc >> 8);
+            _written.Clear();
+
+            DxfDatabase database = DxfDatabase.Open(new MemoryStream(DwgTranscoder.ToDxf(container), false));
+
+            Assert.DoesNotContain(database.ModelSpace.OfType<DxfSpline>(), one => one.Handle == spline.Key.ToString("X", System.Globalization.CultureInfo.InvariantCulture));
+            Assert.NotEmpty(database.ModelSpace.OfType<DxfLine>());
+            string warning = Assert.Single(_written, line => line.Level == GeometryHelperLogLevel.Warn && line.Message.StartsWith("DwgReader:", StringComparison.Ordinal)).Message;
+            Assert.Contains("1 broken", warning);
         }
 
         /// <summary>
