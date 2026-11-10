@@ -112,6 +112,7 @@ the ones wanted.
       rows (L)
 
 ### To do
+- [ ] Layer States Manager, View Manager with New View, Drawing Units with Direction Control (designed in v110) (M)- [ ] AutoLISP: the interpreter and the drawing functions (entget, entmod, entmake, ssget, tblsearch, getvar, command,      getpoint…, defun c:), APPLOAD and acaddoc.lsp, then DCL dialogs, then vl- and vlax- functions (L; asked about,      waiting for the maintainer's go-ahead)
 - [ ] Command line and Recent: AutoComplete inside a running command; Search Content; an EXPORT command (S)
 - [ ] Dxf.App: an app icon, file association for .dxf (installer or registry), `--tab Home` in screenshot mode
 - [ ] Images of an area: PNG and JPG devices in PLOT and -PLOT ("GeometryHelper PNG", "GeometryHelper JPG", as AutoCAD's
@@ -127,7 +128,7 @@ the ones wanted.
 - [ ] Speed: draw the first display off the UI thread (10–13 s at 1 000 000 entities)
 - [ ] Speed: frame at extents at 1 000 000 entities (0.8–1.1 s, inside Skia); level of detail would change pixels (needs a decision)
 - [ ] Speed: highlight of 100 000 selected objects (1.2–1.6 s)
-- [ ] Blocks: BATTMAN, the Block Attribute Manager (design first)
+- [ ] Blocks (running): BATTMAN, the Block Attribute Manager (designed in v110)
 - [ ] Dimensions: radius, diameter and angular pictures follow DIMTAD, DIMJUST and the fit rules (linear and ordinate do)
 - [ ] Dimensions: the dimension line starts at the back of a closed arrowhead, as AutoCAD draws it; words sized by the
       font, not estimated
@@ -139,7 +140,7 @@ the ones wanted.
 - [ ] PLOT: print to Windows printers; add named page setups; embed only the glyphs used (smaller PDFs)
 - [ ] Xrefs: XOPEN, a balloon when a file changes, editable xref layers (`NAME|LAYER`), nested xrefs in the palette
 - [ ] Images: IMAGEFRAME in a drawing with no image yet (needs RASTERVARIABLES made in core)
-- [ ] PURGE dialog, Group Manager, Draw Order dialogs (design first)
+- [ ] PURGE dialog and Group Manager (running; designed in v110); Draw Order has no dialog in AutoCAD
 - [ ] Selection: QSELECT's "select objects" button
 
 ### Decisions for the maintainer
