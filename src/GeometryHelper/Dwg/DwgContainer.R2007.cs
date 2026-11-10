@@ -37,10 +37,11 @@ namespace GeometryHelper.Dwg
             }
 
             byte[] meta = FileHeader21(file);
+            ulong seed = (ulong)U64(meta, 0xF0);
             long budget = Math.Min(int.MaxValue, (file.LongLength * Expansion) + Allowance);
 
             long pagesMapAt = U64(meta, 0x38);
-            byte[] pageMapData = SystemPage21(file, pagesMapAt, U64(meta, 0x50), U64(meta, 0x58), U64(meta, 0x18), "page map", ref budget);
+            byte[] pageMapData = SystemPage21(file, pagesMapAt, U64(meta, 0x50), U64(meta, 0x58), U64(meta, 0x18), (ulong)U64(meta, 0x10), (ulong)U64(meta, 0x80), seed, "page map", ref budget);
             Dictionary<long, long[]> pages = ReadPageMap21(pageMapData, file.LongLength);
 
             if (!pages.TryGetValue(U64(meta, 0xC0), out long[] sectionMapPage))
@@ -48,7 +49,7 @@ namespace GeometryHelper.Dwg
                 throw new FormatException("The DWG page map does not place the section map.");
             }
 
-            byte[] sectionMapData = SystemPage21(file, sectionMapPage[0], U64(meta, 0xB0), U64(meta, 0xC8), U64(meta, 0xD8), "section map", ref budget);
+            byte[] sectionMapData = SystemPage21(file, sectionMapPage[0], U64(meta, 0xB0), U64(meta, 0xC8), U64(meta, 0xD8), (ulong)U64(meta, 0xD0), (ulong)U64(meta, 0xA8), seed, "section map", ref budget);
             Dictionary<string, Descriptor21> sections = ReadSectionMap21(sectionMapData);
 
             var container = new DwgContainer
@@ -59,15 +60,15 @@ namespace GeometryHelper.Dwg
                 Measurement = -1,
             };
 
-            container.Header = Section(Join21(file, pages, Need21(sections, "AcDb:Header"), ref budget), HeaderStart, HeaderEnd, "header variables", false);
-            container.Classes = Section(Join21(file, pages, Need21(sections, "AcDb:Classes"), ref budget), ClassesStart, ClassesEnd, "classes", false);
-            byte[] handles = Join21(file, pages, Need21(sections, "AcDb:Handles"), ref budget);
-            container.Objects = Join21(file, pages, Need21(sections, "AcDb:AcDbObjects"), ref budget);
+            container.Header = Section(Join21(file, pages, Need21(sections, "AcDb:Header"), seed, ref budget), HeaderStart, HeaderEnd, "header variables", false);
+            container.Classes = Section(Join21(file, pages, Need21(sections, "AcDb:Classes"), seed, ref budget), ClassesStart, ClassesEnd, "classes", false);
+            byte[] handles = Join21(file, pages, Need21(sections, "AcDb:Handles"), seed, ref budget);
+            container.Objects = Join21(file, pages, Need21(sections, "AcDb:AcDbObjects"), seed, ref budget);
             container.ObjectMap = ReadObjectMap(handles, 0, handles.LongLength, container.Objects.LongLength);
 
             if (sections.TryGetValue("AcDb:Template", out Descriptor21 template))
             {
-                byte[] data = Join21(file, pages, template, ref budget);
+                byte[] data = Join21(file, pages, template, seed, ref budget);
 
                 if (data.Length >= 2)
                 {
@@ -87,12 +88,28 @@ namespace GeometryHelper.Dwg
         /// <summary>
         /// The data of the file header of R2007, 0x110 bytes: the 0x400 bytes at 0x80 are three Reed-Solomon blocks,
         /// interleaved, whose data begins with a CRC, a key, the CRC of the compressed data and its size, then the data.
-        /// The data is compressed where its size is positive and taken as it is where the size is negative. Both CRCs are
-        /// checked.
+        /// The data is compressed where its size is positive and taken as it is where the size is negative. The three CRCs
+        /// are checked: that of the key and the key turned by itself, that of the compressed data, and that of the data.
         /// </summary>
         private static byte[] FileHeader21(byte[] file)
         {
             byte[] coded = Deinterleave(file, 0x80, 3, 239, 3 * 239);
+            ulong key = (ulong)U64(coded, 8);
+            int turn = (int)(key & 0x1F);
+            ulong turned = turn == 0 ? key : (key << turn) | (key >> (64 - turn));
+            var check = new byte[16];
+            Array.Copy(coded, 8, check, 0, 8);
+
+            for (int i = 0; i < 8; i++)
+            {
+                check[8 + i] = (byte)(turned >> (8 * i));
+            }
+
+            if (DwgCrc.Of64(check, 0, 16, DwgCrc.Seed1(0, 16), false) != (ulong)U64(coded, 0))
+            {
+                throw new FormatException("The DWG file header has a wrong check sum.");
+            }
+
             int size = (int)U32(coded, 0x18);
             int length = size < 0 ? -size : size;
             var meta = new byte[0x110];
@@ -160,9 +177,9 @@ namespace GeometryHelper.Dwg
         /// A system page of R2007, the page map or the section map, at <paramref name="offset"/> from the start of the
         /// pages: its data, compressed where the compressed size is less than the size, padded to eight bytes and repeated
         /// <paramref name="repeat"/> times, coded by Reed-Solomon (255, 239) in interleaved blocks. Only the first copy is
-        /// read.
+        /// read. Its two mirrored CRCs of 64 bits, of the compressed data and of the data, are checked from the file's seed.
         /// </summary>
-        private static byte[] SystemPage21(byte[] file, long offset, long compressed, long size, long repeat, string name, ref long budget)
+        private static byte[] SystemPage21(byte[] file, long offset, long compressed, long size, long repeat, ulong crcCompressed, ulong crc, ulong seed, string name, ref long budget)
         {
             if (offset < 0 || offset > file.LongLength || compressed <= 0 || compressed > file.LongLength || size <= 0 || size > budget
                 || compressed > size || repeat <= 0 || repeat > MaxRepeat)
@@ -175,16 +192,26 @@ namespace GeometryHelper.Dwg
             byte[] coded = Deinterleave(file, PagesStart + offset, blocks, 239, compressed);
             budget -= size;
 
-            if (compressed == size)
+            if (DwgCrc.Of64(coded, 0, compressed, DwgCrc.Seed1(seed, compressed), true) != crcCompressed)
             {
-                return coded;
+                throw new FormatException("The DWG " + name + " has a wrong check sum.");
             }
 
-            var data = new byte[size];
+            byte[] data = coded;
 
-            if (DwgLz21.Decompress(coded, 0, compressed, data) != size)
+            if (compressed < size)
             {
-                throw new FormatException("The DWG " + name + " decompresses to another size than it names.");
+                data = new byte[size];
+
+                if (DwgLz21.Decompress(coded, 0, compressed, data) != size)
+                {
+                    throw new FormatException("The DWG " + name + " decompresses to another size than it names.");
+                }
+            }
+
+            if (DwgCrc.Of64(data, 0, size, DwgCrc.Seed1(seed, size), true) != crc)
+            {
+                throw new FormatException("The DWG " + name + " has a wrong check sum.");
             }
 
             return data;
@@ -311,8 +338,9 @@ namespace GeometryHelper.Dwg
         /// The bytes of a section of R2007: its pages taken out of their Reed-Solomon blocks (interleaved where the coding
         /// of the section is 4, one after another where it is 1), decompressed where their compressed size is less than
         /// their size, and laid at their offsets; the gaps between them, pages of zeros AutoCAD does not write, stay zero.
+        /// Of each page the mirrored CRC of 64 bits of its compressed bytes and the sum of its data are checked.
         /// </summary>
-        private static byte[] Join21(byte[] file, Dictionary<long, long[]> pages, Descriptor21 section, ref long budget)
+        private static byte[] Join21(byte[] file, Dictionary<long, long[]> pages, Descriptor21 section, ulong seed, ref long budget)
         {
             if (section.Encrypted == 1)
             {
@@ -380,7 +408,7 @@ namespace GeometryHelper.Dwg
                     Array.Copy(file, PagesStart + place[0], coded, 0, coded.LongLength);
                 }
 
-                if (DwgCrc.Of64(coded, 0, coded.LongLength, DwgCrc.Seed1(0, coded.LongLength), true) != page.Crc)
+                if (DwgCrc.Of64(coded, 0, coded.LongLength, DwgCrc.Seed1(seed, coded.LongLength), true) != page.Crc)
                 {
                     throw new FormatException("The DWG section " + section.Name + " has a page with a wrong check sum.");
                 }

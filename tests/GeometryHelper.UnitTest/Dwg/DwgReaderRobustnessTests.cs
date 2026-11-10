@@ -131,7 +131,6 @@ namespace GeometryHelper.UnitTest.Dwg
         [Theory]
         [InlineData("AC1012", "AutoCAD R13")]
         [InlineData("AC1014", "AutoCAD R14")]
-        [InlineData("AC1021", "AutoCAD 2007")]
         public void ADwgOfAnotherVersion_IsNotSupported_AndTheMessageNamesIt(string version, string release)
         {
             byte[] file = DwgAnswerKey.Dwg("empty");
@@ -273,6 +272,8 @@ namespace GeometryHelper.UnitTest.Dwg
         [InlineData("props_AC1024", 22)]
         [InlineData("blocks_AC1027", 23)]
         [InlineData("props_AC1032", 24)]
+        [InlineData("curves_AC1021", 25)]
+        [InlineData("props_AC1021", 26)]
         public void BytesChangedAnywhereInALaterVersion_AreRefusedOrRead_NeverAnythingElse(string name, int seed)
         {
             byte[] file = DwgAnswerKey.Dwg(name);
@@ -320,6 +321,8 @@ namespace GeometryHelper.UnitTest.Dwg
         [InlineData("props_AC1027", 36)]
         [InlineData("curves_AC1032", 37)]
         [InlineData("blocks_AC1032", 38)]
+        [InlineData("curves_AC1021", 39)]
+        [InlineData("props_AC1021", 40)]
         public void BytesChangedInsideTheObjectsOfALaterVersion_UnderARightCheckSum_AreLeftOutOrRead_NeverAnythingElse(string name, int seed)
         {
             // The pages carry their own sums, so the changes are made in the decompressed objects, each object's own check
