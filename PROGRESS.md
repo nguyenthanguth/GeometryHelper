@@ -138,7 +138,8 @@ the ones wanted.
   - [ ] W2 follow-ups: the shared ACI palette (DxfColor) has 250 black where AutoCAD's 250-255 greys are 51, 80, 105,
         130, 190, 255 (worked round in the DWG reader only); test drawings with a colour-book colour (group 430) and an
         R2018 multi-line attribute; spline normal sign off XY (8 of 10 match; parked) (S)
-  - [ ] W3 (running) R2007 (AC1021): its own layout, Reed-Solomon, Unicode strings (M-L)
+  - [x] W3 R2007 (AC1021): its own layout, Reed-Solomon, Unicode strings (M-L); the ACI palette made AutoCAD 2021's
+        (197 of 255 indexes were wrong)
   - [ ] W4 Every entity and object: hatch, dimension, MTEXT, multileader, table, dynamic block data, xref, image,
         layouts; proxies kept as they are (L)
   - [ ] W5 Writing R2018 (AutoCAD 2021's own), then R2000-R2013 if wanted (L)
@@ -180,8 +181,11 @@ the ones wanted.
 - [x] Dynamic input: with OSNAP the fields follow the raw cursor, not the snapped point the band is drawn to (S)
 - [x] Dynamic input follow-ups: MIRROR and other commands still on X and Y; CIRCLE 3P; angle field from a reference line;
       grip rotate and scale tested on their own (S)
-- [ ] Snapping: grid SNAP beats an object snap (3 174.93 to the grid instead of 3 162.28 to an endpoint; AutoCAD gives the
-      object snap precedence); a handle-less R12 DXF gives no object snaps (S)
+- [x] Snapping: a handle-less R12 DXF gave no object snaps (now given handles on opening, as AutoCAD does); the snap
+      order was already AutoCAD's and is pinned by a test (S)
+- [ ] Snapping: the presenter starts with SNAP on, AutoCAD's SNAPMODE default is 0 (S)
+- [ ] Tests: DisplayPatchSpeedTests still fails about 1 run in 6 under other builds' load (layer on 0.73 of whole); take
+      each phase as the best of a few runs instead of one, limits unchanged (S)
 - [ ] COPYVIEW (not in AutoCAD): the view as an image on the clipboard, also on the canvas right-click menu (optional)
 - [ ] Tables: the cell right-click menu, column letters and row numbers, autofill and width grips, drag-select a range
 - [ ] Tables (running): rows grow for wrapped text; Tab in the last cell adds a row; first/second/other row cell styles
