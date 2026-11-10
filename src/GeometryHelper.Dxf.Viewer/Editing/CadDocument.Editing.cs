@@ -346,7 +346,7 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         private CadEditResult HandOver(string name, IReadOnlyList<CadEditRecord> planned, Action<CadEditScope> apply, List<CadEditRecord> owned)
         {
-            byte[] savepoint = Snapshot();
+            PackedDrawing savepoint = Snapshot();
             int kept = _groupRecords.Count;
             Dictionary<string, string> measured = null;
 
@@ -426,7 +426,7 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>Reads the drawing back from a savepoint taken in the open group, the group's records made since dropped.</summary>
-        private void Restore(byte[] savepoint, int kept)
+        private void Restore(PackedDrawing savepoint, int kept)
         {
             Reload(savepoint, null);
 
@@ -745,11 +745,11 @@ namespace GeometryHelper.Dxf.Viewer
             Changed?.Invoke(this, new CadDocumentChangedEventArgs(CadChangeKind.Rollback, _groupName, Array.Empty<string>(), AllSpaces.ToArray(), true));
         }
 
-        private byte[] Snapshot()
+        private PackedDrawing Snapshot()
         {
             var raw = new MemoryStream();
             Database.Save(raw);
-            return Pack(raw.GetBuffer(), (int)raw.Length);
+            return PackedDrawing.Pack(raw.GetBuffer(), (int)raw.Length);
         }
 
         /// <summary>The drawing as it stands, saved now and compressed on a worker thread, for a step of the undo list.</summary>
@@ -760,49 +760,29 @@ namespace GeometryHelper.Dxf.Viewer
             return new KeptState(raw.GetBuffer(), (int)raw.Length);
         }
 
-        private static byte[] Pack(byte[] raw, int length)
-        {
-            var packed = new MemoryStream();
-
-            using (var deflate = new DeflateStream(packed, CompressionLevel.Fastest, true))
-            {
-                deflate.Write(raw, 0, length);
-            }
-
-            return packed.ToArray();
-        }
-
         /// <summary>
-        /// A drawing kept for undo: saved at once, as the step stands, and compressed on a worker thread, so that an edit of a
-        /// drawing of a million entities (140 MB as text) does not wait for its packing; an undo that needs it first waits.
+        /// A drawing kept for undo: saved at once, as the step stands, and compressed on worker threads, so that an edit of a
+        /// drawing of a million entities (73 MB as text) does not wait for its packing; an undo that needs it first waits.
         /// </summary>
         private sealed class KeptState
         {
-            private readonly Task<byte[]> _packing;
+            private readonly Task<PackedDrawing> _packing;
 
             public KeptState(byte[] raw, int length)
             {
-                _packing = Task.Run(() => Pack(raw, length));
+                _packing = Task.Run(() => PackedDrawing.Pack(raw, length));
             }
 
-            public byte[] Bytes => _packing.GetAwaiter().GetResult();
+            public PackedDrawing Bytes => _packing.GetAwaiter().GetResult();
         }
 
         /// <summary>
         /// Reads the drawing from kept bytes and points the spaces at it. The display lists of the spaces the records touched
         /// are dropped, those of the others kept, as the drawing there is the same; null records drop them all.
         /// </summary>
-        private void Reload(byte[] state, IReadOnlyList<CadEditRecord> records)
+        private void Reload(PackedDrawing state, IReadOnlyList<CadEditRecord> records)
         {
-            var bytes = new MemoryStream();
-
-            using (var inflate = new DeflateStream(new MemoryStream(state), CompressionMode.Decompress))
-            {
-                inflate.CopyTo(bytes);
-            }
-
-            bytes.Position = 0;
-            Rebind(DxfDatabase.Open(bytes), records);
+            Rebind(DxfDatabase.Open(state.Unpack()), records);
         }
 
         /// <summary>
@@ -1134,15 +1114,84 @@ namespace GeometryHelper.Dxf.Viewer
     /// <summary>A savepoint inside a group of edits: the drawing as it stood, and how many of the group's records were made by then.</summary>
     internal sealed class CadGroupMark
     {
-        internal CadGroupMark(byte[] state, int kept)
+        internal CadGroupMark(PackedDrawing state, int kept)
         {
             State = state;
             Kept = kept;
         }
 
-        internal byte[] State { get; }
+        internal PackedDrawing State { get; }
 
         internal int Kept { get; }
+    }
+
+    /// <summary>
+    /// A drawing saved and compressed for undo, in pieces of 4 MB packed and unpacked side by side on worker threads, so that
+    /// a drawing of a million entities is not packed and read back through one stream; a drawing smaller than a piece is one
+    /// piece. The bytes unpacked are the bytes packed.
+    /// </summary>
+    internal sealed class PackedDrawing
+    {
+        private const int Piece = 4 << 20;
+
+        private readonly byte[][] _pieces;
+        private readonly int _length;
+
+        private PackedDrawing(byte[][] pieces, int length)
+        {
+            _pieces = pieces;
+            _length = length;
+        }
+
+        /// <summary>Packs the first <paramref name="length"/> bytes of a buffer.</summary>
+        internal static PackedDrawing Pack(byte[] raw, int length)
+        {
+            var pieces = new byte[(length + Piece - 1) / Piece][];
+
+            Parallel.For(0, pieces.Length, i =>
+            {
+                int start = i * Piece;
+                var packed = new MemoryStream();
+
+                using (var deflate = new DeflateStream(packed, CompressionLevel.Fastest, true))
+                {
+                    deflate.Write(raw, start, Math.Min(Piece, length - start));
+                }
+
+                pieces[i] = packed.ToArray();
+            });
+
+            return new PackedDrawing(pieces, length);
+        }
+
+        /// <summary>The bytes packed, as a stream at its start.</summary>
+        internal MemoryStream Unpack()
+        {
+            var raw = new byte[_length];
+
+            Parallel.For(0, _pieces.Length, i =>
+            {
+                int at = i * Piece;
+                int end = Math.Min(at + Piece, _length);
+
+                using (var inflate = new DeflateStream(new MemoryStream(_pieces[i]), CompressionMode.Decompress))
+                {
+                    while (at < end)
+                    {
+                        int read = inflate.Read(raw, at, end - at);
+
+                        if (read <= 0)
+                        {
+                            throw new InvalidDataException("A piece of a drawing kept for undo is cut short.");
+                        }
+
+                        at += read;
+                    }
+                }
+            });
+
+            return new MemoryStream(raw, 0, _length, false, true);
+        }
     }
 
     /// <summary>
