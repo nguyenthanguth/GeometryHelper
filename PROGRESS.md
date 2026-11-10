@@ -240,11 +240,13 @@ the ones wanted.
 
 ### Decisions for the maintainer
 
-- [ ] (running: AutoCAD checked) Esc while editing a TEXT in place: cancel (now) or keep what was typed (AutoCAD?)
-- [ ] (running) DIMBREAK breaks are drawn only, not stored as AutoCAD stores them: a DXF of AutoCAD 2021 with a broken dimension
-      would let them be stored
-- [ ] (running) The oblique angle of a dimension: from the x axis (presenter) or from the dimension line (core's doc)
-- [ ] (running) Picking: the object on top wins among those within a tenth of the pickbox (now), or always within the whole pickbox
+- [ ] Esc while editing a TEXT in place: cancel (now) or keep what was typed. Autodesk's help says nothing for single-line
+      TEXT and a script cannot send Esc: the maintainer to try it once in AutoCAD
+- [x] DIMBREAK breaks stored as AutoCAD stores them (BREAKDATA in the dimension's extension dictionary), read and drawn
+      again on redraw; AUDIT 0 in AutoCAD
+- [x] The oblique angle of a dimension is measured from the dimension line, as AutoCAD (presenter and core's doc fixed)
+- [x] Picking: the object on top wins anywhere in the pickbox (SORTENTS bit 1), else the one drawn first, as AutoCAD
+- [ ] DIMBREAK's automatic gap of a new imperial drawing: AutoCAD 0.125 (its default), the presenter 1.5 x DIMASZ (S)
 
 ## Part B: model drawings
 
