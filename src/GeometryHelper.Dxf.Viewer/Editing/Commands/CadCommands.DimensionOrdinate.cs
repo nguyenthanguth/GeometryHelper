@@ -48,6 +48,9 @@ namespace GeometryHelper.Dxf.Viewer
                 feature = c.Input.Point;
             }
 
+            // The feature is the ordinate's point 1, tied as AutoCAD 2021 ties it (group 90 of its DIMASSOC 2).
+            DxfOsnapPointRef tied = CadDimAssociation.FromSnap(c.Document, 1, c.Input.Snap);
+
             bool? xDatum = null;
             string text = null;
             double? turn = null;
@@ -99,7 +102,7 @@ namespace GeometryHelper.Dxf.Viewer
             GeoVector2 leader = ucs.ToUcs(end - feature);
             bool alongX = xDatum ?? Math.Abs(leader.Y) > Math.Abs(leader.X);
             var origin = new GeoPoint2(ucs.Origin.X, ucs.Origin.Y);
-            OrdinateDimension(c, style, alongX, origin, ucs.Angle, feature, end, text, turn, true);
+            CadDimAssociation.Tie(c, OrdinateDimension(c, style, alongX, origin, ucs.Angle, feature, end, text, turn, true), new[] { tied });
         }
 
         /// <summary>

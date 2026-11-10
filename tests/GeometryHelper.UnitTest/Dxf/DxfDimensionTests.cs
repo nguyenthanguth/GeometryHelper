@@ -396,6 +396,23 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         [Fact]
+        public void ADimensionMadeInCode_GivenAnAnonymousBlock_IsWrittenAsItsOwn_AndMovesItsPictureWithIt()
+        {
+            // AutoCAD 2021 writes group 70 of a DIMLINEAR as 32: the block is the dimension's alone, moved with it.
+            var db = new DxfDatabase("AC1027");
+            var picture = new DxfBlockTableRecord { Name = "*D" };
+            db.BlockTable.Add(picture);
+            picture.AppendEntity(new DxfLine(new GeoPoint3(0, 10, 0), new GeoPoint3(100, 10, 0)));
+            var dimension = new DxfRotatedDimension(0.0, new GeoPoint3(0, 0, 0), new GeoPoint3(100, 0, 0), new GeoPoint3(100, 10, 0), string.Empty, null) { DimBlock = picture };
+            db.ModelSpace.AppendEntity(dimension);
+
+            dimension.TransformBy(GeoTransform3.Translation(new GeoVector3(5, 20, 0)));
+
+            Near(new GeoPoint3(5, 30, 0), picture.OfType<DxfLine>().Single().StartPoint);
+            Assert.Contains("\n 70\n32\n", db.ToText().Replace("\r", string.Empty), StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void ADimensionInATiltedPlane_TurnedAboutZ_KeepsItsTextWhereTheTurnTakesIt()
         {
             DxfDatabase db = DxfDatabase.Parse(DxfDimensionDrawings.R2018);

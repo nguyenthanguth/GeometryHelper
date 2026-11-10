@@ -102,9 +102,10 @@ the ones wanted.
       through the core's API, not only MVIEW (S)
 - [ ] Styles: DICTIONARYVAR class in drawings made new, so Set Current works for multileader and table styles; MLEADER with
       no style makes Standard; Block and None content; the Annotative flag written (S)
-- [ ] Associative dimensions: an aligned dimension with one end stretched (AutoCAD moves its line), a line and its dimension
-      copied together stay tied, intersection and other snaps tied, ties from DIM, QDIM, DIMCONTINUE, DIMBASELINE, ordinate
-      and two-line angular; check whether a plain MOVE leaves a presenter-made dimension's picture behind (flag 32) (M)
+- [x] Associative dimensions round 3: flag 32 written so a plain MOVE takes the picture; copies get their own picture and
+      stay tied to copied objects; intersection snaps; ties from DIM, QDIM, DIMCONTINUE, DIMBASELINE, ordinate, angular
+- [ ] Associative dimensions: PERpendicular and TANgent snaps tied (AutoCAD writes a second "last point" reference after
+      one of 75 = 1, which the core's DIMASSOC neither reads apart nor writes) (S)
 - [ ] Blocks: BEDIT, the Block Editor (L, design first)
 - [ ] Blocks: dynamic blocks in use: custom grips (visibility, lookup, stretch, flip, rotate, array) and their Properties
       rows (L)

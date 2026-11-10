@@ -637,9 +637,7 @@ namespace GeometryHelper.Dxf.Viewer
                 {
                     foreach (string handle in handles)
                     {
-                        DxfEntity copied = s.Document.FindEntity(handle).GetTransformedCopy(move);
-                        CadOwnerTag.Remove(copied);
-                        s.Append(s.Document.FindSpace(handle), copied);
+                        AppendCopy(s, handle, move);
                     }
                 }
             });

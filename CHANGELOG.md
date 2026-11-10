@@ -6,6 +6,19 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** A dimension the presenter made left its picture behind when moved on its own (MOVE, ROTATE, a grip): the core
+wrote it without flag 32 of group 70, which says the block is the dimension's alone and which the core's `TransformBy`
+needs to move the picture. `DxfDimension.DimBlock` set to an anonymous block now marks it, as AutoCAD 2021 writes a
+DIMLINEAR's 70 as 32. A copy of a dimension made by COPY, ARRAY or a grip's Copy gets a picture block of its own, as
+AutoCAD's COPY copies it, so that it is drawn where it stands and not on top of its original.
+
+**NEW.** The presenter's associative dimensions are tied by more commands and snaps, as AutoCAD 2021 writes them: DIM,
+DIMCONTINUE and DIMBASELINE (the first point tied to what the origin it starts from was tied to), QDIM (line ends, polyline
+vertices, circle centers), DIMORDINATE, DIMANGULAR of two lines (four ends) and of three points, and INTersection snaps (both
+objects). A line and its dimension copied together leave the copy tied to the copied line. An ordinate follows its point,
+its leader end moved along the axis measured alone; an angle of two lines keeps its arc's share of the angle. AutoCAD
+2021 audits a drawing with every case with no error and moves each such dimension with its objects.
+
 **NEW.** The presenter's Layer manager has AutoCAD 2021's VP columns while a layout is current: VP Freeze, New VP Freeze,
 VP Color, VP Linetype, VP Lineweight, VP Transparency and VP Plot Style, acting on the viewport worked through or the one
 selected on the paper, an override marked blue; its right-click menu freezes and thaws a layer in all viewports, adds a
