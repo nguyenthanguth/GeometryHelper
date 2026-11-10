@@ -394,6 +394,107 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.All(document.Selection.Handles, h => Assert.Equal("WALLS", document.FindEntity(h).Layer));
         }
 
+        /// <summary>
+        /// A drawing of four groups: EMPTY never given a member, GONE whose one line is erased, an unnamed *A1 emptied the
+        /// same way, and FULL of one line.
+        /// </summary>
+        private static CadDocument Grouped()
+        {
+            var db = new DxfDatabase("AC1027");
+
+            if (db.GroupDictionary == null)
+            {
+                db.NamedObjectsDictionary.SetAt("ACAD_GROUP", new DxfDBDictionary());
+            }
+
+            var lines = new List<DxfLine>();
+
+            for (int i = 0; i < 3; i++)
+            {
+                var line = new DxfLine(new GeoPoint3(0, 10 * i, 0), new GeoPoint3(100, 10 * i, 0));
+                db.ModelSpace.AppendEntity(line);
+                lines.Add(line);
+            }
+
+            string[] names = { "GONE", "*", "FULL" };
+
+            for (int i = 0; i < 3; i++)
+            {
+                var group = new DxfGroup(string.Empty, true);
+                db.GroupDictionary.SetAt(names[i], group);
+                group.Append(lines[i]);
+            }
+
+            db.GroupDictionary.SetAt("EMPTY", new DxfGroup(string.Empty, true));
+            lines[0].Erase();
+            lines[1].Erase();
+            return CadDocument.From(db, "groups.dxf");
+        }
+
+        /// <summary>The names of the drawing's groups, in ordinal order.</summary>
+        private static string[] GroupNames(CadDocument document)
+            => document.Database.GroupDictionary.Select(e => e.Key).OrderBy(n => n, StringComparer.Ordinal).ToArray();
+
+        /// <summary>
+        /// AutoCAD 2021's -PURGE Groups of such a drawing: "Deleting group "GONE"." for each group that holds nothing, the
+        /// unnamed "*A1" among them, "3 groups deleted.", and of a second run "No unreferenced groups found.".
+        /// </summary>
+        [Fact]
+        public void MinusPurgeGroups_DeletesTheGroupsThatHoldNothing_NamedOrNot_AndKeepsTheOneWithAMember()
+        {
+            CadDocument document = Grouped();
+            CadCommandSession session = Run(Session(document), "-PURGE", "G", Enter, "N");
+
+            Assert.False(session.IsRunning);
+            Assert.Contains("Deleting group \"*A1\".", session.History);
+            Assert.Contains("Deleting group \"EMPTY\".", session.History);
+            Assert.Contains("Deleting group \"GONE\".", session.History);
+            Assert.Equal("3 groups deleted.", session.History.Last());
+            Assert.Equal(new[] { "FULL" }, GroupNames(document));
+            Assert.Equal(1, Group(document, "FULL").NumEntities);
+
+            Run(session, "-PURGE", "G", Enter, "N");
+            Assert.Equal("No unreferenced groups found.", session.History.Last());
+
+            Assert.True(document.Undo());
+            Assert.Equal(4, GroupNames(document).Length);
+        }
+
+        [Fact]
+        public void MinusPurgeAll_TakesTheEmptyGroupsWithTheRest_AndVerifiedAsksOfEach()
+        {
+            CadDocument document = Grouped();
+            CadCommandSession session = Run(Session(document), "-PURGE", "G", "E*", Enter);
+            Assert.Equal("Purge group \"EMPTY\"? [Yes/No] <No>:", session.PromptText);
+            Run(session, Enter);
+            Assert.Equal(4, GroupNames(document).Length);
+
+            Run(session, "-PURGE", "A", Enter, "N");
+            Assert.Contains("3 groups deleted.", session.History);
+            Assert.Equal(new[] { "FULL" }, GroupNames(document));
+        }
+
+        [Fact]
+        public void PurgeDialog_ListsTheEmptyGroupsUnderGroups_PurgesOne_AndSaysOfAGroupInUseThatItHoldsObjects()
+        {
+            CadDocument document = Grouped();
+            CadPurgeRequest request = null;
+            CadCommandSession session = Answering(document, "PURGE", e =>
+            {
+                request = (CadPurgeRequest)e.Payload;
+                request.ConfirmEach = false;
+                Assert.Equal(new[] { "*A1", "EMPTY", "GONE" }, request.Purgeable.Single(k => k.Name == "Groups").Items.Select(i => i.Name));
+                Assert.Equal(new[] { "Group FULL holds objects." }, Item(request.InUse, "Groups", "FULL").Reasons);
+                Assert.Equal(1, request.Purge(new[] { Item(request.Purgeable, "Groups", "GONE") }));
+                Assert.Equal(new[] { "*A1", "EMPTY" }, request.Purgeable.Single(k => k.Name == "Groups").Items.Select(i => i.Name));
+                return true;
+            });
+
+            Run(session, "PURGE");
+
+            Assert.Equal(new[] { "*A1", "EMPTY", "FULL" }, GroupNames(document));
+        }
+
         [Fact]
         public void PurgeWithNoWindow_AsksAsMinusPurge_AndMinusPurgeAllPurgesNestedItemsToo()
         {

@@ -330,6 +330,30 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             UndoesToStart(document, start, "ATTSYNC");
         }
 
+        /// <summary>
+        /// Autodesk's help of ATTSYNC: it "does not change any values assigned to attributes in existing blocks", and it
+        /// "removes any format or property changes made with the ATTEDIT or EATTEDIT commands".
+        /// </summary>
+        [Fact]
+        public void AttSync_TakesBackAnAttributeMovedResizedAndRecolouredOnItsInsert_AndKeepsItsValue()
+        {
+            CadDocument document = Synced();
+            DxfBlockReference insert = All<DxfBlockReference>(document.ModelSpace)[0];
+            DxfAttributeReference grid = insert.AttributeCollection.Single(a => a.Tag == "GRID");
+            grid.Position = new GeoPoint3(500, 500, 0);
+            grid.Height = 9.0;
+            grid.Rotation = 0.5;
+            grid.ColorIndex = 1;
+
+            Start(document, "ATTSYNC", "N", "GB");
+
+            insert = All<DxfBlockReference>(document.ModelSpace)[0];
+            InLine(insert, "C", 1.0);
+            grid = insert.AttributeCollection.Single(a => a.Tag == "GRID");
+            Assert.Equal(0.0, grid.Rotation, 9);
+            Assert.Equal(256, grid.ColorIndex);
+        }
+
         [Fact]
         public void AttSyncBySelect_AsksToSyncTheBlockPicked_AndOfABlockWithNoAttributesSaysSo()
         {

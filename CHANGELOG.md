@@ -6,6 +6,13 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** PURGE and -PURGE of the presenter purge groups, as AutoCAD 2021's do: the Groups option of -PURGE and of its
+All, and a Groups node in the tree of the Purge dialog. A group is purged when it holds nothing, whether it was never
+given a member or its members were all erased, named or unnamed: of a drawing with the groups EMPTY and FULL and an
+unnamed group whose one line was erased, -PURGE Groups says `Deleting group "*A1".`, `Deleting group "EMPTY".`,
+`2 groups deleted.` and keeps FULL, and a second run says `No unreferenced groups found.`. Find Non-Purgeable Items
+lists FULL with `Group FULL holds objects.`.
+
 **FIXED.** A disabled drop-down and a disabled button of the presenter look disabled. The shared styles of the theme
 gave neither a disabled look, so the Live section, Visual style and Background boxes of New View, the Lighting box of
 Drawing Units and the ribbon buttons that need a drawing, or are not built yet, read as ones to press, and a disabled
