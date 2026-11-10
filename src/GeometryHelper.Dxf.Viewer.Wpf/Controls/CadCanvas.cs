@@ -734,9 +734,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 Fit(ref _marked, info);
 
                 using (SKSurface surface = SKSurface.Create(info, _marked.GetPixels(), _marked.RowBytes))
+                using (SKPixmap pixels = _marked.PeekPixels())
                 {
                     Copy(_scene, info, _marked.GetPixels(), _marked.RowBytes);
-                    Highlight(surface.Canvas, document, highlighted, false);
+                    Highlight(surface.Canvas, document, highlighted, false, pixels);
                     surface.Canvas.Flush();
                 }
             }
@@ -2479,14 +2480,17 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             dc.DrawRectangle(null, luminance < 0.5 ? ActiveFrameLight : ActiveFrameDark, FrameOnScreen(through));
         }
 
-        /// <summary>Draws entities highlighted over a picture: through a viewport those of model space, inside its frame alone.</summary>
-        private void Highlight(SKCanvas canvas, CadDocument document, IReadOnlyCollection<string> handles, bool hover)
+        /// <summary>
+        /// Draws entities highlighted over a picture: through a viewport those of model space, inside its frame alone. Given the
+        /// picture's pixels, many are drawn by several threads (<see cref="SkiaCanvasRenderer.RenderHighlight"/>).
+        /// </summary>
+        private void Highlight(SKCanvas canvas, CadDocument document, IReadOnlyCollection<string> handles, bool hover, SKPixmap pixels = null)
         {
             DxfViewport through = Through;
 
             if (through == null)
             {
-                _renderer.RenderHighlight(canvas, document, Space, View, Options, handles, hover);
+                _renderer.RenderHighlight(canvas, document, Space, View, Options, handles, hover, pixels);
                 return;
             }
 

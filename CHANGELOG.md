@@ -6,6 +6,16 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**CHANGED.** The presenter draws the highlight of a large selection on several threads. Where several thousand items are
+selected, the canvas is cut into tiles, a thread a tile, and an item reaching into several tiles is drawn once every one
+of their threads has drawn what comes before it; a text, a hatch, a ray or a picture is drawn with the other threads
+waiting. The picture is pixel for pixel the one a single thread draws: a test compares the two on a drawing of 100 000
+entities, and the pictures of that drawing and of two sample drawings, at three zooms, plain, selected and hovered, with
+lineweights on and off, hash as before. All of that drawing selected is highlighted in about 150 ms rather than 300 on
+24 processors under .NET Framework 4.8, and with the whole workspace drawn, its canvas 1 000 by 696 pixels, the canvas
+draws the selection in about 240 ms rather than 360. A selection crammed into a patch of a few hundred pixels gains
+nothing.
+
 **FIXED.** The plane the DXF editing model finds for a 3D polyline or a spline no longer throws on points it cannot
 place. Points a nanometre off one line, as (0, 0, 0), (1 000, 0, 0) and (2 000, 1E-9, 0), or a normal given of length
 1E-7, threw "Cannot normalize a zero-length vector" out of `DxfPolyline3d.GetOffsetCurves`, the offsets of
