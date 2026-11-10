@@ -6,6 +6,25 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** DIMARC (DAR), the presenter's arc length dimension, as AutoCAD 2021 makes it and stored as the library's
+`DxfArcDimension`: Mtext and Text for its words, Angle for theirs, Partial for the length between two points of the arc,
+and Leader, offered past 90 degrees of sweep, for a leader from the words' arc to the arc measured. Below 90 degrees the
+extension lines run along the middle of the arc, from 90 up from the centre; the arc symbol stands before the words
+(DIMARCSYM 0), over them (1) or nowhere (2); a point in the sector the arc does not sweep dimensions the rest of the
+circle. An arc of 30 from 20 to 60 degrees dimensioned 40 out reads "21" 41.88 out at 40 degrees. Its pictures match the
+69 AutoCAD drew to 0.01, and AutoCAD draws the dimensions stored the same.
+
+**CHANGED.** The words of the presenter's dimension pictures are measured in the font of their text style as AutoCAD
+measures them, not taken as 0.7 of their height a letter: "R20" of arial.ttf 2.5 high is 5.965 wide and 2.553 high. A
+TrueType font is read from the Fonts folders of Windows, an SHX font where the fonts set on a document find it. The
+526 pictures of linear, radius, diameter and angular dimensions AutoCAD drew now all match to 0.01 (35 before); a radius
+of 6 takes "R6" inside, a point on the dimension line has its extension line, and an angle's ticks turn along the arc.
+
+**CHANGED.** DIMTEDIT of an angle under DIMTMOVE 0 runs the arc through the point given and stands the words on it
+there, above it as they read; a radius's or a diameter's words slide along its line, which stays, under DIMTMOVE 0 and
+1, and stand at the point under 2. A radius or a diameter made under DIMTMOVE 1 or 2 keeps its line through the point
+the circle was picked at, as AutoCAD 2021 does. The grips drag the words as before.
+
 **NEW.** The presenter previews the object a prompt is about to make, as AutoCAD 2021 drags it: `CadPrompt.Preview`
 (`CadPreview`) gives the display items of what a point picked at the cursor would make, made by the command's own code,
 and the canvas draws them in the current layer's colour. RECTANG asking its other corner draws the rectangle, not a dashed

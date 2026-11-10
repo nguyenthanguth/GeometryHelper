@@ -40,7 +40,9 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>
         /// Gets or sets the fonts the text is drawn in: off until set, every style then drawn as the canvas draws it, an SHX
         /// font in the canvas's own font. Set to fonts other than those it has, every space is drawn again, as REGEN does, and
-        /// the fonts missing are said again; fonts set as the same are kept, so that a font not found is not said again.
+        /// the fonts missing are said again; fonts set as the same are kept, so that a font not found is not said again. The
+        /// fonts last set on any document are those the words of a dimension in an SHX font are measured in, as its picture
+        /// is laid out; a TrueType font is measured from the Fonts folder of Windows whatever the fonts.
         /// </summary>
         /// <exception cref="ArgumentNullException">Thrown when the value is null.</exception>
         public CadFonts Fonts
@@ -61,6 +63,8 @@ namespace GeometryHelper.Dxf.Viewer
                         _missingListed = false;
                     }
 
+                    // A dimension's words in an SHX font are measured for its picture where these fonts find that font.
+                    CadDimensionWords.UseFonts(value, FontFolder);
                     Regen();
                 }
             }

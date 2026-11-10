@@ -476,10 +476,63 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>
-        /// Moves the words of a dimension to a point: a linear one's dimension line moved to run under them where its DIMTMOVE is
-        /// 0, an angular one's arc to the radius under them; a radius's or a diameter's line turned toward them.
+        /// Moves the words of a dimension to a point, as AutoCAD 2021's DIMTEDIT moves them: a linear one's dimension line moved
+        /// to run under them where its DIMTMOVE is 0; an angular one's arc through the point where it is 0, the words standing on
+        /// the arc there, above it as they read; a radius's or a diameter's words slid along its line, which stays, to where the
+        /// point falls on it for DIMTMOVE 0 and 1, and put at the point itself for 2. A radius of 20 at 30 degrees whose words
+        /// are moved to 50 out at 60 degrees has them 43.3 out along its line.
         /// </summary>
         internal static void MoveWords(DxfDimension dimension, GeoPoint2 at)
+        {
+            bool withLine = dimension.Dimtmove == 0;
+
+            switch (dimension)
+            {
+                case DxfPoint3AngularDimension three when withLine:
+                    three.ArcPoint = P3(ArcUnder(P2(three.CenterPoint), P2(three.ArcPoint), at, 0.0));
+                    break;
+                case DxfLineAngularDimension2 two when withLine:
+                    if (Meet(new DxfLine(two.XLine1Start, two.XLine1End), new DxfLine(two.XLine2Start, two.XLine2End), new Tolerance(1E-9, 1E-9), out GeoPoint2 vertex))
+                    {
+                        two.ArcPoint = P3(ArcUnder(vertex, P2(two.ArcPoint), at, 0.0));
+                    }
+
+                    break;
+                case DxfRadialDimension radial:
+                    at = dimension.Dimtmove == 2 ? at : OnLine(P2(radial.Center), P2(radial.ChordPoint), at);
+                    break;
+                case DxfDiametricDimension diametric:
+                    at = dimension.Dimtmove == 2 ? at : OnLine(P2(diametric.FarChordPoint), P2(diametric.ChordPoint), at);
+                    break;
+                default:
+                    DragWords(dimension, at);
+                    return;
+            }
+
+            dimension.TextPosition = P3(at);
+        }
+
+        /// <summary>Where a point falls on the line through two points, square to it; the first point where they are one.</summary>
+        private static GeoPoint2 OnLine(GeoPoint2 from, GeoPoint2 to, GeoPoint2 point)
+        {
+            GeoVector2 way = to - from;
+            double length = way.Length;
+
+            if (length <= 1E-12)
+            {
+                return from;
+            }
+
+            GeoVector2 unit = way / length;
+            return from + unit * ((point - from).X * unit.X + (point - from).Y * unit.Y);
+        }
+
+        /// <summary>
+        /// Drags the words of a dimension to a point, as their grip drags them: a linear one's dimension line moved to run under
+        /// them where its DIMTMOVE is 0, an angular one's arc to the radius under them as they read, so that they stand at the
+        /// point; a radius's or a diameter's line turned toward them.
+        /// </summary>
+        internal static void DragWords(DxfDimension dimension, GeoPoint2 at)
         {
             DxfDimStyleTableRecord data = dimension.GetDimstyleData();
             double scale = data.Dimscale > 0.0 ? data.Dimscale : 1.0;
@@ -497,12 +550,14 @@ namespace GeometryHelper.Dxf.Viewer
                     aligned.DimLinePoint = P3(LineUnder(b, Math.Atan2(b.Y - a.Y, b.X - a.X), aligned.Oblique, at, lift));
                     break;
                 case DxfPoint3AngularDimension three when withLine:
-                    three.ArcPoint = P3(ArcUnder(P2(three.CenterPoint), P2(three.ArcPoint), at, lift));
+                    at = OnArcUnder(dimension, data, P2(three.CenterPoint), at);
+                    three.ArcPoint = P3(ArcUnder(P2(three.CenterPoint), P2(three.ArcPoint), at, 0.0));
                     break;
                 case DxfLineAngularDimension2 two when withLine:
                     if (Meet(new DxfLine(two.XLine1Start, two.XLine1End), new DxfLine(two.XLine2Start, two.XLine2End), new Tolerance(1E-9, 1E-9), out GeoPoint2 vertex))
                     {
-                        two.ArcPoint = P3(ArcUnder(vertex, P2(two.ArcPoint), at, lift));
+                        at = OnArcUnder(dimension, data, vertex, at);
+                        two.ArcPoint = P3(ArcUnder(vertex, P2(two.ArcPoint), at, 0.0));
                     }
 
                     break;
@@ -547,6 +602,27 @@ namespace GeometryHelper.Dxf.Viewer
             double readable = Readable(angle);
             var above = new GeoVector2(-Math.Sin(readable), Math.Cos(readable));
             return Foot(second, at - above * lift, new GeoVector2(Math.Cos(angle), Math.Sin(angle)), oblique);
+        }
+
+        /// <summary>
+        /// The point of the arc of an angular dimension its words stand on where they are to stand at a point, as its picture puts
+        /// them about a point of the arc: below them as they read by DIMGAP and half their height, on them for DIMTAD 0.
+        /// </summary>
+        private static GeoPoint2 OnArcUnder(DxfDimension dimension, DxfDimStyleTableRecord data, GeoPoint2 vertex, GeoPoint2 at)
+        {
+            if ((at - vertex).Length <= 1E-12)
+            {
+                return at;
+            }
+
+            double scale = data.Dimscale > 0.0 ? data.Dimscale : 1.0;
+            double gap = Math.Abs(data.Dimgap) * scale;
+            string words = dimension.DimBlock?.OfType<DxfMText>().FirstOrDefault(m => !m.IsErased)?.Contents ?? string.Empty;
+            WordsWidth(data, words, data.Dimtxt * scale, out double tall);
+            int tad = data.Dimtad == 0 && Math.Abs(data.Dimtvp) >= 0.7 ? 1 : data.Dimtad;
+            double lift = tad != data.Dimtad ? data.Dimtvp * tall : tad == 0 ? data.Dimtvp * tall : (gap + tall / 2.0 + (data.Dimgap < 0.0 ? gap : 0.0)) * (tad == 4 ? -1.0 : 1.0);
+            double tangent = Readable(Math.Atan2(at.Y - vertex.Y, at.X - vertex.X) + Math.PI / 2.0);
+            return at - new GeoVector2(-Math.Sin(tangent), Math.Cos(tangent)) * lift;
         }
 
         /// <summary>The arc point of an angular dimension, kept on its ray, once the arc runs under words at a point.</summary>
@@ -602,9 +678,9 @@ namespace GeometryHelper.Dxf.Viewer
             GeoPoint2 end = left == firstLeft ? q1 : q2;
             List<DxfEntity> picture = dimension.DimBlock?.ToList() ?? new List<DxfEntity>();
             string words = picture.OfType<DxfMText>().FirstOrDefault()?.Contents ?? dimension.DimensionText;
-            double inset = 2.0 * data.Dimasz * scale + WordsWidth(picture, words, height) / 2.0;
+            double inset = 2.0 * data.Dimasz * scale + WordsWidth(data, words, height, out double tall) / 2.0;
             var above = new GeoVector2(-reads.Y, reads.X);
-            dimension.TextPosition = P3(end + reads * (left ? inset : -inset) + above * (Math.Abs(data.Dimgap) * scale + height / 2.0));
+            dimension.TextPosition = P3(end + reads * (left ? inset : -inset) + above * (Math.Abs(data.Dimgap) * scale + tall / 2.0));
         }
 
         /// <summary>The angle words along a direction are turned to, so that they read from the left or from below, as AutoCAD turns them.</summary>

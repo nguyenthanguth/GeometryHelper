@@ -193,7 +193,8 @@ namespace GeometryHelper.Dxf.Viewer
             double angle = turn + (xDatum ? Math.PI / 2.0 : 0.0);
             angle -= Math.Floor(angle / (2.0 * Math.PI)) * 2.0 * Math.PI;
             DxfEntity text = Words(style, default, angle, height, words, scale);
-            double width = WordsWidth(new List<DxfEntity> { text }, words, height);
+            // The words laid out as high as the font measures them, past the height their text is written with.
+            double width = WordsWidth(style, words, height, out height);
             int tad = style.Dimtad;
             GeoPoint2 jogged = end - way * leg;
             GeoPoint2 last = tad != 0 ? end + way * (gap + width) : end;
