@@ -113,6 +113,12 @@ the ones wanted.
 
 ### To do
 
+- [ ] Previews as AutoCAD draws them while a command asks for a point (the maintainer saw RECTANG preview a diagonal
+      line): audit every command's rubber band and ghost (RECTANG rectangle, CIRCLE circle by each option, ARC, ELLIPSE,
+      POLYGON, DONUT, XLINE/RAY, PLINE arcs, OFFSET, FILLET, ARRAY, STRETCH, SCALE/ROTATE reference, DIM* lines, MLEADER,
+      TEXT box, MTEXT frame, HATCH boundary, REVCLOUD…) and draw each as AutoCAD does (M) (next free slot)
+- [ ] Tests: the Wpf suite and a parallel run share the global settings file and fail together; give tests their own
+      settings path (S)
 - [ ] Layer States Manager, View Manager with New View, Drawing Units with Direction Control (designed in v110) (M)
 - [ ] Command line and Recent: AutoComplete inside a running command; Search Content; an EXPORT command (S)
 - [ ] Dxf.App: an app icon, file association for .dxf (installer or registry), `--tab Home` in screenshot mode
