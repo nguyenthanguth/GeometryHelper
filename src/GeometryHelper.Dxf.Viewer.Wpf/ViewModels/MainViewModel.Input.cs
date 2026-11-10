@@ -51,14 +51,22 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>The last choice of the colour box of the ribbon's Properties panel, which shows the Select Color dialog for the colour of new objects.</summary>
         public const string MoreColorsOption = "More colors...";
 
-        /// <summary>The commands whose points asked from a base point show the length and the angle, as AutoCAD's dimensional input.</summary>
-        private static readonly string[] DimensionalCommands = { "LINE", "PLINE", "ARC", "CIRCLE", "ELLIPSE", "POLYGON", "XLINE", "RAY", "MOVE", "COPY", "STRETCH", "OFFSET" };
+        /// <summary>
+        /// The commands whose points asked from a base point show the length and the angle, as AutoCAD's dimensional input and
+        /// the polar default of its pointer input for a second or next point; a corner or a location they ask keeps X and Y.
+        /// </summary>
+        private static readonly string[] DimensionalCommands =
+        {
+            "LINE", "PLINE", "ARC", "CIRCLE", "ELLIPSE", "POLYGON", "XLINE", "RAY", "MOVE", "COPY", "STRETCH", "OFFSET",
+            "MIRROR", "ROTATE", "SCALE", "ALIGN", "BREAK", "DIST", "AREA", "MEASUREGEOM", "TEXT", "DIMLINEAR", "DIMALIGNED",
+            "DIMANGULAR", "DIMCONTINUE", "DIMBASELINE", "REVCLOUD",
+        };
 
         private static readonly string[] CurrentColorNames = { "ByLayer", "ByBlock", "Red", "Yellow", "Green", "Cyan", "Blue", "Magenta", "White" };
 
         private bool _commandLineShown = true;
         private IReadOnlyList<DynamicInputOptionViewModel> _dynamicOptions = Array.Empty<DynamicInputOptionViewModel>();
-        private GeoPoint2 _cursorAt;
+        private GeoPoint2 _bandAt;
         private bool _absolute;
         private string _lockedFirst;
         private string _lockedSecond;
@@ -163,11 +171,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 // In the current UCS: its coordinates, and the angle counted from its X axis turned by ANGBASE, by ANGDIR.
                 if (!prompt.BasePoint.HasValue)
                 {
-                    GeoPoint2 shown = Ucs.ToUcs(_cursorAt);
+                    GeoPoint2 shown = Ucs.ToUcs(_bandAt);
                     return _settings.FormatNumber(shown.X, _settings.CoordinateDecimals) + ", " + _settings.FormatNumber(shown.Y, _settings.CoordinateDecimals);
                 }
 
-                GeoVector2 way = Ucs.ToUcs(_cursorAt - prompt.BasePoint.Value);
+                GeoVector2 way = Ucs.ToUcs(_bandAt - prompt.BasePoint.Value);
                 double dx = way.X;
                 double dy = way.Y;
                 double degrees = Session.CountAngle(Math.Atan2(dy, dx)) * 180.0 / Math.PI;
@@ -182,18 +190,24 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// moves from one to the other (<see cref="TabDynamicInput"/>), a number typed locks its field, and Enter takes the
         /// point from both.
         /// </summary>
-        /// <remarks>A point prompt that also takes text, as ZOOM's takes a scale 2X, keeps the one box: a number typed there is not an X.</remarks>
-        public bool IsDynamicInputFields => IsDynamicInputShown && Session?.Prompt?.Kind == CadPromptKind.Point && !Session.Prompt.AcceptsText;
+        /// <remarks>
+        /// A point prompt that also takes text, as ZOOM's takes a scale 2X, keeps the one box: a number typed there is not an X.
+        /// CIRCLE's 3P points are fields all the same, the text they take being _tan alone, never a number.
+        /// </remarks>
+        public bool IsDynamicInputFields => IsDynamicInputShown && Session?.Prompt?.Kind == CadPromptKind.Point
+            && (!Session.Prompt.AcceptsText || Session.Current?.Name == "CIRCLE");
 
         /// <summary>
         /// Gets whether the two fields are dimensional input, the length and the angle from the base point rather than X and Y:
         /// as AutoCAD's while a second point is asked: at a point with a base point of LINE, PLINE, ARC, CIRCLE, ELLIPSE,
-        /// POLYGON, XLINE, RAY, MOVE, COPY, STRETCH and OFFSET, and of a grip edit, where the canvas shows the length in a
-        /// field beside the middle of the rubber band and the angle in one near the base point, with no dimension line or arc
-        /// drawn. RECTANG's other corner keeps X and Y, its two sizes.
+        /// POLYGON, XLINE, RAY, MOVE, COPY, STRETCH and OFFSET, of MIRROR, of ROTATE's and SCALE's Reference, of ALIGN, BREAK,
+        /// DIST, AREA, MEASUREGEOM, TEXT's Align and Fit, DIMLINEAR, DIMALIGNED, DIMANGULAR, DIMCONTINUE, DIMBASELINE and
+        /// REVCLOUD's next points, and of a grip edit, where the canvas shows the length in a field beside the middle of the
+        /// rubber band and the angle in one near the base point, with no dimension line or arc drawn. RECTANG's other corner
+        /// keeps X and Y, its two sizes, as do the other corners of a box and a dimension line's location.
         /// </summary>
-        public bool IsDynamicInputPolar => IsDynamicInputFields && Session.Prompt.BasePoint.HasValue
-            && (Session.IsGripEditing || Array.IndexOf(DimensionalCommands, Session.Current?.Name) >= 0);
+        public bool IsDynamicInputPolar => IsDynamicInputFields && Session.Prompt.BasePoint.HasValue && !Session.Prompt.Tracks
+            && (Session.IsGripEditing || (Array.IndexOf(DimensionalCommands, Session.Current?.Name) >= 0 && !CornerOrLocation(Session.Prompt.Message)));
 
         /// <summary>
         /// Gets whether the canvas shows the length in a field beside the middle of the rubber band: with the angle
@@ -614,7 +628,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return true;
             }
 
-            Session.Feed(FieldPoint(first, second, polar, absolute, _cursorAt));
+            Session.Feed(FieldPoint(first, second, polar, absolute, _bandAt));
             SyncHistory();
             RunAfterCommand();
             return true;
@@ -725,7 +739,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             if (!from.HasValue)
             {
-                GeoPoint2 shown = Ucs.ToUcs(_cursorAt);
+                GeoPoint2 shown = Ucs.ToUcs(_bandAt);
                 return _settings.FormatNumber(second ? shown.Y : shown.X, _settings.CoordinateDecimals);
             }
 
@@ -734,14 +748,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return Measured(second, from.Value);
             }
 
-            GeoVector2 way = Ucs.ToUcs(_cursorAt - from.Value);
+            GeoVector2 way = Ucs.ToUcs(_bandAt - from.Value);
             return _settings.FormatNumber(second ? way.Y : way.X, _settings.CoordinateDecimals);
         }
 
         /// <summary>The length to the cursor from a point, or its angle from the X axis of the UCS in degrees, 0 to 360, as a field shows it.</summary>
         private string Measured(bool angle, GeoPoint2 from)
         {
-            GeoVector2 way = Ucs.ToUcs(_cursorAt - from);
+            GeoVector2 way = Ucs.ToUcs(_bandAt - from);
             double dx = way.X;
             double dy = way.Y;
 
@@ -781,6 +795,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         private bool SecondTyped() => Parted(out _, out _) || _secondActive;
+
+        /// <summary>Whether a prompt asks the corner of a box, "Specify opposite corner", or a location, "Specify dimension line location": no second point of a line from the base point, it keeps X and Y.</summary>
+        private static bool CornerOrLocation(string message)
+            => message.IndexOf("corner", StringComparison.OrdinalIgnoreCase) >= 0 || message.IndexOf("location", StringComparison.OrdinalIgnoreCase) >= 0;
 
         /// <summary>What is typed parted at its &lt; or its comma into the two fields, an @ before it left out; false where it has neither.</summary>
         private bool Parted(out string before, out string after)

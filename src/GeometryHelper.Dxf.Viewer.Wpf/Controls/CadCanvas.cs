@@ -21,9 +21,21 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <param name="x">The X of the drawing point.</param>
         /// <param name="y">The Y of the drawing point.</param>
         public CadCursorEventArgs(double x, double y)
+            : this(x, y, x, y)
+        {
+        }
+
+        /// <summary>Makes the arguments of a cursor whose rubber band ends elsewhere, as at a snap.</summary>
+        /// <param name="x">The X of the drawing point.</param>
+        /// <param name="y">The Y of the drawing point.</param>
+        /// <param name="bandX">The X of the point the rubber band ends at.</param>
+        /// <param name="bandY">The Y of the point the rubber band ends at.</param>
+        public CadCursorEventArgs(double x, double y, double bandX, double bandY)
         {
             X = x;
             Y = y;
+            BandX = bandX;
+            BandY = bandY;
         }
 
         /// <summary>Gets the X of the drawing point.</summary>
@@ -31,6 +43,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>Gets the Y of the drawing point.</summary>
         public double Y { get; }
+
+        /// <summary>
+        /// Gets the X of the point the rubber band ends at, which a click takes: at a point prompt the snap's, an endpoint, ortho
+        /// or polar, where one holds the cursor; else the cursor's own, <see cref="X"/>.
+        /// </summary>
+        public double BandX { get; }
+
+        /// <summary>Gets the Y of the point the rubber band ends at, as <see cref="BandX"/> says of the X.</summary>
+        public double BandY { get; }
     }
 
     /// <summary>The object an event of the canvas is about, as the one double-clicked.</summary>
@@ -1907,13 +1928,24 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             double aperture = AperturePixels * scale / view.PixelsPerUnit;
             CadCommandSession session = Session;
 
+            // At a point prompt the snap is found first, so that what follows the cursor, the fields of dynamic input and a
+            // distance typed along the band, measures to the point the rubber band ends at: snapped, ortho or polar.
+            bool pointing = CadPicking.WantsPoint(session) && !session.Prompt.Tracks && !_panFrom.HasValue && !_boxFrom.HasValue && (Through == null || InsideFrame(Through, p));
+
+            if (pointing)
+            {
+                _snapped = CadPicking.Snap(document, WorkSpace, Snap, cursor, aperture, session.Prompt.BasePoint);
+            }
+
+            GeoPoint2 band = pointing ? BandEnd(cursor) : cursor;
+
             if (session != null)
             {
-                session.Cursor = cursor;
+                session.Cursor = band;
                 session.PickAperture = pick;
             }
 
-            CursorMoved?.Invoke(this, new CadCursorEventArgs(x, y));
+            CursorMoved?.Invoke(this, new CadCursorEventArgs(x, y, band.X, band.Y));
 
             // A prompt that follows the cursor, as REVCLOUD's Freehand, takes each point the cursor moves to.
             if (session != null && session.Prompt != null && session.Prompt.Tracks && !_panFrom.HasValue)
@@ -1989,7 +2021,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             if (CadPicking.WantsPoint(session))
             {
-                _snapped = CadPicking.Snap(document, WorkSpace, Snap, cursor, aperture, session.Prompt.BasePoint);
+                if (!pointing)
+                {
+                    _snapped = CadPicking.Snap(document, WorkSpace, Snap, cursor, aperture, session.Prompt.BasePoint);
+                }
+
                 SetHover(null);
                 RestartRest(cursor, aperture);
                 InvalidateVisual();
@@ -3040,6 +3076,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
         }
 
+        /// <summary>
+        /// Where the rubber band ends with the cursor at a point: at the snap found, an object snap, ortho or polar; at the cursor
+        /// with no snap, or without the magnet (AUTOSNAP 4) while an object snap is shown.
+        /// </summary>
+        private GeoPoint2 BandEnd(GeoPoint2 cursor) => _snapped != null && (Snap == null || Snap.Magnet || !IsObjectSnap(_snapped.Kind)) ? _snapped.Point : cursor;
+
         /// <summary>While a point prompt waits: the base point, the rubber band to the snapped cursor, the snap's marker and its tip.</summary>
         private void DrawPrompt(DrawingContext dc, CadView view, double scale)
         {
@@ -3066,9 +3108,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return;
             }
 
-            // Without the magnet (AUTOSNAP 4) the rubber band and the ghost stay at the cursor while an object snap is shown.
-            bool held = _snapped != null && (Snap == null || Snap.Magnet || !IsObjectSnap(_snapped.Kind));
-            GeoPoint2 target = held ? _snapped.Point : _cursor.Value;
+            GeoPoint2 target = BandEnd(_cursor.Value);
 
             // A field of dynamic input that holds a number holds the rubber band and the preview with it.
             target = HeldAt?.Invoke(target, false) ?? target;
