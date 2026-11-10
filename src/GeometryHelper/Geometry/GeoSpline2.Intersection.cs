@@ -34,7 +34,8 @@ namespace GeometryHelper.Geometry
     /// <para>
     /// Where the spline lies along the shape for a length, to rounding, no place is given along the stretch. Against an ellipse or
     /// another spline, the same is so where the two stay within the point tolerance of each other, level, for a quarter of the size
-    /// of the smaller; see <see cref="DistanceTo(GeoSpline2)"/>.
+    /// of the smaller, unless the smaller is no larger than the point tolerance, which lies along nothing; see
+    /// <see cref="DistanceTo(GeoSpline2)"/>.
     /// </para>
     /// </remarks>
     public sealed partial class GeoSpline2

@@ -34,6 +34,30 @@ method, 500 000 calls with ordinary and degenerate shapes, found these:
 
 Everything a `Try` method answered before it answers bit for bit the same.
 
+**FIXED.** A spline against a curve far smaller or far larger than itself is answered in milliseconds. The same fuzz found
+21 calls of `TryIntersectWith` between a `GeoSpline2` or `GeoSpline3` and a circle, an arc, an ellipse, an edge or
+another spline still working after ten seconds, either way round; each now takes under 5 ms, and its places are those
+dense sampling of the two curves finds:
+
+- A piece of a curve was looked at all along for a stretch lying along the other, every sixty-fourth of the size of the
+  smaller curve: a piece of the circle of radius a million, 1.5 million long, every 0.31 against an ellipse of radius 10.
+  Only the share of it near the other curve is looked at now. The ellipse of radii 10 and 5 about (1 000 000, 0) crosses
+  that circle at (999 999.9999875, 5) and (999 999.9999875, -5).
+- A curve no larger than the point tolerance, as a circle of radius 1E-4 or 1E-12 at the tolerance 0.001, was looked for
+  as such a stretch, the other curve every 3E-14 of its length for the circle of 1E-12. It lies along nothing, and is
+  not looked for one: the polyline (0, 0), (100, 0), (0, 100) meets the spline of either circle about (100, 0) once.
+- A part of such a curve that is not straight was cut until straight against each part of the other curve near it: a
+  line through a circle of radius 1E-4 measured 2 048 parts of it, a cubic through it twenty times took 7.9 s. It is
+  measured as it is against a straight part, and the other curve is cut instead.
+- A curve through a circle of radius 1E-12 a hundred from the origin, where the numbers are rounded to 1E-11, was read
+  as running along it at every meeting and met it nowhere; it meets it once.
+- An ellipse of radius 1E-12 standing upright in the plane of a `GeoSpline3`, in it only within the planar tolerance,
+  threw "The major axis needs a direction", as the fuzz found once the calls before it were answered; it is laid out by
+  its minor axis, and a curve through it meets it once.
+
+The places of other splines are bit for bit the same, and found a fifth faster: 6 528 places among 40 splines and 120
+circles, ellipses, lines and arcs take 1.51 s, where they took 1.89.
+
 **FIXED.** The presenter's typed lengths and angles: a number past the largest double, as 400 nines in `999…9'`,
 `1-999…9/2` or `999…9d`, threw an `OverflowException` out of the prompt in .NET Framework, and `NaNg`, `NaNr` and
 `Infinityr` were read as angles of NaN and infinity. Each is now not read.

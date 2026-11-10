@@ -34,8 +34,8 @@ namespace GeometryHelper.Geometry
     /// <para>
     /// Where the spline lies along the shape for a length, to rounding, no place is given along the stretch: a spline in a plane crosses
     /// the plane nowhere, and one on a ball crosses its surface nowhere. Against an arc, a circle, an ellipse or another spline, the same is
-    /// so where the two stay within the point tolerance of each other, level, for a quarter of the size of the smaller; see
-    /// <see cref="DistanceTo(GeoSpline3)"/>. A crossing inside such a stretch is still a place: two splines in one plane, to the snap, are
+    /// so where the two stay within the point tolerance of each other, level, for a quarter of the size of the smaller, unless the smaller
+    /// is no larger than the point tolerance, which lies along nothing; see <see cref="DistanceTo(GeoSpline3)"/>. A crossing inside such a stretch is still a place: two splines in one plane, to the snap, are
     /// worked out in that plane, where the offset of the one from the other has a sign, and give the places the plane gives; an arc, a circle,
     /// an ellipse, an edge, a chain of edges, a segment, a ray or a line without ends in the plane of the spline is laid flat with it the same
     /// way, so a circle spline of radius 100 moved (0.0003, 0.0005) along its plane is one circle with its circle, as in the plane, and a segment

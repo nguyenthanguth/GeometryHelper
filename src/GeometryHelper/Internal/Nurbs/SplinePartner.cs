@@ -48,6 +48,9 @@ namespace GeometryHelper.Internal.Nurbs
         /// <summary>The deepest a piece is cut in halves.</summary>
         private const int MostDepth = 60;
 
+        /// <summary>The most looks a piece is cut into for the stretches along, so that the count is a whole number whatever the sizes.</summary>
+        private const long MostLooks = 1L << 40;
+
         private readonly double[] _min;
         private readonly double[] _max;
 
@@ -325,8 +328,23 @@ namespace GeometryHelper.Internal.Nurbs
             candidates.Sort();
             BezierPieces pieces = a.Pieces;
             double smaller = Math.Min(Spread(a), Spread(b));
+            // A curve no larger than the reach lies along nothing: every curve that comes within the reach of it is within the reach of all
+            // of it, its places are one place, and a stretch a quarter of its size long is no stretch. A line through a circle of radius 1E-12
+            // was looked at every 3E-14 along the 0.002 of it within the reach of the circle: sixty billion looks.
+            if (!(smaller > hunt.Reach))
+            {
+                return;
+            }
+
             double stretch = 0.25 * smaller;
             double step = stretch / 16.0;
+            // Only where a piece comes within the reach of the box of the second curve can it be near it; elsewhere a look is not near,
+            // and the looks there are passed over (NearShares): a piece of a circle of radius a million, 1.5 million long, was looked at
+            // every 0.31 of it against an ellipse of radius 10, five million looks where twenty or so are near the ellipse.
+            var boxMin = new double[b.Dim];
+            var boxMax = new double[b.Dim];
+            b.Index.Whole(boxMin, boxMax);
+            var shares = new List<double>();
             // In space a stretch need only stay within the reach: the leasts of the distance in it are places only where the two would
             // cross if brought into one plane (WouldCross), which a level distance is not needed to tell.
             double level = _inSpace ? hunt.Reach : 0.5 * hunt.Reach;
@@ -377,45 +395,19 @@ namespace GeometryHelper.Internal.Nurbs
                     break;
                 }
 
-                int intervals = Math.Max(1, (int)Math.Ceiling(PolygonLength(pieces, piece) / step));
+                long intervals = (long)Math.Min(Math.Max(1.0, Math.Ceiling(PolygonLength(pieces, piece) / step)), MostLooks);
+                NearShares(pieces, piece, boxMin, boxMax, 2.0 * hunt.Reach, 32.0 / intervals, shares);
 
                 // The first point of a piece that follows another is the last of that one, looked at already.
-                for (int k = contiguous ? 1 : 0; k <= intervals; k++)
+                long next = contiguous ? 1 : 0;
+
+                for (int s = 0; s <= shares.Count; s += 2)
                 {
-                    double knot = pieces.From[piece] + (pieces.To[piece] - pieces.From[piece]) * k / intervals;
-                    a.PointAt(knot, point);
-                    query[0] = point[0];
-                    query[1] = point[1];
+                    long from = s < shares.Count ? Math.Max(next, (long)Math.Floor(shares[s] * intervals) - 1) : intervals + 1;
+                    long to = s < shares.Count ? Math.Min(intervals, (long)Math.Ceiling(shares[s + 1] * intervals) + 1) : intervals;
 
-                    if (a.Dim == 3)
-                    {
-                        query[2] = point[2];
-                    }
-
-                    double other = b.ClosestParameter(query, out double distance);
-                    bool near = distance <= hunt.Reach;
-                    double z = a.Dim == 3 ? point[2] : 0.0;
-
-                    // Past an end of the second curve, within the reach of it, the first is along it as far as the reach goes past the end,
-                    // as an arc is along an arc of its circle: its distance there is to the end, which says nothing of how level the run is,
-                    // and which of the two curves overhangs the other is the same stretch whichever is asked.
-                    bool pastEnd = near && !b.IsClosed && (other <= b.Start || other >= b.End);
-
-                    if (near && inRun && (pastEnd || Math.Max(high, distance) - Math.Min(low, distance) <= level))
-                    {
-                        length += Math.Sqrt((point[0] - lastX) * (point[0] - lastX) + (point[1] - lastY) * (point[1] - lastY) + (z - lastZ) * (z - lastZ));
-
-                        if (!pastEnd)
-                        {
-                            low = Math.Min(low, distance);
-                            high = Math.Max(high, distance);
-                        }
-
-                        runTo = knot;
-                        looks.Add(knot);
-                        nearest.Add(other);
-                    }
-                    else
+                    // Looks passed over are not near: a run ends at them.
+                    if (from > next)
                     {
                         if (inRun && length >= stretch)
                         {
@@ -423,22 +415,71 @@ namespace GeometryHelper.Internal.Nurbs
                             rawLooks.Add(new[] { looks.ToArray(), nearest.ToArray() });
                         }
 
-                        // A point near but not level with the run so far starts the next.
-                        inRun = near;
-                        runFrom = knot;
-                        runTo = knot;
-                        length = 0.0;
-                        low = pastEnd ? double.PositiveInfinity : distance;
-                        high = pastEnd ? double.NegativeInfinity : distance;
-                        looks.Clear();
-                        nearest.Clear();
-                        looks.Add(knot);
-                        nearest.Add(other);
+                        inRun = false;
                     }
 
-                    lastX = point[0];
-                    lastY = point[1];
-                    lastZ = z;
+                    next = Math.Max(next, to + 1);
+
+                    for (long k = from; k <= to; k++)
+                    {
+                        double knot = pieces.From[piece] + (pieces.To[piece] - pieces.From[piece]) * k / intervals;
+                        a.PointAt(knot, point);
+                        query[0] = point[0];
+                        query[1] = point[1];
+
+                        if (a.Dim == 3)
+                        {
+                            query[2] = point[2];
+                        }
+
+                        double other = b.ClosestParameter(query, out double distance);
+                        bool near = distance <= hunt.Reach;
+                        double z = a.Dim == 3 ? point[2] : 0.0;
+
+                        // Past an end of the second curve, within the reach of it, the first is along it as far as the reach goes past the end,
+                        // as an arc is along an arc of its circle: its distance there is to the end, which says nothing of how level the run is,
+                        // and which of the two curves overhangs the other is the same stretch whichever is asked.
+                        bool pastEnd = near && !b.IsClosed && (other <= b.Start || other >= b.End);
+
+                        if (near && inRun && (pastEnd || Math.Max(high, distance) - Math.Min(low, distance) <= level))
+                        {
+                            length += Math.Sqrt((point[0] - lastX) * (point[0] - lastX) + (point[1] - lastY) * (point[1] - lastY) + (z - lastZ) * (z - lastZ));
+
+                            if (!pastEnd)
+                            {
+                                low = Math.Min(low, distance);
+                                high = Math.Max(high, distance);
+                            }
+
+                            runTo = knot;
+                            looks.Add(knot);
+                            nearest.Add(other);
+                        }
+                        else
+                        {
+                            if (inRun && length >= stretch)
+                            {
+                                raw.Add(new[] { runFrom, runTo });
+                                rawLooks.Add(new[] { looks.ToArray(), nearest.ToArray() });
+                            }
+
+                            // A point near but not level with the run so far starts the next.
+                            inRun = near;
+                            runFrom = knot;
+                            runTo = knot;
+                            length = 0.0;
+                            low = pastEnd ? double.PositiveInfinity : distance;
+                            high = pastEnd ? double.NegativeInfinity : distance;
+                            looks.Clear();
+                            nearest.Clear();
+                            looks.Add(knot);
+                            nearest.Add(other);
+                        }
+
+                        lastX = point[0];
+                        lastY = point[1];
+                        lastZ = z;
+                    }
                 }
             }
 
@@ -508,6 +549,91 @@ namespace GeometryHelper.Internal.Nurbs
             }
 
             return polygon;
+        }
+
+        /// <summary>
+        /// Gives the shares of a piece, from its start, over which it may come within a margin of a box, in order, two numbers a share:
+        /// the piece is cut in halves, and a half whose control points lie further than the margin from the box is left out, down to
+        /// halves no wider than the finest share. A rational piece lies in the hull of its control points only where its weights are
+        /// positive, so one with another weight is given whole.
+        /// </summary>
+        private static void NearShares(BezierPieces pieces, int piece, double[] min, double[] max, double margin, double finest, List<double> shares)
+        {
+            shares.Clear();
+            int dim = pieces.Dim;
+            int degree = pieces.Degree;
+            int stride = dim + 1;
+            int at = pieces.PointOffset(piece);
+            int weightAt = pieces.Rational ? pieces.WeightOffset(piece) : 0;
+            var hw = new double[(degree + 1) * stride];
+
+            for (int j = 0; j <= degree; j++)
+            {
+                double w = pieces.Rational ? pieces.Weights[weightAt + j] : 1.0;
+
+                if (!(w > 0.0))
+                {
+                    shares.Add(0.0);
+                    shares.Add(1.0);
+                    return;
+                }
+
+                for (int c = 0; c < dim; c++)
+                {
+                    hw[j * stride + c] = w * pieces.Points[at + j * dim + c];
+                }
+
+                hw[j * stride + dim] = w;
+            }
+
+            NearShares(hw, degree, dim, 0.0, 1.0, 0, min, max, margin, finest, shares);
+        }
+
+        private static void NearShares(double[] hw, int degree, int dim, double from, double to, int depth, double[] min, double[] max, double margin, double finest, List<double> shares)
+        {
+            int stride = dim + 1;
+            double gap = 0.0;
+
+            for (int c = 0; c < dim; c++)
+            {
+                double low = double.PositiveInfinity;
+                double high = double.NegativeInfinity;
+
+                for (int j = 0; j <= degree; j++)
+                {
+                    double value = hw[j * stride + c] / hw[j * stride + dim];
+                    low = Math.Min(low, value);
+                    high = Math.Max(high, value);
+                }
+
+                double outside = Math.Max(0.0, Math.Max(low - max[c], min[c] - high));
+                gap += outside * outside;
+            }
+
+            if (gap > margin * margin)
+            {
+                return;
+            }
+
+            if (to - from <= finest || depth >= MostDepth)
+            {
+                if (shares.Count > 0 && shares[shares.Count - 1] == from)
+                {
+                    shares[shares.Count - 1] = to;
+                }
+                else
+                {
+                    shares.Add(from);
+                    shares.Add(to);
+                }
+
+                return;
+            }
+
+            NurbsCurve.SplitHomogeneous(hw, degree, stride, out double[] left, out double[] right);
+            double middle = 0.5 * (from + to);
+            NearShares(left, degree, dim, from, middle, depth + 1, min, max, margin, finest, shares);
+            NearShares(right, degree, dim, middle, to, depth + 1, min, max, margin, finest, shares);
         }
 
         /// <summary>
@@ -1424,9 +1550,12 @@ namespace GeometryHelper.Internal.Nurbs
                 // are no larger than the reach, straight or not, in the plane as in space: two places in them would be one, and round a cusp,
                 // where a part is straight only when it is a millionth of the curve, two curves within the reach of each other would pair every
                 // such part of the one with every such part of the other; a tight degree-four spline and its copy moved 0.00074 took two
-                // million pairs and 26 s in the plane where the stretch along them ended short of the cusp, and take 0.3 s.
+                // million pairs and 26 s in the plane where the stretch along them ended short of the cusp, and take 0.3 s. A part no larger
+                // than the reach is measured against a part straight to a billionth however long, which is its segment: a line through a
+                // circle of radius 1E-4 had the circle cut into 2 048 straight parts, each measured against the line.
                 bool apartForGood = !hunt.OnlyNearest && task.Bound > hunt.Snap
-                    && ((x.Flat && y.Flat && x.Diagonal <= 30.0 * hunt.Reach && y.Diagonal <= 30.0 * hunt.Reach) || (x.Diagonal <= hunt.Reach && y.Diagonal <= hunt.Reach));
+                    && ((x.Flat && y.Flat && x.Diagonal <= 30.0 * hunt.Reach && y.Diagonal <= 30.0 * hunt.Reach) || (x.Diagonal <= hunt.Reach && y.Diagonal <= hunt.Reach)
+                        || (x.Fine && y.Diagonal <= hunt.Reach) || (y.Fine && x.Diagonal <= hunt.Reach));
 
                 if (task.Depth >= MostDepth || (x.Fine && y.Fine) || (x.Flat && y.Flat && x.Apart(y)) || apartForGood)
                 {
@@ -1434,7 +1563,14 @@ namespace GeometryHelper.Internal.Nurbs
                     continue;
                 }
 
-                if (!x.Fine && (y.Fine || (!x.Flat && y.Flat) || (x.Flat == y.Flat && x.Diagonal >= y.Diagonal)))
+                // Of two parts that cannot meet, one no larger than the reach and not straight is not cut to make it straight, since it will be
+                // measured as it is once the other is no larger than the reach as well: the other is cut. A circle of radius 1E-4 was cut into
+                // straight parts, each measured against each part of a cubic through it near it, 45 ms a pass of the cubic.
+                bool apart = !hunt.OnlyNearest && task.Bound > hunt.Snap;
+                bool cutFirst = apart && !y.Flat && y.Diagonal <= hunt.Reach && x.Diagonal > hunt.Reach;
+                bool cutSecond = apart && !x.Flat && x.Diagonal <= hunt.Reach && y.Diagonal > hunt.Reach;
+
+                if (!x.Fine && !cutSecond && (cutFirst || y.Fine || (!x.Flat && y.Flat) || (x.Flat == y.Flat && x.Diagonal >= y.Diagonal)))
                 {
                     x.Split(out Sub left, out Sub right);
                     Task near = new Task { First = left, Second = y, Depth = task.Depth + 1, Bound = BoundOf(left, y) };
@@ -1808,8 +1944,17 @@ namespace GeometryHelper.Internal.Nurbs
                 return false;
             }
 
-            double step = 1E-3 * Math.Min(a.Extent, b.Extent) / speed;
             double noise = hunt.Snap;
+
+            // Where a thousandth of the smaller curve is within the rounding, every point that far from a meeting is within the rounding of
+            // the other curve, whatever the angle they meet at, and running along tells nothing: a line through a circle of radius 1E-12 a
+            // hundred from the origin, the snap 1E-11, ran along it at every meeting and met it nowhere.
+            if (!(1E-3 * Math.Min(a.Extent, b.Extent) > noise))
+            {
+                return false;
+            }
+
+            double step = 1E-3 * Math.Min(a.Extent, b.Extent) / speed;
             var point = new double[a.Dim];
 
             for (int side = -1; side <= 1; side += 2)
