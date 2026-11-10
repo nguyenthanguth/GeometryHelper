@@ -59,6 +59,9 @@ namespace GeometryHelper.Dxf.Viewer
             // Whether INSERT asks the values of a block's attributes (1) or gives each its default (0), kept by the session.
             registry.AddVariable(CadSystemVariable.Whole("ATTREQ", false, 0, 1, s => (int)Kept(s, "attreq", 1.0), (c, v) => c.Remember("attreq", v)));
 
+            // Whether INSERT asks those values in the Edit Attributes dialog (1) or on the command line (0), kept by the session.
+            registry.AddVariable(CadSystemVariable.Whole("ATTDIA", false, 0, 1, s => (int)Kept(s, "attdia", 0.0), (c, v) => c.Remember("attdia", v)));
+
             // What the drawing shows and how it sorts.
             registry.AddVariable(Flag("ORTHOMODE", s => s.Document.Database.Orthomode, (c, v) => c.Database.Orthomode = v, "$ORTHOMODE"));
             registry.AddVariable(Flag("LWDISPLAY", s => s.Document.Database.LineWeightDisplay, (c, v) => c.Database.LineWeightDisplay = v, "$LWDISPLAY"));
