@@ -2253,6 +2253,25 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             double x0 = corner.X;
             double y0 = corner.Y;
             view.ScreenToDrawing(b.X * scale, b.Y * scale, out double x1, out double y1);
+
+            // Through a twisted viewport the box on the screen is a turned one in model space, taken as a polygon of its four
+            // corners: counter-clockwise for a crossing, clockwise for a window, as a lasso is.
+            if (view.Twist != 0.0)
+            {
+                view.ScreenToDrawing(b.X * scale, a.Y * scale, out double x2, out double y2);
+                view.ScreenToDrawing(a.X * scale, b.Y * scale, out double x3, out double y3);
+                var ring = new List<GeoPoint2> { new GeoPoint2(x0, y0), new GeoPoint2(x2, y2), new GeoPoint2(x1, y1), new GeoPoint2(x3, y3) };
+
+                if (CadPicking.SignedArea(ring) > 0.0 != b.X < a.X)
+                {
+                    ring.Reverse();
+                }
+
+                CadPicking.LassoDone(document, WorkSpace, Session, ring, remove);
+                SelectionChanged?.Invoke(this, EventArgs.Empty);
+                return;
+            }
+
             var box = new DisplayBox(Math.Min(x0, x1), Math.Min(y0, y1), Math.Max(x0, x1), Math.Max(y0, y1));
             CadPicking.BoxDone(document, WorkSpace, Session, box, b.X < a.X, remove);
             SelectionChanged?.Invoke(this, EventArgs.Empty);
@@ -2471,6 +2490,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             double s = now.PixelsPerUnit / drawn.PixelsPerUnit;
             double tx = now.Width / 2.0 + (drawn.CenterX - now.CenterX) * now.PixelsPerUnit - drawn.Width / 2.0 * s;
             double ty = now.Height / 2.0 - (drawn.CenterY - now.CenterY) * now.PixelsPerUnit - drawn.Height / 2.0 * s;
+
+            // Through a twisted viewport the step between the two centres is the canvas's, turned with the view.
+            if (now.Twist != 0.0)
+            {
+                now.DrawingToPixel(drawn.CenterX, drawn.CenterY, out double cx, out double cy);
+                tx = cx - drawn.Width / 2.0 * s;
+                ty = cy - drawn.Height / 2.0 * s;
+            }
             var moved = new MatrixTransform(s, 0.0, 0.0, s, tx / scale, ty / scale);
             moved.Freeze();
             dc.PushClip(new RectangleGeometry(FrameOnScreen(through)));
@@ -2720,12 +2747,23 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
         }
 
-        /// <summary>The way the X axis of the UCS runs on the canvas, of unit length: to the right for the world's, Y being down on the screen.</summary>
+        /// <summary>
+        /// The way the X axis of the UCS runs on the canvas, of unit length: to the right for the world's, Y being down on the
+        /// screen; through a twisted viewport turned with its view, as AutoCAD turns the crosshair and the icon there.
+        /// </summary>
         private Vector CrosshairAxis()
         {
             CadDocument document = Document;
             CadUcs ucs = document == null || WorkSpace == null ? CadUcs.World : document.Ucs.WorkingOf(WorkSpace);
-            return ucs.IsWorld ? new Vector(1.0, 0.0) : new Vector(Math.Cos(ucs.Angle), -Math.Sin(ucs.Angle));
+            double twist = Through?.TwistAngle ?? 0.0;
+
+            if (twist == 0.0)
+            {
+                return ucs.IsWorld ? new Vector(1.0, 0.0) : new Vector(Math.Cos(ucs.Angle), -Math.Sin(ucs.Angle));
+            }
+
+            double angle = (ucs.IsWorld ? 0.0 : ucs.Angle) + twist;
+            return new Vector(Math.Cos(angle), -Math.Sin(angle));
         }
 
         /// <summary>

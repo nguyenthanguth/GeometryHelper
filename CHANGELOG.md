@@ -6,6 +6,16 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** A layout viewport whose view is twisted, or looks at a target off the origin, is drawn in the presenter where
+AutoCAD 2021 draws it, and a twisted one can be worked through. The presenter turned the view the wrong way and took the
+view's centre as a point of model space, where AutoCAD keeps it about the target and turned by the twist: AutoCAD's
+console, asked TRANS from the world to the view and on to the paper in a viewport 120 by 80 about (100, 100) at 1:5, its
+view about (100, 50) twisted 30 degrees, puts (100, 0) at (97.320, 100) on the paper, and in one about (250, 100) looking
+at (10, 20) puts the origin at (248, 96); the presenter now does too. MSPACE and a double click enter a twisted viewport,
+which they refused: the canvas's view in model units turns with it (`CadView.Twist`), so picks, snaps, boxes, the
+crosshair and the UCS icon follow the turn, PAN moves by the model distance given and ZOOM Window fits the box turned.
+`CadViewports.ToView` and `FromView` give the view's coordinates of a point and back.
+
 **FIXED.** DIMBREAK in the presenter keeps its breaks as AutoCAD 2021 keeps them, so a dimension drawn anew is broken
 again. It cut the lines of the dimension's picture only, and DIMEDIT, a change of style or a grip drew the dimension
 whole again. AutoCAD, probed in its console, keeps a BREAKDATA under ACAD_BREAKDATA in the dimension's extension

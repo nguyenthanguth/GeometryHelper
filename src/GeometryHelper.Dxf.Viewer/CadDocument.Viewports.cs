@@ -32,8 +32,8 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         /// <param name="handle">The handle of the viewport.</param>
         /// <returns>False, nothing changed, where the layout shown has no such viewport, or the viewport cannot be worked
-        /// through: the sheet's own, one switched off, or one whose view is turned or not a plan, which the canvas cannot show
-        /// the cursor in.</returns>
+        /// through: the sheet's own, one switched off, or one whose view is not a plan, which the canvas cannot show the cursor
+        /// in. A plan twisted by DVIEW TWist is worked through turned, as AutoCAD works through it.</returns>
         public bool EnterViewport(string handle)
         {
             CadSpace space = CurrentSpace;
@@ -149,7 +149,8 @@ namespace GeometryHelper.Dxf.Viewer
         /// 1:20.
         /// </summary>
         /// <param name="handle">The handle of the viewport.</param>
-        /// <param name="viewCenter">The point of model space at the middle of the frame.</param>
+        /// <param name="viewCenter">The point of model space at the middle of the frame, as the viewport keeps it
+        /// (<see cref="DxfViewport.ViewCenter"/>, about the view's target and turned by its twist; see <see cref="CadViewports.ToView"/>).</param>
         /// <param name="viewHeight">The height of model space shown, above nought.</param>
         /// <param name="name">The name of the undo step, as ZOOM or PAN.</param>
         /// <returns>What came of it: refused for no such viewport, a height not above nought, or a viewport whose display is locked.</returns>
@@ -236,8 +237,8 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// Gets whether a viewport's model space can be worked in through it: on and not the sheet's own, with a frame and a
-        /// view of some size, its view a plan seen from above and not turned (the canvas shows model space through it at one
-        /// scale, with no turn).
+        /// view of some size, its view a plan seen from above (the canvas shows model space through it at one scale). A plan
+        /// twisted (group 51) is one: the canvas shows it turned, the cursor, the crosshair and the UCS icon with it.
         /// </summary>
         /// <param name="viewport">The viewport.</param>
         /// <returns>Whether it can.</returns>
@@ -255,7 +256,7 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             GeoVector3 direction = viewport.ViewDirection;
-            return Math.Abs(viewport.TwistAngle) <= 1E-12 && Math.Abs(direction.X) <= 1E-12 && Math.Abs(direction.Y) <= 1E-12 && direction.Z > 0.0;
+            return Math.Abs(direction.X) <= 1E-12 && Math.Abs(direction.Y) <= 1E-12 && direction.Z > 0.0;
         }
 
         /// <summary>
@@ -282,7 +283,7 @@ namespace GeometryHelper.Dxf.Viewer
             double scale = viewport.Height / viewport.ViewHeight;
             GeoPoint2 middle = ToModel(viewport, new GeoPoint2(paper.CenterX, paper.CenterY));
             var model = new CadView(paper.Width, paper.Height);
-            model.Set(middle.X, middle.Y, paper.PixelsPerUnit * scale);
+            model.Set(middle.X, middle.Y, paper.PixelsPerUnit * scale, viewport.TwistAngle);
             return model;
         }
 
@@ -294,7 +295,8 @@ namespace GeometryHelper.Dxf.Viewer
         /// <param name="paper">The view of the layout.</param>
         /// <param name="model">The view of the canvas in model units.</param>
         /// <param name="viewport">The viewport.</param>
-        /// <param name="viewCenter">The point of model space at the middle of the frame.</param>
+        /// <param name="viewCenter">The centre of the view as the viewport keeps it (<see cref="DxfViewport.ViewCenter"/>): the
+        /// point of model space at the middle of the frame, about the view's target and turned by its twist.</param>
         /// <param name="viewHeight">The height of model space the frame shows.</param>
         /// <exception cref="ArgumentNullException">Thrown when a view or the viewport is null.</exception>
         public static void ViewOf(CadView paper, CadView model, DxfViewport viewport, out GeoPoint2 viewCenter, out double viewHeight)
@@ -317,7 +319,67 @@ namespace GeometryHelper.Dxf.Viewer
             double scale = model.PixelsPerUnit / paper.PixelsPerUnit;
             GeoPoint3 frame = viewport.CenterPoint;
             viewHeight = viewport.Height / scale;
-            viewCenter = new GeoPoint2(model.CenterX - (paper.CenterX - frame.X) / scale, model.CenterY - (paper.CenterY - frame.Y) / scale);
+            GeoPoint2 middle = ToView(viewport, new GeoPoint2(model.CenterX, model.CenterY));
+            viewCenter = new GeoPoint2(middle.X - (paper.CenterX - frame.X) / scale, middle.Y - (paper.CenterY - frame.Y) / scale);
+        }
+
+        /// <summary>
+        /// A point of model space in the coordinates of a viewport's view, as AutoCAD's display coordinates (TRANS 0 to 2): about
+        /// the view's target and turned by its twist. Through a viewport twisted 30 degrees about the origin, (100, 0) is
+        /// (86.603, 50).
+        /// </summary>
+        /// <param name="viewport">The viewport.</param>
+        /// <param name="model">The point of model space.</param>
+        /// <returns>The point in the view's coordinates, where <see cref="DxfViewport.ViewCenter"/> is given.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the viewport is null.</exception>
+        public static GeoPoint2 ToView(DxfViewport viewport, GeoPoint2 model)
+        {
+            if (viewport == null)
+            {
+                throw new ArgumentNullException(nameof(viewport));
+            }
+
+            GeoPoint3 target = viewport.ViewTarget;
+            double x = model.X - target.X;
+            double y = model.Y - target.Y;
+            double twist = viewport.TwistAngle;
+
+            if (twist == 0.0)
+            {
+                return new GeoPoint2(x, y);
+            }
+
+            double cos = Math.Cos(twist);
+            double sin = Math.Sin(twist);
+            return new GeoPoint2(cos * x - sin * y, sin * x + cos * y);
+        }
+
+        /// <summary>The point of model space a point in the coordinates of a viewport's view stands for: the way back from <see cref="ToView"/>.</summary>
+        /// <param name="viewport">The viewport.</param>
+        /// <param name="view">The point in the view's coordinates.</param>
+        /// <returns>The point of model space.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the viewport is null.</exception>
+        public static GeoPoint2 FromView(DxfViewport viewport, GeoPoint2 view)
+        {
+            if (viewport == null)
+            {
+                throw new ArgumentNullException(nameof(viewport));
+            }
+
+            GeoPoint3 target = viewport.ViewTarget;
+            double twist = viewport.TwistAngle;
+            double x = view.X;
+            double y = view.Y;
+
+            if (twist != 0.0)
+            {
+                double cos = Math.Cos(twist);
+                double sin = Math.Sin(twist);
+                x = cos * view.X + sin * view.Y;
+                y = -sin * view.X + cos * view.Y;
+            }
+
+            return new GeoPoint2(target.X + x, target.Y + y);
         }
 
         /// <summary>The point of model space a point of the paper shows through a viewport.</summary>
@@ -335,7 +397,7 @@ namespace GeometryHelper.Dxf.Viewer
             double scale = viewport.Height / viewport.ViewHeight;
             GeoPoint3 frame = viewport.CenterPoint;
             GeoPoint2 view = viewport.ViewCenter;
-            return new GeoPoint2(view.X + (paper.X - frame.X) / scale, view.Y + (paper.Y - frame.Y) / scale);
+            return FromView(viewport, new GeoPoint2(view.X + (paper.X - frame.X) / scale, view.Y + (paper.Y - frame.Y) / scale));
         }
 
         /// <summary>The point of the paper a point of model space is shown at through a viewport.</summary>
@@ -353,10 +415,11 @@ namespace GeometryHelper.Dxf.Viewer
             double scale = viewport.Height / viewport.ViewHeight;
             GeoPoint3 frame = viewport.CenterPoint;
             GeoPoint2 view = viewport.ViewCenter;
-            return new GeoPoint2(frame.X + (model.X - view.X) * scale, frame.Y + (model.Y - view.Y) * scale);
+            GeoPoint2 at = ToView(viewport, model);
+            return new GeoPoint2(frame.X + (at.X - view.X) * scale, frame.Y + (at.Y - view.Y) * scale);
         }
 
-        /// <summary>The box of model space a viewport's frame shows.</summary>
+        /// <summary>The box of model space a viewport's frame shows: through a twisted view, the box about the frame turned.</summary>
         /// <param name="viewport">The viewport.</param>
         /// <returns>The box.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the viewport is null.</exception>
@@ -370,16 +433,29 @@ namespace GeometryHelper.Dxf.Viewer
             double height = viewport.ViewHeight;
             double width = height * viewport.Width / viewport.Height;
             GeoPoint2 view = viewport.ViewCenter;
+            double twist = viewport.TwistAngle;
+
+            if (twist != 0.0)
+            {
+                double cos = Math.Abs(Math.Cos(twist));
+                double sin = Math.Abs(Math.Sin(twist));
+                double turned = width * cos + height * sin;
+                height = width * sin + height * cos;
+                width = turned;
+            }
+
+            view = FromView(viewport, view);
             return new DisplayBox(view.X - width / 2.0, view.Y - height / 2.0, view.X + width / 2.0, view.Y + height / 2.0);
         }
 
         /// <summary>
         /// The view that shows a box of model space wholly in a viewport's frame, as ZOOM Window or Extents in a viewport: about
-        /// the box's middle, as high as the box or as its width needs in the frame's proportion.
+        /// the box's middle, as high as the box or as its width needs in the frame's proportion; through a twisted view, the box
+        /// as the view turns it.
         /// </summary>
         /// <param name="viewport">The viewport.</param>
         /// <param name="box">The box of model space; not empty.</param>
-        /// <param name="viewCenter">The point of model space at the middle of the frame.</param>
+        /// <param name="viewCenter">The centre of the view as the viewport keeps it (<see cref="DxfViewport.ViewCenter"/>).</param>
         /// <param name="viewHeight">The height of model space the frame shows.</param>
         /// <exception cref="ArgumentNullException">Thrown when the viewport is null.</exception>
         public static void Fit(DxfViewport viewport, DisplayBox box, out GeoPoint2 viewCenter, out double viewHeight)
@@ -389,8 +465,21 @@ namespace GeometryHelper.Dxf.Viewer
                 throw new ArgumentNullException(nameof(viewport));
             }
 
-            viewCenter = new GeoPoint2((box.MinX + box.MaxX) / 2.0, (box.MinY + box.MaxY) / 2.0);
-            viewHeight = Math.Max(Math.Max(box.Height, box.Width * viewport.Height / viewport.Width), 1E-9);
+            double width = box.Width;
+            double height = box.Height;
+            double twist = viewport.TwistAngle;
+
+            if (twist != 0.0)
+            {
+                double cos = Math.Abs(Math.Cos(twist));
+                double sin = Math.Abs(Math.Sin(twist));
+                double turned = width * cos + height * sin;
+                height = width * sin + height * cos;
+                width = turned;
+            }
+
+            viewCenter = ToView(viewport, new GeoPoint2((box.MinX + box.MaxX) / 2.0, (box.MinY + box.MaxY) / 2.0));
+            viewHeight = Math.Max(Math.Max(height, width * viewport.Height / viewport.Width), 1E-9);
         }
 
         /// <summary>

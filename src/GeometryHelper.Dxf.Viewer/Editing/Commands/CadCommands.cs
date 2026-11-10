@@ -540,6 +540,15 @@ namespace GeometryHelper.Dxf.Viewer
                 GeoVector2 shift = c.Input.IsPoint ? c.Input.Point - start : new GeoVector2(start.X, start.Y);
                 var viewport = (DxfViewport)c.Document.FindEntity(handle);
                 DisplayBox before = CadViewports.ViewBox(viewport);
+
+                // The view's centre is kept turned by its twist: the shift of model space turned with it.
+                if (viewport.TwistAngle != 0.0)
+                {
+                    double cos = Math.Cos(viewport.TwistAngle);
+                    double sin = Math.Sin(viewport.TwistAngle);
+                    shift = new GeoVector2(cos * shift.X - sin * shift.Y, sin * shift.X + cos * shift.Y);
+                }
+
                 GeoPoint2 center = viewport.ViewCenter - shift;
 
                 if (c.Apply(c.Document.ViewRecord(handle, center, viewport.ViewHeight), CadDocument.ViewWriter(handle, center, viewport.ViewHeight)).Succeeded)

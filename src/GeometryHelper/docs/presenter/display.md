@@ -131,8 +131,10 @@ is not 1 is set as if the style's width were 1.
 
 A layout shows model space through its viewports. A `DisplayViewport2` has the frame in paper units (`CenterX`, `CenterY`,
 `Width`, `Height`), the point of model space at the middle of the frame (`ViewCenterX`, `ViewCenterY`), `Scale`, the paper
-length of one unit of model space (a viewport at 1:20 has 0.05), the `Twist` in radians, the layers frozen in that viewport
-only, and the model-space display list it draws, clipped to the frame. `ModelToPaper` is the matrix from one to the other.
+length of one unit of model space (a viewport at 1:20 has 0.05), the `Twist` in radians, counter-clockwise as AutoCAD
+turns the view, the layers frozen in that viewport only, and the model-space display list it draws, clipped to the frame.
+`ModelToPaper` is the matrix from one to the other. The viewport's own view centre, which AutoCAD keeps about the view's
+target and turned by the twist, is taken back to the point of model space it stands for.
 Because a viewport draws model space, an edit in model space drops the display lists of every layout too.
 
 ### Keeping the lists

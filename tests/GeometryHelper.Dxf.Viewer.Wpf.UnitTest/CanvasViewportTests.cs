@@ -131,6 +131,39 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         }
 
         [Fact]
+        public void ATwistedViewport_IsWorkedThroughTurned_ItsPicksBoxesAndUcsIconTurnedWithIt()
+        {
+            OnLayout((model, canvas, viewport) =>
+            {
+                // Twisted a quarter turn about the room's middle, as DVIEW TWist 90 leaves it: the view's centre (-1 500, 2 000)
+                // is the room's middle turned. The bottom wall then runs up the frame at paper x 225.
+                DxfViewport frame = Frame(model, viewport);
+                frame.TwistAngle = Math.PI / 2.0;
+                frame.ViewCenter = new GeoPoint2(-1500, 2000);
+                model.Document.Regen();
+                Assert.True(canvas.ViewportClick(At(canvas, 150, 120), true));
+                Assert.Equal(viewport, canvas.ThroughHandle);
+                canvas.RenderNow();
+
+                Click(canvas, At(canvas, 225, 140));
+                string picked = Assert.Single(model.Document.Selection.Handles);
+                Assert.Equal(0.0, ((DxfLine)model.Document.FindEntity(picked)).StartPoint.Y, 9);
+
+                // The X arm of the icon, and the crosshair, run up the canvas.
+                Assert.True(canvas.TryPlaceUcsIcon(out _, out Vector xArm, out _));
+                Assert.Equal(0.0, xArm.X, 9);
+                Assert.Equal(-1.0, xArm.Y, 9);
+
+                // A crossing box right to left over the top wall, shown at paper x 75, takes it alone.
+                model.Document.Selection.Clear();
+                Click(canvas, At(canvas, 85, 60));
+                Click(canvas, At(canvas, 65, 70));
+                picked = Assert.Single(model.Document.Selection.Handles);
+                Assert.Equal(3000.0, ((DxfLine)model.Document.FindEntity(picked)).StartPoint.Y, 9);
+            });
+        }
+
+        [Fact]
         public void ALockedViewport_TheWheelZoomsThePaper()
         {
             OnLayout((model, canvas, viewport) =>

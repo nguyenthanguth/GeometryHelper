@@ -669,7 +669,13 @@ its list greyed. On the paper with no viewport selected neither shows; on the Mo
 scale (CANNOSCALE), its list the drawing's scales, and MODEL is a label rather than a button.
 [`CadViewports`](xref:GeometryHelper.Dxf.Viewer.CadViewports) has the arithmetic: the canvas's view in model units
 (`ModelView`) and the view a viewport takes back from it (`ViewOf`), a box fitted to the frame (`Fit`), and the scales'
-names. A viewport whose view is turned, or not a plan, is not entered.
+names. A viewport whose view is not a plan is not entered. One whose view is twisted, as DVIEW TWist leaves it (group 51),
+is shown and worked through turned, as AutoCAD 2021 shows it: the view's centre is kept about its target and turned by
+the twist (`ToView` and `FromView`, AutoCAD's TRANS from the world to the view), so through a viewport 120 by 80 about
+(100, 100) at 1:5, its view about (100, 50) twisted 30 degrees, the point (100, 0) of model space is at (97.320, 100) on
+the paper, where AutoCAD's console puts it. Entered, the canvas's view in model units turns with it (`CadView.Twist`):
+picks, snaps and boxes (taken as turned polygons), the crosshair and the UCS icon follow the turn, PAN moves the view by
+the model distance given, and ZOOM Window fits the box as the view turns it.
 
 ### Grip modes
 
