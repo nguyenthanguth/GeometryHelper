@@ -61,9 +61,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             model.Execute("GRIDMODE");
             model.Execute("1");
             model.Execute("SNAPMODE");
-            model.Execute("0");
+            Assert.Equal("Enter new value for SNAPMODE <0>:", model.Prompt);
+            model.Execute("1");
             model.Execute("AUTOSNAP");
-            Assert.Equal("Enter new value for AUTOSNAP <55>:", model.Prompt);
+            Assert.Equal("Enter new value for AUTOSNAP <63>:", model.Prompt);
             model.Execute("47");
             model.Execute("POLARANG");
             Assert.Equal("Enter new value for POLARANG <90>:", model.Prompt);
@@ -74,7 +75,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             Assert.True(model.Toggles.Single(t => t.Name == "ORTHO").IsOn);
             Assert.True(model.Snap.Ortho);
             Assert.True(model.GridOn);
-            Assert.False(model.Snap.GridSnap);
+            Assert.True(model.Snap.GridSnap);
             Assert.True(model.Snap.Polar);
             Assert.False(model.Snap.Tracking);
             Assert.Equal(Math.PI / 4.0, model.Snap.PolarAngle, 12);

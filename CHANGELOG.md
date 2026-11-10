@@ -6,6 +6,12 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**CHANGED.** The presenter's status bar starts with SNAP off and POLAR on, as AutoCAD 2021 starts: SNAPMODE is 0 and
+AUTOSNAP 63, whose bit 8 is polar tracking. With SNAP on from the start, a click away from any object snap went to the
+nearest point of the 10 by 10 grid; it is now taken where it is, and AUTOSNAP reads 63, not 55. GRID, ORTHO, OTRACK,
+OSNAP and DYN start as before, which is AutoCAD's start too, GRID aside: AutoCAD keeps GRIDMODE in each drawing, and the
+presenter reads none from the file.
+
 **FIXED.** The presenter could not snap to, pick or select the entities of a DXF file that writes no handles, as one of
 R12 written by hand with neither header nor tables: the pick index holds an entity by its handle, and they had none.
 With SNAP and OSNAP on, LINE's next point near the corner (4 000, 3 000) of such a room went to the grid point
