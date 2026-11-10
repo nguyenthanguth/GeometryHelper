@@ -59,15 +59,22 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             IEnumerable<DxfEntity> made;
+            bool quiet = _session.Quiet;
 
             try
             {
+                // What the command's code would say of the point, as "Radius is too large.", is not written for a preview.
+                _session.Quiet = true;
                 made = _make(Answer(cursor));
             }
             catch (Exception)
             {
                 // A point the command's code cannot make anything of previews nothing.
                 return NoItems;
+            }
+            finally
+            {
+                _session.Quiet = quiet;
             }
 
             if (made == null)
@@ -113,12 +120,24 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>
         /// The answer a point picked at the cursor gives the prompt, as the session gives it: the point itself at a prompt for
         /// a point or an object; its distance from the base point at a prompt for a distance; at a prompt for an angle, the
-        /// direction to it from the base point, measured in the UCS.
+        /// direction to it from the base point, measured in the UCS; at a prompt for one object, the object under the cursor
+        /// with the point it is picked at, or the point alone where none is.
         /// </summary>
         private CadInput Answer(GeoPoint2 cursor)
         {
             CadPrompt prompt = Prompt;
             GeoPoint2? from = prompt?.BasePoint;
+
+            if (prompt != null && prompt.Kind == CadPromptKind.Entity)
+            {
+                CadDocument document = _session.Document;
+                IReadOnlyList<string> picked = document.GetPickIndex(document.WorkingSpace).Pick(cursor.X, cursor.Y, _session.PickAperture);
+
+                if (picked.Count > 0 && document.FindEntity(picked[0]) != null)
+                {
+                    return new CadInput(CadInputKind.Selection, cursor, 0.0, null, new[] { picked[0] });
+                }
+            }
 
             if (prompt == null || (prompt.Kind != CadPromptKind.Distance && prompt.Kind != CadPromptKind.Angle) || !from.HasValue)
             {

@@ -533,5 +533,70 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Run(session, "REVCLOUD", "P", P(0, 0), P(100, 0));
             PreviewMakes(session, P(50, 80), Enter);
         }
+
+        /// <summary>
+        /// Checks that the prompt waiting previews, with the cursor at a point, what picking there does to a drawing of nothing
+        /// but the objects it changes: the items of the preview, in geometry, every item model space draws after it, and that
+        /// the preview writes nothing into the history.
+        /// </summary>
+        private static List<string> PreviewReshapes(CadCommandSession session, GeoPoint2 cursor, params object[] after)
+        {
+            int lines = session.History.Count;
+            List<string> previewed = Shapes(session.Prompt.Preview.Items(cursor));
+            Assert.NotEmpty(previewed);
+            Assert.Equal(lines, session.History.Count);
+            session.Cursor = cursor;
+            Run(session, cursor);
+            Run(session, after);
+            Assert.Equal(Shapes(session.Document.GetDisplay(session.Document.ModelSpace).Items), previewed);
+            return previewed;
+        }
+
+        [Fact]
+        public void FilletHoveringTheSecondLine_PreviewsBothLinesTrimmedAndTheArc()
+        {
+            CadCommandSession session = Started("LINE", P(-50, 0), P(100, 0), Enter, "LINE", P(0, -50), P(0, 100), Enter);
+            Run(session, "FILLET", "R", "12", P(60, 0));
+            Assert.StartsWith("Select second object", session.PromptText);
+
+            List<string> shapes = PreviewReshapes(session, P(0, 60));
+
+            Assert.Equal(3, shapes.Count);
+            Assert.StartsWith("DisplayArc2 12.000000 12.000000 12.000000", shapes[2]);
+        }
+
+        [Fact]
+        public void FilletHoveringTheSecondSegmentOfAPolyline_PreviewsTheCornerRounded()
+        {
+            CadCommandSession session = Started("PLINE", P(0, 0), P(100, 0), P(100, 50), Enter);
+            Run(session, "FILLET", "R", "10", P(50, 0));
+
+            PreviewReshapes(session, P(100, 25));
+        }
+
+        [Fact]
+        public void FilletHoveringNothingOrTheFirstLineAgain_PreviewsNothing_AndWritesNothing()
+        {
+            CadCommandSession session = Started("LINE", P(-50, 0), P(100, 0), Enter, "LINE", P(0, -50), P(0, 100), Enter);
+            Run(session, "FILLET", "R", "12", P(60, 0));
+            int lines = session.History.Count;
+
+            Assert.Empty(session.Prompt.Preview.Items(P(60, 60)));
+            Assert.Empty(session.Prompt.Preview.Items(P(80, 0)));
+            Assert.Equal(lines, session.History.Count);
+        }
+
+        [Fact]
+        public void ChamferHoveringTheSecondLine_PreviewsBothLinesCutAndTheChamferLine()
+        {
+            CadCommandSession session = Started("LINE", P(-50, 0), P(100, 0), Enter, "LINE", P(0, -50), P(0, 100), Enter);
+            Run(session, "CHAMFER", "D", "10", "5", P(60, 0));
+            Assert.StartsWith("Select second line", session.PromptText);
+
+            List<string> shapes = PreviewReshapes(session, P(0, 60));
+
+            Assert.Equal(3, shapes.Count);
+            Assert.Equal("DisplayPolyline2 open 10.000000 0.000000 0.000000 5.000000", shapes[2]);
+        }
     }
 }
