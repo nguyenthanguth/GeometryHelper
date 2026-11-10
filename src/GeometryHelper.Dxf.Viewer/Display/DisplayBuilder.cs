@@ -839,7 +839,7 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Draws an entity under a frame; <paramref name="shown"/> where its block has found it shown already, so that it is not read again.</summary>
         private void Draw(DxfEntity entity, Frame frame, DisplayList2 list, string forcedHandle, bool shown = false)
         {
-            if (entity == null || (!shown && !entity.Visible) || frame.Depth > MaxDepth)
+            if (entity == null || frame.Depth > MaxDepth)
             {
                 return;
             }
@@ -851,7 +851,9 @@ namespace GeometryHelper.Dxf.Viewer
                 _runLayers |= _building.LayerBit(layerName);
             }
 
-            if (!IsLayerVisible(layerName))
+            // The layer first: an entity's own visibility is read from its groups, near a microsecond each, which an entity on a layer
+            // switched off or frozen never needs.
+            if (!IsLayerVisible(layerName) || (!shown && !entity.Visible))
             {
                 return;
             }

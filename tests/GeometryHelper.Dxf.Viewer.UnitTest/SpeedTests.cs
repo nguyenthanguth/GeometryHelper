@@ -8,6 +8,7 @@ using Xunit;
 
 namespace GeometryHelper.Dxf.Viewer.UnitTest
 {
+    [Collection(ViewerSpeedCollection.Name)]
     public class SpeedTests
     {
         /// <summary>
@@ -71,5 +72,16 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.True(window < 150, "window " + window + " ms");
             Assert.True(frame < 180, "frame " + frame + " ms");
         }
+    }
+
+    /// <summary>
+    /// The tests that time a drawing of 100 000 entities, run with no other test beside them: run side by side, each one's
+    /// collections stop the others' timers, and a layer switched on in 110 ms alone took from 230 to 540 ms.
+    /// </summary>
+    [CollectionDefinition(Name, DisableParallelization = true)]
+    public class ViewerSpeedCollection
+    {
+        /// <summary>The name of the collection.</summary>
+        public const string Name = "Viewer speed";
     }
 }

@@ -12,7 +12,7 @@ namespace GeometryHelper.Dxf.Viewer
     {
         private static readonly IReadOnlyList<GeoPoint2> NoPoints = Array.Empty<GeoPoint2>();
 
-        private readonly List<DisplayItem2> _items = new List<DisplayItem2>();
+        private readonly List<DisplayItem2> _items;
 
         // The insertion points by handle, for the snap Insertion: looked up only, never enumerated.
         private readonly Dictionary<string, List<GeoPoint2>> _insertions = new Dictionary<string, List<GeoPoint2>>(StringComparer.OrdinalIgnoreCase);
@@ -20,7 +20,7 @@ namespace GeometryHelper.Dxf.Viewer
 
         // The entities of the space in the order they were drawn, each with its items and the layers it read, so that an edit
         // draws again only the entities it changed (see DisplayBuilder.Patch).
-        private readonly List<DisplayRun> _runs = new List<DisplayRun>();
+        private readonly List<DisplayRun> _runs;
 
         // The bit of each layer the runs read, numbered as the layers were first met; looked up only, never enumerated.
         private readonly Dictionary<string, int> _layerBits;
@@ -35,6 +35,11 @@ namespace GeometryHelper.Dxf.Viewer
         internal DisplayList2(DisplayList2 older)
         {
             _layerBits = older == null ? new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase) : new Dictionary<string, int>(older._layerBits, StringComparer.OrdinalIgnoreCase);
+
+            // Sized as the older list, which a patch mostly copies: grown by doubling, a list of 178 000 items and 100 000 runs
+            // makes some 12 MB of arrays on the large object heap, and the collections they bring land in the patch.
+            _items = older == null ? new List<DisplayItem2>() : new List<DisplayItem2>(older._items.Count);
+            _runs = older == null ? new List<DisplayRun>() : new List<DisplayRun>(older._runs.Count);
         }
 
         /// <summary>Gets the items in the order they are drawn, the first at the back.</summary>
