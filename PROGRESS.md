@@ -89,9 +89,9 @@ the ones wanted.
       by entity with AutoCAD's own; check Ctrl, ANGDIR 1 and the MTEXT column defaults against AutoCAD (S)
 - [ ] Properties: dimension rows Ext line fixed and length (core DIMFXLENON), Fill color, Fractional type, Text view
       direction, Text position X/Y; hatch origin kept through angle and scale; MATCHPROP plot style and gradient hatch (S)
-- [ ] Variables: PICKADD, POLARMODE, ATTREQ, ATTDIA, FILEDIA, CMDDIA; AUTOSNAP's other bits; DYNMODE values; ORTHOMODE
+- [ ] Variables (running): PICKADD, POLARMODE, ATTREQ, ATTDIA, FILEDIA, CMDDIA; AUTOSNAP's other bits; DYNMODE values; ORTHOMODE
       written to the drawing; new dimensions follow DIMSCALE; polar angle field in Global settings (S)
-- [ ] Core: `DxfPolyline2d.CurveFit` tangents differ from AutoCAD's for closed polylines (AutoCAD bisects) and open ones of 4
+- [ ] Core (running): `DxfPolyline2d.CurveFit` tangents differ from AutoCAD's for closed polylines (AutoCAD bisects) and open ones of 4
       or more vertices (64.41 against 63.43 degrees in one case); `DxfPolyline3d.SplineFit` vertex order (M)
 - [ ] PEDIT: PEACCEPT and PLINETYPE read through SETVAR; a spline turned into a polyline with a precision; 3D polylines;
       Extend for arc ends in a fuzz join (S)
@@ -100,12 +100,12 @@ the ones wanted.
 - [ ] Layouts: twisted viewports entered; one undo step per wheel or pan gesture; a ZOOM Previous list per viewport;
       SCALELISTEDIT (Custom… runs VPSCALE now); Rename and Isolate in the Layer manager; New VP Freeze on viewports made
       through the core's API, not only MVIEW (S)
-- [ ] Styles: DICTIONARYVAR class in drawings made new, so Set Current works for multileader and table styles; MLEADER with
+- [ ] Styles (running): DICTIONARYVAR class in drawings made new, so Set Current works for multileader and table styles; MLEADER with
       no style makes Standard; Block and None content; the Annotative flag written (S)
-- [ ] Associative dimensions: an aligned dimension with one end stretched (AutoCAD moves its line), a line and its dimension
+- [ ] Associative dimensions (running): an aligned dimension with one end stretched (AutoCAD moves its line), a line and its dimension
       copied together stay tied, intersection and other snaps tied, ties from DIM, QDIM, DIMCONTINUE, DIMBASELINE, ordinate
       and two-line angular; check whether a plain MOVE leaves a presenter-made dimension's picture behind (flag 32) (M)
-- [ ] Blocks: BEDIT, the Block Editor (L, design first)
+- [ ] Blocks: BEDIT, the Block Editor (L, design first) (design running)
 - [ ] Blocks: dynamic blocks in use: custom grips (visibility, lookup, stretch, flip, rotate, array) and their Properties
       rows (L)
 
