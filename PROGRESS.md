@@ -115,6 +115,9 @@ the ones wanted.
 
 ### To do
 
+- [ ] Dynamic input at the cursor as AutoCAD's with DYN on: what is typed at the Command prompt shows in a box at the
+      cursor with the AutoComplete list under it, the prompt and its options (the ▼ menu) at the cursor in a command,
+      the command line keeping its own copy; with DYN off only the command line (design first) (M)
 - [ ] Previews as AutoCAD draws them while a command asks for a point (the maintainer saw RECTANG preview a diagonal
       line): audit every command's rubber band and ghost (RECTANG rectangle, CIRCLE circle by each option, ARC, ELLIPSE,
       POLYGON, DONUT, XLINE/RAY, PLINE arcs, OFFSET, FILLET, ARRAY, STRETCH, SCALE/ROTATE reference, DIM* lines, MLEADER,
