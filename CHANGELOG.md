@@ -6,6 +6,12 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** A disabled drop-down and a disabled button of the presenter look disabled. The shared styles of the theme
+gave neither a disabled look, so the Live section, Visual style and Background boxes of New View, the Lighting box of
+Drawing Units and the ribbon buttons that need a drawing, or are not built yet, read as ones to press, and a disabled
+drop-down still lit its border under the mouse. A disabled drop-down now shows its words muted and its box at half
+strength and does not answer the mouse; a disabled button shows its icon and words at 45 per cent.
+
 **FIXED.** The presenter's Layer States Manager restores a state into the current viewport of a layout where "Apply
 properties as viewport overrides" is ticked; the tick was read and then ignored, and the layers themselves were changed.
 A state that has the layer A red and 0.50 wide, B off and C frozen, restored so into a viewport after A was made green,
