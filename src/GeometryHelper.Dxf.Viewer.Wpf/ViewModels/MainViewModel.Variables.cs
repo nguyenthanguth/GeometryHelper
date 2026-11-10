@@ -4,9 +4,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 {
     /// <summary>
     /// The system variables the window keeps, added to each command line beside those of the drawing: OSMODE and the status
-    /// bar's toggles (ORTHOMODE, SNAPMODE, GRIDMODE, DYNMODE), AUTOSNAP, POLARANG and POLARMODE, and PICKBOX, APERTURE and
-    /// LWDISPLAY of Global settings. Each is set at once, with no step of undo, as AutoCAD keeps them out of the drawing; the
-    /// status bar and the canvas follow.
+    /// bar's toggles (ORTHOMODE, SNAPMODE, GRIDMODE, DYNMODE), AUTOSNAP, POLARANG and POLARMODE, PICKBOX and APERTURE of
+    /// Global settings, and LWDISPLAY. Each is set at once, with no step of undo; the status bar and the canvas follow.
+    /// ORTHOMODE, SNAPMODE, GRIDMODE and LWDISPLAY are written into the drawing shown as well, as AutoCAD saves them there.
     /// </summary>
     public sealed partial class MainViewModel
     {
@@ -29,7 +29,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             registry.AddVariable(CadSystemVariable.Integer("DYNMODE", -3, 3, DynamicMode, SetDynamicMode));
             registry.AddVariable(CadSystemVariable.Integer("PICKBOX", 1, 50, () => _settings.PickboxPixels, v => ChangeSettings(s => s.PickboxPixels = v)));
             registry.AddVariable(CadSystemVariable.Integer("APERTURE", 2, 50, () => _settings.AperturePixels, v => ChangeSettings(s => s.AperturePixels = v)));
-            registry.AddVariable(CadSystemVariable.Integer("LWDISPLAY", 0, 1, () => _settings.ShowLineWeights ? 1 : 0, v => ChangeSettings(s => s.ShowLineWeights = v != 0)));
+            registry.AddVariable(CadSystemVariable.Integer("LWDISPLAY", 0, 1, () => ShowLineWeights ? 1 : 0, v => SetLineWeightDisplay(v != 0)));
         }
 
         /// <summary>

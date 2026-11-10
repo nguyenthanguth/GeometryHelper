@@ -144,6 +144,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public static readonly DependencyProperty GridSpacingProperty = DependencyProperty.Register(
             nameof(GridSpacing), typeof(double), typeof(CadCanvas), new PropertyMetadata(10.0, OnSceneChanged));
 
+        /// <summary>Identifies the <see cref="GridSpacingY"/> property.</summary>
+        public static readonly DependencyProperty GridSpacingYProperty = DependencyProperty.Register(
+            nameof(GridSpacingY), typeof(double), typeof(CadCanvas), new PropertyMetadata(10.0, OnSceneChanged));
+
         /// <summary>Identifies the <see cref="DynamicInput"/> property.</summary>
         public static readonly DependencyProperty DynamicInputProperty = DependencyProperty.Register(
             nameof(DynamicInput), typeof(bool), typeof(CadCanvas), new PropertyMetadata(false, (d, e) => ((CadCanvas)d).InvalidateVisual()));
@@ -424,11 +428,18 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private static bool IsObjectSnap(CadSnapKind kind)
             => kind != CadSnapKind.None && kind != CadSnapKind.Grid && kind != CadSnapKind.Ortho && kind != CadSnapKind.Polar && kind != CadSnapKind.Tracking;
 
-        /// <summary>Gets or sets the spacing of the grid in drawing units; 10 by default, as the snap grid.</summary>
+        /// <summary>Gets or sets the spacing of the grid across, in drawing units; 10 by default, as the snap grid.</summary>
         public double GridSpacing
         {
             get => (double)GetValue(GridSpacingProperty);
             set => SetValue(GridSpacingProperty, value);
+        }
+
+        /// <summary>Gets or sets the spacing of the grid up, in drawing units, as the Y of GRIDUNIT; 10 by default.</summary>
+        public double GridSpacingY
+        {
+            get => (double)GetValue(GridSpacingYProperty);
+            set => SetValue(GridSpacingYProperty, value);
         }
 
         /// <summary>Gets how the space is drawn: background, paper and selection colours, the entity under the cursor.</summary>
@@ -679,7 +690,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 view.CenterX, view.CenterY, view.PixelsPerUnit, view.Width, view.Height, info.Width, info.Height, scale,
                 o.Background, o.Paper, o.BlockEditorBackground, o.ShowLineWeights, o.FontName, o.VisibleLineColor, o.HiddenLineColor, o.HiddenLayerName,
-                ShowGrid, GridSpacing, paper.MinX, paper.MinY, paper.MaxX, paper.MaxY, ucs.Origin.X, ucs.Origin.Y, ucs.Angle,
+                ShowGrid, GridSpacing, GridSpacingY, paper.MinX, paper.MinY, paper.MaxX, paper.MaxY, ucs.Origin.X, ucs.Origin.Y, ucs.Angle,
                 CadImageCache.Version,
             }.Select(v => Convert.ToString(v, CultureInfo.InvariantCulture)));
             var key = new SceneKey(document.GetDisplay(space), numbers);
@@ -1439,8 +1450,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private void DrawGrid(SKBitmap picture, CadView view, double scale, CadUcs ucs)
         {
             double step = GridStep(view.PixelsPerUnit, GridSpacing, GridPixels * scale);
+            double stepY = GridStep(view.PixelsPerUnit, GridSpacingY, GridPixels * scale);
 
-            if (step <= 0.0)
+            if (step <= 0.0 || stepY <= 0.0)
             {
                 return;
             }
@@ -1459,7 +1471,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             if (!ucs.IsWorld)
             {
-                DrawUcsGrid(pixels, width, height, stride, view, step, ucs, background, minor, major);
+                DrawUcsGrid(pixels, width, height, stride, view, step, stepY, ucs, background, minor, major);
                 Marshal.Copy(pixels, 0, picture.GetPixels(), pixels.Length);
                 return;
             }
@@ -1479,9 +1491,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 }
             }
 
-            for (long k = (long)Math.Ceiling(visible.MinY / step); k * step <= visible.MaxY; k++)
+            for (long k = (long)Math.Ceiling(visible.MinY / stepY); k * stepY <= visible.MaxY; k++)
             {
-                view.DrawingToPixel(0.0, k * step, out _, out double py);
+                view.DrawingToPixel(0.0, k * stepY, out _, out double py);
                 int iy = (int)Math.Round(py);
                 int color = k % 5 == 0 ? major : minor;
 
@@ -1501,21 +1513,25 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// The grid of a UCS other than the world's, as AutoCAD draws it: its lines along the axes of the UCS and through its
         /// origin, each pixel of the background within half a pixel of one taken, every fifth from the origin the stronger.
         /// </summary>
-        private static void DrawUcsGrid(int[] pixels, int width, int height, int stride, CadView view, double step, CadUcs ucs, int background, int minor, int major)
+        private static void DrawUcsGrid(int[] pixels, int width, int height, int stride, CadView view, double step, double stepY, CadUcs ucs, int background, int minor, int major)
         {
-            // The UCS coordinates of a pixel are linear in its column and row: those of the corner and the steps across and down.
+            // The UCS coordinates of a pixel, in steps of the grid, are linear in its column and row: those of the corner and
+            // the steps across and down.
             view.ScreenToDrawing(0.0, 0.0, out double x0, out double y0);
             view.ScreenToDrawing(1.0, 0.0, out double x1, out double y1);
             view.ScreenToDrawing(0.0, 1.0, out double x2, out double y2);
             GeoPoint2 corner = ucs.ToUcs(new GeoPoint2(x0, y0));
-            GeoVector2 across = ucs.ToUcs(new GeoVector2(x1 - x0, y1 - y0)) / step;
-            GeoVector2 down = ucs.ToUcs(new GeoVector2(x2 - x0, y2 - y0)) / step;
-            double half = 0.5 / (view.PixelsPerUnit * step);
+            GeoVector2 right = ucs.ToUcs(new GeoVector2(x1 - x0, y1 - y0));
+            GeoVector2 below = ucs.ToUcs(new GeoVector2(x2 - x0, y2 - y0));
+            var across = new GeoVector2(right.X / step, right.Y / stepY);
+            var down = new GeoVector2(below.X / step, below.Y / stepY);
+            double halfU = 0.5 / (view.PixelsPerUnit * step);
+            double halfV = 0.5 / (view.PixelsPerUnit * stepY);
 
             for (int iy = 0; iy < height; iy++)
             {
                 double u = corner.X / step + iy * down.X;
-                double v = corner.Y / step + iy * down.Y;
+                double v = corner.Y / stepY + iy * down.Y;
 
                 for (int ix = 0; ix < width; ix++, u += across.X, v += across.Y)
                 {
@@ -1528,8 +1544,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
                     double ku = Math.Round(u);
                     double kv = Math.Round(v);
-                    bool onU = Math.Abs(u - ku) <= half;
-                    bool onV = Math.Abs(v - kv) <= half;
+                    bool onU = Math.Abs(u - ku) <= halfU;
+                    bool onV = Math.Abs(v - kv) <= halfV;
 
                     if (onU || onV)
                     {

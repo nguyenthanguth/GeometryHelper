@@ -142,7 +142,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 }
             };
 
-            // PICKBOX, APERTURE, LWDISPLAY and POLARANG set on the command line, and the increment of Drafting Settings, too.
+            // PICKBOX, APERTURE, POLARANG and LWDISPLAY with no drawing open set on the command line, and the increment of Drafting Settings, too.
             model.SettingsChanged += (s, e) =>
             {
                 try

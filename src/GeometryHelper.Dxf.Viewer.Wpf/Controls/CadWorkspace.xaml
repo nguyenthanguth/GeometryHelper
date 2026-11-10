@@ -1930,7 +1930,7 @@
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
                 <Grid Background="{StaticResource GhCanvas}" ClipToBounds="True">
-                    <local:CadCanvas x:Name="CanvasView" Session="{Binding Session}" Snap="{Binding Snap}" ShowGrid="{Binding GridOn}" Document="{Binding Document}" Space="{Binding Space}" View="{Binding View}"
+                    <local:CadCanvas x:Name="CanvasView" Session="{Binding Session}" Snap="{Binding Snap}" ShowGrid="{Binding GridOn}" GridSpacing="{Binding GridSpacingX}" GridSpacingY="{Binding GridSpacingY}" Document="{Binding Document}" Space="{Binding Space}" View="{Binding View}"
                                      DynamicInput="{Binding IsDynamicInputShown}"
                                      Revision="{Binding Revision}" Visibility="{Binding HasDocument, Converter={StaticResource Shown}}" />
                     <TextBlock Text="{Binding ViewportLabel}" FontFamily="{StaticResource GhMonoFont}" FontSize="11" Foreground="{StaticResource GhTextMuted}"

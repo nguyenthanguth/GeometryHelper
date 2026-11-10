@@ -223,6 +223,19 @@ and `LayerState` names the layer state its layer snapshot is kept in, `ACAD_VIEW
 the group 302 of the XRECORD ADSK_XREC_VTRVIEWINFO of its extension dictionary. Setting a value it has changes no byte;
 `Name` renames it, and `Erase` takes it out with its extension dictionary.
 
+### Snap and grid of the drawing
+
+`db.ViewportTable` holds the tiled viewports of model space as AutoCAD's `ViewportTable`, each a
+[`DxfViewportTableRecord`](xref:GeometryHelper.Dxf.DxfViewportTableRecord); `db.ViewportTable["*Active"]` is the one
+model space is shown through, where AutoCAD keeps the drawing's snap and grid. `SnapEnabled` and `GridEnabled` are
+SNAPMODE and GRIDMODE (groups 75 and 76), `SnapIncrements` and `GridIncrements` SNAPUNIT and GRIDUNIT (14 and 24, 15 and
+25), `SnapBase` SNAPBASE (13 and 23), `SnapAngle` SNAPANG in radians (50, written in degrees), `IsometricSnapEnabled`
+and `SnapPair` SNAPSTYL and SNAPISOPAIR (77 and 78), and `GridDisplay` and `GridMajor` GRIDDISPLAY and GRIDMAJOR (60 and
+61, from R2007). AutoCAD 2021 opened an `*Active` of 75 and 76 of 1, a snap of 2.5 by 5 and a grid of 10 by 20 with
+SNAPMODE 1, GRIDMODE 1, SNAPUNIT (2.5, 5) and GRIDUNIT (10, 20), and one with no 60 or 61 with GRIDDISPLAY 3 and
+GRIDMAJOR 5, which the properties give too. A value set is written in place and kept by a save; a value it has changes
+no byte. No viewport is added to the table.
+
 ### Layer states and filters
 
 The layer states and layer filters a drawing keeps in the layer table's extension dictionary are read and listed:

@@ -290,7 +290,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
             while (_files.ContainsKey(name) || _files.Values.Any(f => f.Document != null && string.Equals(f.Document.Title, name, StringComparison.OrdinalIgnoreCase)));
 
-            CadDocument document = CadDocument.From(CadTemplate.CreateMetric(), name);
+            // The template's GRIDMODE is the window's, so that a new drawing shows the grid as Global settings say.
+            DxfDatabase database = CadTemplate.CreateMetric();
+            database.ViewportTable["*Active"].GridEnabled = _settings.Grid;
+            CadDocument document = CadDocument.From(database, name);
             OpenDocument(document, name);
             return document;
         }
@@ -467,8 +470,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     yield break;
                 }
 
-                Snap.GridX = c.Input.Number;
-                Snap.GridY = c.Input.Number;
+                SetSnapSpacing(c.Input.Number, c.Input.Number);
                 toggle.IsOn = true;
             }
         }

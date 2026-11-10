@@ -108,7 +108,21 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             Snap.Modes = _settings.Snaps;
             Snap.PolarAngle = _settings.PolarAngle * Math.PI / 180.0;
             ApplyPolarMode(_settings.PolarMode);
-            Toggles.First(t => t.Name == "GRID").IsOn = _settings.Grid;
+            // GRID and the lineweights are a drawing's own where it has them; the settings' only where it has none.
+            foreach (KnownFile file in _files.Values.Where(f => f.Document != null))
+            {
+                FollowSettings(file);
+            }
+
+            if (_current == null)
+            {
+                Toggles.First(t => t.Name == "GRID").IsOn = _settings.Grid;
+            }
+            else
+            {
+                LoadDrafting();
+            }
+
             DynamicInput.IsOn = _settings.DynamicInput;
 
             foreach (KnownFile file in _files.Values.Where(f => f.Session != null))
