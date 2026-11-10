@@ -187,7 +187,7 @@ the ones wanted.
 - [x] Status bar per drawing: SNAP, GRID and their spacing from the `*Active` VPORT (new `DxfViewportTable`), ORTHO from
       `$ORTHOMODE`, LWDISPLAY from `$LWDISPLAY`, each tab its own; written back on switch (S)
 - [ ] Status bar follow-ups: SNAPBASE, SNAPANG and GRIDMAJOR read but not applied to snapping and the grid; isometric
-      snap (SNAPSTYL 1); GRID and LWDISPLAY defaults wait on the user (S)
+      snap (SNAPSTYL 1) (S). DECIDED by the user 2026-11-11: GRID off and LWDISPLAY on stay the defaults
 - [x] Tests: DisplayPatchSpeedTests flaky under load: each phase best of 3 after a full GC inside a no-GC region;
       0 of 20 failed under load (was 5 of 20), limits unchanged (S)
 - [ ] COPYVIEW (not in AutoCAD): the view as an image on the clipboard, also on the canvas right-click menu (optional)
@@ -240,8 +240,10 @@ the ones wanted.
 
 ### Decisions for the maintainer
 
-- [ ] Esc while editing a TEXT in place: cancel (now) or keep what was typed. Autodesk's help says nothing for single-line
-      TEXT and a script cannot send Esc: the maintainer to try it once in AutoCAD
+- [ ] Esc in the in-place editors (the maintainer tried AutoCAD 2021, 2026-11-11): TEXT (DTEXT) keeps its old words, the
+      typed ones dropped (check ours does); MTEXT asks "Multiline Text - Unsaved Changes / Do you want to save your text
+      changes?" Yes / No / Cancel with "Always perform my current choice" (new dialog: design first) (S)
+- [x] Booleans with a flat box answer false for union, intersect and subtract (the user's choice 2026-11-11)
 - [x] DIMBREAK breaks stored as AutoCAD stores them (BREAKDATA in the dimension's extension dictionary), read and drawn
       again on redraw; AUDIT 0 in AutoCAD
 - [x] The oblique angle of a dimension is measured from the dimension line, as AutoCAD (presenter and core's doc fixed)
