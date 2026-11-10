@@ -1464,6 +1464,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 case "PURGE":
                 case "PURGEITEM":
                 case "CLASSICGROUP":
+                case "LAYERSTATE":
                     OnManagerRequested(e);
                     break;
                 case "PASTESPEC":

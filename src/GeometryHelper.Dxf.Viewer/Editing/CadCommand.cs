@@ -128,6 +128,8 @@ namespace GeometryHelper.Dxf.Viewer
                 ["POL"] = "POLYGON",
                 ["DO"] = "DONUT",
                 ["MEA"] = "MEASUREGEOM",
+                ["-LA"] = "-LAYER",
+                ["LAS"] = "LAYERSTATE",
                 ["UN"] = "UNITS",
                 ["-UN"] = "-UNITS",
                 ["SCR"] = "SCRIPT",

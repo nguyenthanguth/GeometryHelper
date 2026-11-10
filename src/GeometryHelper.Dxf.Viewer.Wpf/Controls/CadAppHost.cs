@@ -998,7 +998,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             string kind = parts[0].ToLowerInvariant();
 
             if (kind != "battman" && kind != "battman-edit" && kind != "battman-settings" && kind != "attdia" && kind != "purge" && kind != "purge-nonpurgeable"
-                && kind != "classicgroup" && kind != "group-order")
+                && kind != "classicgroup" && kind != "group-order" && kind != "layerstate")
             {
                 return false;
             }
@@ -1086,6 +1086,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
                     var dialogWindow = new PurgeWindow(purge);
                     (window, root) = (dialogWindow, dialogWindow.Body);
+                    return true;
+                case "layerstate":
+                    model.ShowLayerStates = dialog => { shown = dialog; return true; };
+                    model.Execute("LAYERSTATE");
+                    model.ShowLayerStates = null;
+                    var states = (LayerStatesViewModel)shown;
+                    states.Selected = states.States.FirstOrDefault();
+                    var statesWindow = new LayerStatesWindow(states);
+                    (window, root) = (statesWindow, statesWindow.Body);
                     return true;
                 default:
                     model.ShowGroupManager = dialog => { shown = dialog; return true; };
