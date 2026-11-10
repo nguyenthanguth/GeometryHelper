@@ -141,7 +141,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
                 PickIndex index = document.GetPickIndex(space);
                 IReadOnlyList<string> found = crossing ? index.Crossing(box) : index.Window(box);
-                session.FeedSelection(found, shift);
+                session.FeedSelection(found, box, crossing, shift);
                 return found;
             }
 

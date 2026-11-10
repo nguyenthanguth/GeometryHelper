@@ -202,6 +202,25 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         [Fact]
+        public void InsertWithABasePointPicked_OfABlockInCentimetres_BringsThatPointToTheInsertionPoint()
+        {
+            CadDocument document = WithGridBubble();
+            document.Database.BlockTable["GB"].Units = DxfUnits.Centimeters;
+
+            // The base point is the definition's (100, 100), 30 above the block's origin (100, 70): 300 millimetres once the
+            // block's centimetres are made the drawing's millimetres, all of which the insertion point takes back.
+            CadCommandSession session = Start(document, "-INSERT", "GB", "B", P(100, 100));
+            Affine2 dragged = session.Prompt.Drag.Transform(P(500, 500));
+            Near(P(500, 500), new GeoPoint2(dragged.X(100, 100), dragged.Y(100, 100)));
+            Run(session, P(500, 500), Enter, Enter, Enter, Enter);
+
+            Assert.False(session.IsRunning);
+            DxfBlockReference insert = Assert.Single(All<DxfBlockReference>(document.ModelSpace));
+            Assert.Equal(new GeoVector3(10, 10, 10), insert.ScaleFactors);
+            Near(new GeoPoint3(500, 500, 0), insert.BlockTransform.Transform(new GeoPoint3(100, 100, 0)), 1E-9);
+        }
+
+        [Fact]
         public void TheBlocksPalette_PlacesTheBlockChosen_AtItsScaleAndRotation_AndAgainWithRepeatPlacement()
         {
             CadDocument document = WithGridBubble();

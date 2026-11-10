@@ -225,6 +225,25 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Near(new GeoPoint2(held.X, held.Y), session.Prompt.Mark.Value);
         }
 
+        [Fact]
+        public void TypedAttEdit_TakesOnlyTheAttributesACrossingBoxTouches_TypedOrDraggedOnTheCanvas()
+        {
+            CadDocument document = WithTwoAttributes();
+            string insert = Assert.Single(All<DxfBlockReference>(document.ModelSpace)).Handle;
+
+            // The box from (-20, 25) to (20, 35) crosses the circle and GRID, centred on (0, 30), and not LEVEL, 10 to 13.5 high.
+            CadCommandSession session = Start(document, "-ATE", Enter, Enter, Enter, Enter, "C", P(-20, 25), P(20, 35), Enter);
+            Assert.Contains("1 attributes selected.", session.History);
+            Near(P(0, 30), session.Prompt.Mark.Value);
+            Run(session, Esc);
+
+            session = Start(document, "-ATE", Enter, Enter, Enter, Enter);
+            Assert.True(session.FeedSelection(new[] { insert }, new DisplayBox(-20, 5, 20, 15), true));
+            Run(session, Enter);
+            Assert.Contains("1 attributes selected.", session.History);
+            Near(P(15, 10), session.Prompt.Mark.Value);
+        }
+
         /// <summary>
         /// GB defined again as AutoCAD's BLOCK would leave it: LEVEL (default L0) at (100, 60) first, then GRID left on its
         /// baseline at (100, 95), 5 high, the circle kept.

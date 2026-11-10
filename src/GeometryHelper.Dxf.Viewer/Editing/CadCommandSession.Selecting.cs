@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using GeometryHelper.Dxf;
 using GeometryHelper.Geometry;
 
@@ -108,11 +109,18 @@ namespace GeometryHelper.Dxf.Viewer
                     if (!_removing)
                     {
                         _whole.UnionWith(all);
+                        _unwindowed.UnionWith(all);
                     }
 
                     return Gather(all, _removing);
                 case "Last":
                     string last = LastVisible();
+
+                    if (!_removing && last != null)
+                    {
+                        _unwindowed.Add(last);
+                    }
+
                     return Gather(last == null ? new List<string>() : new List<string> { last }, _removing);
                 case "Previous":
                     var previous = new List<string>();
@@ -128,6 +136,7 @@ namespace GeometryHelper.Dxf.Viewer
                     if (!_removing)
                     {
                         _whole.UnionWith(previous);
+                        _unwindowed.UnionWith(previous);
                     }
 
                     return Gather(previous, _removing);
@@ -225,7 +234,7 @@ namespace GeometryHelper.Dxf.Viewer
                 PickIndex index = Document.GetPickIndex(Document.WorkingSpace);
                 List<string> found = new List<string>(crossing ? index.Crossing(box) : index.Window(box));
                 EndOption();
-                return GatherWhole(found);
+                return GatherWhole(found, box, crossing);
             }
 
             AskNextPoint();
@@ -344,13 +353,23 @@ namespace GeometryHelper.Dxf.Viewer
             GatherWhole(found);
         }
 
-        /// <summary>Gathers objects an option took whole, or takes them out while removing.</summary>
-        private bool GatherWhole(List<string> found)
+        /// <summary>Gathers objects an option took whole, or takes them out while removing; a window's box kept with what it took.</summary>
+        private bool GatherWhole(List<string> found, DisplayBox? window = null, bool crossing = false)
         {
             if (!_removing)
             {
                 List<string> grouped = new List<string>(Document.WithGroups(found));
                 _whole.UnionWith(grouped);
+
+                if (window.HasValue)
+                {
+                    _windows.AddRange(grouped.Select(h => Tuple.Create(h, window.Value, crossing)));
+                }
+                else
+                {
+                    _unwindowed.UnionWith(grouped);
+                }
+
                 return Gather(grouped, false);
             }
 
@@ -436,13 +455,16 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 _gathered.Remove(handle);
                 _whole.Remove(handle);
+                _unwindowed.Remove(handle);
                 _clicks.RemoveAll(p => string.Equals(p.Key, handle, StringComparison.OrdinalIgnoreCase));
+                _windows.RemoveAll(w => string.Equals(w.Item1, handle, StringComparison.OrdinalIgnoreCase));
             }
 
             foreach (string handle in step.Value)
             {
                 _gathered.Add(handle);
                 _whole.Add(handle);
+                _unwindowed.Add(handle);
             }
 
             Changed();

@@ -76,11 +76,11 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             // As INSERT places it: the base point picked brought to the insertion point by the shift scaled and turned, then
-            // the block's origin there, its scale times the factor of its units.
+            // the block's origin there, its scale (and so the shift's) times the factor of its units.
             double cos = Math.Cos(turn);
             double sin = Math.Sin(turn);
-            double shiftX = _shift.X * sx;
-            double shiftY = _shift.Y * sy;
+            double shiftX = _shift.X * sx * _factor;
+            double shiftY = _shift.Y * sy * _factor;
             double px = at.X + (cos * shiftX) - (sin * shiftY);
             double py = at.Y + (sin * shiftX) + (cos * shiftY);
             Affine2 placed = Affine2.ScaleRotate(sx * _factor, sy * _factor, turn);
