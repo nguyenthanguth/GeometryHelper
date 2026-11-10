@@ -32,16 +32,7 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         private static IEnumerable<CadPrompt> ImageOut(CadCommandContext c, string name, CadImageFormat format)
         {
-            CadSpace space = c.Space;
-            CadView view = c.Session.View;
-
-            if (view == null)
-            {
-                view = new CadView(DefaultImageWidth, DefaultImageHeight);
-                view.ZoomTo(c.Document.GetDisplay(space).Bounds.Union(space.PaperBounds));
-            }
-
-            var job = new CadImageJob(format, space, view);
+            CadImageJob job = ImageJob(c, format);
             string offered = ImageFileName(c.Document, job.Extension);
             job.FileName = offered;
             string file;
@@ -82,6 +73,31 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             job.FileName = file;
+
+            foreach (CadPrompt prompt in WriteImage(c, name, job))
+            {
+                yield return prompt;
+            }
+        }
+
+        /// <summary>The image of the space worked in, of the drawing area as it is shown; with no drawing area, 1 920 by 1 080 pixels of the space's extents.</summary>
+        private static CadImageJob ImageJob(CadCommandContext c, CadImageFormat format)
+        {
+            CadSpace space = c.Space;
+            CadView view = c.Session.View;
+
+            if (view == null)
+            {
+                view = new CadView(DefaultImageWidth, DefaultImageHeight);
+                view.ZoomTo(c.Document.GetDisplay(space).Bounds.Union(space.PaperBounds));
+            }
+
+            return new CadImageJob(format, space, view);
+        }
+
+        /// <summary>"Select objects or &lt;all objects and viewports&gt;:", then the image, its file named, handed to the window to draw and write.</summary>
+        private static IEnumerable<CadPrompt> WriteImage(CadCommandContext c, string name, CadImageJob job)
+        {
             yield return CadPrompt.ForSelection("Select objects or <all objects and viewports>");
             job.Handles = c.Input.Handles == null || c.Input.Handles.Count == 0 ? null : c.Input.Handles;
 

@@ -819,6 +819,7 @@ namespace GeometryHelper.Dxf.Viewer
                 Flag("input", "autoComplete", v => _s.AutoComplete = v);
                 Flag("input", "autoCorrect", v => _s.AutoCorrect = v);
                 Flag("input", "searchSystemVariables", v => _s.SearchSystemVariables = v);
+                Flag("input", "searchContent", v => _s.SearchContent = v);
                 Flag("input", "midStringSearch", v => _s.MidStringSearch = v);
                 Number("input", "delayMilliseconds", v => _s.AutoCompleteDelay = Whole(v));
                 ReadLayers();
