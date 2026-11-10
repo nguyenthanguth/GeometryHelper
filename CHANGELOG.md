@@ -11,6 +11,11 @@ an instance of an object."; the drawing is now given the named object dictionary
 group goes in, one undo taking both back. New of the Table Style and Multileader Style dialogs, and TABLE making
 Standard, failed the same way on such a drawing, and are given the dictionary now too.
 
+**FIXED.** A dimension the presenter made took its style's DIMSCALE, not the drawing's current one: DIMSCALE 10 typed
+with ISO-25 current left the next dimension's words 2.5 high. It now takes the header's `$DIMSCALE`, writing it as an
+override where it is not the style's, as AutoCAD 2021 does: words 25 high, arrowheads 25 long, and DIMBASELINE and QDIM
+spacing their lines DIMDLI times 10 apart.
+
 **FIXED.** INSERT with Basepoint of a block in other units than the drawing landed off: a block in centimetres in a
 millimetre drawing, its base point 30 above its origin, came 270 too high. The shift is now scaled by the units too, in
 the drag and in the INSERT placed.

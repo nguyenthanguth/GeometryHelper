@@ -156,6 +156,9 @@ DIMJOGLINE (DJL) puts a jog in the line of a linear dimension, kept as AutoCAD k
 drawn 1.5 times the height of the words; Remove takes it out. DIM dimensions what is clicked: a line, then where its
 dimension goes or a second line for the angle; a circle's diameter, an arc's radius; a click on nothing starts a linear
 dimension. Its options run the commands of their names, and LAyer puts the dimensions made next on a layer.
+A new dimension takes the drawing's current DIMSCALE, not its style's, and writes it as an override where the two
+differ, as AutoCAD does: DIMSCALE 10 typed with ISO-25 current draws the words of a dimension 25 high and its arrowheads
+25 long, and DIMBASELINE puts each next line 37.5 further out.
 
 A dimension made with DIMASSOC 2 (the default) whose points were picked with an object snap is associative, as in AutoCAD
 2021: DIMLINEAR, DIMALIGNED and DIM tie each origin snapped with ENDpoint, MIDpoint, CENter, QUAdrant, NODe or NEArest to

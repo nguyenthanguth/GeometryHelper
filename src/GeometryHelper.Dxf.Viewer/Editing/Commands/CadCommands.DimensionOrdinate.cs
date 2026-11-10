@@ -139,7 +139,7 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             double textHeight = TextHeight(c, style);
-            return AddedHandle(Place(c, style, textHeight, made, WithTextAngle(made, Ordinate(style, textHeight, origin, feature, end, xDatum, turn, words), textAngle)));
+            return AddedHandle(Place(c, style, textHeight, made, WithTextAngle(made, Ordinate(style, Dimscale(c), textHeight, origin, feature, end, xDatum, turn, words), textAngle)));
         }
 
         /// <summary>
@@ -153,9 +153,9 @@ namespace GeometryHelper.Dxf.Viewer
         /// An X datum of the point (300, 40) with its leader ending at (310, 80), arrowheads of 2.5: the leader runs up from
         /// (300, 40.625) to (300, 70), across to (310, 75) and up to (310, 80), as AutoCAD 2021 draws it.
         /// </remarks>
-        internal static List<DxfEntity> Ordinate(DxfDimStyleTableRecord style, double textHeight, GeoPoint2 origin, GeoPoint2 feature, GeoPoint2 end, bool xDatum, double turn, string words)
+        internal static List<DxfEntity> Ordinate(DxfDimStyleTableRecord style, double dimscale, double textHeight, GeoPoint2 origin, GeoPoint2 feature, GeoPoint2 end, bool xDatum, double turn, string words)
         {
-            Sizes(style, textHeight, out double scale, out double arrow, out double height, out double gap, out double offset, out _);
+            Sizes(style, dimscale, textHeight, out double scale, out double arrow, out double height, out double gap, out double offset, out _);
             var picture = new List<DxfEntity>();
             var x = new GeoVector2(Math.Cos(turn), Math.Sin(turn));
             var y = new GeoVector2(-Math.Sin(turn), Math.Cos(turn));
@@ -208,7 +208,7 @@ namespace GeometryHelper.Dxf.Viewer
                 return null;
             }
 
-            return Ordinate(style, textHeight, P2(ordinate.Origin), feature, end, ordinate.UsingXAxis, -ordinate.HorizontalRotation, Formatted(dimension, ordinate.Measurement, string.Empty));
+            return Ordinate(style, style.Dimscale, textHeight, P2(ordinate.Origin), feature, end, ordinate.UsingXAxis, -ordinate.HorizontalRotation, Formatted(dimension, ordinate.Measurement, string.Empty));
         }
     }
 }
