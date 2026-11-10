@@ -294,6 +294,13 @@ namespace GeometryHelper.UnitTest.Dwg
                 }
 
                 List<KeyValuePair<int, string>> groups = WithoutRoundTrip(a, b, got, roundTrip);
+
+                if (a.Type == "XRECORD" && groups.Count > a.Groups.Count && a.Owner != null && key.TryGetValue("X:" + a.Owner.ToUpperInvariant(), out Record holder)
+                    && holder.Groups.Any(g => g.Key == 3 && g.Value == "ACAD_XREC_ROUNDTRIP"))
+                {
+                    // The round-trip data of R2000: AutoCAD takes the values it knows into the object and keeps the rest.
+                    groups = groups.GetRange(0, a.Groups.Count);
+                }
                 string fault = groups.Count != a.Groups.Count ? "the key has " + a.Groups.Count + " groups, the reader " + groups.Count : null;
 
                 for (int i = 0; i < Math.Min(a.Groups.Count, groups.Count); i++)

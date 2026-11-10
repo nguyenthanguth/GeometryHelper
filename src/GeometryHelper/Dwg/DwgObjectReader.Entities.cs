@@ -887,6 +887,177 @@ namespace GeometryHelper.Dwg
             AddNonZero(70, flags);
         }
 
+        /// <summary>
+        /// A VIEWPORT of a layout. Its number (group 69) and status (68) are not in the file: the transcoder gives them from
+        /// the order of the viewports of its layout, so the groups carry a <see cref="DwgViewportNumber"/> here.
+        /// </summary>
+        private void ReadViewport()
+        {
+            double[] centre = _data.Point3();
+            double width = _data.BitDouble();
+            double height = _data.BitDouble();
+            double[] target = _data.Point3();
+            double[] direction = _data.Point3();
+            double twist = _data.BitDouble();
+            double viewHeight = _data.BitDouble();
+            double lens = _data.BitDouble();
+            double front = _data.BitDouble();
+            double back = _data.BitDouble();
+            double snapAngle = _data.BitDouble();
+            double[] viewCentre = _data.RawPoint2();
+            double[] snapBase = _data.RawPoint2();
+            double[] snapSpacing = _data.RawPoint2();
+            double[] gridSpacing = _data.RawPoint2();
+            int circleZoom = _data.BitShort();
+            int gridMajor = R2007Plus ? _data.BitShort() : 0;
+            int frozen = Count(_data.BitLong());
+            int status = _data.BitLong();
+            byte[] styleSheet = T();
+            int renderMode = _data.RawChar();
+            bool ucsAtOrigin = _data.Bit();
+            bool ucsPerViewport = _data.Bit();
+            double[] ucsOrigin = _data.Point3();
+            double[] ucsX = _data.Point3();
+            double[] ucsY = _data.Point3();
+            double elevation = _data.BitDouble();
+            int orthographic = _data.BitShort();
+            int shadePlot = R2004Plus ? _data.BitShort() : 0;
+            bool defaultLights = false;
+            int lightingType = 0;
+            double brightness = 0.0;
+            double contrast = 0.0;
+            DwgColour ambient = null;
+
+            if (R2007Plus)
+            {
+                defaultLights = _data.Bit();
+                lightingType = _data.RawChar();
+                brightness = _data.BitDouble();
+                contrast = _data.BitDouble();
+                ambient = ReadColour();
+            }
+
+            var layers = new List<ulong>(Math.Min(frozen, 1024));
+
+            for (int i = 0; i < frozen; i++)
+            {
+                layers.Add(H());
+            }
+
+            ulong boundary = H();
+
+            if (!R2004Plus)
+            {
+                H();
+            }
+
+            ulong namedUcs = H();
+            ulong baseUcs = H();
+            ulong background = 0;
+            ulong visualStyle = 0;
+            ulong shadePlotId = 0;
+            ulong sun = 0;
+
+            if (R2007Plus)
+            {
+                background = H();
+                visualStyle = H();
+                shadePlotId = H();
+                sun = H();
+            }
+
+            _object.Add(100, "AcDbViewport");
+            _object.AddPoint(10, centre);
+            _object.Add(40, width);
+            _object.Add(41, height);
+            _object.Add(68, new DwgViewportNumber(_object.Handle, true));
+            _object.Add(69, new DwgViewportNumber(_object.Handle, false));
+            _object.AddPoint(12, viewCentre);
+            _object.AddPoint(13, snapBase);
+            _object.AddPoint(14, snapSpacing);
+            _object.AddPoint(15, gridSpacing);
+            _object.AddPoint(16, direction);
+            _object.AddPoint(17, target);
+            _object.Add(42, lens);
+            _object.Add(43, front);
+            _object.Add(44, back);
+            _object.Add(45, viewHeight);
+            _object.Add(50, Degrees(snapAngle));
+            _object.Add(51, Degrees(twist));
+            _object.Add(72, circleZoom);
+
+            foreach (ulong layer in layers)
+            {
+                _object.Add(R2004Plus ? 331 : 341, layer);
+            }
+
+            _object.Add(90, status);
+
+            if (boundary != 0)
+            {
+                _object.Add(340, boundary);
+            }
+
+            _object.Add(1, styleSheet);
+            _object.Add(281, renderMode);
+            _object.Add(71, ucsPerViewport ? 1 : 0);
+            _object.Add(74, ucsAtOrigin ? 1 : 0);
+            _object.AddPoint(110, ucsOrigin);
+            _object.AddPoint(111, ucsX);
+            _object.AddPoint(112, ucsY);
+
+            if (namedUcs != 0)
+            {
+                _object.Add(345, namedUcs);
+            }
+
+            if (baseUcs != 0)
+            {
+                _object.Add(346, baseUcs);
+            }
+
+            _object.Add(79, orthographic);
+            _object.Add(146, elevation);
+
+            if (R2004Plus)
+            {
+                _object.Add(170, shadePlot);
+            }
+
+            if (!R2007Plus)
+            {
+                return;
+            }
+
+            _object.Add(61, gridMajor);
+
+            if (background != 0)
+            {
+                _object.Add(332, background);
+            }
+
+            if (shadePlotId != 0)
+            {
+                _object.Add(333, shadePlotId);
+            }
+
+            if (visualStyle != 0)
+            {
+                _object.Add(348, visualStyle);
+            }
+
+            _object.Add(292, defaultLights ? 1 : 0);
+            _object.Add(282, lightingType);
+            _object.Add(141, brightness);
+            _object.Add(142, contrast);
+            AddColour(_object.Body, ambient, false, 63, 421);
+
+            if (sun != 0)
+            {
+                _object.Add(361, sun);
+            }
+        }
+
         private void ReadDimension(int type)
         {
             int version = R2010Plus ? _data.RawChar() : 0;

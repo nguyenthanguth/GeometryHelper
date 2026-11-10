@@ -51,6 +51,26 @@ namespace GeometryHelper.Dwg
     }
 
     /// <summary>
+    /// The number of a viewport (group 69) or its status (group 68), which a DWG does not hold: the transcoder gives them
+    /// from the place of the viewport among those of its layout.
+    /// </summary>
+    internal sealed class DwgViewportNumber
+    {
+        /// <summary>The handle of the viewport.</summary>
+        public readonly ulong Viewport;
+
+        /// <summary>Whether the group is the status (68) rather than the number (69).</summary>
+        public readonly bool Status;
+
+        /// <summary>The number of <paramref name="viewport"/>, or its status where <paramref name="status"/> is set.</summary>
+        public DwgViewportNumber(ulong viewport, bool status)
+        {
+            Viewport = viewport;
+            Status = status;
+        }
+    }
+
+    /// <summary>
     /// A colour as a DWG keeps it: the colour index (256 by layer, 0 by block), and from R2004 a true colour, the name of a
     /// colour of a book and a transparency.
     /// </summary>
@@ -166,6 +186,9 @@ namespace GeometryHelper.Dwg
 
         /// <summary>Of a block header: the groups of the BLOCK entity that the header keeps (base point, path of the reference).</summary>
         public List<DwgGroup> BlockBody;
+
+        /// <summary>Of a layout from R2004: its viewports in their order; null before R2004.</summary>
+        public List<ulong> Viewports;
 
         /// <summary>Adds a group to <see cref="Body"/>.</summary>
         public void Add(int code, object value) => Body.Add(new DwgGroup(code, value));

@@ -81,6 +81,38 @@ namespace GeometryHelper.UnitTest.Dwg
             Assert.DoesNotContain(_written, line => line.Level == GeometryHelperLogLevel.Warn);
         }
 
+        [Theory]
+        [InlineData("vports_AC1015")]
+        [InlineData("vports_AC1032")]
+        public void ADrawingOfTheTypesOfW4_ReadFromItsDwg_IsTheDxfAutoCadWroteOfIt(string drawing)
+        {
+            // Made by probe GhDwg4 in all six versions; the repository holds the oldest and the newest of each.
+            DwgAnswerKey.Result result = DwgAnswerKey.Compare(DwgAnswerKey.Key(drawing), DwgReader.ToDxf(DwgAnswerKey.Dwg(drawing)));
+
+            Assert.Empty(result.Differences);
+            Assert.Empty(result.Missing.Keys.Except(NotReadYet).Except(NotReadYet.Select(type => "CLASS " + type)));
+            Assert.True(result.Paired >= 300, "Only " + result.Paired + " records were paired.");
+            Assert.DoesNotContain(_written, line => line.Level == GeometryHelperLogLevel.Warn);
+        }
+
+        [Theory]
+        [InlineData("vports_AC1015")]
+        [InlineData("vports_AC1032")]
+        public void TheViewportsOfTheCurrentLayout_AreRead_NumberedFromThePaper_WithFrozenLayersAndAClipBoundary(string drawing)
+        {
+            DxfDatabase database = DwgReader.Open(new MemoryStream(DwgAnswerKey.Dwg(drawing), false));
+            List<DxfViewport> viewports = database.PaperSpace.OfType<DxfViewport>().ToList();
+
+            // Layout1 holds the viewport of the paper, 12 by 9, and three more drawn in it.
+            Assert.Equal(4, viewports.Count);
+            DxfViewport paper = Assert.Single(viewports, v => v.Number == 1);
+            Assert.Equal(12.0, paper.Width, 9);
+            Assert.Equal(9.0, paper.Height, 9);
+            Assert.Contains(viewports, v => v.GetFrozenLayers().Count == 1 && v.Locked);
+            Assert.Contains(viewports, v => v.NonRectClipOn);
+            Assert.Contains(viewports, v => Math.Abs(v.LensLength - 35.0) < 1E-9);
+        }
+
         [Fact]
         public void EveryDrawingOfEveryVersion_InTheFolderOfTheAnswerKeys_IsTheDxfAutoCadWroteOfIt()
         {

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 
 namespace GeometryHelper.Dwg
@@ -247,8 +248,29 @@ namespace GeometryHelper.Dwg
             int ortho = _data.BitShort();
             double[] extentsMin = _data.Point3();
             double[] extentsMax = _data.Point3();
+            int viewports = R2004Plus ? Count(_data.BitLong()) : 0;
             ulong block = H();
             ulong viewport = H();
+
+            if (R2004Plus)
+            {
+                // The base and the named UCS, which DXF does not write here, then the viewports of the layout in their order.
+                H();
+                H();
+                _object.Viewports = new List<ulong>(Math.Min(viewports, 1024));
+
+                for (int i = 0; i < viewports; i++)
+                {
+                    _object.Viewports.Add(H());
+                }
+
+                // A layout no viewport was made current in keeps none as the last active; DXF names the first, the one
+                // showing the paper.
+                if (viewport == 0 && viewports > 0)
+                {
+                    viewport = _object.Viewports[0];
+                }
+            }
             _object.Add(100, "AcDbPlotSettings");
             _object.Add(1, pageSetup);
             _object.Add(2, printer);

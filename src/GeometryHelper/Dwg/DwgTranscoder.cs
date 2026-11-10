@@ -67,6 +67,7 @@ namespace GeometryHelper.Dwg
         private readonly List<DwgObject> _objects = new List<DwgObject>();
         private readonly Dictionary<ulong, DwgObject> _byHandle = new Dictionary<ulong, DwgObject>();
         private readonly HashSet<ulong> _written = new HashSet<ulong>();
+        private readonly Dictionary<ulong, int[]> _viewportNumbers = new Dictionary<ulong, int[]>();
         private readonly DwgDxfWriter _dxf = new DwgDxfWriter();
         private readonly bool _doubleByte;
         private readonly int _version;
@@ -105,6 +106,7 @@ namespace GeometryHelper.Dwg
 
             Broken = broken;
             NumberPaperSpaces();
+            NumberViewports();
 
             if (broken > 0)
             {
@@ -193,6 +195,105 @@ namespace GeometryHelper.Dwg
             }
         }
 
+        /// <summary>
+        /// Gives the viewports of the current layout the number (group 69) and status (68) AutoCAD writes, which a DWG does
+        /// not hold. From R2004 a layout lists its viewports, the one showing the paper first, and they are numbered from
+        /// 1 in that order. An R2000 layout lists none: the viewport that shows the paper itself (its view centre and height
+        /// its own) is number 1 and the others follow in the order of their handles. The status is 0 for a viewport that is
+        /// off, else its number from R2004 and -1 in R2000. The viewports of the other layouts are 0 and 0.
+        /// </summary>
+        private void NumberViewports()
+        {
+            ulong active = _header.Handle("_PAPERSPACE");
+            var order = new List<DwgObject>();
+
+            foreach (DwgObject layout in _objects)
+            {
+                if (layout.Name == "LAYOUT" && layout.Viewports != null && Owned330(layout) == active)
+                {
+                    foreach (ulong handle in layout.Viewports)
+                    {
+                        if (Find(handle) is DwgObject viewport && viewport.Type == 0x22 && !order.Contains(viewport))
+                        {
+                            order.Add(viewport);
+                        }
+                    }
+                }
+            }
+
+            if (_version < 1018)
+            {
+                foreach (DwgObject one in _objects)
+                {
+                    if (one.Type == 0x22 && one.Decoded && (one.EntityMode == 1 || (one.EntityMode == 0 && one.Owner == active)))
+                    {
+                        order.Add(one);
+                    }
+                }
+
+                int paper = order.FindIndex(ShowsThePaper);
+
+                if (paper > 0)
+                {
+                    DwgObject first = order[paper];
+                    order.RemoveAt(paper);
+                    order.Insert(0, first);
+                }
+            }
+
+            for (int i = 0; i < order.Count; i++)
+            {
+                bool off = (Int(order[i], 90) & 0x20000) != 0;
+                _viewportNumbers[order[i].Handle] = new[] { i + 1, off ? 0 : _version < 1018 ? -1 : i + 1 };
+            }
+        }
+
+        /// <summary>Whether a viewport shows the paper itself: its view centre is its centre and its view height its height.</summary>
+        private static bool ShowsThePaper(DwgObject viewport)
+        {
+            return Number(viewport, 12) == Number(viewport, 10) && Number(viewport, 22) == Number(viewport, 20) && Number(viewport, 45) == Number(viewport, 41);
+        }
+
+        /// <summary>The handle a LAYOUT gives its block under group 330.</summary>
+        private static ulong Owned330(DwgObject layout)
+        {
+            foreach (DwgGroup group in layout.Body)
+            {
+                if (group.Code == 330 && group.Value is ulong handle)
+                {
+                    return handle;
+                }
+            }
+
+            return 0;
+        }
+
+        private static double Number(DwgObject one, int code)
+        {
+            foreach (DwgGroup group in one.Body)
+            {
+                if (group.Code == code && group.Value is double value)
+                {
+                    return value;
+                }
+            }
+
+            return double.NaN;
+        }
+
+        private static int Int(DwgObject one, int code)
+        {
+            foreach (DwgGroup group in one.Body)
+            {
+                if (group.Code == code && group.Value is int value)
+                {
+                    return value;
+                }
+            }
+
+            return 0;
+        }
+
         private static void Rename(List<DwgGroup> groups, byte[] old, byte[] name)
         {
             for (int i = 0; i < groups.Count; i++)
@@ -242,6 +343,10 @@ namespace GeometryHelper.Dwg
                 {
                     _dxf.Write(group.Code, found);
                 }
+            }
+            else if (group.Value is DwgViewportNumber number)
+            {
+                _dxf.Write(group.Code, _viewportNumbers.TryGetValue(number.Viewport, out int[] numbers) ? numbers[number.Status ? 1 : 0] : 0);
             }
             else if (group.Code == DwgObjectReader.LongText)
             {

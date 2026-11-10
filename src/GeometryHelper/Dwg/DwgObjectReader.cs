@@ -719,6 +719,7 @@ namespace GeometryHelper.Dwg
                 case 0x1E: ReadPolygonMesh(); return true;
                 case 0x1F:
                 case 0x20: ReadSolid(); return true;
+                case 0x22: ReadViewport(); return true;
                 case 0x23: ReadEllipse(); return true;
                 case 0x24: ReadSpline(); return true;
                 case 0x28: ReadRay("AcDbRay"); return true;
