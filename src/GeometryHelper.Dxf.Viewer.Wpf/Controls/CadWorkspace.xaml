@@ -444,6 +444,11 @@
                 <local:TableCellRibbon />
             </DataTemplate>
 
+            <!-- The contextual Block Editor tab while a block is open in the Block Editor (BEDIT): its own control (BlockEditorRibbon). -->
+            <DataTemplate DataType="{x:Type local:BlockEditorRibbonViewModel}">
+                <local:BlockEditorRibbon />
+            </DataTemplate>
+
             <!--
             A style box: the combo box's look, opened by a click on it (StyleBox), with no button of its own; its list on the
             header's colour, the current style ticked, a model drawing's marked "model", the dialog's item last under a line. In
@@ -1483,9 +1488,26 @@
                             </Style>
                         </ToggleButton.Style>
                     </ToggleButton>
+                    <!-- The contextual Block Editor tab, green as the others, while a block is open in the Block Editor. -->
+                    <ToggleButton Content="Block Editor" IsChecked="{Binding BlockEditorTab.IsTabSelected, Mode=OneWay}" Margin="4,0,0,0"
+                                  Command="{Binding SelectTabCommand}" CommandParameter="{Binding BlockEditorTab}"
+                                  Visibility="{Binding BlockEditorTab.IsTabVisible, Converter={StaticResource Shown}}">
+                        <ToggleButton.Style>
+                            <Style TargetType="ToggleButton" BasedOn="{StaticResource GhRibbonTab}">
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="ToggleButton">
+                                            <Border Background="#2F8F4E" CornerRadius="2,2,0,0" Padding="{TemplateBinding Padding}">
+                                                <ContentPresenter TextElement.Foreground="White" TextElement.FontWeight="SemiBold" />
+                                            </Border>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </ToggleButton.Style>
+                    </ToggleButton>
                 </StackPanel>
-                <Border Padding="12,6">
-                    <Border.Style>
+                <Border Padding="12,6">                    <Border.Style>
                         <Style TargetType="Border">
                             <Setter Property="BorderBrush" Value="{StaticResource GhBorder}" />
                             <Setter Property="BorderThickness" Value="0,1,0,0" />
@@ -1495,6 +1517,10 @@
                                     <Setter Property="BorderThickness" Value="0,2,0,0" />
                                 </DataTrigger>
                                 <DataTrigger Binding="{Binding TableCellTab.IsTabSelected}" Value="True">
+                                    <Setter Property="BorderBrush" Value="#2F8F4E" />
+                                    <Setter Property="BorderThickness" Value="0,2,0,0" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding BlockEditorTab.IsTabSelected}" Value="True">
                                     <Setter Property="BorderBrush" Value="#2F8F4E" />
                                     <Setter Property="BorderThickness" Value="0,2,0,0" />
                                 </DataTrigger>
@@ -2264,7 +2290,7 @@
                     </ItemsControl>
                     <Button Style="{StaticResource GhFlatButton}" Content="+" Width="24" Height="22" Foreground="{StaticResource GhTextMuted}"
                             Command="{Binding NewLayoutCommand}" ToolTip="New layout (LAYOUT New)" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
-                            Visibility="{Binding HasDocument, Converter={StaticResource Shown}}" />
+                            Visibility="{Binding CanAddLayout, Converter={StaticResource Shown}}" />
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
                     <TextBlock Text="{Binding StatusText}" Margin="0,0,12,0" VerticalAlignment="Center">

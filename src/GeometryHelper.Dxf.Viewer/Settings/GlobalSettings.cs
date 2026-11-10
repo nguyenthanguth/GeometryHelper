@@ -87,6 +87,7 @@ namespace GeometryHelper.Dxf.Viewer
         private const int Format = 1;
         private int _background;
         private int _paper = 0xFFFFFF;
+        private int _blockEditor = 0x3B4049;
         private int _visibleLines = 0xFFFFFF;
         private int _hiddenLines = 0x9AA4B1;
         private int _selection = 0x3D9BFF;
@@ -139,6 +140,10 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Gets or sets the colour of the paper of a layout: white by default.</summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the value is not a colour of 0 to 0xFFFFFF.</exception>
         public int Paper { get => _paper; set => _paper = Colour(value, nameof(Paper)); }
+
+        /// <summary>Gets or sets the colour of the canvas behind a block open in the Block Editor (BEDIT): #3B4049 by default, a grey no drawing's canvas is taken for.</summary>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the value is not a colour of 0 to 0xFFFFFF.</exception>
+        public int BlockEditorBackground { get => _blockEditor; set => _blockEditor = Colour(value, nameof(BlockEditorBackground)); }
 
         /// <summary>Gets or sets the colour of a drawing's visible lines of colour 7 on a dark canvas: white by default.</summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the value is not a colour of 0 to 0xFFFFFF.</exception>
@@ -559,6 +564,7 @@ namespace GeometryHelper.Dxf.Viewer
             w.Value("mode", Mode);
             w.Value("canvasBackground", Hex(_background));
             w.Value("paper", Hex(_paper));
+            w.Value("blockEditorBackground", Hex(_blockEditor));
             w.Value("visibleLines", Hex(_visibleLines));
             w.Value("hiddenLines", Hex(_hiddenLines));
             w.Value("selection", Hex(_selection));
@@ -756,6 +762,7 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 Colour("appearance", "canvasBackground", v => _s.CanvasBackground = v);
                 Colour("appearance", "paper", v => _s.Paper = v);
+                Colour("appearance", "blockEditorBackground", v => _s.BlockEditorBackground = v);
                 Colour("appearance", "visibleLines", v => _s.VisibleLines = v);
                 Colour("appearance", "hiddenLines", v => _s.HiddenLines = v);
                 Colour("appearance", "selection", v => _s.Selection = v);

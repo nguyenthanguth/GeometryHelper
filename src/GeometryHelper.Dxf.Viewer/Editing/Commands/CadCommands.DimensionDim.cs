@@ -10,7 +10,7 @@ namespace GeometryHelper.Dxf.Viewer
     /// <summary>DIM, AutoCAD's one dimension command since 2016: the kind of dimension follows what is picked.</summary>
     /// <remarks>
     /// A click on a line dimensions the line, a click on another line then the angle of the two; a click on a circle its
-    /// diameter, on an arc its radius; a click on nothing (or a point typed) starts a linear dimension from that point. The
+    /// diameter, on an arc its radius; a click on nothing (or a point typed or snapped) starts a linear dimension from that point. The
     /// options run the commands of their names: Angular DIMANGULAR, Baseline DIMBASELINE, Continue DIMCONTINUE, Ordinate
     /// DIMORDINATE; aLign puts dimensions on the line of a base one, Distribute spaces them evenly or an offset apart, LAyer
     /// sets the layer new dimensions go on (AutoCAD's DIMLAYER) and Undo takes back the last dimension made. DIM asks again
@@ -39,7 +39,9 @@ namespace GeometryHelper.Dxf.Viewer
                 if (c.Input.IsPoint)
                 {
                     GeoPoint2 at = c.Input.Point;
-                    DxfEntity picked = c.Input.Text == null ? Dimensionable(c, at) : null;
+                    // A point an object snap gave is an origin, as AutoCAD's DIM takes it, not a pick of the object under it.
+                    bool snapped = c.Input.Snap != null && c.Input.Snap.Kind != CadSnapKind.None;
+                    DxfEntity picked = c.Input.Text == null && !snapped ? Dimensionable(c, at) : null;
                     step = picked == null ? DimLine(c, false, at) : DimObject(c, picked);
                 }
                 else if (c.Input.Is("Angular"))
@@ -219,13 +221,14 @@ namespace GeometryHelper.Dxf.Viewer
                     yield break;
                 }
 
-                MakeLinear(c, style, Beside(c, p1, p2, at), p1, p2, at, text, null, textAngle);
+                CadDimAssociation.Tie(c, MakeLinear(c, style, Beside(c, p1, p2, at), p1, p2, at, text, null, textAngle), CadDimAssociation.LineEnds(line));
                 yield break;
             }
 
             GeoPoint2 center = Center(picked);
             double radius = picked is DxfCircle circle ? circle.Radius : ((DxfArc)picked).Radius;
             string handle = MakeRadial(c, style, center, radius, diameter, at, text, textAngle);
+            CadDimAssociation.Tie(c, handle, CadDimAssociation.CenterOf(picked));
 
             if (handle != null)
             {

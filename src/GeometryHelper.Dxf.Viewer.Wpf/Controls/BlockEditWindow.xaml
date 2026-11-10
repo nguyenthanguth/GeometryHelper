@@ -1,0 +1,76 @@
+<Window x:Class="GeometryHelper.Dxf.Viewer.Wpf.BlockEditWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="{Binding Title}" Width="640" Height="480" WindowStyle="None" ResizeMode="NoResize" ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner" Background="#262B33">
+
+    <Window.Resources>
+        <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/BlockDialogs.xaml" />
+    </Window.Resources>
+
+    <Border x:Name="Root" Background="{StaticResource GhPanel}" BorderBrush="{StaticResource GhBorder}" BorderThickness="1" CornerRadius="6"
+            TextElement.FontFamily="{StaticResource GhFont}" TextElement.FontSize="12" TextElement.Foreground="{StaticResource GhText}"
+            UseLayoutRounding="True" SnapsToDevicePixels="True" TextOptions.TextFormattingMode="Display">
+        <DockPanel>
+            <Border DockPanel.Dock="Top" Background="{StaticResource GhHeader}" Padding="16,10" CornerRadius="6,6,0,0" MouseLeftButtonDown="OnHeaderDown">
+                <DockPanel>
+                    <Button DockPanel.Dock="Right" Style="{StaticResource GhTitleCloseButton}" Click="OnCancel" ToolTip="Close" />
+                    <TextBlock Text="{Binding Title}" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" />
+                </DockPanel>
+            </Border>
+
+            <Border DockPanel.Dock="Bottom" Background="{StaticResource GhHeader}" Padding="16,10" CornerRadius="0,0,6,6">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button Style="{StaticResource StylePrimaryButton}" Content="OK" Padding="14,5" Margin="0,0,8,0" Click="OnOk" IsDefault="True" IsEnabled="{Binding CanOk}" />
+                    <Button Style="{StaticResource GhDialogButton}" Content="Cancel" Padding="14,5" Click="OnCancel" IsCancel="True" />
+                </StackPanel>
+            </Border>
+
+            <Grid Margin="16,12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="260" />
+                    <ColumnDefinition Width="14" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top" Text="{Binding NameLabel}" Foreground="{StaticResource GhTextMuted}" Margin="0,0,0,3" />
+                    <TextBox x:Name="NameBox" DockPanel.Dock="Top" Style="{StaticResource BlockNumber}" BorderBrush="{StaticResource GhAccent}" Margin="0,0,0,6"
+                             Text="{Binding Name, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="{Binding NameLabel}" />
+                    <!-- <Current Drawing> first, then the named blocks; a double click is OK. -->
+                    <ListBox ItemsSource="{Binding Rows}" SelectedItem="{Binding Selected, Mode=TwoWay}" Background="{StaticResource GhInput}" Foreground="{StaticResource GhText}"
+                             BorderBrush="{StaticResource GhBorder}" BorderThickness="1" Padding="0,2" ItemContainerStyle="{StaticResource StyleListItem}"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled" MouseDoubleClick="OnRowDoubleClick" AutomationProperties.Name="Blocks in the drawing">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <DockPanel>
+                                    <TextBlock DockPanel.Dock="Right" Text="{Binding Tag}" FontFamily="{StaticResource GhFont}" FontSize="10" FontWeight="Medium"
+                                               Foreground="{StaticResource GhTextMuted}" VerticalAlignment="Center" />
+                                    <TextBlock Text="{Binding Name}" FontFamily="{StaticResource GhMonoFont}" TextTrimming="CharacterEllipsis" />
+                                </DockPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </DockPanel>
+
+                <StackPanel Grid.Column="2">
+                    <TextBlock Text="Preview" Foreground="{StaticResource GhTextMuted}" Margin="0,0,0,8" />
+                    <Border Height="160" Background="Black" BorderBrush="{StaticResource GhBorder}" BorderThickness="1" CornerRadius="2" Margin="0,0,0,8"
+                            AutomationProperties.Name="Block preview">
+                        <Image Source="{Binding Preview}" Stretch="Uniform" Margin="10" />
+                    </Border>
+                    <TextBlock Text="Description" Foreground="{StaticResource GhTextMuted}" Margin="0,0,0,3" />
+                    <TextBox Style="{StaticResource BlockBox}" Height="52" IsReadOnly="True" TextWrapping="Wrap" VerticalContentAlignment="Top" VerticalScrollBarVisibility="Auto"
+                             Foreground="{StaticResource GhIcon}" Text="{Binding Description, Mode=OneWay}" AutomationProperties.Name="Description" Margin="0,0,0,8" />
+                    <Border Style="{StaticResource StyleFrame}">
+                        <DockPanel>
+                            <Ellipse Width="8" Height="8" Fill="{StaticResource GhAccent}" VerticalAlignment="Top" Margin="0,4,8,0" />
+                            <TextBlock Foreground="{StaticResource GhTextMuted}" TextWrapping="Wrap"
+                                       Text="&lt;Current Drawing&gt; opens model space itself in the Block Editor; saving writes it back to model space. A name not in the list creates a new, empty block. Xrefs, layouts and anonymous *U, *D, *X blocks are not listed. Double-click a row = OK." />
+                        </DockPanel>
+                    </Border>
+                </StackPanel>
+            </Grid>
+        </DockPanel>
+    </Border>
+</Window>

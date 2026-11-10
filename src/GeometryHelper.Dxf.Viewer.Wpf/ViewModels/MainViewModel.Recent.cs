@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -16,9 +17,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     public sealed class RecentDocumentViewModel : ObservableObject
     {
         private readonly Func<DateTime> _now;
-        private bool _read;
-        private string _versionText;
-        private ImageSource _thumbnail;
+        private Task _reading;
+        private volatile string _versionText;
+        private volatile ImageSource _thumbnail;
 
         internal RecentDocumentViewModel(GlobalRecentFile file, Func<DateTime> now, Action<RecentDocumentViewModel> open, Action<RecentDocumentViewModel> pin)
         {
@@ -62,7 +63,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
         }
 
-        /// <summary>Gets the version of the file in words, as "AutoCAD 2018 DXF (AC1032)"; read from the top of the file the first time it is asked for.</summary>
+        /// <summary>
+        /// Gets the version of the file in words, as "AutoCAD 2018 DXF (AC1032)": read from the top of the file on a worker
+        /// thread the first time it is asked for, null until then, and raised as changed once read.
+        /// </summary>
         public string VersionText
         {
             get
@@ -91,7 +95,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
         }
 
-        /// <summary>Gets the preview picture the file keeps (its THUMBNAILIMAGE section), read from its end the first time it is asked for; null for none.</summary>
+        /// <summary>
+        /// Gets the preview picture the file keeps (its THUMBNAILIMAGE section), read from its end on a worker thread the first
+        /// time it is asked for and raised as changed once read; null for none, or until then.
+        /// </summary>
         public ImageSource Thumbnail
         {
             get
@@ -113,35 +120,51 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <inheritdoc/>
         public override string ToString() => Name;
 
+        /// <summary>
+        /// The reading of the file's version and preview, started on a worker thread the first time either is asked for, so
+        /// that a list of files on a slow share does not hold the window; the two are raised as changed once read.
+        /// </summary>
+        internal Task WhenRead()
+        {
+            Read();
+            return _reading;
+        }
+
         private void Read()
         {
-            if (_read)
+            if (_reading != null)
             {
                 return;
             }
 
-            _read = true;
-            CadFileHeader header = CadFileHeader.Read(Path);
-            _versionText = header.VersionText;
-
-            if (header.Thumbnail == null)
+            _reading = Task.Run(() =>
             {
-                return;
-            }
+                CadFileHeader header = CadFileHeader.Read(Path);
+                ImageSource thumbnail = null;
 
-            try
-            {
-                using (var stream = new MemoryStream(header.Thumbnail))
+                if (header.Thumbnail != null)
                 {
-                    BitmapFrame frame = BitmapFrame.Create(stream, BitmapCreateOptions.None, BitmapCacheOption.OnLoad);
-                    frame.Freeze();
-                    _thumbnail = frame;
+                    try
+                    {
+                        using (var stream = new MemoryStream(header.Thumbnail))
+                        {
+                            BitmapFrame frame = BitmapFrame.Create(stream, BitmapCreateOptions.None, BitmapCacheOption.OnLoad);
+                            frame.Freeze();
+                            thumbnail = frame;
+                        }
+                    }
+                    catch (Exception exception) when (exception is NotSupportedException || exception is FileFormatException || exception is ArgumentException || exception is InvalidOperationException)
+                    {
+                        GeometryHelperLog.Debug("RecentDocumentViewModel: the preview of " + Path + " does not read: " + exception.Message);
+                    }
                 }
-            }
-            catch (Exception exception) when (exception is NotSupportedException || exception is FileFormatException || exception is ArgumentException || exception is InvalidOperationException)
-            {
-                GeometryHelperLog.Debug("RecentDocumentViewModel: the preview of " + Path + " does not read: " + exception.Message);
-            }
+
+                _versionText = header.VersionText;
+                _thumbnail = thumbnail;
+                Raise(nameof(VersionText));
+                Raise(nameof(Thumbnail));
+                Raise(nameof(HasThumbnail));
+            });
         }
     }
 
@@ -493,10 +516,36 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <returns>The menu.</returns>
         public AppMenuViewModel CreateAppMenu(string appName = null) => new AppMenuViewModel(this, appName);
 
-        /// <summary>Opens a file of Recent Documents.</summary>
+        /// <summary>
+        /// Opens a file of Recent Documents. One no longer on the disk, and not open, is taken off the list, the command line
+        /// saying so, as AutoCAD drops a missing file when it is chosen.
+        /// </summary>
         /// <param name="document">The file.</param>
         /// <returns>True when it is shown.</returns>
-        public bool OpenRecent(RecentDocumentViewModel document) => document != null && Open(document.Path);
+        public bool OpenRecent(RecentDocumentViewModel document)
+        {
+            if (document == null)
+            {
+                return false;
+            }
+
+            bool open = _files.Values.Any(f => f.Document != null && (SamePath(f.Path, document.Path) || SamePath(f.Document.FileName, document.Path)));
+
+            if (!open && !System.IO.File.Exists(document.Path))
+            {
+                Say("Cannot find " + document.Path + ": it is taken off the recent files.");
+
+                if (_settings.RemoveRecentFile(document.Path))
+                {
+                    RebuildRecent();
+                    SettingsChanged?.Invoke(this, EventArgs.Empty);
+                }
+
+                return false;
+            }
+
+            return Open(document.Path);
+        }
 
         /// <summary>Pins a file of Recent Documents, or unpins it; the settings file keeps the pins, which the start screen and the menu share.</summary>
         /// <param name="document">The file.</param>

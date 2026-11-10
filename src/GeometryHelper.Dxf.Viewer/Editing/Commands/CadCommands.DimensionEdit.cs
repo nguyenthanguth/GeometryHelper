@@ -438,6 +438,44 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>
+        /// Appends a copy of an entity moved by a transformation to the space of the entity, and gives it back, its owner's tag
+        /// taken off. A dimension drawn by an anonymous block of its own is copied as AutoCAD 2021's COPY copies one: its
+        /// picture copied into a block of the copy's own, which moves with it, so that the copy is drawn where it stands and a
+        /// move of the one leaves the other's picture where it is.
+        /// </summary>
+        internal static DxfEntity AppendCopy(CadEditScope s, string handle, GeoTransform3 transform)
+        {
+            DxfEntity entity = s.Document.FindEntity(handle);
+            CadSpace space = s.Document.FindSpace(handle);
+            DxfBlockTableRecord picture = (entity as DxfDimension)?.DimBlock;
+
+            if (picture == null || !picture.IsAnonymous)
+            {
+                DxfEntity copied = entity.GetTransformedCopy(transform);
+                CadOwnerTag.Remove(copied);
+                return s.Append(space, copied);
+            }
+
+            var copy = (DxfDimension)entity.Clone();
+            CadOwnerTag.Remove(copy);
+            s.Append(space, copy);
+            var own = new DxfBlockTableRecord { Name = "*D" };
+            s.Database.BlockTable.Add(own);
+
+            foreach (DxfEntity part in picture)
+            {
+                if (!part.IsErased)
+                {
+                    own.AppendEntity(part.Clone());
+                }
+            }
+
+            copy.DimBlock = own;
+            copy.TransformBy(transform);
+            return copy;
+        }
+
+        /// <summary>
         /// Moves the words of a dimension to a point: a linear one's dimension line moved to run under them where its DIMTMOVE is
         /// 0, an angular one's arc to the radius under them; a radius's or a diameter's line turned toward them.
         /// </summary>

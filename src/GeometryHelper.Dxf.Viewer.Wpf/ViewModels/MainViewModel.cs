@@ -386,7 +386,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public string SpaceLabel => _current == null ? string.Empty : IsWorkingInModel ? "MODEL" : "PAPER";
 
         /// <summary>Gets the label at the top left of the canvas, <see cref="ModelViewportLabel"/> in model space and empty in a layout.</summary>
-        public string ViewportLabel => IsModelSpace ? ModelViewportLabel : string.Empty;
+        public string ViewportLabel => Document?.BlockEditor is CadBlockEditor editor ? "[-][Block Editor: " + editor.Name + "][2D Wireframe]" : IsModelSpace ? ModelViewportLabel : string.Empty;
 
         /// <summary>Gets the text of the selection box of Properties: "No selection", "Line (1)", "Circle (2)".</summary>
         public string SelectionLabel
@@ -504,7 +504,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// Gets the state text of the status bar: "Saved" or "Unsaved changes", or what an extension says of a document of its
         /// own; empty with no drawing.
         /// </summary>
-        public string StatusText => _current == null ? string.Empty : _current.Info(_extensions)?.StatusText ?? (HasUnsavedChanges ? "Unsaved changes" : "Saved");
+        public string StatusText => _current == null ? string.Empty : BlockEditorStatus ?? _current.Info(_extensions)?.StatusText ?? (HasUnsavedChanges ? "Unsaved changes" : "Saved");
 
         /// <summary>Gets a second state text an extension gives for a document of its own, drawn as a warning; empty for none.</summary>
         public string StatusNote => _current?.Info(_extensions)?.StatusNote ?? string.Empty;
@@ -710,7 +710,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <param name="space">The space.</param>
         public void SelectSpace(CadSpace space)
         {
-            if (_current == null || space == null || space == _current.Document.CurrentSpace || !_current.Document.Spaces.Contains(space))
+            if (_current == null || space == null || space == _current.Document.CurrentSpace || !_current.Document.Spaces.Contains(space) || _current.Document.BlockEditor != null)
             {
                 return;
             }
@@ -1374,6 +1374,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             SyncInPlace();
             SyncTableCell();
+            SyncBlockEditor();
             Revision++;
 
             // PICKSTYLE typed or switched by its key: Group Selection follows. A split button's option answers its prompt.
@@ -1437,6 +1438,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     break;
                 case "PTYPE":
                     OnPointStyleRequested(e);
+                    break;
+                case "BEDIT":
+                case "BSAVEAS":
+                case "BCLOSE":
+                    OnBlockEditorRequested(e);
                     break;
                 case "BLOCK":
                 case "INSERT":
@@ -1505,6 +1511,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return;
             }
 
+            SyncBlockEditor();
             SyncSpaceTabs();
 
             if (e.TablesChanged || e.Kind == CadChangeKind.Undo || e.Kind == CadChangeKind.Redo)
@@ -1571,7 +1578,23 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
         }
 
-        private void OnToggleChanged(object sender, PropertyChangedEventArgs e) => ApplyToggles();
+        private void OnToggleChanged(object sender, PropertyChangedEventArgs e)
+        {
+            ApplyToggles();
+
+            // ORTHO switched is written to the drawing's $ORTHOMODE too, as AutoCAD saves ORTHOMODE with the drawing.
+            if (sender is StatusToggleViewModel toggle && toggle.Name == "ORTHO" && _current?.Document != null && _current.Document.Database.Orthomode != toggle.IsOn)
+            {
+                try
+                {
+                    _current.Document.Database.Orthomode = toggle.IsOn;
+                }
+                catch (InvalidOperationException exception)
+                {
+                    GeometryHelperLog.Warn("MainViewModel: ORTHOMODE could not be written to the drawing.", exception);
+                }
+            }
+        }
 
         private void ApplyToggles()
         {
@@ -1665,7 +1688,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             _current = file;
             SpaceTabs.Clear();
 
-            foreach (CadSpace space in file.Document.Spaces)
+            foreach (CadSpace space in TabSpaces(file.Document))
             {
                 SpaceTabs.Add(new SpaceTabViewModel(space) { IsActive = space == file.Document.CurrentSpace });
             }
@@ -1688,6 +1711,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             Raise(nameof(IsGroupSelectionOn));
             SyncHistory();
             SyncInPlace();
+            SyncBlockEditor();
         }
 
         private void RaiseSpace()

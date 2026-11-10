@@ -351,7 +351,10 @@ drawing: `var picture = new DxfBlockTableRecord { Name = "*D" }; db.BlockTable.A
 number no block, INSERT, dimension or table of the drawing names, and marks it anonymous (`IsAnonymous`, flag 1 of its
 BLOCK), as ezdxf writes the picture of a dimension. A rotated dimension of 100 whose `*D1` holds its dimension line and an
 MTEXT `100` is saved and read back drawn by `*D1` with its two entities; a drawing whose dimensions ezdxf drew as `*D1` to
-`*D11` names the next `*D12`. A block, linetype or text style set on a dimension in no drawing, or on a copy, is held as
+`*D11` names the next `*D12`. An anonymous block given as `DimBlock` is marked as the dimension's own, flag 32 of its group
+70, as AutoCAD 2021 writes a DIMLINEAR's 70 as 32, so that `TransformBy` moves the picture with it: the rotated dimension
+of 100 moved by (5, 20) has its dimension line moved by (5, 20) too. Give each dimension a block of its own; a copy added
+to the drawing it came from shares its original's block and loses the flag. A block, linetype or text style set on a dimension in no drawing, or on a copy, is held as
 the record it is (a `Clone()` holds it too) and taken to the record of its name in the drawing it is added to, refused where
 there is none of that name to take it to.
 

@@ -16,6 +16,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         // AUTOSNAP's bits the canvas always has: the marker, its tooltip, the magnet and the tooltips of tracking.
         private const int AutoSnapAlways = 1 | 2 | 4 | 32;
 
+        // DYNMODE as last set, its sign aside: which of pointer and dimensional input F12 brings back.
+        private int _dynamicMode = 3;
+
         /// <summary>Adds the variables of the window to a command line's registry, ORTHOMODE and LWDISPLAY of the drawing replaced by those the window draws by.</summary>
         private void AddWindowVariables(CadCommandRegistry registry)
         {
@@ -25,10 +28,28 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             registry.AddVariable(ToggleVariable("GRIDMODE", "GRID"));
             registry.AddVariable(CadSystemVariable.Real("POLARANG", 360.0, () => _settings.PolarAngle, SetPolarAngle));
             registry.AddVariable(CadSystemVariable.Integer("AUTOSNAP", 0, 63, () => AutoSnapAlways | (FindToggle("POLAR").IsOn ? 8 : 0) | (FindToggle("OTRACK").IsOn ? 16 : 0), SetAutosnap));
-            registry.AddVariable(CadSystemVariable.Integer("DYNMODE", -3, 3, () => DynamicInput.IsOn ? 3 : -3, v => DynamicInput.IsOn = v > 0));
+            registry.AddVariable(CadSystemVariable.Integer("DYNMODE", -3, 3, DynamicMode, SetDynamicMode));
             registry.AddVariable(CadSystemVariable.Integer("PICKBOX", 1, 50, () => _settings.PickboxPixels, v => ChangeSettings(s => s.PickboxPixels = v)));
             registry.AddVariable(CadSystemVariable.Integer("APERTURE", 2, 50, () => _settings.AperturePixels, v => ChangeSettings(s => s.AperturePixels = v)));
             registry.AddVariable(CadSystemVariable.Integer("LWDISPLAY", 0, 1, () => _settings.ShowLineWeights ? 1 : 0, v => ChangeSettings(s => s.ShowLineWeights = v != 0)));
+        }
+
+        /// <summary>
+        /// DYNMODE as AutoCAD reads it: 1 pointer input, 2 dimensional input, 3 both, the value made negative while DYN is off
+        /// so that F12 brings the same back, and 0 all off, which F12 turns to 3. The presenter's one box of dynamic input
+        /// shows both whichever of 1 to 3 is set.
+        /// </summary>
+        private int DynamicMode()
+        {
+            int kept = Math.Abs(_dynamicMode);
+            return DynamicInput.IsOn ? (kept == 0 ? 3 : kept) : -kept;
+        }
+
+        /// <summary>DYNMODE set: DYN on for 1 to 3, off for 0 and below, the value kept for F12.</summary>
+        private void SetDynamicMode(int value)
+        {
+            _dynamicMode = value;
+            DynamicInput.IsOn = value > 0;
         }
 
         /// <summary>A switch of the status bar as a variable of 0 and 1.</summary>

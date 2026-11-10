@@ -92,7 +92,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     public sealed partial class MainViewModel
     {
         /// <summary>How many commands Recent Commands keeps: 20, as AutoCAD's.</summary>
-        public const int RecentCommandsKept = 20;
+        public const int RecentCommandsKept = GlobalSettings.RecentCommandsKept;
 
         private static readonly KeyValuePair<string, string>[] Synonyms =
         {
@@ -124,7 +124,6 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             ["OPTIONS"] = "GhIconGear", ["DSETTINGS"] = "GhIconGear",
         };
 
-        private readonly List<string> _recentCommands = new List<string>();
         private IReadOnlyList<CommandSuggestionViewModel> _suggestions = Array.Empty<CommandSuggestionViewModel>();
         private string _lastUnknown;
 
@@ -148,8 +147,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Gets the row Enter or Space runs: the first when the list opens, the arrows moving it; null with the list closed.</summary>
         public CommandSuggestionViewModel SelectedSuggestion => _suggestions.FirstOrDefault(s => s.IsSelected);
 
-        /// <summary>Gets the commands run last, the newest first, each once, <see cref="RecentCommandsKept"/> at most: the command line menu's Recent Commands.</summary>
-        public IReadOnlyList<string> RecentCommands => _recentCommands.AsReadOnly();
+        /// <summary>Gets the commands run last, the newest first, each once, <see cref="RecentCommandsKept"/> at most: the command line menu's Recent Commands, kept in the settings file from one session to the next.</summary>
+        public IReadOnlyList<string> RecentCommands => _settings.RecentCommands;
 
         /// <summary>Gets or sets how the window reads the text of the clipboard, for Paste; null where there is none.</summary>
         public Func<string> ReadClipboardText { get; set; }
@@ -233,7 +232,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public IReadOnlyList<CadMenuItemViewModel> CommandLineMenu(string selectedText = null)
         {
             string clipboard = ClipboardText();
-            var recent = _recentCommands.Select(name => new CadMenuItemViewModel(name, () => RunRecentCommand(name))).ToList();
+            var recent = _settings.RecentCommands.Select(name => new CadMenuItemViewModel(name, () => RunRecentCommand(name))).ToList();
             var input = new List<CadMenuItemViewModel>
             {
                 new CadMenuItemViewModel("AutoComplete", () => ChangeSettings(s => s.AutoComplete = !s.AutoComplete), isChecked: _settings.AutoComplete),
@@ -290,19 +289,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             NoteCommandUsed(name);
         }
 
-        /// <summary>A command run, by name: counted, and put first in Recent Commands; the settings file keeps the count.</summary>
+        /// <summary>A command run, by name: counted, and put first in Recent Commands; the settings file keeps both.</summary>
         private void NoteCommandUsed(string name)
         {
             string upper = name.ToUpperInvariant();
             _settings.CountCommandUse(upper);
-            _recentCommands.Remove(upper);
-            _recentCommands.Insert(0, upper);
-
-            if (_recentCommands.Count > RecentCommandsKept)
-            {
-                _recentCommands.RemoveRange(RecentCommandsKept, _recentCommands.Count - RecentCommandsKept);
-            }
-
+            _settings.NoteRecentCommand(upper);
             Raise(nameof(RecentCommands));
             SettingsChanged?.Invoke(this, EventArgs.Empty);
         }

@@ -123,7 +123,7 @@ x = 40, is attached top right at (80, 0). At 1 they are mirrored with the rest.
 
 ### The commands
 
-[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 159 commands, named as AutoCAD names them, and of the system variables SETVAR sets:
+[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 165 commands, named as AutoCAD names them, and of the system variables SETVAR sets:
 
 | Group | Commands |
 |---|---|
@@ -134,7 +134,7 @@ x = 40, is attached top right at (80, 0). At 1 they are mirrored with the rest.
 | layers | LAYOFF, LAYON, LAYFRZ, LAYTHW, LAYLCK, LAYULK, LAYISO, LAYUNISO, VPLAYER (?, Freeze, Thaw, Reset, Newfrz, Vpvisdflt), LAYVPI |
 | utilities | SELECTALL, UNITS, -UNITS, SCRIPT, SETVAR (?) |
 | modify | TRIM, EXTEND, BREAK, BREAKATPOINT, JOIN, LENGTHEN, PEDIT (Close, Open, Join, Width, Edit vertex, Fit, Spline, Decurve, Ltype gen, Reverse, Undo; Multiple), OFFSET, FILLET, CHAMFER, STRETCH, ARRAY, ARRAYRECT, ARRAYPOLAR, -ARRAY, ALIGN |
-| blocks | BLOCK, -BLOCK, INSERT, -INSERT, WBLOCK, -WBLOCK, ATTDEF, -ATTDEF, EATTEDIT, ATTEDIT, -ATTEDIT, ATTSYNC (?, Name, Select), BASE |
+| blocks | BLOCK, -BLOCK, INSERT, -INSERT, WBLOCK, -WBLOCK, ATTDEF, -ATTDEF, EATTEDIT, ATTEDIT, -ATTEDIT, ATTSYNC (?, Name, Select), BASE, BEDIT, -BEDIT (?), BSAVE, BSAVEAS, BCLOSE (Save, Discard, Cancel), BAUTHORPALETTE |
 | text and clipboard | TEXTEDIT, MTEDIT, COPYCLIP, CUTCLIP, COPYBASE, PASTECLIP, PASTEBLOCK, PASTEORIG, PASTESPEC |
 | plot | PLOT, -PLOT, PREVIEW, PAGESETUP, PNGOUT, JPGOUT, BMPOUT ([Plotting](plot.md)) |
 | dimension | DIM (Angular, Baseline, Continue, Ordinate, aLign, Distribute, LAyer, Undo), DIMLINEAR, DIMALIGNED, DIMRADIUS, DIMDIAMETER, DIMANGULAR, DIMORDINATE (Xdatum, Ydatum, Mtext, Text, Angle), DIMCONTINUE, DIMBASELINE, QDIM, DIMEDIT, DIMTEDIT, DIMSPACE, DIMBREAK, DIMJOGLINE (Remove), DIMREASSOCIATE (Select object), DIMDISASSOCIATE, -DIMDISASSOCIATE |
@@ -158,16 +158,27 @@ dimension goes or a second line for the angle; a circle's diameter, an arc's rad
 dimension. Its options run the commands of their names, and LAyer puts the dimensions made next on a layer.
 
 A dimension made with DIMASSOC 2 (the default) whose points were picked with an object snap is associative, as in AutoCAD
-2021: DIMLINEAR and DIMALIGNED tie each origin snapped with ENDpoint, MIDpoint, CENter, QUAdrant, NODe or NEArest to its
-line, arc, circle, polyline segment or point (both ends where a line is selected), DIMRADIUS and DIMDIAMETER tie the center
-of the circle or arc, and DIMANGULAR of an arc its two ends and center, kept in a DIMASSOC as AutoCAD keeps it. Every edit
+2021: DIMLINEAR, DIMALIGNED and DIM tie each origin snapped with ENDpoint, MIDpoint, CENter, QUAdrant, NODe or NEArest to
+its line, arc, circle, polyline segment or point (both ends where a line is selected), and one snapped with INTersection to
+the two lines, arcs or circles that cross there; DIMRADIUS and DIMDIAMETER tie the center of the circle or arc, DIMANGULAR
+of an arc its two ends and center, of two lines the four ends, of three points those snapped, DIMORDINATE its feature;
+DIMCONTINUE and DIMBASELINE tie their first point to what the last dimension's second (or the base's first) was tied to,
+and QDIM the ends of lines, the vertices of polylines and the centers of circles, all kept in a DIMASSOC as AutoCAD keeps
+it. Every edit
 that changes those objects, whatever command or grip makes it, carries the dimension with it in the same undo step: a line
 from (0, 0) to (100, 0) moved by (10, 5) takes its dimension, 20 above, whole to (10, 5), (110, 5) and a line at 25; its end
 stretched to (120, 30) moves the second origin there and measures 120, the dimension line staying 20 up; a circle of 25
-scaled twice about its center gives its radius 50 drawn out the same way. Erasing the object, or moving the dimension
+scaled twice about its center gives its radius 50 drawn out the same way. An aligned dimension keeps its line as far from
+the line measured, square to it: 20 above (0, 0)-(100, 0), the end stretched to (120, 30), its line point goes to
+(115.149, 49.403). TRIM, EXTEND and LENGTHEN carry the end they move; an ordinate's leader end follows its point along the
+axis measured alone, (100, -40) to (110, -40) for a point moved by (10, 5); an angle of two lines keeps its arc as far from
+the vertex and at the same share of the angle. Erasing the object, or moving the dimension
 without it, unties the dimension, which keeps its points. DIMREASSOCIATE asks each selected dimension for its points again,
 `Specify first extension line origin or [Select object] <next>:`, and ties those snapped; DIMDISASSOCIATE (and
--DIMDISASSOCIATE) unties those selected, `1 disassociated.`. A copy of a dimension is tied to nothing. The window hands the
+-DIMDISASSOCIATE) unties those selected, `1 disassociated.`. A copy of a dimension alone is tied to nothing; copied with
+its objects, it is tied to their copies, as AutoCAD's COPY ties it. Each copy of a dimension (COPY, ARRAY, a grip's Copy)
+gets a picture block of its own, and a dimension made here is written with flag 32 of group 70, so a plain MOVE takes its
+picture with it. The window hands the
 snap with its point through `CadCommandSession.Feed(CadSnapResult, bool)`; a point typed or fed with `Feed(GeoPoint2)` ties
 nothing.
 
@@ -259,6 +270,18 @@ its file's name. A drawing of 100 000 entities shown as a reference is read and 
 takes 0.87 s (.NET Framework 4.8). AutoCAD 2021 reads no DXF as an external reference ("Unable to load"): it keeps the
 block and the INSERTs of a drawing the presenter saved, AUDIT finds no error, and its -XREF ? lists them.
 
+BEDIT (BE) opens a block in the Block Editor, as AutoCAD 2021's: the Edit Block Definition dialog lists
+`<Current Drawing>` (model space itself) and the named blocks, no layout, external reference or anonymous block, and a
+name not in it makes a new, empty block; -BEDIT asks `Enter block name or [?]:`. The block is shown alone in a space of
+its own ([`CadDocument.BlockEditor`](xref:GeometryHelper.Dxf.Viewer.CadBlockEditor), `CadSpace.IsBlockEditor`), where
+every command draws into and modifies the block's own entities, each an undo step; undo stops where the block was opened
+or last saved. BSAVE (BS) redefines the block and draws every INSERT anew (their attributes are not synchronised, as
+ATTSYNC is not run), merging the session so far into one undo step, `BEDIT`; BSAVEAS copies the content to a new block
+and goes on with it, the one opened left as it was. BCLOSE (BC) asks `Save changes to DOOR? [Save/Discard/Cancel]
+<Save>:` of a block with changes not saved; Discard reads the drawing back as it stood when the block was opened or last
+saved, so a new block never saved is not made. A door of one line given a second and saved shows both in every INSERT,
+and one undo after BCLOSE takes the session back. Commands that leave the block or work on another space (BEDIT, XREF,
+LAYOUT, PLOT, PREVIEW, PAGESETUP, MSPACE, PSPACE, MVIEW, QSAVE, SAVEAS) say `Not allowed in the Block Editor.`.
 PROPERTIES, OPTIONS, LAYER and QSAVE ask the window for its panel or dialog (`UiRequested`), and say "is shown by the window"
 where none is listening. The window adds CLOSE, NEW, SAVEAS, PROPERTIESCLOSE, GRID, SNAP, ORTHO, POLAR, OSNAP, LAYMCUR and LAYMCH, and the plugin commands. The inquiry commands print in AutoCAD's words: DIST from (0, 0) to (100, 100) says `Distance = 141.4214,  Angle in XY Plane = 45,  Angle from XY Plane = 0`; AREA by points or by an object says `Area = 5000.0000, Perimeter = 300.0000`. Each command is a
 [`CadCommand`](xref:GeometryHelper.Dxf.Viewer.CadCommand): a name and an iterator that yields each
@@ -268,8 +291,8 @@ to bottom as its prompts do, and a [command plugin](plugins.md) is written the s
 ### Aliases and keys
 
 [`CadShortcuts`](xref:GeometryHelper.Dxf.Viewer.CadShortcuts) holds the aliases and the keys as data. The defaults are
-AutoCAD's: 116 aliases (`M` MOVE, `CO` COPY, `E` ERASE, `L` LINE, `PL` PLINE, `C` CIRCLE, `Z` ZOOM, `LA` LAYER, `DLI`
-DIMLINEAR, `MV` MVIEW, `MS` MSPACE, `PS` PSPACE, and the rest) and 21 keys (F3 OSNAP, F7 GRID, F8 ORTHO, F9 SNAP, F10 POLAR, F11 OTRACK, F12 DYN, Delete ERASE,
+AutoCAD's: 119 aliases (`M` MOVE, `CO` COPY, `E` ERASE, `L` LINE, `PL` PLINE, `C` CIRCLE, `Z` ZOOM, `LA` LAYER, `DLI`
+DIMLINEAR, `MV` MVIEW, `MS` MSPACE, `PS` PSPACE, `BE` BEDIT, `BS` BSAVE, `BC` BCLOSE, and the rest) and 21 keys (F3 OSNAP, F7 GRID, F8 ORTHO, F9 SNAP, F10 POLAR, F11 OTRACK, F12 DYN, Delete ERASE,
 Ctrl+Z U, Ctrl+Y REDO, Ctrl+S QSAVE, Ctrl+1 PROPERTIES, Ctrl+A SELECTALL, Ctrl+C COPYCLIP, Ctrl+X CUTCLIP, Ctrl+V PASTECLIP, Ctrl+Shift+C COPYBASE, Ctrl+Shift+V PASTEBLOCK, Ctrl+P PLOT, Ctrl+Shift+A PICKSTYLE, Ctrl+W SELECTIONCYCLING). A registry's `Shortcuts` is replaced, from
 [global settings](app.md#global-settings), by another set; letters of either case are the same, and a name wins over an
 alias of the same letters.
@@ -287,17 +310,22 @@ and set where the presenter keeps it, listed in [`CadCommandRegistry.Variables`]
 | Kept in | Variables | A change |
 |---|---|---|
 | the header of the drawing, written as AutoCAD writes it | CLAYER, CECOLOR, CELTYPE, CELWEIGHT, CELTSCALE, LTSCALE, PSLTSCALE, MSLTSCALE, DIMSCALE, DIMASSOC, TEXTSIZE, TEXTSTYLE, FILLETRAD, CHAMFERA, CHAMFERB, PDMODE, PDSIZE, MIRRTEXT, SORTENTS, IMAGEFRAME, CANNOSCALE, INSBASE, LIMMIN, LIMMAX | one undo step |
-| the document or the session | PICKSTYLE, SELECTIONCYCLING, PICKFIRST, OFFSETDIST, TILEMODE (the space shown) | at once, no undo step |
+| the document or the session | PICKSTYLE, SELECTIONCYCLING, PICKFIRST, PICKADD, ATTREQ, OFFSETDIST, TILEMODE (the space shown) | at once, no undo step |
 | the window: the status bar, the snaps and Global settings | OSMODE, ORTHOMODE, SNAPMODE, GRIDMODE, POLARANG, AUTOSNAP, DYNMODE, PICKBOX, APERTURE, LWDISPLAY | at once, no undo step; kept in the settings file |
 | read only | DIMSTYLE, EXTMIN, EXTMAX, UCSNAME, UCSORG, DWGNAME, DWGPREFIX, DATE, CDATE | |
 
 FILLETRAD 5 writes `$FILLETRAD` 40 `5` into the header and U takes it back to 10. OSMODE 4133 ticks Endpoint, Center,
 Intersection and Extension, and 16391 ticks Endpoint, Midpoint and Center with OSNAP off. With no window, ORTHOMODE and
-LWDISPLAY are the drawing's `$ORTHOMODE` and `$LWDISPLAY`; the window answers them with its ORTHO and its lineweights.
+LWDISPLAY are the drawing's `$ORTHOMODE` and `$LWDISPLAY`; the window answers them with its ORTHO and its lineweights,
+and writes ORTHO switched into the drawing's `$ORTHOMODE` too, as AutoCAD saves it with the drawing.
 PICKFIRST 0 makes a command that works on objects ask `Select objects:` whatever is selected before it: with a line
-selected, MOVE asks for objects rather than its base point. The window keeps PICKBOX, APERTURE, LWDISPLAY and POLARANG in
-the settings file as it keeps DYN and the snaps, POLARANG 30 written `"polarAngle": 30`. POLARMODE, PICKADD, ATTREQ,
-ATTDIA, FILEDIA and CMDDIA are not variables of the presenter yet.
+selected, MOVE asks for objects rather than its base point. PICKADD 0 makes what is picked last the selection, Shift
+adding to it, at `Select objects:` and on the canvas: a click on line A, then on line B, leaves B alone; 1, the default,
+and 2 add, Shift taking out. ATTREQ 0 makes INSERT give each attribute its default without asking. DYNMODE keeps -3 to
+3, negative while DYN is off, so that F12 brings the same value back; the one box of dynamic input shows both pointer and
+dimensional input whichever of 1 to 3 is set. The window keeps PICKBOX, APERTURE, LWDISPLAY and POLARANG in
+the settings file as it keeps DYN and the snaps, POLARANG 30 written `"polarAngle": 30`. POLARMODE, ATTDIA, FILEDIA and
+CMDDIA are not variables of the presenter yet.
 CECOLOR, CELTYPE and LTSCALE typed alone ask their own prompts, as before (`Enter new object color [Truecolor/COlorbook]
 <BYLAYER>:`); SETVAR asks them in its words, a text in quotes, `<"ByLayer">`. A window adds its own with
 `registry.AddVariable(CadSystemVariable.Integer(...))` or `CadSystemVariable.Real(...)`.

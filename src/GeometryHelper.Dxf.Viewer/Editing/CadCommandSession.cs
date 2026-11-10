@@ -71,7 +71,7 @@ namespace GeometryHelper.Dxf.Viewer
     /// The command line of one document, as AutoCAD's: a command started by its name or alias, its prompts answered by points
     /// picked on the canvas, text typed, objects selected, Enter and Esc, with the history of what was asked and answered. It
     /// knows no window: the canvas and the command line call <see cref="Feed(GeoPoint2)"/>, <see cref="Feed(string)"/>,
-    /// <see cref="FeedSelection"/>, <see cref="Enter"/> and <see cref="Escape"/>, and a test calls them the same way.
+    /// <see cref="FeedSelection(IEnumerable{string}, bool)"/>, <see cref="Enter"/> and <see cref="Escape"/>, and a test calls them the same way.
     /// </summary>
     /// <remarks>
     /// Every edit a command makes is one undo step: the session opens a group of edits on the command's first edit and closes
@@ -87,6 +87,11 @@ namespace GeometryHelper.Dxf.Viewer
         private readonly SortedSet<string> _gathered = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
         private readonly List<KeyValuePair<string, GeoPoint2>> _clicks = new List<KeyValuePair<string, GeoPoint2>>();
         private readonly SortedSet<string> _whole = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        // The objects a window or crossing box took, each with the box and whether it crossed, and those another option took
+        // whole all the same: -ATTEDIT takes only the attributes a window took.
+        private readonly List<Tuple<string, DisplayBox, bool>> _windows = new List<Tuple<string, DisplayBox, bool>>();
+        private readonly SortedSet<string> _unwindowed = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
         private IEnumerator<CadPrompt> _body;
         private CadCommandContext _context;
 
@@ -187,7 +192,9 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>Starts a command by its name or alias, ending any command running first as Esc would.</summary>
         /// <param name="typed">The name or alias: MOVE, M.</param>
-        /// <returns>False, with "Unknown command" in the history, where the registry knows no such command.</returns>
+        /// <returns>False, with "Unknown command" in the history, where the registry knows no such command; false, with "Not
+        /// allowed in the Block Editor.", for a command that leaves the block while the Block Editor is open (BEDIT, XREF,
+        /// LAYOUT, PLOT and the others).</returns>
         public bool Start(string typed)
         {
             if (IsRunning)
@@ -215,6 +222,14 @@ namespace GeometryHelper.Dxf.Viewer
             if (!string.Equals(command.Name, name, StringComparison.OrdinalIgnoreCase))
             {
                 Write(command.Name);
+            }
+
+            // The Block Editor refuses what leaves the block or works on another space, as AutoCAD's.
+            if (Document.BlockEditor != null && CadCommands.LeavesBlockEditor(command.Name))
+            {
+                Write(CadBlockEditor.NotAllowed);
+                Changed();
+                return false;
             }
 
             var preSelected = new List<string>();
@@ -380,7 +395,7 @@ namespace GeometryHelper.Dxf.Viewer
                         return Answer(new CadInput(CadInputKind.Selection, point, 0.0, null, new[] { picked[0] }) { Shift = shift }, Prompt.Text, null);
                     }
 
-                    return TakeSelection(new[] { picked[0] }, point, shift);
+                    return TakeSelection(new[] { picked[0] }, point, shift, null, false);
                 default:
                     return Invalid("Point is not valid here.");
             }
@@ -562,10 +577,23 @@ namespace GeometryHelper.Dxf.Viewer
         /// <param name="remove">Whether they are taken out, as a pick or a box with Shift held takes them out.</param>
         /// <returns>Whether the prompt took them.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the handles are null.</exception>
-        public bool FeedSelection(IEnumerable<string> handles, bool remove = false) => TakeSelection(handles, null, remove);
+        public bool FeedSelection(IEnumerable<string> handles, bool remove = false) => TakeSelection(handles, null, remove, null, false);
 
-        /// <summary>Answers "Select objects:" with objects, a click's point with them where one picked them, or takes them out.</summary>
-        private bool TakeSelection(IEnumerable<string> handles, GeoPoint2? clicked, bool remove)
+        /// <summary>
+        /// Answers "Select objects:" with the objects a window or crossing box dragged on the canvas took, as
+        /// <see cref="FeedSelection(IEnumerable{string}, bool)"/> does, the box kept with them: -ATTEDIT then takes only the
+        /// attributes of an INSERT that lie inside the window, or that the crossing box touches, as AutoCAD's does.
+        /// </summary>
+        /// <param name="handles">The handles the box took.</param>
+        /// <param name="window">The box, in the coordinates of the space.</param>
+        /// <param name="crossing">Whether the box was a crossing one (dragged right to left), which takes what it touches.</param>
+        /// <param name="remove">Whether they are taken out, as a box with Shift held takes them out.</param>
+        /// <returns>Whether the prompt took them.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the handles are null.</exception>
+        public bool FeedSelection(IEnumerable<string> handles, DisplayBox window, bool crossing, bool remove = false) => TakeSelection(handles, null, remove, window, crossing);
+
+        /// <summary>Answers "Select objects:" with objects, a click's point with them where one picked them, or a window's box, or takes them out.</summary>
+        private bool TakeSelection(IEnumerable<string> handles, GeoPoint2? clicked, bool remove, DisplayBox? window, bool crossing)
         {
             if (handles == null)
             {
@@ -605,6 +633,17 @@ namespace GeometryHelper.Dxf.Viewer
             Write(Prompt.Text);
             var gathered = new List<string>(Document.WithGroups(found));
 
+            // With PICKADD 0 what is picked last replaces those gathered, and Shift adds to them, as AutoCAD's.
+            if (Document.PickAdd == 0 && !_removing)
+            {
+                if (!remove)
+                {
+                    ClearGathering();
+                }
+
+                remove = false;
+            }
+
             if (remove || _removing)
             {
                 return Gather(gathered, true);
@@ -621,6 +660,15 @@ namespace GeometryHelper.Dxf.Viewer
                 else
                 {
                     _whole.Add(handle);
+
+                    if (window.HasValue)
+                    {
+                        _windows.Add(Tuple.Create(handle, window.Value, crossing));
+                    }
+                    else
+                    {
+                        _unwindowed.Add(handle);
+                    }
                 }
             }
 
@@ -776,6 +824,8 @@ namespace GeometryHelper.Dxf.Viewer
             _gathered.Clear();
             _clicks.Clear();
             _whole.Clear();
+            _windows.Clear();
+            _unwindowed.Clear();
         }
 
         /// <summary>The end of "Select objects:": the objects gathered answer it, kept for Previous.</summary>
@@ -783,11 +833,12 @@ namespace GeometryHelper.Dxf.Viewer
         {
             var handles = new List<string>(_gathered);
             List<KeyValuePair<string, GeoPoint2>> clicks = _clicks.FindAll(p => !_whole.Contains(p.Key));
+            List<Tuple<string, DisplayBox, bool>> windows = _windows.FindAll(w => _gathered.Contains(w.Item1) && !_unwindowed.Contains(w.Item1));
             string echo = Prompt.Text;
             ClearGathering();
             RememberSelection(handles);
             ResetOptions();
-            Answer(new CadInput(CadInputKind.Selection, default, 0.0, null, handles) { Clicks = clicks }, echo, null);
+            Answer(new CadInput(CadInputKind.Selection, default, 0.0, null, handles) { Clicks = clicks, Windows = windows }, echo, null);
         }
 
         /// <summary>
@@ -817,7 +868,9 @@ namespace GeometryHelper.Dxf.Viewer
                 foreach (string handle in changed)
                 {
                     _whole.Remove(handle);
+                    _unwindowed.Remove(handle);
                     _clicks.RemoveAll(p => string.Equals(p.Key, handle, StringComparison.OrdinalIgnoreCase));
+                    _windows.RemoveAll(w => string.Equals(w.Item1, handle, StringComparison.OrdinalIgnoreCase));
                 }
             }
 

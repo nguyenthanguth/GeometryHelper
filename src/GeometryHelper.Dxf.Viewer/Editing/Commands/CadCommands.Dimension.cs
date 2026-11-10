@@ -48,7 +48,8 @@ namespace GeometryHelper.Dxf.Viewer
             if (first.HasValue || c.Input.IsPoint)
             {
                 p1 = first ?? c.Input.Point;
-                tied[0] = first.HasValue ? null : CadDimAssociation.FromSnap(c.Document, 0, c.Input.Snap);
+                // DIM gives its own answer as the first origin, whose snap is still the input here.
+                tied[0] = CadDimAssociation.FromSnap(c.Document, 0, c.Input.Snap);
                 yield return CadPrompt.ForPoint("Specify second extension line origin", p1);
 
                 if (!c.Input.IsPoint)
@@ -303,6 +304,7 @@ namespace GeometryHelper.Dxf.Viewer
             var near = new double[2];
             var far = new double[2];
             var points = new GeoPoint2[2];
+            var snapped = new DxfOsnapPointRef[3];
 
             if (given != null || c.Input.Kind == CadInputKind.Selection)
             {
@@ -356,6 +358,7 @@ namespace GeometryHelper.Dxf.Viewer
                 }
 
                 vertex = c.Input.Point;
+                snapped[2] = CadDimAssociation.FromSnap(c.Document, 2, c.Input.Snap);
 
                 for (int i = 0; i < 2; i++)
                 {
@@ -367,6 +370,7 @@ namespace GeometryHelper.Dxf.Viewer
                     }
 
                     points[i] = c.Input.Point;
+                    snapped[i] = CadDimAssociation.FromSnap(c.Document, i, c.Input.Snap);
                 }
             }
             else
@@ -418,10 +422,7 @@ namespace GeometryHelper.Dxf.Viewer
             double textHeight = TextHeight(c, style);
             string handle = AddedHandle(Place(c, style, textHeight, made, Angular(style, textHeight, vertex, radius, from, sweep, near, far, words)));
 
-            if (tiedArc != null)
-            {
-                CadDimAssociation.Tie(c, handle, CadDimAssociation.ArcEnds(tiedArc));
-            }
+            CadDimAssociation.Tie(c, handle, tiedArc != null ? CadDimAssociation.ArcEnds(tiedArc) : first != null ? CadDimAssociation.TwoLines(first, second) : snapped);
         }
 
         /// <summary>

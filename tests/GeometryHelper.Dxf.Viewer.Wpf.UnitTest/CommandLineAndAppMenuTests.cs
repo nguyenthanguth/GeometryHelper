@@ -543,7 +543,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 RecentDocumentViewModel withPicture = model.RecentDocuments[0];
                 RecentDocumentViewModel without = model.RecentDocuments[1];
                 RecentDocumentViewModel gone = model.RecentDocuments[2];
+                int raised = 0;
+                withPicture.PropertyChanged += (s, e) => raised += e.PropertyName == nameof(RecentDocumentViewModel.Thumbnail) ? 1 : 0;
 
+                // Read on a worker thread, the window not held while a slow file is read; the picture raised once there.
+                System.Threading.Tasks.Task.WaitAll(withPicture.WhenRead(), without.WhenRead(), gone.WhenRead());
+                Assert.Equal(1, raised);
                 Assert.Equal("AutoCAD 2013 DXF (AC1027)", withPicture.VersionText);
                 Assert.True(withPicture.HasThumbnail);
                 Assert.Equal(8, ((System.Windows.Media.Imaging.BitmapSource)withPicture.Thumbnail).PixelWidth);
@@ -572,6 +577,42 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             Assert.True(model.HasDocument);
             Assert.Equal("room.dxf", model.Title);
             Assert.Equal("today", model.RecentDocuments[0].OpenedText.Substring(0, 5));
+        }
+
+        [Fact]
+        public void ARecentFileNoLongerOnTheDisk_IsTakenOffTheList_WhenChosen()
+        {
+            string room = _folder.Write("room.dxf", TestFiles.Room(out _, out _));
+            var model = new MainViewModel();
+            GlobalSettings settings = model.Settings.Clone();
+            settings.NoteFileOpened(room, DateTime.UtcNow);
+            settings.NoteFileOpened(Path.Combine(_folder.FullPath, "gone.dxf"), DateTime.UtcNow.AddMinutes(-1));
+            model.ApplySettings(settings);
+
+            Assert.False(model.OpenRecent(model.RecentDocuments[1]));
+
+            Assert.False(model.HasDocument);
+            Assert.Contains("Cannot find " + Path.Combine(_folder.FullPath, "gone.dxf") + ": it is taken off the recent files.", model.History);
+            Assert.Equal(new[] { room }, model.RecentDocuments.Select(d => d.Path));
+            Assert.Equal(new[] { room }, model.Settings.RecentFiles.Select(f => f.Path));
+        }
+
+        [Fact]
+        public void RecentCommands_AreKeptInTheSettingsFile_ForTheNextSession()
+        {
+            MainViewModel model = Opened();
+            model.Execute("LINE");
+            model.Escape();
+            model.Execute("CIRCLE");
+            model.Escape();
+            string path = Path.Combine(_folder.FullPath, "settings.json");
+            model.Settings.Save(path);
+
+            var next = new MainViewModel();
+            next.ApplySettings(GlobalSettings.Load(path));
+
+            Assert.Equal(new[] { "CIRCLE", "LINE" }, next.RecentCommands.Take(2));
+            Assert.Equal(model.RecentCommands, next.RecentCommands);
         }
 
         // ---- The start screen of each app

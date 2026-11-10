@@ -6,6 +6,52 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** The presenter's -GROUP on a DXF of R2000 written without its OBJECTS section said "Object reference not set to
+an instance of an object."; the drawing is now given the named object dictionary AutoCAD makes on opening it, and the
+group goes in, one undo taking both back.
+
+**FIXED.** INSERT with Basepoint of a block in other units than the drawing landed off: a block in centimetres in a
+millimetre drawing, its base point 30 above its origin, came 270 too high. The shift is now scaled by the units too, in
+the drag and in the INSERT placed.
+
+**FIXED.** -ATTEDIT took every attribute of an INSERT a crossing box touched; it now takes those the box touches, or a
+window encloses, as AutoCAD's, typed (C, W, BOX) or dragged on the canvas
+(`CadCommandSession.FeedSelection(handles, window, crossing, remove)`).
+
+**NEW.** The presenter's variables PICKADD (0 makes what is picked last the selection, Shift adding) and ATTREQ (0
+inserts with the attributes' defaults, unasked). DYNMODE keeps -3 to 3, negative while DYN is off; ORTHO switched is
+written to the drawing's `$ORTHOMODE`, as AutoCAD saves it.
+
+**NEW.** Recent Commands are kept in the settings file from one session to the next (`GlobalSettings.RecentCommands`);
+a recent file no longer on the disk is taken off the list when chosen (`GlobalSettings.RemoveRecentFile`); the version
+and preview of a recent file are read on a worker thread.
+
+**FIXED.** A dimension the presenter made left its picture behind when moved on its own (MOVE, ROTATE, a grip): the core
+wrote it without flag 32 of group 70, which says the block is the dimension's alone and which the core's `TransformBy`
+needs to move the picture. `DxfDimension.DimBlock` set to an anonymous block now marks it, as AutoCAD 2021 writes a
+DIMLINEAR's 70 as 32. A copy of a dimension made by COPY, ARRAY or a grip's Copy gets a picture block of its own, as
+AutoCAD's COPY copies it, so that it is drawn where it stands and not on top of its original.
+
+**NEW.** The presenter's associative dimensions are tied by more commands and snaps, as AutoCAD 2021 writes them: DIM,
+DIMCONTINUE and DIMBASELINE (the first point tied to what the origin it starts from was tied to), QDIM (line ends, polyline
+vertices, circle centers), DIMORDINATE, DIMANGULAR of two lines (four ends) and of three points, and INTersection snaps (both
+objects). A line and its dimension copied together leave the copy tied to the copied line. An ordinate follows its point,
+its leader end moved along the axis measured alone; an angle of two lines keeps its arc's share of the angle. AutoCAD
+2021 audits a drawing with every case with no error and moves each such dimension with its objects.
+
+**NEW.** The presenter has AutoCAD 2021's Block Editor. BEDIT (BE) shows the Edit Block Definition dialog, &lt;Current
+Drawing&gt; first and then the drawing's named blocks with a preview and description, a new name making a new, empty
+block; -BEDIT asks `Enter block name or [?]:`. The block opens alone on a background of its own (Global settings,
+Block Editor background, #3B4049), the UCS icon at its base point, the Model tab only and the green Block Editor tab;
+every drawing and modify command, and ATTDEF, works on the block's own entities, each an undo step that stops where the
+block was opened or last saved. BSAVE (BS) redefines the block and draws every INSERT anew, the session one undo step
+"BEDIT"; BSAVEAS copies the content to a new block, the one opened left unchanged; BCLOSE (BC) asks Save, Discard or
+Cancel, and Discard reads the drawing back as it was. A door of one line given a second and saved shows both in each
+of its INSERTs, and one undo takes them back. With nothing selected Properties shows the Block group (description,
+units, Allow exploding, Scale uniformly). BEDIT, XREF, LAYOUT, PLOT, MSPACE, QSAVE and the other commands that leave the
+block say "Not allowed in the Block Editor.". `CadDocument.OpenBlockEditor`, `SaveBlock`, `SaveBlockAs` and
+`CloseBlockEditor`, with `CadBlockEditor`, do the same from code.
+
 **NEW.** The presenter's Layer manager has AutoCAD 2021's VP columns while a layout is current: VP Freeze, New VP Freeze,
 VP Color, VP Linetype, VP Lineweight, VP Transparency and VP Plot Style, acting on the viewport worked through or the one
 selected on the paper, an override marked blue; its right-click menu freezes and thaws a layer in all viewports, adds a

@@ -54,6 +54,10 @@ namespace GeometryHelper.Dxf.Viewer
             registry.AddVariable(CadSystemVariable.Whole("PICKSTYLE", false, 0, 3, s => s.Document.PickStyle, (c, v) => c.Document.PickStyle = v));
             registry.AddVariable(CadSystemVariable.Whole("SELECTIONCYCLING", false, 0, 2, s => s.Document.SelectionCycling, (c, v) => c.Document.SelectionCycling = v));
             registry.AddVariable(CadSystemVariable.Whole("PICKFIRST", false, 0, 1, s => s.Document.PickFirst, (c, v) => c.Document.PickFirst = v));
+            registry.AddVariable(CadSystemVariable.Whole("PICKADD", false, 0, 2, s => s.Document.PickAdd, (c, v) => c.Document.PickAdd = v));
+
+            // Whether INSERT asks the values of a block's attributes (1) or gives each its default (0), kept by the session.
+            registry.AddVariable(CadSystemVariable.Whole("ATTREQ", false, 0, 1, s => (int)Kept(s, "attreq", 1.0), (c, v) => c.Remember("attreq", v)));
 
             // What the drawing shows and how it sorts.
             registry.AddVariable(Flag("ORTHOMODE", s => s.Document.Database.Orthomode, (c, v) => c.Database.Orthomode = v, "$ORTHOMODE"));

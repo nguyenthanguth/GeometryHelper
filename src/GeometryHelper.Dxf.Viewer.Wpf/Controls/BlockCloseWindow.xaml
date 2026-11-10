@@ -1,0 +1,55 @@
+<Window x:Class="GeometryHelper.Dxf.Viewer.Wpf.BlockCloseWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Block - Changes Not Saved" Width="560" SizeToContent="Height" WindowStyle="None" ResizeMode="NoResize" ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner" Background="#262B33">
+
+    <Window.Resources>
+        <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/BlockDialogs.xaml" />
+    </Window.Resources>
+
+    <Border x:Name="Root" Background="{StaticResource GhPanel}" BorderBrush="{StaticResource GhBorder}" BorderThickness="1" CornerRadius="6"
+            TextElement.FontFamily="{StaticResource GhFont}" TextElement.FontSize="12" TextElement.Foreground="{StaticResource GhText}"
+            UseLayoutRounding="True" SnapsToDevicePixels="True" TextOptions.TextFormattingMode="Display">
+        <StackPanel>
+            <Border Background="{StaticResource GhHeader}" Padding="16,10" CornerRadius="6,6,0,0" MouseLeftButtonDown="OnHeaderDown">
+                <DockPanel>
+                    <Button DockPanel.Dock="Right" Style="{StaticResource GhTitleCloseButton}" Click="OnCancel" ToolTip="Close, same as Cancel" />
+                    <TextBlock Text="Block - Changes Not Saved" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" />
+                </DockPanel>
+            </Border>
+
+            <StackPanel Margin="16,14">
+                <DockPanel Margin="0,0,0,8">
+                    <Path DockPanel.Dock="Left" Data="M12 3 2 21h20zM12 10v5M12 18h.01" Stroke="{StaticResource GhWarn}" StrokeThickness="1.8" Width="28" Height="28"
+                          Stretch="Uniform" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Margin="0,0,10,0" />
+                    <TextBlock x:Name="Question" FontSize="15" FontWeight="SemiBold" Foreground="{StaticResource GhAccent}" VerticalAlignment="Center" TextWrapping="Wrap" />
+                </DockPanel>
+                <!-- The two answers as AutoCAD's task dialog gives them, Save first and taken by Enter. -->
+                <Button x:Name="SaveButton" Click="OnSave" IsDefault="True" Margin="0,0,0,8" Padding="10,8" HorizontalContentAlignment="Stretch"
+                        Style="{StaticResource GhDialogButton}" Background="{StaticResource GhSelected}" BorderBrush="{StaticResource GhAccent}">
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Left" Text="→" FontSize="14" Foreground="{StaticResource GhAccent}" Margin="0,0,10,0" />
+                        <StackPanel>
+                            <TextBlock x:Name="SaveTitle" FontWeight="SemiBold" />
+                            <TextBlock x:Name="SaveDetail" Foreground="{StaticResource GhIcon}" TextWrapping="Wrap" />
+                        </StackPanel>
+                    </DockPanel>
+                </Button>
+                <Button x:Name="DiscardButton" Click="OnDiscard" Padding="10,8" HorizontalContentAlignment="Stretch" Style="{StaticResource GhDialogButton}">
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Left" Text="→" FontSize="14" Foreground="{StaticResource GhAccent}" Margin="0,0,10,0" />
+                        <StackPanel>
+                            <TextBlock Text="Discard the changes and close the Block Editor" FontWeight="SemiBold" />
+                            <TextBlock Text="The definition stays as it was when BEDIT opened." Foreground="{StaticResource GhTextMuted}" TextWrapping="Wrap" />
+                        </StackPanel>
+                    </DockPanel>
+                </Button>
+            </StackPanel>
+
+            <Border Background="{StaticResource GhHeader}" Padding="16,10" CornerRadius="0,0,6,6">
+                <Button Style="{StaticResource GhDialogButton}" Content="Cancel" Padding="14,5" HorizontalAlignment="Right" Click="OnCancel" IsCancel="True" />
+            </Border>
+        </StackPanel>
+    </Border>
+</Window>

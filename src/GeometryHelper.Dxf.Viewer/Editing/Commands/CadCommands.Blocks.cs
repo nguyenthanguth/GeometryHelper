@@ -739,7 +739,8 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// Places one INSERT: the point, scale and rotation asked where they are to be specified on screen, as AutoCAD's INSERT
-        /// asks them, then the values of its attributes (ATTREQ 1), then the INSERT made, exploded where asked.
+        /// asks them, then the values of its attributes (ATTREQ 1; with ATTREQ 0 their defaults), then the INSERT made, exploded
+        /// where asked.
         /// </summary>
         private static IEnumerable<CadPrompt> Place(CadCommandContext c, string name, Placing placing, bool askPoint, bool askScale, bool askRotation, bool explode)
         {
@@ -895,7 +896,12 @@ namespace GeometryHelper.Dxf.Viewer
 
             var values = new List<string>();
 
-            if (!explode)
+            // ATTREQ 0 gives each attribute its default without asking, as AutoCAD's.
+            if (!explode && c.Remembered("attreq", 1.0) < 0.5)
+            {
+                values.AddRange(Definitions(record).Select(d => d.TextString));
+            }
+            else if (!explode)
             {
                 foreach (CadPrompt prompt in AttributeValues(c, record, values))
                 {
@@ -907,11 +913,12 @@ namespace GeometryHelper.Dxf.Viewer
             GeoPoint3 point = placing.Point;
             GeoVector3 scale = placing.Scale;
 
-            // The base point picked comes to the insertion point: the INSERT moved by where the block's origin then lands.
+            // The base point picked comes to the insertion point: the INSERT moved by where the block's origin then lands, the
+            // shift scaled as the block is, its units made the drawing's too.
             if (shift.X != 0.0 || shift.Y != 0.0 || shift.Z != 0.0)
             {
                 GeoTransform3 turn = GeoTransform3.RotationAxis(GeoPoint3.Origin, Up, angle);
-                GeoVector3 scaled = new GeoVector3(shift.X * scale.X, shift.Y * scale.Y, shift.Z * scale.Z);
+                GeoVector3 scaled = new GeoVector3(shift.X * scale.X * unitFactor, shift.Y * scale.Y * unitFactor, shift.Z * scale.Z * unitFactor);
                 point = point + turn.Transform(scaled);
             }
 
@@ -1841,7 +1848,7 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>
         /// -ATTEDIT (-ATE): attributes edited one at a time, as AutoCAD's: the block, tag and value specifications (* and ?
         /// wildcards), the attributes that match them of the INSERTs selected (of one clicked, the attribute clicked alone; of one
-        /// a window took, all), and for each, marked with a cross on the canvas, "Enter an option
+        /// a window took, those inside it, or those a crossing box touches; of one taken otherwise, all), and for each, marked with a cross on the canvas, "Enter an option
         /// [Value/Position/Height/Angle/Style/Layer/Color/Next] &lt;N&gt;:" until Next; each change one edit of the command's step.
         /// </summary>
         private static IEnumerable<CadPrompt> AttributeEditTyped(CadCommandContext c)
@@ -1872,9 +1879,11 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 if (c.Document.FindEntity(handle) is DxfBlockReference insert && blocks.IsMatch(insert.Name))
                 {
-                    // An INSERT a click picked gives the attribute clicked alone, as AutoCAD's; one a window took, all of them.
+                    // An INSERT a click picked gives the attribute clicked alone, as AutoCAD's; one a window took, those inside the
+                    // window (or touched by a crossing box); one another option took whole, all of them.
                     List<GeoPoint2> clicks = c.Input.Clicks.Where(p => string.Equals(p.Key, handle, StringComparison.OrdinalIgnoreCase)).Select(p => p.Value).ToList();
-                    HashSet<string> clicked = clicks.Count == 0 ? null : ClickedAttributes(c, insert, clicks);
+                    List<Tuple<DisplayBox, bool>> windows = c.Input.Windows.Where(w => string.Equals(w.Item1, handle, StringComparison.OrdinalIgnoreCase)).Select(w => Tuple.Create(w.Item2, w.Item3)).ToList();
+                    HashSet<string> clicked = clicks.Count > 0 ? ClickedAttributes(c, insert, clicks) : windows.Count > 0 ? WindowedAttributes(c, insert, windows) : null;
 
                     foreach (DxfAttributeReference attribute in insert.AttributeCollection)
                     {
@@ -2047,16 +2056,65 @@ namespace GeometryHelper.Dxf.Viewer
         private static HashSet<string> ClickedAttributes(CadCommandContext c, DxfBlockReference insert, IReadOnlyList<GeoPoint2> clicks)
         {
             var clicked = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            List<KeyValuePair<string, DisplayText2>> shown = Shown(c, insert);
+
+            foreach (GeoPoint2 click in clicks)
+            {
+                string picked = null;
+                double nearest = double.PositiveInfinity;
+
+                foreach (KeyValuePair<string, DisplayText2> pair in shown)
+                {
+                    double d = pair.Value.DistanceTo(click.X, click.Y);
+
+                    if (d <= c.Session.PickAperture && d < nearest)
+                    {
+                        nearest = d;
+                        picked = pair.Key;
+                    }
+                }
+
+                if (picked != null)
+                {
+                    clicked.Add(picked);
+                }
+            }
+
+            return clicked;
+        }
+
+        /// <summary>
+        /// The handles of the attributes of an INSERT that windows took, as AutoCAD's -ATTEDIT takes those a window encloses or
+        /// a crossing box touches and not the INSERT's others: each shown attribute judged by its text as drawn.
+        /// </summary>
+        private static HashSet<string> WindowedAttributes(CadCommandContext c, DxfBlockReference insert, IReadOnlyList<Tuple<DisplayBox, bool>> windows)
+        {
+            var taken = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (KeyValuePair<string, DisplayText2> pair in Shown(c, insert))
+            {
+                if (windows.Any(w => w.Item2 ? pair.Value.Touches(w.Item1) : pair.Value.IsInside(w.Item1)))
+                {
+                    taken.Add(pair.Key);
+                }
+            }
+
+            return taken;
+        }
+
+        /// <summary>Each shown attribute of an INSERT with its text as drawn: the text of the INSERT drawn nearest the point the attribute is held by.</summary>
+        private static List<KeyValuePair<string, DisplayText2>> Shown(CadCommandContext c, DxfBlockReference insert)
+        {
+            var shown = new List<KeyValuePair<string, DisplayText2>>();
             CadSpace space = c.Document.FindSpace(insert.Handle);
 
             if (space == null)
             {
-                return clicked;
+                return shown;
             }
 
             List<DisplayText2> texts = c.Document.GetDisplay(space).Items.OfType<DisplayText2>().Where(t => string.Equals(t.Handle, insert.Handle, StringComparison.OrdinalIgnoreCase)).ToList();
             var used = new bool[texts.Count];
-            var shown = new List<KeyValuePair<string, DisplayText2>>();
 
             foreach (DxfAttributeReference attribute in insert.AttributeCollection)
             {
@@ -2087,29 +2145,7 @@ namespace GeometryHelper.Dxf.Viewer
                 }
             }
 
-            foreach (GeoPoint2 click in clicks)
-            {
-                string picked = null;
-                double nearest = double.PositiveInfinity;
-
-                foreach (KeyValuePair<string, DisplayText2> pair in shown)
-                {
-                    double d = pair.Value.DistanceTo(click.X, click.Y);
-
-                    if (d <= c.Session.PickAperture && d < nearest)
-                    {
-                        nearest = d;
-                        picked = pair.Key;
-                    }
-                }
-
-                if (picked != null)
-                {
-                    clicked.Add(picked);
-                }
-            }
-
-            return clicked;
+            return shown;
         }
 
         /// <summary>A pattern of AutoCAD's wildcards, * and ?, matched whole, letters of either case alike; commas separate several.</summary>

@@ -42,6 +42,7 @@ The list of work on the drawing stack: Part A, the 2D presenter (`GeometryHelper
       screenshot mode shared with Drawing.App through `CadAppHost`
 - [x] Blocks round 2: EATTEDIT live with Apply kept open, INSERT drags the block, -ATTEDIT picks one attribute, ATTSYNC,
       Block Definition previews the selection, redefine a block brought from another drawing
+- [x] Block Editor: BEDIT, -BEDIT, BSAVE, BSAVEAS, BCLOSE to the design (v107), its own space, background and tab; the      screenshot mode never shows a real dialog- [x] Leftovers: -GROUP on an R2000 drawing without OBJECTS, INSERT base point in other units, -ATTEDIT by window, PICKADD,      ATTREQ, DYNMODE values, ORTHOMODE in the drawing, Recent Commands kept, missing recent files dropped, previews off      the UI thread
 - [x] Associative dimensions (DIMASSOC 2): stored as AutoCAD stores them, following MOVE, STRETCH, grips, SCALE and the
       rest in the same undo step; DIMREASSOCIATE, DIMDISASSOCIATE; AutoCAD's own MOVE carries them too
 - [x] MLEADERSTYLE: the Multileader Style Manager and Modify dialog to the design, styles written as AutoCAD writes them,
@@ -82,16 +83,16 @@ The Medium and Low items are in [73-autocad-parity.md](src/GeometryHelper.Drawin
 the ones wanted.
 
 - [ ] MIRRTEXT for multileaders, tables and dimension text overrides; text box measured with real fonts (S)
-- [ ] -GROUP on an R2000 drawing with no ACAD_GROUP dictionary: "Object reference not set" (check on main) (S)
 - [ ] Drafting aids: TK (TRACKING); check TT with OTRACK off, "(need YZ):" input and Enter at a modifier prompt
       against AutoCAD (S)
 - [ ] Draw: AUDIT a drawing made with every ARC, CIRCLE, PLINE, TEXT and MTEXT option, and compare ARC and PLINE entity
       by entity with AutoCAD's own; check Ctrl, ANGDIR 1 and the MTEXT column defaults against AutoCAD (S)
 - [ ] Properties: dimension rows Ext line fixed and length (core DIMFXLENON), Fill color, Fractional type, Text view
       direction, Text position X/Y; hatch origin kept through angle and scale; MATCHPROP plot style and gradient hatch (S)
-- [ ] Variables: PICKADD, POLARMODE, ATTREQ, ATTDIA, FILEDIA, CMDDIA; AUTOSNAP's other bits; DYNMODE values; ORTHOMODE
-      written to the drawing; new dimensions follow DIMSCALE; polar angle field in Global settings (S)
-- [ ] Core: `DxfPolyline2d.CurveFit` tangents differ from AutoCAD's for closed polylines (AutoCAD bisects) and open ones of 4
+- [ ] Variables (running): POLARMODE, ATTDIA (needs an Edit Attributes dialog), FILEDIA, CMDDIA; AUTOSNAP's other bits; new
+      dimensions follow DIMSCALE (the header's $DIMSCALE written as an override); polar angle field in Global settings;
+      TK (TRACKING); the named-dictionary guard in the table and multileader style editors (S)
+- [ ] Core (running): `DxfPolyline2d.CurveFit` tangents differ from AutoCAD's for closed polylines (AutoCAD bisects) and open ones of 4
       or more vertices (64.41 against 63.43 degrees in one case); `DxfPolyline3d.SplineFit` vertex order (M)
 - [ ] PEDIT: PEACCEPT and PLINETYPE read through SETVAR; a spline turned into a polyline with a precision; 3D polylines;
       Extend for arc ends in a fuzz join (S)
@@ -100,18 +101,19 @@ the ones wanted.
 - [ ] Layouts: twisted viewports entered; one undo step per wheel or pan gesture; a ZOOM Previous list per viewport;
       SCALELISTEDIT (Custom… runs VPSCALE now); Rename and Isolate in the Layer manager; New VP Freeze on viewports made
       through the core's API, not only MVIEW (S)
-- [ ] Styles: DICTIONARYVAR class in drawings made new, so Set Current works for multileader and table styles; MLEADER with
+- [ ] Styles (running): DICTIONARYVAR class in drawings made new, so Set Current works for multileader and table styles; MLEADER with
       no style makes Standard; Block and None content; the Annotative flag written (S)
-- [ ] Associative dimensions: an aligned dimension with one end stretched (AutoCAD moves its line), a line and its dimension
-      copied together stay tied, intersection and other snaps tied, ties from DIM, QDIM, DIMCONTINUE, DIMBASELINE, ordinate
-      and two-line angular; check whether a plain MOVE leaves a presenter-made dimension's picture behind (flag 32) (M)
-- [ ] Blocks: BEDIT, the Block Editor (L, design first)
-- [ ] Blocks: dynamic blocks in use: custom grips (visibility, lookup, stretch, flip, rotate, array) and their Properties
+- [x] Associative dimensions round 3: flag 32 written so a plain MOVE takes the picture; copies get their own picture and
+      stay tied to copied objects; intersection snaps; ties from DIM, QDIM, DIMCONTINUE, DIMBASELINE, ordinate, angular
+- [ ] Associative dimensions (running): PERpendicular and TANgent snaps tied (AutoCAD writes a second "last point" reference after
+      one of 75 = 1, which the core's DIMASSOC neither reads apart nor writes) (S)
+- [ ] Dimension pictures (running): radius, diameter and angular follow DIMTAD, DIMJUST and the fit rules; the line from the back of
+      an open arrowhead (_CLOSED, _CLOSEDBLANK); DIMTVP; DIMGAP below zero (box round the words) (M)
+- [ ] Blocks (running): dynamic blocks in use: custom grips (visibility, lookup, stretch, flip, rotate, array) and their Properties
       rows (L)
 
 ### To do
-- [ ] Command line and Recent: previews read off the UI thread; AutoComplete inside a running command; Search Content;
-      Recent Commands kept between sessions; missing files dropped from Recent; an EXPORT command (S)
+- [ ] Command line and Recent: AutoComplete inside a running command; Search Content; an EXPORT command (S)
 - [ ] Dxf.App: an app icon, file association for .dxf (installer or registry), `--tab Home` in screenshot mode
 - [ ] Images of an area: PNG and JPG devices in PLOT and -PLOT ("GeometryHelper PNG", "GeometryHelper JPG", as AutoCAD's
       PublishToWeb PNG/JPG), plot area Window, Extents, Display or Layout, size in pixels (1920 x 1080, 3840 x 2160 or
@@ -128,9 +130,6 @@ the ones wanted.
 - [ ] Speed: frame at extents at 1 000 000 entities (0.8–1.1 s, inside Skia); level of detail would change pixels (needs a decision)
 - [ ] Speed: highlight of 100 000 selected objects (1.2–1.6 s)
 - [ ] Blocks: BATTMAN, the Block Attribute Manager (design first)
-- [ ] Blocks: INSERT with a base point picked lands wrong for a block of other units (the shift is not scaled by the unit
-      factor)
-- [ ] Blocks: -ATTEDIT by a window takes only the attributes inside the window
 - [ ] Dimensions: radius, diameter and angular pictures follow DIMTAD, DIMJUST and the fit rules (linear and ordinate do)
 - [ ] Dimensions: the dimension line starts at the back of a closed arrowhead, as AutoCAD draws it; words sized by the
       font, not estimated
