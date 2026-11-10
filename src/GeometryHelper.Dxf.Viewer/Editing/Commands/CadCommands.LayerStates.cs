@@ -44,7 +44,16 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (request.Action == CadDialogAction.Ok && CadLayerStates.Find(c.Database, request.Selected) != null)
             {
-                RestoreLayerState(c, request.Selected, request.TurnOffMissing);
+                DxfViewport viewport = request.AsViewportOverrides ? CadViewportLayerEditor.TargetViewport(c.Document) : null;
+
+                if (viewport != null && string.CompareOrdinal(c.Database.Version, "AC1015") >= 0)
+                {
+                    RestoreLayerStateInViewport(c, request.Selected, viewport, request.TurnOffMissing);
+                }
+                else
+                {
+                    RestoreLayerState(c, request.Selected, request.TurnOffMissing);
+                }
             }
         }
 
@@ -389,6 +398,22 @@ namespace GeometryHelper.Dxf.Viewer
             var planned = new List<CadEditRecord> { new CadEditRecord(CadEditRecordKind.TableChanged, null, "Restore layer state", null, name) { IsLayerLook = true } };
             c.OpenUndoStep();
             c.Apply(planned, s => CadLayerStates.Restore(s.Database, name, turnOffMissing));
+        }
+
+        /// <summary>
+        /// A state restored into one viewport of a layout as overrides of its layers and layers frozen there, an edit of the
+        /// command's step: the layers themselves are left alone.
+        /// </summary>
+        private static void RestoreLayerStateInViewport(CadCommandContext c, string name, DxfViewport viewport, bool turnOffMissing)
+        {
+            string handle = viewport.Handle;
+            var planned = new List<CadEditRecord>
+            {
+                new CadEditRecord(CadEditRecordKind.TableChanged, null, "Restore layer state in " + handle, null, name),
+                new CadEditRecord(CadEditRecordKind.PropertyChanged, handle, "VP Freeze", null, name),
+            };
+            c.OpenUndoStep();
+            c.Apply(planned, s => CadLayerStates.RestoreAsOverrides(s.Database, name, (DxfViewport)s.Document.FindEntity(handle), turnOffMissing));
         }
 
         /// <summary>The states of a .las file read in, an edit of the command's step; what it says where it cannot, else null.</summary>

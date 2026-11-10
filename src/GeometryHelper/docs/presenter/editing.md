@@ -303,7 +303,13 @@ Highlight < hides both dialogs and steps through the members on the canvas one a
 LAYERSTATE shows the Layer States Manager and -LAYER State asks the same on the command line: a state is an XRECORD of
 ACAD_LAYERSTATES, written group for group as AutoCAD 2021 writes it (mask 2047 for every property, the layers last first
 by handle), restored in the properties its mask holds, and exported to a .las file AutoCAD 2021 writes to the byte; each
-run is one undo step. VIEW shows the View Manager and its New View, -VIEW asks on the command line: a view is a record of
+run is one undo step. With "Apply properties as viewport overrides" ticked while a viewport of a layout is worked
+through, or is the one selected on the paper, Restore leaves the layers alone and writes the state into that viewport:
+a colour, linetype, lineweight or transparency of the state that is not the layer's own becomes its override there (one
+that is the layer's own takes the override off), a layer the state has off or frozen is frozen in the viewport and one
+it has on and thawed is thawed there, and with "Turn off layers not found in layer state" the layers the state does not
+name are frozen there too. Locking, plotting, the freeze in new viewports and the current layer have no form of one
+viewport and stay as they are. VIEW shows the View Manager and its New View, -VIEW asks on the command line: a view is a record of
 the VIEW table (`db.ViewTable`), its layer snapshot the hidden state ACAD_VIEWS_ and its name, restored with it; Edit
 Boundaries and Define window ask two corners and bring the dialog back, Cancel takes the run back. UNITS shows Drawing Units
 and its Direction Control, writing LUNITS, LUPREC, AUNITS, AUPREC, ANGDIR, INSUNITS and ANGBASE on OK as one step; typed

@@ -6,6 +6,15 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** The presenter's Layer States Manager restores a state into the current viewport of a layout where "Apply
+properties as viewport overrides" is ticked; the tick was read and then ignored, and the layers themselves were changed.
+A state that has the layer A red and 0.50 wide, B off and C frozen, restored so into a viewport after A was made green,
+leaves A green in the drawing and gives it a red, 0.50 override in that viewport, freezes B and C there, and leaves
+every other viewport alone; a property the state and the layer agree on takes its override off, and a layer the state
+has on and thawed is thawed there. With "Turn off layers not found in layer state" the layers the state does not name
+are frozen in the viewport. One undo step, as the restore into the layers is. On the Model tab, and on the paper with
+no viewport chosen, Restore changes the layers as before.
+
 **FIXED.** `DxfLayerStateManager.GetLayerStateNames(includeHidden, false)` left out a layer state imported from a .las
 file. AutoCAD 2021 writes such a state with its layers by name (group 8: `XR_DOORS`, `0`), which the library took for
 the mark of an xref's state; `-LAYER` stAte `?` lists it with the drawing's own. A state is now an xref's only where it is

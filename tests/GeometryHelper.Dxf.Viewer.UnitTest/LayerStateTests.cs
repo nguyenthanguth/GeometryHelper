@@ -243,5 +243,145 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.True(document.Undo());
             Assert.Equal(start, document.Database.ToText());
         }
+
+        /// <summary>
+        /// The layers 0, A red with a lineweight of 0.50, B off and C frozen saved as the state Plan; then A made green and
+        /// its lineweight Default, B turned on and C thawed, and on Layout1 two viewports made, the first of them worked through.
+        /// </summary>
+        private static CadDocument PlanChangedAndTwoViewports(out string first, out string second)
+        {
+            CadDocument document = Blank();
+            CadCommandSession session = Session(document);
+
+            foreach (string layer in new[] { "A", "B", "C" })
+            {
+                Assert.True(CadLayerEditor.Add(document, layer).Succeeded);
+            }
+
+            Assert.True(CadLayerEditor.SetColor(document, "A", 1).Succeeded);
+            Assert.True(CadLayerEditor.SetLineWeight(document, "A", DxfLineWeight.LineWeight050).Succeeded);
+            Assert.True(CadLayerEditor.SetOn(document, "B", false).Succeeded);
+            Assert.True(CadLayerEditor.SetFrozen(document, "C", true).Succeeded);
+            Run(session, "-LAYER", "stAte", "Save", "Plan", Enter, Enter, Enter);
+            Assert.False(session.IsRunning);
+
+            Assert.True(CadLayerEditor.SetColor(document, "A", 3).Succeeded);
+            Assert.True(CadLayerEditor.SetLineWeight(document, "A", DxfLineWeight.ByLineWeightDefault).Succeeded);
+            Assert.True(CadLayerEditor.SetOn(document, "B", true).Succeeded);
+            Assert.True(CadLayerEditor.SetFrozen(document, "C", false).Succeeded);
+            Run(session, "LINE", P(0, 0), P(2000, 1000), Enter);
+            document.CurrentSpace = document.Spaces[1];
+            Run(session, "MV", P(10, 10), P(210, 110));
+            Run(session, "MV", P(10, 150), P(210, 250));
+            var viewports = All<DxfViewport>(document.CurrentSpace).Where(v => v.Number != 1).ToList();
+            first = viewports[0].Handle;
+            second = viewports[1].Handle;
+            Assert.True(document.EnterViewport(first));
+            return document;
+        }
+
+        /// <summary>The Layer States Manager answered by restoring Plan, as viewport overrides or not.</summary>
+        private static void RestorePlan(CadDocument document, bool asOverrides, bool turnOffMissing = false)
+        {
+            CadCommandSession session = Session(document);
+            session.UiRequested += (sender, e) =>
+            {
+                var request = (CadLayerStatesRequest)e.Payload;
+                Assert.False(request.IsModelSpace);
+                request.Selected = "Plan";
+                request.AsViewportOverrides = asOverrides;
+                request.TurnOffMissing = turnOffMissing;
+                request.Action = CadDialogAction.Ok;
+                e.Handled = true;
+            };
+
+            Run(session, "LAYERSTATE");
+            Assert.False(session.IsRunning);
+        }
+
+        [Fact]
+        public void AStateRestoredAsViewportOverrides_OverridesAndFreezesInTheCurrentViewportOnly_AndLeavesTheLayers()
+        {
+            CadDocument document = PlanChangedAndTwoViewports(out string first, out string second);
+            DxfDatabase db = document.Database;
+
+            RestorePlan(document, true);
+
+            // The layers themselves stay as they were changed after the state was saved.
+            Assert.Equal(3, db.LayerTable["A"].ColorIndex);
+            Assert.Equal(DxfLineWeight.ByLineWeightDefault, db.LayerTable["A"].LineWeight);
+            Assert.False(db.LayerTable["B"].IsOff);
+            Assert.False(db.LayerTable["C"].IsFrozen);
+
+            // In the viewport worked through A is red and 0.50 wide, and B, off in the state, and C, frozen in it, are frozen.
+            DxfViewport one = Entity<DxfViewport>(document, first);
+            DxfViewport two = Entity<DxfViewport>(document, second);
+            DxfLayerViewportProperties a = db.LayerTable["A"].GetViewportOverrides(one);
+            Assert.True(a.IsColorOverridden);
+            Assert.Equal(1, a.Color.ColorIndex);
+            Assert.True(a.IsLineWeightOverridden);
+            Assert.Equal(DxfLineWeight.LineWeight050, a.LineWeight);
+            Assert.False(a.IsLinetypeOverridden);
+            Assert.False(a.IsTransparencyOverridden);
+            Assert.False(db.LayerTable["0"].HasViewportOverrides(one));
+            Assert.Equal(new[] { "B", "C" }, one.GetFrozenLayers().Select(l => l.Name).OrderBy(n => n, StringComparer.Ordinal));
+
+            // The other viewport has none of it.
+            Assert.False(db.LayerTable["A"].HasViewportOverrides(two));
+            Assert.Empty(two.GetFrozenLayers());
+            Assert.Equal("LAYERSTATE", document.NextUndo.Name);
+
+            Assert.True(document.Undo());
+            Assert.False(document.Database.LayerTable["A"].HasViewportOverrides(Entity<DxfViewport>(document, first)));
+            Assert.Empty(Entity<DxfViewport>(document, first).GetFrozenLayers());
+            Assert.True(document.Redo());
+            Assert.Equal(1, document.Database.LayerTable["A"].GetViewportOverrides(Entity<DxfViewport>(document, first)).Color.ColorIndex);
+            Assert.Equal(2, Entity<DxfViewport>(document, first).GetFrozenLayers().Count);
+        }
+
+        [Fact]
+        public void AStateRestoredAsViewportOverridesAgain_TakesOffAnOverrideTheLayerNoLongerNeeds_AndThawsWhatTheStateHasOn()
+        {
+            CadDocument document = PlanChangedAndTwoViewports(out string first, out _);
+            DxfDatabase db = document.Database;
+            RestorePlan(document, true);
+
+            // The layer made red again and B kept off in a second state of the same name: the override is taken off, B stays frozen there.
+            Assert.True(CadLayerEditor.SetColor(document, "A", 1).Succeeded);
+            RestorePlan(document, true);
+            DxfViewport one = Entity<DxfViewport>(document, first);
+            Assert.False(db.LayerTable["A"].GetViewportOverrides(one).IsColorOverridden);
+            Assert.True(db.LayerTable["A"].GetViewportOverrides(one).IsLineWeightOverridden);
+
+            // A layer frozen in the viewport by hand that the state has on and thawed is thawed there.
+            Assert.True(CadViewportLayerEditor.SetFrozen(document, new[] { first }, new[] { "A" }, true).Succeeded);
+            RestorePlan(document, true);
+            Assert.False(Entity<DxfViewport>(document, first).IsLayerFrozenInViewport(db.LayerTable["A"]));
+        }
+
+        [Fact]
+        public void AStateRestoredAsViewportOverrides_WithTheLayersNotFoundTurnedOff_FreezesThemInTheViewport()
+        {
+            CadDocument document = PlanChangedAndTwoViewports(out string first, out _);
+            Assert.True(CadLayerEditor.Add(document, "LATER").Succeeded);
+
+            RestorePlan(document, true, true);
+
+            Assert.False(document.Database.LayerTable["LATER"].IsOff);
+            Assert.True(Entity<DxfViewport>(document, first).IsLayerFrozenInViewport(document.Database.LayerTable["LATER"]));
+        }
+
+        [Fact]
+        public void AStateRestoredInAViewportWithoutTheOverridesTicked_ChangesTheLayers_AsOnTheModelTab()
+        {
+            CadDocument document = PlanChangedAndTwoViewports(out string first, out _);
+
+            RestorePlan(document, false);
+
+            Assert.Equal(1, document.Database.LayerTable["A"].ColorIndex);
+            Assert.True(document.Database.LayerTable["B"].IsOff);
+            Assert.False(document.Database.LayerTable["A"].HasViewportOverrides(Entity<DxfViewport>(document, first)));
+            Assert.Empty(Entity<DxfViewport>(document, first).GetFrozenLayers());
+        }
     }
 }
