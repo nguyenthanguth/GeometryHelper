@@ -121,6 +121,11 @@ the ones wanted.
 
 ### To do
 
+- [ ] DWG through ACadSharp (MIT, reads and writes AC1014-AC1032): first a trial that opens AutoCAD-made DWGs through it
+      into the library's DXF, compares what arrives with AutoCAD's own DXF of the same drawing, saves back to DWG, has
+      AutoCAD 2021 AUDIT it and reads it back, and lists what is lost; then, if the maintainer agrees, a project of its own
+      (GeometryHelper.Dwg) so the core takes no new dependency, Open, Save As DWG (2000-2018) and drag and drop in
+      GeometryHelper DXF, DWG xrefs (M)
 - [ ] Dynamic input at the cursor as AutoCAD's with DYN on: what is typed at the Command prompt shows in a box at the
       cursor with the AutoComplete list under it, the prompt and its options (the ▼ menu) at the cursor in a command,
       the command line keeping its own copy; with DYN off only the command line (M) (running; designed in v111)
