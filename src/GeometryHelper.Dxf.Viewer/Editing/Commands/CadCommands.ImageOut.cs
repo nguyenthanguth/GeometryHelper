@@ -26,7 +26,7 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>
-        /// The file, by the window's dialog or "Enter file name &lt;file&gt;:", the objects, then the image handed to the window
+        /// The file, by the window's dialog or, with no window or FILEDIA 0, "Enter file name &lt;file&gt;:", the objects, then the image handed to the window
         /// to write. A name typed without the extension, or with another, has it added, as AutoCAD writes plan.jpeg as
         /// plan.jpeg.jpg; a name typed with no folder goes into the folder offered.
         /// </summary>
@@ -46,7 +46,7 @@ namespace GeometryHelper.Dxf.Viewer
             job.FileName = offered;
             string file;
 
-            if (c.Session.Request(name, c.Document, job))
+            if (c.Session.FileDialogs && c.Session.Request(name, c.Document, job))
             {
                 if (job.FileName == null)
                 {

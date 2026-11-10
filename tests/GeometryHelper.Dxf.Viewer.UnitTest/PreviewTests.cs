@@ -406,6 +406,28 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         [Fact]
+        public void DimensionsUnderADimscaleOfTen_PreviewThePictureTheyMake()
+        {
+            CadCommandSession session = Started("DIMSCALE", "10", "CIRCLE", P(0, 0), "200");
+            string circle = All<DxfCircle>(session.Document.ModelSpace).Single().Handle;
+
+            Run(session, "DIMLINEAR", P(0, 0), P(300, 0));
+            PreviewMakes(session, P(150, -60));
+
+            Run(session, "DIMRADIUS", new[] { circle });
+            PreviewMakes(session, P(300, 300));
+
+            Run(session, "DIMANGULAR", Enter, P(0, 0), P(500, 0), P(0, 500));
+            PreviewMakes(session, P(200, 200));
+
+            Run(session, "DIMORDINATE", P(400, 200));
+            PreviewMakes(session, P(400, 600));
+
+            Run(session, "DIMLINEAR", P(0, 0), P(100, 0), P(50, 200), "DIMBASELINE");
+            PreviewMakes(session, P(400, 0), Esc);
+        }
+
+        [Fact]
         public void PolarArray_PreviewsEveryCopy()
         {
             CadCommandSession session = WithALine(out string line);

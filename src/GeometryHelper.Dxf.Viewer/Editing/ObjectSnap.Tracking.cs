@@ -329,6 +329,10 @@ namespace GeometryHelper.Dxf.Viewer
             double increment = polar ? PolarAngle : Math.PI / 2.0;
             int lines = Math.Min(MostTrackingLines, (int)Math.Floor((2.0 * Math.PI - 1E-9) / increment) + 1);
 
+            // The lines from the points acquired run on the polar angles too only where POLARMODE says so (2), else level and upright.
+            double trackIncrement = polar && TracksPolarAngles ? increment : Math.PI / 2.0;
+            int trackLines = Math.Min(MostTrackingLines, (int)Math.Floor((2.0 * Math.PI - 1E-9) / trackIncrement) + 1);
+
             foreach (CadAcquiredPoint acquired in _acquired)
             {
                 if (acquired.Direction.HasValue)
@@ -355,9 +359,9 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (Tracking)
                 {
-                    for (int k = 0; k < lines; k++)
+                    for (int k = 0; k < trackLines; k++)
                     {
-                        double angle = k * increment;
+                        double angle = k * trackIncrement;
                         GeoVector2 direction = _ucs.ToWorld(new GeoVector2(Math.Cos(angle), Math.Sin(angle)));
                         paths.Add(new TrackPath(acquired.Point, direction, CadSnapKind.Tracking, acquired.Handle, acquired));
                     }

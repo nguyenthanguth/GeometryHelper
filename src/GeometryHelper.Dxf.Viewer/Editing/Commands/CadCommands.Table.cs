@@ -290,6 +290,7 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         private static string MakeTable(CadCommandContext c, string styleName, GeoPoint2 corner, GeoPoint2? opposite, int columns, double columnWidth, int dataRows, int lines)
         {
+            c.Document.EnsureNamedObjectsDictionary();
             c.OpenUndoStep();
             string handle = null;
             CadEditResult result = c.Apply(null, s =>

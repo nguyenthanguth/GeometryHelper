@@ -21,17 +21,20 @@ namespace GeometryHelper.Dxf.Viewer
     /// </para>
     /// <para>
     /// The points followed are the ends, middles, centers, quadrants and nearest points of lines, arcs, circles and the
-    /// segments of light polylines, POINTs, and where two lines, arcs or circles cross. A point tied by another snap
-    /// (perpendicular, tangent) or to another kind of object stays where it is.
+    /// segments of light polylines, POINTs, where two lines, arcs or circles cross, and the feet of perpendiculars to lines,
+    /// arcs and circles and the points of tangency of arcs and circles, drawn again from the point they were drawn from. A
+    /// point tied to another kind of object stays where it is.
     /// </para>
     /// </remarks>
     internal static class CadDimAssociation
     {
         /// <summary>
         /// The reference an object snap gives for a point of a dimension: its object and where on it the point lies; null for a
-        /// snap of no object, of a kind not tied, or of an object not followed.
+        /// snap of no object, of a kind not tied, or of an object not followed. A perpendicular or a tangent is tied where the
+        /// point it was drawn from is given (<paramref name="from"/>), with the reference of that point
+        /// (<paramref name="fromTied"/>, or one of no object), as AutoCAD 2021 writes them.
         /// </summary>
-        internal static DxfOsnapPointRef FromSnap(CadDocument document, int pointIndex, CadSnapResult snap)
+        internal static DxfOsnapPointRef FromSnap(CadDocument document, int pointIndex, CadSnapResult snap, GeoPoint2? from = null, DxfOsnapPointRef fromTied = null)
         {
             if (snap == null || snap.Handle == null)
             {
@@ -45,6 +48,11 @@ namespace GeometryHelper.Dxf.Viewer
             if (snap.Kind == CadSnapKind.Intersection)
             {
                 return Crossing(document, pointIndex, entity, at);
+            }
+
+            if (snap.Kind == CadSnapKind.Perpendicular || snap.Kind == CadSnapKind.Tangent)
+            {
+                return Drawn(pointIndex, snap.Kind == CadSnapKind.Tangent, entity, at, from, fromTied);
             }
 
             switch (entity)
@@ -144,6 +152,93 @@ namespace GeometryHelper.Dxf.Viewer
             return new DxfOsnapPointRef(pointIndex, DxfOsnapType.Intersection, first.Handle, 0, parameter, at, second.Handle);
         }
 
+        /// <summary>
+        /// The reference of a point snapped perpendicular to a line, an arc or a circle, or tangent to an arc or a circle, from
+        /// another point: its parameter on the object (along a line, run on as far as needed, as AutoCAD 2021 wrote 2.25 for a
+        /// foot past the end; the angle on an arc or a circle), and the reference of the point drawn from; null with no point
+        /// drawn from, or for another object.
+        /// </summary>
+        private static DxfOsnapPointRef Drawn(int pointIndex, bool tangent, DxfEntity entity, GeoPoint3 at, GeoPoint2? from, DxfOsnapPointRef fromTied)
+        {
+            if (!from.HasValue || !Crossable(entity) || (tangent && entity is DxfLine))
+            {
+                return null;
+            }
+
+            double parameter = entity is DxfLine line ? Along(line, new GeoPoint2(at.X, at.Y)) : AngleAbout(entity is DxfArc arc ? arc.Center : ((DxfCircle)entity).Center, at);
+            var reference = new DxfOsnapPointRef(pointIndex, tangent ? DxfOsnapType.Tangent : DxfOsnapType.Perpendicular, entity.Handle, 0, parameter, at, null);
+            return fromTied != null ? reference.WithLastPoint(fromTied) : reference.WithLastPoint(new GeoPoint3(from.Value.X, from.Value.Y, 0.0));
+        }
+
+        /// <summary>
+        /// Where a point snapped perpendicular or tangent is now, drawn again from the point it was drawn from: its last point's
+        /// object where that is tied and still there, else the dimension's other origin (AutoCAD 2021 moved a DIMLINEAR's
+        /// perpendicular first point, drawn from a point tied to nothing, square to the line from its second origin). The foot
+        /// on the line run on, or on the arc or the circle; of the two points of tangency, the one nearer the dimension's point.
+        /// A tangent of a circle of 25 about (200, 0) from (300, 100), the circle moved 10 down, goes to (184.593, 9.688).
+        /// </summary>
+        private static GeoPoint3? DrawnAt(CadDocument document, DxfDimension dimension, DxfOsnapPointRef reference, DxfEntity entity)
+        {
+            DxfOsnapPointRef last = reference.LastPointReference;
+            DxfEntity lastObject = last?.ObjectHandle == null ? null : document.FindEntity(last.ObjectHandle);
+            GeoPoint3? from = lastObject == null ? null : Evaluate(last, lastObject);
+
+            if (!from.HasValue && reference.PointIndex < 2)
+            {
+                from = PointOf(dimension, 1 - reference.PointIndex);
+            }
+
+            if (!from.HasValue)
+            {
+                return null;
+            }
+
+            var f = new GeoPoint2(from.Value.X, from.Value.Y);
+            GeoPoint3 near = PointOf(dimension, reference.PointIndex) ?? reference.Point;
+
+            if (entity is DxfLine line)
+            {
+                if (reference.OsnapType != DxfOsnapType.Perpendicular || (line.EndPoint - line.StartPoint).Length <= 0.0)
+                {
+                    return null;
+                }
+
+                GeoPoint3 foot = Lerp(line.StartPoint, line.EndPoint, Along(line, f));
+                return new GeoPoint3(foot.X, foot.Y, near.Z);
+            }
+
+            if (!Crossable(entity))
+            {
+                return null;
+            }
+
+            Round(entity, out GeoPoint2 center, out double radius);
+            GeoVector2 outward = f - center;
+            double far = outward.Length;
+
+            if (far <= 0.0 || (reference.OsnapType == DxfOsnapType.Tangent && far <= radius))
+            {
+                return null;
+            }
+
+            GeoVector2 unit = outward / far;
+            double turn = reference.OsnapType == DxfOsnapType.Tangent ? Math.Acos(radius / far) : 0.0;
+            GeoPoint2? best = null;
+
+            foreach (double angle in reference.OsnapType == DxfOsnapType.Tangent ? new[] { turn, -turn } : new[] { 0.0, Math.PI })
+            {
+                var way = new GeoVector2(unit.X * Math.Cos(angle) - unit.Y * Math.Sin(angle), unit.X * Math.Sin(angle) + unit.Y * Math.Cos(angle));
+                GeoPoint2 candidate = center + way * radius;
+
+                if (!best.HasValue || Distance(candidate, near) < Distance(best.Value, near))
+                {
+                    best = candidate;
+                }
+            }
+
+            return new GeoPoint3(best.Value.X, best.Value.Y, near.Z);
+        }
+
         private static bool Crossable(DxfEntity entity) => entity is DxfLine || entity is DxfArc || entity is DxfCircle;
 
         /// <summary>Whether the second handle is of an object made after the first's, by the number the handles are.</summary>
@@ -151,11 +246,38 @@ namespace GeometryHelper.Dxf.Viewer
             => second.Length != first.Length ? second.Length > first.Length : string.CompareOrdinal(second.ToUpperInvariant(), first.ToUpperInvariant()) > 0;
 
         /// <summary>
-        /// A reference given another point of a dimension: the same object and place, numbered as the point it ties now; null
-        /// for null.
+        /// A reference given another point of a dimension: the same object and place, and the same point drawn from, numbered as
+        /// the point it ties now; null for null.
         /// </summary>
         internal static DxfOsnapPointRef Renumbered(DxfOsnapPointRef reference, int pointIndex)
-            => reference == null ? null : new DxfOsnapPointRef(pointIndex, reference.OsnapType, reference.ObjectHandle, reference.GsMarker, reference.NearParameter, reference.Point, reference.IntersectionObjectHandle);
+            => reference == null ? null : WithLast(new DxfOsnapPointRef(pointIndex, reference.OsnapType, reference.ObjectHandle, reference.GsMarker, reference.NearParameter, reference.Point, reference.IntersectionObjectHandle), reference.LastPointReference, null);
+
+        /// <summary>
+        /// A reference given the point its perpendicular or tangent was drawn from, as another had it: that point's reference,
+        /// its object put for the one named in <paramref name="objects"/> where it is there, or a point of no object where it
+        /// was of none or its object is not there; the reference as it is where it had none.
+        /// </summary>
+        private static DxfOsnapPointRef WithLast(DxfOsnapPointRef reference, DxfOsnapPointRef last, IReadOnlyDictionary<string, DxfEntity> objects)
+        {
+            if (last == null)
+            {
+                return reference;
+            }
+
+            if (last.ObjectHandle == null)
+            {
+                return reference.WithLastPoint(last.Point);
+            }
+
+            if (objects == null)
+            {
+                return reference.WithLastPoint(last);
+            }
+
+            return objects.TryGetValue(last.ObjectHandle, out DxfEntity to) && (last.IntersectionObjectHandle == null || objects.ContainsKey(last.IntersectionObjectHandle))
+                ? reference.WithLastPoint(new DxfOsnapPointRef(last.PointIndex, last.OsnapType, to.Handle, last.GsMarker, last.NearParameter, last.Point, last.IntersectionObjectHandle == null ? null : objects[last.IntersectionObjectHandle].Handle))
+                : reference.WithLastPoint(last.Point);
+        }
 
         /// <summary>
         /// The reference of the point of a dimension that stands at a place, numbered as another point, as DIMCONTINUE and
@@ -350,7 +472,7 @@ namespace GeometryHelper.Dxf.Viewer
                         continue;
                     }
 
-                    references.Add(new DxfOsnapPointRef(reference.PointIndex, reference.OsnapType, to.Handle, reference.GsMarker, reference.NearParameter, PointOf(copy, reference.PointIndex) ?? reference.Point, other?.Handle));
+                    references.Add(WithLast(new DxfOsnapPointRef(reference.PointIndex, reference.OsnapType, to.Handle, reference.GsMarker, reference.NearParameter, PointOf(copy, reference.PointIndex) ?? reference.Point, other?.Handle), reference.LastPointReference, copies));
                 }
 
                 if (references.Count > 0)
@@ -429,10 +551,16 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>
         /// Where a reference's point of a dimension is now: where its two objects cross for an intersection, the lines run on as
         /// far as needed and the crossing nearest the dimension's point taken where there are two (AutoCAD 2021 moved a
-        /// DIMLINEAR tied to the crossing of two lines with the crossing when one of them moved); else as <see cref="Evaluate"/>.
+        /// DIMLINEAR tied to the crossing of two lines with the crossing when one of them moved); a perpendicular or a tangent
+        /// drawn again (<see cref="DrawnAt"/>); else as <see cref="Evaluate"/>.
         /// </summary>
         private static GeoPoint3? Locate(CadDocument document, DxfDimension dimension, DxfOsnapPointRef reference, DxfEntity entity)
         {
+            if (reference.OsnapType == DxfOsnapType.Perpendicular || reference.OsnapType == DxfOsnapType.Tangent)
+            {
+                return DrawnAt(document, dimension, reference, entity);
+            }
+
             if (reference.OsnapType != DxfOsnapType.Intersection)
             {
                 return Evaluate(reference, entity);

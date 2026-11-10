@@ -50,7 +50,37 @@ namespace GeometryHelper.Dxf.Viewer
             registry.Add(new CadCommand("ATTEDIT", c => AttributeEdit(c, "Select block reference")));
             registry.Add(new CadCommand("-ATTEDIT", AttributeEditTyped));
             registry.Add(new CadCommand("ATTSYNC", AttributeSync));
+            registry.Add(new CadCommand("BATTMAN", AttributeManager, true));
             registry.Add(new CadCommand("BASE", Base));
+            registry.Add(new CadCommand("RESETBLOCK", ResetBlock, true));
+        }
+
+        /// <summary>
+        /// RESETBLOCK: "Select objects:", then every dynamic block reference among them put back to its block's own values, as
+        /// AutoCAD's (<see cref="CadDynamicBlocks.ResetBlock"/>), one undo step; "2 blocks reset." counts every block reference
+        /// selected, a plain one too, and nothing is said where none was, as AutoCAD 2021 said (probe GhDyn1).
+        /// </summary>
+        private static IEnumerable<CadPrompt> ResetBlock(CadCommandContext c)
+        {
+            foreach (CadPrompt prompt in c.SelectObjects())
+            {
+                yield return prompt;
+            }
+
+            CadEditResult result = CadDynamicBlocks.ResetBlock(c.Document, c.Selected);
+
+            if (!result.Succeeded)
+            {
+                c.Write(result.Message);
+                yield break;
+            }
+
+            int reset = c.Selected.Count(h => c.Document.FindEntity(h) is DxfBlockReference);
+
+            if (reset > 0)
+            {
+                c.Write(reset.ToString(CultureInfo.InvariantCulture) + (reset == 1 ? " block reset." : " blocks reset."));
+            }
         }
 
         /// <summary>The justifications of a text by AutoCAD's keyword, Left to BR, as -ATTDEF's Justify offers them; Align and Fit are not among them.</summary>
@@ -901,6 +931,10 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 values.AddRange(Definitions(record).Select(d => d.TextString));
             }
+            else if (!explode && c.Remembered("attdia", 0.0) >= 0.5 && AttributeValuesAsked(c, record, values))
+            {
+                // ATTDIA 1: the Edit Attributes dialog gave the values.
+            }
             else if (!explode)
             {
                 foreach (CadPrompt prompt in AttributeValues(c, record, values))
@@ -1016,6 +1050,33 @@ namespace GeometryHelper.Dxf.Viewer
                     values[i] = c.Input.Text;
                 }
             }
+        }
+
+        /// <summary>
+        /// Asks the window's Edit Attributes dialog the values of the attributes an INSERT of a block gets, as AutoCAD asks with
+        /// ATTDIA 1: a row for each definition not constant, in the order of the block, its default offered; OK takes the
+        /// values, Cancel the defaults. False where the block has no such definition or no window answers, so that the command
+        /// line asks.
+        /// </summary>
+        private static bool AttributeValuesAsked(CadCommandContext c, DxfBlockTableRecord record, List<string> values)
+        {
+            List<DxfAttributeDefinition> definitions = Definitions(record);
+
+            if (definitions.Count == 0)
+            {
+                return false;
+            }
+
+            var request = new CadAttributeValuesRequest(c.Document, record.Name, definitions.Select(d => new CadAttributeValueRow(d.Tag, PromptOf(d), d.TextString)).ToList());
+
+            if (!c.Session.Request("ATTDIA", c.Document, request))
+            {
+                return false;
+            }
+
+            bool ok = request.Action == CadDialogAction.Ok;
+            values.AddRange(definitions.Select((d, i) => ok ? (request.Rows[i].Value ?? string.Empty).Replace("\r", string.Empty).Replace("\n", " ") : d.TextString));
+            return true;
         }
 
         private static string PromptOf(DxfAttributeDefinition definition) => string.IsNullOrEmpty(definition.Prompt) ? definition.Tag : definition.Prompt;
@@ -1765,8 +1826,8 @@ namespace GeometryHelper.Dxf.Viewer
                && a.Backwards == b.Backwards && a.UpsideDown == b.UpsideDown && a.WidthFactor.Equals(b.WidthFactor) && a.Oblique.Equals(b.Oblique)
                && a.Layer == b.Layer && a.Linetype == b.Linetype && a.ColorIndex == b.ColorIndex && a.LineWeight == b.LineWeight;
 
-        /// <summary>Sets on an attribute each value of a row that differs from what it was.</summary>
-        private static void Write(DxfAttributeReference attribute, CadAttributeRow old, CadAttributeRow row, DxfDatabase database)
+        /// <summary>Sets on an attribute, or an attribute definition, each value of a row that differs from what it was.</summary>
+        private static void Write(DxfDBText attribute, CadAttributeRow old, CadAttributeRow row, DxfDatabase database)
         {
             if (row.Value != old.Value)
             {

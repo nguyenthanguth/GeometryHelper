@@ -143,7 +143,7 @@ namespace GeometryHelper.Dxf.Viewer
             GeoPoint2 q2 = Foot(p2, onLine, along, oblique);
             string words = Formatted(dimension, measured, string.Empty);
             GeoPoint2? jog = JogOf(dimension);
-            List<DxfEntity> picture = Linear(style, textHeight, p1, p2, q1, q2, words, !dimension.UsingDefaultTextPosition, jog, jog.HasValue ? JogHeight(dimension, style, textHeight) : 0.0);
+            List<DxfEntity> picture = Linear(style, style.Dimscale, textHeight, p1, p2, q1, q2, words, !dimension.UsingDefaultTextPosition, jog, jog.HasValue ? JogHeight(dimension, style, textHeight) : 0.0);
 
             if (dimension.UsingDefaultTextPosition)
             {
@@ -152,7 +152,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             // Words moved off the middle: where the line moves with them (DIMTMOVE 0) it runs on under words put past an end;
             // where a leader is drawn (DIMTMOVE 1), a line from the middle of the dimension line to the words.
-            Sizes(style, textHeight, out _, out _, out double height, out double gap, out _, out _);
+            Sizes(style, style.Dimscale, textHeight, out _, out _, out double height, out double gap, out _, out _);
             GeoPoint2 at = P2(dimension.TextPosition);
             var middle = new GeoPoint2((q1.X + q2.X) / 2.0, (q1.Y + q2.Y) / 2.0);
             int move = dimension.Dimtmove;
@@ -275,7 +275,7 @@ namespace GeometryHelper.Dxf.Viewer
             double reach = placed == null ? radius : (placed.Value - center).X * outward.X + (placed.Value - center).Y * outward.Y;
             GeoPoint2 location = center + outward * reach;
             GeoPoint2 far = center - outward * radius;
-            return Radial(style, textHeight, center, radius, chord, far, location, diameter, Formatted(dimension, diameter ? 2.0 * radius : radius, diameter ? "%%c" : "R"), !dimension.UsingDefaultTextPosition);
+            return Radial(style, style.Dimscale, textHeight, center, radius, chord, far, location, diameter, Formatted(dimension, diameter ? 2.0 * radius : radius, diameter ? "%%c" : "R"), !dimension.UsingDefaultTextPosition);
         }
 
         private static List<DxfEntity> AngularPicture(DxfDimension dimension, DxfDimStyleTableRecord style, double textHeight, DxfLine first, DxfLine second, GeoPoint2 vertex, GeoPoint2[] points, GeoPoint2 location)
@@ -292,7 +292,7 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             GeoPoint2? placed = dimension.UsingDefaultTextPosition ? (GeoPoint2?)null : P2(dimension.TextPosition);
-            return Angular(style, textHeight, vertex, radius, from, sweep, near, far, Formatted(dimension, sweep, string.Empty), placed);
+            return Angular(style, style.Dimscale, textHeight, vertex, radius, from, sweep, near, far, Formatted(dimension, sweep, string.Empty), placed);
         }
 
         /// <summary>The words of a dimension of a drawing: the measurement as it writes it, in place of the &lt;&gt; of its own text.</summary>

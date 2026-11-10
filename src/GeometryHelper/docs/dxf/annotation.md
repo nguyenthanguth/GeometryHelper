@@ -366,7 +366,11 @@ naming the dimension and listing its `PointReferences`, each a [`DxfOsnapPointRe
 the point of the dimension it ties, the snap it was taken by, the object and the parameter on it. AutoCAD 2021 ties a
 DIMLINEAR from the start of a line from (0, 0) to (100, 0) to its end with two references to the line, `StartPoint` of
 parameter 0 and `Endpoint` of parameter 1; a corner of a rectangle is the end of a segment, its marker the segment's number
-from 1. `SetDimAssoc` ties a dimension as AutoCAD writes it, the DIMASSOC among the reactors of the dimension and of each
+from 1. A point snapped PERpendicular or TANgent names the point it was drawn from too (`LastPointReference`, which
+AutoCAD writes after the reference with its 75 set to 1): a DIMALIGNED from the start of a line to the foot of its
+perpendicular on another has `Perpendicular` of parameter 0.25 on the second, with the first's `StartPoint` as its last
+point, made by `perpendicular.WithLastPoint(start)`; a last point tied to nothing has no object and the snap `None`
+(`WithLastPoint(point)`). `SetDimAssoc` ties a dimension as AutoCAD writes it, the DIMASSOC among the reactors of the dimension and of each
 object (`GetPersistentReactorIds` lists them) and its class listed, and AutoCAD 2021's AUDIT finds nothing to fix in it;
 written again, it keeps its handle. `ReleaseDimAssoc` unties it, the extension dictionary released where it is left empty,
 as AutoCAD leaves a dimension it has disassociated. The library keeps the ties but does not move a dimension when its

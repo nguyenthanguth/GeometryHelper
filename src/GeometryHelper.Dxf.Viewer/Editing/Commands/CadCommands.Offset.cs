@@ -118,7 +118,7 @@ namespace GeometryHelper.Dxf.Viewer
                     string from = source;
 
                     // The offset the point at the cursor would make, as AutoCAD 2021 drags it to the side the cursor is on.
-                    CadPreview shown = CadPreview.Making(c, input => OffsetCurves(c, from, input.Point, distance) is IReadOnlyList<DxfCurve> curves
+                    CadPreview shown = CadPreview.Making(c, input => OffsetCurves(c, from, input.Point, distance, true) is IReadOnlyList<DxfCurve> curves
                         ? OffsetCopies(curves, current ? c.Database.Clayer : null)
                         : null);
                     yield return (multiple
@@ -275,7 +275,7 @@ namespace GeometryHelper.Dxf.Viewer
         /// The curves the offset of one curve to the side of a point, or through it, makes, as <see cref="OffsetOne"/> adds them
         /// and the prompt of the side previews them; null where it makes none.
         /// </summary>
-        private static IReadOnlyList<DxfCurve> OffsetCurves(CadCommandContext c, string handle, GeoPoint2 side, double distance)
+        private static IReadOnlyList<DxfCurve> OffsetCurves(CadCommandContext c, string handle, GeoPoint2 side, double distance, bool quiet = false)
         {
             if (!(c.Document.FindEntity(handle) is DxfCurve curve))
             {
@@ -319,7 +319,12 @@ namespace GeometryHelper.Dxf.Viewer
             }
             catch (Exception exception) when (exception is ArgumentException || exception is InvalidOperationException || exception is NotSupportedException)
             {
-                GeometryHelperLog.Debug("OFFSET: " + handle + " has no offset there: " + exception.Message);
+                // The preview asks at every move of the mouse, and logs nothing.
+                if (!quiet)
+                {
+                    GeometryHelperLog.Debug("OFFSET: " + handle + " has no offset there: " + exception.Message);
+                }
+
                 made = null;
             }
 

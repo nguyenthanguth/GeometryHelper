@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace GeometryHelper.Dxf
 {
@@ -255,6 +256,30 @@ namespace GeometryHelper.Dxf
         /// </summary>
         /// <returns>A new array on each call, its values of the type of <see cref="Value"/>.</returns>
         public object[] GetAllowedValues() => (object[])_allowed.Clone();
+
+        /// <summary>
+        /// Gets the names a flip parameter gives its two states, for its values 0 and 1, as AutoCAD's Properties palette shows
+        /// them: Not flipped and Flipped as the Block Editor names them, Left and Right for Hinge of AutoCAD's Door sample.
+        /// Empty for a property of another kind, whose values name themselves.
+        /// </summary>
+        public IReadOnlyList<string> StateNames { get; internal set; } = new string[0];
+
+        /// <summary>
+        /// Gets whether AutoCAD's Properties palette lists the property, as AutoCAD's <c>Show</c>: its parameter's Show
+        /// properties of the Block Editor, false for Stud Height and Stud Width of AutoCAD's Stud sample, whose values its
+        /// lookups set; true for a property of no such setting.
+        /// </summary>
+        public bool Show { get; internal set; } = true;
+
+        /// <summary>
+        /// Gets whether the property's parameter is shown in the visibility state the INSERT shows, as AutoCAD's
+        /// <c>VisibleInCurrentVisibilityState</c>: true for a block of no visibility parameter and for that parameter's own
+        /// property; else whether the state lists the parameter, as AutoCAD 2021 read Angle of its Toilet sample in the state
+        /// Elongated (Front) as not visible, and showed no grip of it. AutoCAD's Properties palette lists a property only
+        /// where it is visible so and <see cref="Show"/> is true. The library's own blocks of a visibility parameter list no other
+        /// parameter in any state, and AutoCAD reads every other property of them as not visible (plugin GhDyn1).
+        /// </summary>
+        public bool VisibleInCurrentVisibilityState { get; internal set; } = true;
 
         /// <summary>The id of the node of the parameter whose value is set; null for a property that is read only.</summary>
         internal string Node => _node;

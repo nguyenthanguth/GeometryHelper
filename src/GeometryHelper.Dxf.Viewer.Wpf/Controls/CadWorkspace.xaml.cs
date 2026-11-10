@@ -69,6 +69,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             CanvasView.SelectionChanged += (s, e) => _model?.RefreshHistory();
             CanvasView.SnapMenuRequested += (s, e) => ShowMenu(_model?.SnapOverrideMenu(), CanvasView);
 
+            // Dynamic blocks: a flip grip clicked flips, a visibility or lookup grip shows its list at the grip; the right-click
+            // menu of the selection offers Reset Block.
+            CanvasView.CustomGripClicked += (s, e) => ShowMenu(_model?.ClickCustomGrip(e.Handle, e.GripIndex), CanvasView);
+            CanvasView.ShortcutMenuRequested += (s, e) => ShowMenu(_model?.ShortcutMenu(), CanvasView);
+
             // Text edited in place: a double click on a text edits it; the editor follows the view; a click outside it ends it.
             CanvasView.ObjectDoubleClicked += (s, e) => _model?.EditTextAt(e.Handle);
 
@@ -503,6 +508,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 _model.ShowWriteBlock = dialog => WriteBlockWindow.Show(Window.GetWindow(this), dialog);
                 _model.ShowAttributeDefinition = dialog => AttributeDefinitionWindow.Show(Window.GetWindow(this), dialog);
                 _model.ShowAttributeEditor = dialog => AttributeEditorWindow.Show(Window.GetWindow(this), dialog);
+                _model.ShowBlockAttributeManager = dialog => BlockAttributeManagerWindow.Show(Window.GetWindow(this), dialog);
+                _model.ShowEditAttributes = dialog => EditAttributesWindow.Show(Window.GetWindow(this), dialog);
+                _model.ShowPurge = dialog => PurgeWindow.Show(Window.GetWindow(this), dialog);
+                _model.ConfirmPurgeItem = question => CadQuestionWindow.ConfirmPurgeItem(Window.GetWindow(this), question);
+                _model.ShowGroupManager = dialog => GroupManagerWindow.Show(Window.GetWindow(this), dialog);
                 _model.AskRedefineBlock = name => CadQuestionWindow.AskRedefineBlock(Window.GetWindow(this), name);
                 _model.ShowBlockEdit = dialog => BlockEditWindow.Show(Window.GetWindow(this), dialog);
                 _model.AskSaveBlockChanges = name => BlockCloseWindow.Ask(Window.GetWindow(this), name);

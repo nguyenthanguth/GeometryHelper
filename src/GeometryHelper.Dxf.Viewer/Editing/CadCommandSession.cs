@@ -51,9 +51,12 @@ namespace GeometryHelper.Dxf.Viewer
         /// Gets what the command hands its dialog, which the window fills and closes with an action: a
         /// <see cref="CadBlockDefinitionRequest"/> for BLOCK, <see cref="CadInsertRequest"/> for INSERT,
         /// <see cref="CadWriteBlockRequest"/> for WBLOCK, <see cref="CadAttributeDefinitionRequest"/> for ATTDEF and
-        /// <see cref="CadAttributeEditRequest"/> for EATTEDIT; for REDEFINE, which INSERT asks when the block chosen from another
-        /// drawing has a namesake in this one, the name of the block, "Yes" in <see cref="Answer"/> redefining it; null for the
-        /// other requests.
+        /// <see cref="CadAttributeEditRequest"/> for EATTEDIT, <see cref="CadAttributeManagerRequest"/> for BATTMAN,
+        /// <see cref="CadAttributeValuesRequest"/> for ATTDIA (the Edit Attributes dialog of INSERT),
+        /// <see cref="CadPurgeRequest"/> for PURGE and <see cref="CadGroupManagerRequest"/> for CLASSICGROUP; for REDEFINE,
+        /// which INSERT asks when the block chosen from another drawing has a namesake in this one, the name of the block, "Yes"
+        /// in <see cref="Answer"/> redefining it; for PURGEITEM, which PURGE asks before each object it purges, the question,
+        /// "Yes" or "No" in <see cref="Answer"/>, null stopping the purge; null for the other requests.
         /// </summary>
         public object Payload { get; }
 
@@ -151,6 +154,12 @@ namespace GeometryHelper.Dxf.Viewer
         /// their colour.
         /// </summary>
         public CadMatchProperties MatchProperties { get; set; } = CadMatchProperties.All;
+
+        /// <summary>
+        /// Gets what the Block Attribute Manager of BATTMAN keeps from one run to the next, as its Settings dialog sets it:
+        /// the columns of its grid, tags given twice drawn in red, and whether Apply brings the INSERTs in line at once.
+        /// </summary>
+        public CadAttributeManagerSettings AttributeManager { get; } = new CadAttributeManagerSettings();
 
         /// <summary>Gets or sets where the cursor is, in drawing units, so that a number typed at a point prompt is a distance along the rubber band, as AutoCAD's direct distance entry.</summary>
         public GeoPoint2? Cursor { get; set; }
@@ -434,7 +443,7 @@ namespace GeometryHelper.Dxf.Viewer
         /// Enter, Last the object made last, Previous the objects the command before took, Group by name, Remove and Add to
         /// take out and put in, Undo the last change, Multiple points until Enter, SIngle to end with the first objects taken,
         /// AUto; anything else is "*Invalid selection*" with the options listed.
-        /// A point modifier, FROM, M2P, TT or a point filter, starts at a prompt for a point (<see cref="StartPointModifier"/>).
+        /// A point modifier, FROM, M2P, TT, TK or a point filter, starts at a prompt for a point (<see cref="StartPointModifier"/>).
         /// </summary>
         /// <param name="text">The text.</param>
         /// <returns>Whether it was taken.</returns>
@@ -525,7 +534,7 @@ namespace GeometryHelper.Dxf.Viewer
                     {
                         // Direct distance entry: the distance along the rubber band, from the base point towards the cursor.
                         GeoPoint2 from = Prompt.BasePoint.Value;
-                        GeoVector2 toward = Cursor.HasValue ? Cursor.Value - from : new GeoVector2(1.0, 0.0);
+                        GeoVector2 toward = Cursor.HasValue ? (IsTrackingOn() ? Square(from, Cursor.Value) : Cursor.Value) - from : new GeoVector2(1.0, 0.0);
                         double length = toward.Length;
                         GeoVector2 unit = length > 0.0 ? toward / length : new GeoVector2(1.0, 0.0);
                         GeoPoint2 reached = from + unit * along;
@@ -773,6 +782,13 @@ namespace GeometryHelper.Dxf.Viewer
         /// factor ("text.widthFactor") and the height of the text of the dimensions DIM* makes ("dim.text.height").
         /// </summary>
         public Dictionary<string, double> Remembered { get; } = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>
+        /// Gets whether a command asks the window for a file by its file dialog, as AutoCAD's FILEDIA 1, the default; FILEDIA 0
+        /// typed makes PNGOUT, JPGOUT, BMPOUT and the window's SAVEAS ask "Enter file name:" or "Save drawing as" on the
+        /// command line instead, as AutoCAD does in a script.
+        /// </summary>
+        public bool FileDialogs => !(Remembered.TryGetValue("filedia", out double value) && value == 0.0);
 
         internal void EnsureGroup(string name)
         {

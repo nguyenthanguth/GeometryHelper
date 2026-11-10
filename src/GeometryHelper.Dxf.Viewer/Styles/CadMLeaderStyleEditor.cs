@@ -332,7 +332,8 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>
         /// Adds a style, as New of the Multileader Style Manager: a copy of the settings of another (Start with), under a name
         /// no style of the drawing has, letters of either case the same; the dictionary ACAD_MLEADERSTYLE made where the drawing
-        /// has none. A copy of an annotative style is annotative, as AutoCAD's New starts from the style's Annotative box.
+        /// has none, and the named object dictionary first where the drawing was written without it. A copy of an annotative
+        /// style is annotative, as AutoCAD's New starts from the style's Annotative box.
         /// </summary>
         /// <param name="document">The document.</param>
         /// <param name="name">The new name, as Detail notes.</param>
@@ -365,6 +366,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             DxfMLeaderStyle source = from == null ? null : Find(document.Database, from);
             CadMLeaderStyleSettings settings = source == null ? new CadMLeaderStyleSettings() : CadMLeaderStyleSettings.Of(source);
+            document.EnsureNamedObjectsDictionary();
             return document.ApplyEdit("MLEADERSTYLE", new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "New multileader style", null, trimmed) }, s =>
             {
                 var style = new DxfMLeaderStyle();
@@ -507,14 +509,18 @@ namespace GeometryHelper.Dxf.Viewer
                 throw new ArgumentNullException(nameof(document));
             }
 
-            return Find(document.Database, "Standard") != null
-                ? CadEditResult.Done(Array.Empty<CadEditRecord>())
-                : document.ApplyEdit("MLEADERSTYLE", new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "New multileader style", null, "Standard") }, s =>
-                {
-                    var style = new DxfMLeaderStyle();
-                    Dictionary(s.Database).SetAt("Standard", style);
-                    Write(s.Database, style, new CadMLeaderStyleSettings());
-                });
+            if (Find(document.Database, "Standard") != null)
+            {
+                return CadEditResult.Done(Array.Empty<CadEditRecord>());
+            }
+
+            document.EnsureNamedObjectsDictionary();
+            return document.ApplyEdit("MLEADERSTYLE", new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "New multileader style", null, "Standard") }, s =>
+            {
+                var style = new DxfMLeaderStyle();
+                Dictionary(s.Database).SetAt("Standard", style);
+                Write(s.Database, style, new CadMLeaderStyleSettings());
+            });
         }
 
         /// <summary>

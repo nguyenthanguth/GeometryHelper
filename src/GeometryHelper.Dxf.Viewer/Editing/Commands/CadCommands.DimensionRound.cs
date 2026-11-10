@@ -29,9 +29,9 @@ namespace GeometryHelper.Dxf.Viewer
         /// a level landing from the end of the line. <paramref name="placed"/> says the words were put by hand (DIMTEDIT): they
         /// stay where they are put.
         /// </remarks>
-        internal static List<DxfEntity> Radial(DxfDimStyleTableRecord style, double textHeight, GeoPoint2 center, double radius, GeoPoint2 chord, GeoPoint2 far, GeoPoint2 location, bool diameter, string words, bool placed = false)
+        internal static List<DxfEntity> Radial(DxfDimStyleTableRecord style, double dimscale, double textHeight, GeoPoint2 center, double radius, GeoPoint2 chord, GeoPoint2 far, GeoPoint2 location, bool diameter, string words, bool placed = false)
         {
-            Sizes(style, textHeight, out double scale, out double arrow, out double height, out double gap, out _, out _);
+            Sizes(style, dimscale, textHeight, out double scale, out double arrow, out double height, out double gap, out _, out _);
             var picture = new List<DxfEntity>();
             GeoVector2 u = (chord - center) / radius;
             double along = (location - center).X * u.X + (location - center).Y * u.Y;
@@ -42,7 +42,7 @@ namespace GeometryHelper.Dxf.Viewer
             string farName = ArrowOf(style, DxfDimArrowFlag.SecondArrow);
             double trim = CadArrowheads.TakesNoRoom(nearName) ? 0.0 : arrow;
             double farTrim = CadArrowheads.TakesNoRoom(farName) ? 0.0 : arrow;
-            var words2 = new RoundWords(style, height, gap, width);
+            var words2 = new RoundWords(style, scale, height, gap, width);
             var lines = new List<KeyValuePair<GeoPoint2, GeoPoint2>>();
             bool arrowOut;
             bool farArrow = false;
@@ -263,9 +263,8 @@ namespace GeometryHelper.Dxf.Viewer
             private readonly bool _box;
             private readonly double _arrow;
 
-            internal RoundWords(DxfDimStyleTableRecord style, double height, double gap, double width)
+            internal RoundWords(DxfDimStyleTableRecord style, double scale, double height, double gap, double width)
             {
-                double scale = style.Dimscale > 0.0 ? style.Dimscale : 1.0;
                 _arrow = style.Dimasz * scale;
                 _tad = style.Dimtad;
                 _box = style.Dimgap < 0.0;
@@ -391,9 +390,9 @@ namespace GeometryHelper.Dxf.Viewer
         /// and 2, level with a leader from the middle of the arc and a landing an arrowhead long for 1.
         /// </para>
         /// </remarks>
-        internal static List<DxfEntity> Angular(DxfDimStyleTableRecord style, double textHeight, GeoPoint2 vertex, double radius, double from, double sweep, double[] near, double[] far, string words, GeoPoint2? placed = null)
+        internal static List<DxfEntity> Angular(DxfDimStyleTableRecord style, double dimscale, double textHeight, GeoPoint2 vertex, double radius, double from, double sweep, double[] near, double[] far, string words, GeoPoint2? placed = null)
         {
-            Sizes(style, textHeight, out double scale, out double arrow, out double height, out double gap, out double offset, out double beyond);
+            Sizes(style, dimscale, textHeight, out double scale, out double arrow, out double height, out double gap, out double offset, out double beyond);
             var picture = new List<DxfEntity>();
             double to = from + sweep;
             bool[] suppressed = { style.Dimse1, style.Dimse2 };
@@ -432,7 +431,7 @@ namespace GeometryHelper.Dxf.Viewer
             double chord = sweep < Math.PI ? 2.0 * radius * Math.Sin(sweep / 2.0) : 2.0 * radius;
             DxfMText text = (DxfMText)Words(style, default, 0.0, height, words, scale);
             double width = WordsWidth(new List<DxfEntity> { text }, words, height);
-            var round = new RoundWords(style, height, gap, width);
+            var round = new RoundWords(style, scale, height, gap, width);
             bool levelInside = style.Dimtih;
             bool onInside = round.On(levelInside);
             double needText = width + 2.0 * gap + (onInside ? 2.0 * gap : 0.0);

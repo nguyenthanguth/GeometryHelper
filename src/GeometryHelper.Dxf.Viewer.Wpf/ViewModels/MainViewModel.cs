@@ -1296,7 +1296,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             document.ActiveViewportChanged += OnActiveViewportChanged;
         }
 
-        private void Say(string line)
+        internal void Say(string line)
         {
             if (_current != null)
             {
@@ -1458,6 +1458,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 case "EATTEDIT":
                 case "REDEFINE":
                     OnBlockRequested(e);
+                    break;
+                case "BATTMAN":
+                case "ATTDIA":
+                case "PURGE":
+                case "PURGEITEM":
+                case "CLASSICGROUP":
+                    OnManagerRequested(e);
                     break;
                 case "PASTESPEC":
                     OnPasteSpecialRequested(e);
@@ -1766,6 +1773,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
                 foreach (CadPropertyRow row in group.Rows)
                 {
+                    // A dynamic block's property is set by its name, whatever it is named, through its own lists.
+                    if (group.Title == CadProperties.CustomGroup)
+                    {
+                        rows.Add(new PropertyRowViewModel(row, row.Choices, (r, text) => CommitCustomProperty(handles, r.Label, text)));
+                        continue;
+                    }
+
                     // An MTEXT's contents are edited in its editor, as the palette's button opens it.
                     IReadOnlyList<string> options = row.Label == "Contents" && info.Label == "MText (1)" ? new[] { EditMTextOption } : OptionsOf(row.Label) ?? row.Choices;
                     rows.Add(new PropertyRowViewModel(row, options, (r, text) => CommitProperty(handles, r.Label, text)));

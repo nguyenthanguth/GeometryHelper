@@ -90,9 +90,10 @@ the ones wanted.
       by entity with AutoCAD's own; check Ctrl, ANGDIR 1 and the MTEXT column defaults against AutoCAD (S)
 - [ ] Properties: dimension rows Ext line fixed and length (core DIMFXLENON), Fill color, Fractional type, Text view
       direction, Text position X/Y; hatch origin kept through angle and scale; MATCHPROP plot style and gradient hatch (S)
-- [ ] Variables (running): POLARMODE, ATTDIA (needs an Edit Attributes dialog), FILEDIA, CMDDIA; AUTOSNAP's other bits; new
-      dimensions follow DIMSCALE (the header's $DIMSCALE written as an override); polar angle field in Global settings;
-      TK (TRACKING); the named-dictionary guard in the table and multileader style editors (S)
+- [x] Variables: POLARMODE, ATTDIA, FILEDIA, CMDDIA, AUTOSNAP's bits; new dimensions follow DIMSCALE; the polar angle in
+      Global settings; TK (TRACKING); the named-dictionary guard in the table and multileader style editors
+- [ ] Variables: FILEDIA for QSAVE of a new drawing, XATTACH, IMAGEATTACH, WBLOCK and INSERT's Browse; POLARMODE bits 1
+      and 4 (angles from the last segment, POLARADDANG); leaders following DIMSCALE (S)
 - [ ] PEDIT: PEACCEPT and PLINETYPE read through SETVAR; a spline turned into a polyline with a precision; 3D polylines;
       Extend for arc ends in a fuzz join (S)
 - [ ] REVCLOUD: the 2021 approximate arc length (REVCLOUDARCVARIANCE), REVCLOUDPROPERTIES, a Freehand preview, Modify on
@@ -104,17 +105,39 @@ the ones wanted.
       greyed when Annotative is ticked (S)
 - [x] Associative dimensions round 3: flag 32 written so a plain MOVE takes the picture; copies get their own picture and
       stay tied to copied objects; intersection snaps; ties from DIM, QDIM, DIMCONTINUE, DIMBASELINE, ordinate, angular
-- [ ] Associative dimensions (running): PERpendicular and TANgent snaps tied (AutoCAD writes a second "last point" reference after
-      one of 75 = 1, which the core's DIMASSOC neither reads apart nor writes) (S)
+- [x] Associative dimensions: PERpendicular and TANgent snaps tied with AutoCAD's "last point" reference
+- [ ] Associative dimensions: PER and TAN at a first origin, on polylines, for angular and ordinate; AUDIT of a drawing
+      with PER/TAN ties (S)
 - [x] Dimension pictures: radius, diameter and angular laid out by DIMTAD, DIMJUST and the fit rules; every line from the
       back of its arrowhead; DIMTVP; the box of DIMGAP below zero (526 AutoCAD pictures compared, 511 match)
 - [ ] Dimensions: words measured by the drawing's fonts in the pictures (the main gap left); DIMTEDIT on angular and
       radius with DIMTMOVE 0 as AutoCAD; DIMARC; radial dimensions made under DIMTMOVE 1/2 (S)
-- [ ] Blocks (running): dynamic blocks in use: custom grips (visibility, lookup, stretch, flip, rotate, array) and their Properties
-      rows (L)
+- [x] BATTMAN with Edit Attribute and Settings, the Edit Attributes dialog of ATTDIA, the PURGE dialog (nested purge in
+      -PURGE too), Object Grouping (CLASSICGROUP), to the v110 boards
+- [x] Dynamic blocks in use: custom grips at AutoCAD's points (visibility, lookup, linear, flip, rotation, XY), the
+      Custom group in Properties, RESETBLOCK, the Block Editor's visibility box; AutoCAD reads every value as written
+- [ ] Dynamic blocks: the core's AddVisibilityParameter lists no parameter in any state (AutoCAD then hides them); XY
+      corner and block-table grips; a live preview while a custom grip is dragged; GRIPDYNCOLOR (S)
 
 ### To do
 
+- [ ] DWG, our own reader and writer (the maintainer's choice: code of our own, to change at will). Sources: the Open
+      Design Specification for .dwg (the main one), ACadSharp (MIT: may be ported, with its notice), LibreDWG (GPLv3: its
+      documentation only, never its code). The reader turns a DWG into the library's DXF records, so everything built
+      works on DWG; the writer goes back. Checked against DWGs and DXFs AutoCAD 2021 writes through a probe plugin, AUDIT
+      of what we write, ACadSharp as a side check in scratch only.
+  - [ ] W1 Bits and R2000 (AC1015): bit codes, CRC, header, section locator, header variables, classes, tables, blocks,
+        the common entities and objects, the handle map (L)
+  - [ ] W2 R2004, R2010, R2013, R2018 (AC1018-AC1032): pages, LZ77 compression, the encrypted header, the object stream
+        of 2010 on (L)
+  - [ ] W3 R2007 (AC1021): its own layout, Reed-Solomon, Unicode strings (M-L)
+  - [ ] W4 Every entity and object: hatch, dimension, MTEXT, multileader, table, dynamic block data, xref, image,
+        layouts; proxies kept as they are (L)
+  - [ ] W5 Writing R2018 (AutoCAD 2021's own), then R2000-R2013 if wanted (L)
+  - [ ] W6 GeometryHelper DXF: Open and Save As DWG, drag and drop, DWG xrefs (M)
+- [ ] Dynamic input at the cursor as AutoCAD's with DYN on: what is typed at the Command prompt shows in a box at the
+      cursor with the AutoComplete list under it, the prompt and its options (the ▼ menu) at the cursor in a command,
+      the command line keeping its own copy; with DYN off only the command line (M) (running; designed in v111)
 - [ ] Previews as AutoCAD draws them while a command asks for a point (the maintainer saw RECTANG preview a diagonal
       line): audit every command's rubber band and ghost (RECTANG rectangle, CIRCLE circle by each option, ARC, ELLIPSE,
       POLYGON, DONUT, XLINE/RAY, PLINE arcs, OFFSET, FILLET, ARRAY, STRETCH, SCALE/ROTATE reference, DIM* lines, MLEADER,
@@ -126,7 +149,7 @@ the ones wanted.
 - [ ] Dxf.App: an app icon, file association for .dxf (installer or registry), `--tab Home` in screenshot mode
 - [ ] Images of an area: PNG and JPG devices in PLOT and -PLOT ("GeometryHelper PNG", "GeometryHelper JPG", as AutoCAD's
       PublishToWeb PNG/JPG), plot area Window, Extents, Display or Layout, size in pixels (1920 x 1080, 3840 x 2160 or
-      typed) in place of a paper (design first)
+      typed) in place of a paper (running; designed in v111)
 - [ ] COPYVIEW (not in AutoCAD): the view as an image on the clipboard, also on the canvas right-click menu (optional)
 - [ ] Tables: the cell right-click menu, column letters and row numbers, autofill and width grips, drag-select a range
 - [ ] Tables: rows grow for wrapped text; Tab in the last cell adds a row; first/second/other row cell styles
@@ -137,7 +160,6 @@ the ones wanted.
 - [ ] Speed: draw the first display off the UI thread (10–13 s at 1 000 000 entities)
 - [ ] Speed: frame at extents at 1 000 000 entities (0.8–1.1 s, inside Skia); level of detail would change pixels (needs a decision)
 - [ ] Speed: highlight of 100 000 selected objects (1.2–1.6 s)
-- [ ] Blocks (running): BATTMAN, the Block Attribute Manager (designed in v110)
 - [ ] Dimensions: radius, diameter and angular pictures follow DIMTAD, DIMJUST and the fit rules (linear and ordinate do)
 - [ ] Dimensions: the dimension line starts at the back of a closed arrowhead, as AutoCAD draws it; words sized by the
       font, not estimated
@@ -149,7 +171,7 @@ the ones wanted.
 - [ ] PLOT: print to Windows printers; add named page setups; embed only the glyphs used (smaller PDFs)
 - [ ] Xrefs: XOPEN, a balloon when a file changes, editable xref layers (`NAME|LAYER`), nested xrefs in the palette
 - [ ] Images: IMAGEFRAME in a drawing with no image yet (needs RASTERVARIABLES made in core)
-- [ ] PURGE dialog and Group Manager (running; designed in v110); Draw Order has no dialog in AutoCAD
+- [ ] Managers: a design board for Order Group; previews of table and multileader styles and a Groups kind in PURGE; check BATTMAN's block change, ATTDIA Cancel and Object Grouping Cancel against AutoCAD (S)
 - [ ] Selection: QSELECT's "select objects" button
 
 ### Decisions for the maintainer

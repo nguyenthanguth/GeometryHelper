@@ -27,6 +27,28 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         private static DxfMLeaderStyle Style(CadDocument document, string name) => (DxfMLeaderStyle)document.Database.MLeaderStyleDictionary[name];
 
         [Fact]
+        public void AMultileaderStyleAdded_OnADrawingWithNoObjectsSection_MakesTheNamedObjectDictionary_AsAutoCadOpensOne()
+        {
+            // A new drawing of R2013 written without its OBJECTS section, as a program that writes only the tables, blocks and
+            // entities saves one.
+            string text = new DxfDatabase("AC1027").ToText().Replace("\r\n", "\n");
+            int objects = text.IndexOf("  0\nSECTION\n  2\nOBJECTS\n", StringComparison.Ordinal);
+            int end = text.IndexOf("  0\nENDSEC\n", objects, StringComparison.Ordinal) + "  0\nENDSEC\n".Length;
+            CadDocument document = CadDocument.From(DxfDatabase.Parse(text.Substring(0, objects) + text.Substring(end)), "noobjects.dxf");
+            Assert.Null(document.Database.NamedObjectsDictionary);
+
+            Assert.True(CadMLeaderStyleEditor.AddStandard(document).Succeeded);
+            Assert.True(CadMLeaderStyleEditor.Add(document, "Detail notes", "Standard").Succeeded);
+
+            Assert.NotNull(Style(document, "Standard"));
+            Assert.NotNull(Style(document, "Detail notes"));
+            AssertReopens(document);
+            Assert.True(document.Undo());
+            Assert.True(document.Undo());
+            Assert.Null(document.Database.MLeaderStyleDictionary);
+        }
+
+        [Fact]
         public void MLeader_DrawsInItsStyle_ItsTextHeightAndArrowsTheStyles()
         {
             // The style Standard of the drawing has words and arrows 4 high; TEXTSIZE is 2.5.

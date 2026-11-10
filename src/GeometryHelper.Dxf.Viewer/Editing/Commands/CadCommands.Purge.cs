@@ -7,7 +7,8 @@ namespace GeometryHelper.Dxf.Viewer
 {
     /// <summary>
     /// -PURGE, in AutoCAD's words: the named objects of a kind nothing uses, those whose names match a pattern, each asked
-    /// about where the names are to be verified, then deleted in one undo step; or the lines, arcs and polylines of no length
+    /// about where the names are to be verified, then deleted in one undo step, again and again until nothing more is, so
+    /// that a block holding the only INSERT of another takes that one with it; or the lines, arcs and polylines of no length
     /// and the texts of no content. What AutoCAD keeps is never purged: layer 0 and Defpoints, the linetypes ByLayer, ByBlock
     /// and Continuous, the styles Standard and the current ones, the blocks of the spaces and layouts, the plot style Normal
     /// and every visual style, as <see cref="DxfDatabase.Purge"/> keeps them.
@@ -77,40 +78,64 @@ namespace GeometryHelper.Dxf.Viewer
                 }
             }
 
-            // Each name to purge, its kind, its own and the object: found before any is asked about.
-            var chosen = new List<KeyValuePair<string[], KeyValuePair<string, DxfDBObject>>>();
+            // Each name purged, its kind and its name, over every pass; and the names the user kept, not asked again. A pass
+            // finds what nothing uses, asks, and purges it; the next finds what that purge left unused, as a block holding the
+            // only INSERT of another, until a pass purges nothing.
+            var purged = new List<KeyValuePair<string[], string>>();
+            var declined = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            bool first = true;
 
-            foreach (string[] kind in kinds)
+            while (true)
             {
-                List<KeyValuePair<string, DxfDBObject>> unused = Unused(c, kind[0], pattern);
+                var chosen = new List<KeyValuePair<string[], string>>();
 
-                foreach (KeyValuePair<string, DxfDBObject> item in unused)
+                foreach (string[] kind in kinds)
                 {
-                    if (verify)
+                    List<KeyValuePair<string, DxfDBObject>> unused = Unused(c, kind[0], pattern);
+
+                    foreach (KeyValuePair<string, DxfDBObject> item in unused)
                     {
-                        yield return CadPrompt.ForKeyword("Purge " + kind[1] + " \"" + item.Key + "\"?", new[] { "Yes", "No" }, "No");
-
-                        if (c.Input.Kind != CadInputKind.Keyword)
-                        {
-                            yield break;
-                        }
-
-                        if (!c.Input.Is("Yes"))
+                        if (declined.Contains(kind[0] + "|" + item.Key))
                         {
                             continue;
                         }
+
+                        if (verify)
+                        {
+                            yield return CadPrompt.ForKeyword("Purge " + kind[1] + " \"" + item.Key + "\"?", new[] { "Yes", "No" }, "No");
+
+                            if (c.Input.Kind != CadInputKind.Keyword)
+                            {
+                                yield break;
+                            }
+
+                            if (!c.Input.Is("Yes"))
+                            {
+                                declined.Add(kind[0] + "|" + item.Key);
+                                continue;
+                            }
+                        }
+
+                        chosen.Add(new KeyValuePair<string[], string>(kind, item.Key));
                     }
 
-                    chosen.Add(new KeyValuePair<string[], KeyValuePair<string, DxfDBObject>>(kind, item));
+                    if (first && unused.Count == 0 && option != "All")
+                    {
+                        c.Write("No unreferenced " + kind[2] + " found.");
+                    }
                 }
 
-                if (unused.Count == 0 && option != "All")
+                first = false;
+
+                if (chosen.Count == 0 || !ErasePurged(c, chosen))
                 {
-                    c.Write("No unreferenced " + kind[2] + " found.");
+                    break;
                 }
+
+                purged.AddRange(chosen);
             }
 
-            if (chosen.Count == 0)
+            if (purged.Count == 0)
             {
                 if (option == "All")
                 {
@@ -120,35 +145,40 @@ namespace GeometryHelper.Dxf.Viewer
                 yield break;
             }
 
+            WritePurged(c, kinds, purged);
+        }
+
+        /// <summary>Erases named objects, each by its kind and name, as one edit; whether it was made.</summary>
+        private static bool ErasePurged(CadCommandContext c, List<KeyValuePair<string[], string>> chosen)
+        {
             var records = new List<CadEditRecord>();
 
-            foreach (KeyValuePair<string[], KeyValuePair<string, DxfDBObject>> pair in chosen)
+            foreach (KeyValuePair<string[], string> pair in chosen)
             {
-                records.Add(new CadEditRecord(CadEditRecordKind.TableChanged, null, "Purge " + pair.Key[1], pair.Value.Key, null));
+                records.Add(new CadEditRecord(CadEditRecordKind.TableChanged, null, "Purge " + pair.Key[1], pair.Value, null));
             }
 
-            CadEditResult result = c.Apply(records, s =>
+            return c.Apply(records, s =>
             {
-                foreach (KeyValuePair<string[], KeyValuePair<string, DxfDBObject>> pair in chosen)
+                foreach (KeyValuePair<string[], string> pair in chosen)
                 {
-                    EraseNamed(s.Database, pair.Key[0], pair.Value.Key);
+                    EraseNamed(s.Database, pair.Key[0], pair.Value);
                 }
-            });
+            }).Succeeded;
+        }
 
-            if (!result.Succeeded)
-            {
-                yield break;
-            }
-
+        /// <summary>"Deleting layer "TMP"." for each object purged, then "2 layers deleted." for each kind, in the order of the kinds.</summary>
+        private static void WritePurged(CadCommandContext c, IEnumerable<string[]> kinds, List<KeyValuePair<string[], string>> purged)
+        {
             foreach (string[] kind in kinds)
             {
                 int count = 0;
 
-                foreach (KeyValuePair<string[], KeyValuePair<string, DxfDBObject>> pair in chosen)
+                foreach (KeyValuePair<string[], string> pair in purged)
                 {
                     if (pair.Key == kind)
                     {
-                        c.Write("Deleting " + kind[1] + " \"" + pair.Value.Key + "\".");
+                        c.Write("Deleting " + kind[1] + " \"" + pair.Value + "\".");
                         count++;
                     }
                 }
@@ -313,6 +343,18 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>-PURGE Zero-length geometry and Empty text objects: the entities of every space and block of no length, or of no text, erased.</summary>
         private static void PurgeEntities(CadCommandContext c, bool geometry)
         {
+            List<string> found = FoundEntities(c, geometry);
+            string what = geometry ? "zero-length geometry object" : "empty text object";
+
+            if (EraseEntities(c, found, what))
+            {
+                c.Write(found.Count.ToString(CultureInfo.InvariantCulture) + " " + what + (found.Count == 1 ? string.Empty : "s") + " deleted.");
+            }
+        }
+
+        /// <summary>The handles of the entities of every space and block of no length, or of no text, in ordinal order.</summary>
+        private static List<string> FoundEntities(CadCommandContext c, bool geometry)
+        {
             double tolerance = c.Session.Tolerance.EqualPoint;
             var found = new List<string>();
 
@@ -333,8 +375,12 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             found.Sort(StringComparer.OrdinalIgnoreCase);
-            string what = geometry ? "zero-length geometry object" : "empty text object";
+            return found;
+        }
 
+        /// <summary>Erases entities found by <see cref="FoundEntities"/>, one edit; whether it was made, true where there were none.</summary>
+        private static bool EraseEntities(CadCommandContext c, List<string> found, string what)
+        {
             if (found.Count > 0)
             {
                 var records = new List<CadEditRecord>();
@@ -363,13 +409,10 @@ namespace GeometryHelper.Dxf.Viewer
                     }
                 });
 
-                if (!result.Succeeded)
-                {
-                    return;
-                }
+                return result.Succeeded;
             }
 
-            c.Write(found.Count.ToString(CultureInfo.InvariantCulture) + " " + what + (found.Count == 1 ? string.Empty : "s") + " deleted.");
+            return true;
         }
 
         private static bool IsZeroLength(DxfEntity entity, double tolerance)

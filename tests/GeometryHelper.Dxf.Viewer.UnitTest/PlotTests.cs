@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using GeometryHelper.Dxf;
@@ -347,6 +348,29 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Run(session, "PAGESETUP");
             Assert.Equal("PAGESETUP is shown by the window.", session.History.Last());
             Assert.Equal("PLOT", CadShortcuts.Default.Keys["Ctrl+P"]);
+        }
+
+        [Fact]
+        public void PlotWithCmddia0_AsksDashPlotsPrompts_ThoughAWindowWouldShowTheDialog()
+        {
+            CadDocument document = Plan();
+            CadCommandSession session = Session(document);
+            var asked = new List<string>();
+            session.UiRequested += (sender, e) =>
+            {
+                asked.Add(e.Name);
+                e.Handled = e.Name == "PLOT";
+            };
+
+            Run(session, "PLOT");
+            Assert.False(session.IsRunning);
+            Assert.Equal(new[] { "PLOT" }, asked);
+
+            Run(session, "CMDDIA", "0", "PLOT");
+            Assert.Equal("Detailed plot configuration? [Yes/No] <No>:", session.PromptText);
+            Run(session, Esc, "CMDDIA");
+            Assert.Equal("Enter new value for CMDDIA <0>:", session.PromptText);
+            Assert.Equal(new[] { "PLOT" }, asked);
         }
     }
 }

@@ -1,0 +1,62 @@
+<Window x:Class="GeometryHelper.Dxf.Viewer.Wpf.AttributeManagerSettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:GeometryHelper.Dxf.Viewer.Wpf"
+        Title="Block Attribute Settings" Width="460" Height="460" WindowStyle="None" ResizeMode="NoResize" ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner" Background="#262B33">
+
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/BlockDialogs.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <Border x:Name="Root" Background="{StaticResource GhPanel}" BorderBrush="{StaticResource GhBorder}" BorderThickness="1"
+            TextElement.FontFamily="{StaticResource GhFont}" TextElement.FontSize="12" TextElement.Foreground="{StaticResource GhText}"
+            UseLayoutRounding="True" SnapsToDevicePixels="True" TextOptions.TextFormattingMode="Display">
+        <DockPanel>
+            <Border DockPanel.Dock="Top" Background="{StaticResource GhHeader}" Padding="16,10" MouseLeftButtonDown="OnHeaderDown">
+                <DockPanel>
+                    <Button DockPanel.Dock="Right" Style="{StaticResource GhTitleCloseButton}" Click="OnCancel" ToolTip="Close" />
+                    <TextBlock Text="Block Attribute Settings" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" />
+                </DockPanel>
+            </Border>
+
+            <Border DockPanel.Dock="Bottom" Background="{StaticResource GhHeader}" Padding="16,10">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button Style="{StaticResource GhDialogButton}" Content="Cancel" Padding="14,5" Margin="0,0,8,0" Click="OnCancel" IsCancel="True" />
+                    <Button Style="{StaticResource StylePrimaryButton}" Content="OK" Padding="14,5" Click="OnOk" IsDefault="True" />
+                </StackPanel>
+            </Border>
+
+            <StackPanel Margin="16,12">
+                <HeaderedContentControl Style="{StaticResource BlockGroup}" Header="Display in list" Margin="0,0,0,10">
+                    <StackPanel>
+                        <ItemsControl ItemsSource="{Binding Columns}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <UniformGrid Columns="3" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="{x:Type local:AttributeSettingColumnViewModel}">
+                                    <CheckBox Style="{StaticResource BlockCheck}" Content="{Binding Name}" IsChecked="{Binding IsChecked, Mode=TwoWay}" IsEnabled="{Binding IsEnabled}" />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                            <Button Style="{StaticResource GhDialogButton}" Content="Select All" Padding="12,4" Margin="0,0,6,0" Click="OnSelectAll" />
+                            <Button Style="{StaticResource GhDialogButton}" Content="Clear All" Padding="12,4" Click="OnClearAll" />
+                        </StackPanel>
+                    </StackPanel>
+                </HeaderedContentControl>
+                <CheckBox Style="{StaticResource BlockCheck}" Content="Emphasize duplicate tags" IsChecked="{Binding EmphasizeDuplicateTags, Mode=TwoWay}" Margin="0,0,0,10" />
+                <CheckBox Style="{StaticResource BlockCheck}" Content="Apply changes to existing references" IsChecked="{Binding ApplyToExistingReferences, Mode=TwoWay}" Margin="0,0,0,10" />
+                <TextBlock Foreground="{StaticResource GhTextMuted}" TextWrapping="Wrap"
+                           Text="Tag is always shown and stays greyed. A checked column is added to the manager's grid in this order. Duplicate tags are drawn in red in the grid." />
+            </StackPanel>
+        </DockPanel>
+    </Border>
+</Window>

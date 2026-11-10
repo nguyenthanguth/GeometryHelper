@@ -287,6 +287,40 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         [Fact]
+        public void DimscaleTyped_IsTakenByNewDimensions_AsAnOverrideOfTheirStyle_AsAutoCad()
+        {
+            // The style's DIMSCALE is 1; DIMSCALE 10 typed makes the header's 10, which a new dimension takes, as AutoCAD 2021's.
+            CadCommandSession session = Metric(_ => { });
+            CadDocument document = session.Document;
+            Run(session, "DIMSCALE", "10", "DLI", P(0, 0), P(300, 0), P(150, -30));
+
+            DxfDimension dimension = Made(session);
+            Assert.Equal(10.0, document.Database.Dimscale);
+            Assert.Equal(1.0, document.Database.DimStyleTable["Standard"].Dimscale);
+            Assert.Equal(10.0, dimension.Dimscale);
+            Assert.Equal(Height * 10.0, Words(dimension).TextHeight, 9);
+            Assert.Equal(new[] { 0.0, Arrow * 10.0, 300.0 - Arrow * 10.0, 300.0 }, SolidXs(dimension).Select(x => Math.Round(x, 9)).Distinct().OrderBy(x => x));
+            AssertReopens(document);
+
+            // DIMBASELINE puts the next line DIMDLI times the current DIMSCALE further out.
+            double dli = document.Database.DimStyleTable["Standard"].Dimdli;
+            Run(session, "DIMBASELINE", P(400, 0), Esc);
+            DxfRotatedDimension next = Assert.IsType<DxfRotatedDimension>(Made(session));
+            Assert.Equal(10.0, next.Dimscale);
+            Assert.Equal(-30.0 - dli * 10.0, next.DimLinePoint.Y, 9);
+        }
+
+        [Fact]
+        public void DimscaleOfTheStyle_WritesNoOverride()
+        {
+            CadCommandSession session = Metric(_ => { });
+            Run(session, "DIMSCALE", "1", "DLI", P(0, 0), P(300, 0), P(150, -30));
+
+            Assert.Equal(1.0, Made(session).Dimscale);
+            Assert.DoesNotContain("DSTYLE", session.Document.Database.ToText());
+        }
+
+        [Fact]
         public void AStyleChanged_DrawsItsDimensionsAgainByTheNewLayout()
         {
             CadCommandSession session = Metric(s => s.Dimtad = 1);

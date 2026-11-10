@@ -246,11 +246,21 @@ namespace GeometryHelper.Dxf.Viewer
             int next = 0;
             HashSet<string> keys = runs == null ? null : KeysOf(runs, handles);
 
+            // The entities the Block Editor's visibility state hides are not drawn, nor picked; those it shows are, though the
+            // block keeps them invisible as its first state hides them.
+            HashSet<string> shown = null, hidden = null;
+            _document?.StateSetsOf(space, out shown, out hidden);
+
             try
             {
                 foreach (DxfEntity entity in (IEnumerable<DxfEntity>)ContentOf(space)?.Entities ?? space)
                 {
                     string handle = HandleOf(entity);
+
+                    if (hidden != null && handle != null && hidden.Contains(handle))
+                    {
+                        continue;
+                    }
 
                     if (runs != null && !string.IsNullOrEmpty(handle))
                     {
@@ -297,7 +307,7 @@ namespace GeometryHelper.Dxf.Viewer
 
                     try
                     {
-                        Draw(entity, root, list, null);
+                        Draw(entity, root, list, null, shown != null && handle != null && shown.Contains(handle));
                     }
                     catch (Exception)
                     {

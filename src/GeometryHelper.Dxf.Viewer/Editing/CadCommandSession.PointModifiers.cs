@@ -6,8 +6,9 @@ namespace GeometryHelper.Dxf.Viewer
 {
     /// <summary>
     /// The point modifiers AutoCAD takes at any prompt for a point, typed or chosen from the Shift+right-click menu: FROM, a
-    /// base point and an offset from it; M2P (MTP), the point midway between two; TT, a point tracking lines run from; and the
-    /// point filters .X .Y .Z .XY .XZ .YZ, the coordinates named taken from one point and the rest from another.
+    /// base point and an offset from it; M2P (MTP), the point midway between two; TT, a point tracking lines run from; TK
+    /// (TRACKING), a point reached from another along the axes; and the point filters .X .Y .Z .XY .XZ .YZ, the coordinates
+    /// named taken from one point and the rest from another.
     /// </summary>
     public sealed partial class CadCommandSession
     {
@@ -22,6 +23,7 @@ namespace GeometryHelper.Dxf.Viewer
             From,
             Mid,
             Track,
+            Tracking,
             Filter,
         }
 
@@ -37,14 +39,17 @@ namespace GeometryHelper.Dxf.Viewer
         /// "&lt;Offset&gt;:" and gives the offset point, an offset typed as @dx,dy or @distance&lt;angle being measured from
         /// the base point; M2P or MTP asks "First point of mid:" and "Second point of mid:" and gives the point midway; TT asks
         /// "Specify temporary OTRACK point:" and asks the first prompt again with tracking lines from the point
-        /// (<see cref="TemporaryTrackPoints"/>); .X, .Y, .Z, .XY, .XZ or .YZ asks "of" a point whose coordinates named are kept,
-        /// then "(need YZ):" for the rest. Coordinates are those of the <see cref="Ucs"/>, and Z, which a plan has none of, is
-        /// asked as AutoCAD asks it and left out. A modifier typed at a modifier's prompt nests in it, as FROM with M2P for its
-        /// base point, and each point may be snapped. A leading underscore is allowed, as the menu sends "_from". A line of
-        /// 100,50 FROM with the offset @30,20 starts at (130, 70); M2P between (0, 0) and (100, 40) gives (50, 20); .X of
-        /// (30, 999) with (888, 40) at "(need YZ):" gives (30, 40).
+        /// (<see cref="TemporaryTrackPoints"/>); TK (TRACK, TRACKING) asks "First tracking point:" then "Next point (Press ENTER
+        /// to end tracking):" until Enter, each point taken square from the one before along the axis it lies farther along
+        /// (a distance typed going along the axis nearest the cursor), and gives the last; .X, .Y, .Z, .XY, .XZ or .YZ asks
+        /// "of" a point whose coordinates named are kept, then "(need YZ):" for the rest. Coordinates are those of the
+        /// <see cref="Ucs"/>, and Z, which a plan has none of, is asked as AutoCAD asks it and left out. A modifier typed at a
+        /// modifier's prompt nests in it, as FROM with M2P for its base point, and each point may be snapped. A leading
+        /// underscore is allowed, as the menu sends "_from". A line of 100,50 FROM with the offset @30,20 starts at (130, 70);
+        /// M2P between (0, 0) and (100, 40) gives (50, 20); TK from (100, 0) to (130, 50) gives (100, 50); .X of (30, 999) with
+        /// (888, 40) at "(need YZ):" gives (30, 40).
         /// </summary>
-        /// <param name="typed">The modifier: FROM, M2P, TT, .XY.</param>
+        /// <param name="typed">The modifier: FROM, M2P, TT, TK, .XY.</param>
         /// <returns>Whether it was started: false where it is none of these or no prompt waits for a point.</returns>
         public bool StartPointModifier(string typed)
         {
@@ -93,6 +98,11 @@ namespace GeometryHelper.Dxf.Viewer
                 case "TT":
                     kind = ModifierKind.Track;
                     return true;
+                case "TK":
+                case "TRACK":
+                case "TRACKING":
+                    kind = ModifierKind.Tracking;
+                    return true;
                 case ".X":
                 case ".Y":
                 case ".Z":
@@ -120,6 +130,8 @@ namespace GeometryHelper.Dxf.Viewer
                     return CadPrompt.ForPoint("First point of mid", basePoint);
                 case ModifierKind.Track:
                     return CadPrompt.ForPoint("Specify temporary OTRACK point", basePoint);
+                case ModifierKind.Tracking:
+                    return CadPrompt.ForPoint("First tracking point", basePoint);
                 default:
                     return CadPrompt.ForPoint("of", basePoint).WithoutColon();
             }
@@ -133,14 +145,26 @@ namespace GeometryHelper.Dxf.Viewer
         {
             PointModifier modifier = _modifiers[_modifiers.Count - 1];
 
-            if (!input.IsPoint)
+            // Enter at "Next point" ends tracking with the point reached.
+            bool tracked = modifier.Kind == ModifierKind.Tracking && modifier.First.HasValue && input.IsNone;
+
+            if (!input.IsPoint && !tracked)
             {
                 Write("Invalid point.");
                 Changed();
                 return false;
             }
 
-            GeoPoint2 point = input.Point;
+            GeoPoint2 point = tracked ? modifier.First.Value : input.Point;
+
+            if (modifier.Kind == ModifierKind.Tracking && !tracked)
+            {
+                modifier.First = modifier.First.HasValue ? Square(modifier.First.Value, point) : point;
+                LastPoint = modifier.First.Value;
+                Prompt = CadPrompt.ForPoint("Next point (Press ENTER to end tracking)", modifier.First);
+                Changed();
+                return true;
+            }
 
             if (modifier.Kind == ModifierKind.Track)
             {
@@ -196,6 +220,7 @@ namespace GeometryHelper.Dxf.Viewer
             switch (modifier.Kind)
             {
                 case ModifierKind.From:
+                case ModifierKind.Tracking:
                     return second;
                 case ModifierKind.Mid:
                     return new GeoPoint2((first.X + second.X) / 2.0, (first.Y + second.Y) / 2.0);
@@ -207,6 +232,21 @@ namespace GeometryHelper.Dxf.Viewer
                     return Ucs.ToWorld(new GeoPoint2(x ? a.X : b.X, y ? a.Y : b.Y));
             }
         }
+
+        /// <summary>
+        /// The point tracking reaches from one towards another, square along an axis of the <see cref="Ucs"/>: the other's
+        /// coordinate along the axis it lies farther along, the one's across it, X where both lie as far. From (100, 0)
+        /// towards (130, 50) it is (100, 50).
+        /// </summary>
+        private GeoPoint2 Square(GeoPoint2 from, GeoPoint2 toward)
+        {
+            GeoPoint2 a = Ucs.ToUcs(from);
+            GeoPoint2 b = Ucs.ToUcs(toward);
+            return Ucs.ToWorld(Math.Abs(b.X - a.X) >= Math.Abs(b.Y - a.Y) ? new GeoPoint2(b.X, a.Y) : new GeoPoint2(a.X, b.Y));
+        }
+
+        /// <summary>Whether the prompt waiting is TK's "Next point", whose distances typed run along an axis.</summary>
+        private bool IsTrackingOn() => _modifiers.Count > 0 && _modifiers[_modifiers.Count - 1].Kind == ModifierKind.Tracking && _modifiers[_modifiers.Count - 1].First.HasValue;
 
         /// <summary>
         /// The coordinates typed at "(need YZ):" of a point filter, as many numbers as letters asked, in the order X, Y, Z of

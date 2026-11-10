@@ -255,7 +255,9 @@ The dialogs are `save-changes`; `options` or `settings:Canvas and cursor` (Globa
 `plugin-settings` and `plugin-untrusted`; `color`, `truecolor` and `truecolor-rgb` (Select Color on index 30);
 `dsettings[:Tab]`; the menus `osnap-menu`, `snap-menu` (after `--run "LINE"`), `drawings-menu` and `scale-menu` (the status bar's scale list); `missing-shx` and
 `missing-shx-replace`; `ptype`; `linetype`, `linetype-load`, `select-linetype`, `hatch`, `hatch-gradient`, `hatch-user`,
-`hatch-solid` and `hatch-file`; `block`, `insert`, `wblock`, `attdef` and `eattedit[:Tab]`; `style`, `style-new`,
+`hatch-solid` and `hatch-file`; `block`, `insert`, `wblock`, `attdef` and `eattedit[:Tab]`; `battman`,
+`battman-edit[:Tab]`, `battman-settings` and `attdia` (on the first block with attributes); `purge` and
+`purge-nonpurgeable`; `classicgroup` and `group-order` (on the first group); `style`, `style-new`,
 `dimstyle`, `dimstyle-new`, `dimstyle-modify[:Tab]`, `dimstyle-override[:Tab]` and `dimstyle-compare[:Other]`;
 `pastespec`; `app-menu` and `app-menu:export` (the application menu on Recent Documents, or on the list of New, Open,
 Save As, Export, Print or Close); the command line's menus `cmdline-menu`, `input-settings-menu` and `recent-commands-menu`;

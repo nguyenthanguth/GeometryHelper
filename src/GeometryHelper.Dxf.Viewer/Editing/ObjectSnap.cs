@@ -273,7 +273,7 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// Gets or sets whether object snap tracking is on (OTRACK, F11): from each point acquired, lines run level and upright,
-        /// or on every polar angle while <see cref="Polar"/> is on, and the cursor is held on one near it or where two cross.
+        /// or on every polar angle while <see cref="Polar"/> and <see cref="TracksPolarAngles"/> are on, and the cursor is held on one near it or where two cross.
         /// </summary>
         public bool Tracking { get; set; }
 
@@ -288,6 +288,39 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>Gets or sets the polar increment in radians; a quarter turn until set.</summary>
         public double PolarAngle { get; set; }
+
+        /// <summary>
+        /// Gets or sets whether object snap tracking runs its lines from the points acquired on every polar angle while
+        /// <see cref="Polar"/> is on, as AutoCAD's POLARMODE 2 (Track using all polar angle settings): off until set, when they
+        /// run level and upright alone, as POLARMODE 0 (Track orthogonally only). With a polar angle of 45 and a point acquired
+        /// at (100, 0), the cursor at (130, 30.4) is held on the line at 45 degrees only while it is on.
+        /// </summary>
+        public bool TracksPolarAngles { get; set; }
+
+        /// <summary>
+        /// Gets or sets whether a point is acquired for tracking only while Shift is held as the cursor rests on it, as AutoCAD's
+        /// POLARMODE 8; off until set, when resting on it is enough. The window's canvas honours it.
+        /// </summary>
+        public bool AcquiresWithShift { get; set; }
+
+        /// <summary>Gets or sets whether the marker of a snap is drawn at its point, as AutoCAD's AUTOSNAP 1; on until set.</summary>
+        public bool ShowsMarker { get; set; } = true;
+
+        /// <summary>Gets or sets whether the name of a snap is shown by the cursor, as AutoCAD's AUTOSNAP 2 (the AutoSnap tooltip); on until set.</summary>
+        public bool ShowsSnapTip { get; set; } = true;
+
+        /// <summary>
+        /// Gets or sets whether the cursor is drawn locked on a snap's point, the rubber band running to it, as AutoCAD's
+        /// AUTOSNAP 4 (the magnet); on until set. Off, the rubber band follows the cursor, and a click still takes the snap.
+        /// </summary>
+        public bool Magnet { get; set; } = true;
+
+        /// <summary>
+        /// Gets or sets whether the tip by the cursor, "Ortho" with the distance and the angle from the base point, is shown while
+        /// the cursor is held by ortho, polar or a tracking line, as AutoCAD's AUTOSNAP 32 (the tooltips of polar tracking, object snap tracking and
+        /// Ortho mode); on until set.
+        /// </summary>
+        public bool ShowsTrackingTip { get; set; } = true;
 
         /// <summary>Gets or sets whether the cursor is put on the snap grid (SNAP, F9).</summary>
         public bool GridSnap { get; set; }

@@ -128,6 +128,63 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>
+        /// Shows another visibility state of the block open in the Block Editor, as AutoCAD's Visibility State box: the
+        /// entities the state hides are no longer drawn or picked, those it shows and those no state lists are. A view of the
+        /// block, not an edit of it: nothing is written and no undo step made.
+        /// </summary>
+        /// <param name="state">The name of the state, one of <see cref="CadBlockEditor.VisibilityStates"/>.</param>
+        /// <returns>What came of it: refused where the editor is not open or the block has no state of the name.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the name is null.</exception>
+        public CadEditResult SetBlockEditorVisibilityState(string state)
+        {
+            if (state == null)
+            {
+                throw new ArgumentNullException(nameof(state));
+            }
+
+            CadBlockEditor editor = _blockEditor;
+
+            if (editor == null)
+            {
+                return CadEditResult.Refuse("The Block Editor is not open.");
+            }
+
+            string found = null;
+
+            foreach (string name in editor.VisibilityStates)
+            {
+                if (string.Equals(name, state.Trim(), StringComparison.OrdinalIgnoreCase))
+                {
+                    found = name;
+                }
+            }
+
+            if (found == null)
+            {
+                return CadEditResult.Refuse("The block " + editor.Name + " has no visibility state " + state + ".");
+            }
+
+            editor.ShowState(found);
+            _displays.Remove(editor.Space);
+            _indexes.Remove(editor.Space);
+            _stale.Remove(editor.Space);
+            Selection.Clear();
+            Changed?.Invoke(this, new CadDocumentChangedEventArgs(CadChangeKind.Regen, null, Array.Empty<string>(), new[] { editor.Space }, false));
+            return CadEditResult.Done(Array.Empty<CadEditRecord>());
+        }
+
+        /// <summary>
+        /// The handles of the entities of a block a space draws that the Block Editor's visibility state shows and hides, as
+        /// <see cref="CadBlockEditor.StateSets"/> gives them; false where the block is not the one open or has no state.
+        /// </summary>
+        internal bool StateSetsOf(DxfBlockTableRecord block, out HashSet<string> shown, out HashSet<string> hidden)
+        {
+            shown = null;
+            hidden = null;
+            return _blockEditor != null && ReferenceEquals(_blockEditor.Space.Block, block) && _blockEditor.StateSets(out shown, out hidden);
+        }
+
+        /// <summary>
         /// Saves the block open in the Block Editor, as BSAVE: its edits made final, every INSERT of it drawn anew (their
         /// attributes are not synchronised, as AutoCAD's ATTSYNC is not run), and the steps of the session so far one undo
         /// step, "BEDIT". Undo inside the editor then stops here. For &lt;Current Drawing&gt; model space keeps its edits.
@@ -447,6 +504,9 @@ namespace GeometryHelper.Dxf.Viewer
 
         private readonly CadDocument _document;
 
+        // The visibility state chosen in the Visibility State box; null for the block's first.
+        private string _state;
+
         internal CadBlockEditor(CadDocument document, string name, CadSpace space, bool isNew, int start, int floor, CadSpace previous)
         {
             _document = document;
@@ -499,6 +559,103 @@ namespace GeometryHelper.Dxf.Viewer
         {
             IsNew = false;
             Floor = _document.UndoPosition;
+        }
+
+        /// <summary>
+        /// Gets the visibility states of the block open, as AutoCAD's Visibility State box lists them, read anew from the block
+        /// on each call (<see cref="DxfBlockTableRecord.GetVisibilityStates"/>); empty for a block of none, or for &lt;Current
+        /// Drawing&gt;.
+        /// </summary>
+        public IReadOnlyList<string> VisibilityStates
+        {
+            get
+            {
+                var names = new List<string>();
+
+                foreach (DxfBlockVisibilityState state in States())
+                {
+                    names.Add(state.Name);
+                }
+
+                return names;
+            }
+        }
+
+        /// <summary>
+        /// Gets the visibility state the editor shows, as AutoCAD's Visibility State box: the first of the block's when it
+        /// opens; null for a block of none. The entities another state lists and this one does not are hidden; an entity no
+        /// state lists, as one drawn in the editor, is shown in every state.
+        /// </summary>
+        public string VisibilityState
+        {
+            get
+            {
+                IReadOnlyList<DxfBlockVisibilityState> states = States();
+
+                if (states.Count == 0)
+                {
+                    return null;
+                }
+
+                foreach (DxfBlockVisibilityState state in states)
+                {
+                    if (string.Equals(state.Name, _state, StringComparison.Ordinal))
+                    {
+                        return state.Name;
+                    }
+                }
+
+                return states[0].Name;
+            }
+        }
+
+        /// <summary>Shows a state of the block, the one of the name given.</summary>
+        internal void ShowState(string name) => _state = name;
+
+        /// <summary>
+        /// The handles of the entities the state shown shows, drawn though the block keeps them invisible as its first state
+        /// hides them, and of those it hides: those another state lists and it does not. False for a block of no state.
+        /// </summary>
+        internal bool StateSets(out HashSet<string> shown, out HashSet<string> hidden)
+        {
+            IReadOnlyList<DxfBlockVisibilityState> states = States();
+            string current = VisibilityState;
+            shown = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            hidden = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            if (current == null)
+            {
+                return false;
+            }
+
+            foreach (DxfBlockVisibilityState state in states)
+            {
+                foreach (DxfEntity entity in state.Entities)
+                {
+                    (state.Name == current ? shown : hidden).Add(entity.Handle);
+                }
+            }
+
+            hidden.ExceptWith(shown);
+            return true;
+        }
+
+        /// <summary>The block's visibility states; none for &lt;Current Drawing&gt;, or a block whose states cannot be read.</summary>
+        private IReadOnlyList<DxfBlockVisibilityState> States()
+        {
+            if (IsCurrentDrawing || Space.Block == null)
+            {
+                return Array.Empty<DxfBlockVisibilityState>();
+            }
+
+            try
+            {
+                return Space.Block.GetVisibilityStates();
+            }
+            catch (Exception exception) when (exception is NotSupportedException || exception is InvalidOperationException || exception is ArgumentException)
+            {
+                return Array.Empty<DxfBlockVisibilityState>();
+            }
         }
     }
 

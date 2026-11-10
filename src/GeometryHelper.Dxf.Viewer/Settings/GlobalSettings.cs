@@ -96,6 +96,7 @@ namespace GeometryHelper.Dxf.Viewer
         private int _pickboxPixels = 5;
         private int _aperturePixels = 10;
         private double _polarAngle = 90.0;
+        private int _polarMode;
         private double _wheelZoomFactor = 1.2;
         private string _preset = "Assembly";
         private string _sheetSize = "A2";
@@ -198,6 +199,14 @@ namespace GeometryHelper.Dxf.Viewer
             get => _polarAngle;
             set => _polarAngle = value > 0.0 && value <= 360.0 ? value : throw new ArgumentOutOfRangeException(nameof(PolarAngle), value, "The polar angle has to be above 0 and up to 360 degrees.");
         }
+
+        /// <summary>
+        /// Gets or sets the bits of AutoCAD's POLARMODE, 0 to 15: 1 polar angles measured from the last segment, 2 object snap
+        /// tracking on every polar angle (else level and upright alone), 4 additional polar angles, 8 points acquired only with
+        /// Shift held; 0 by default, as AutoCAD's. The presenter follows 2 and 8 and keeps 1 and 4.
+        /// </summary>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the value is out of range.</exception>
+        public int PolarMode { get => _polarMode; set => _polarMode = (int)Range(value, 0, 15, nameof(PolarMode)); }
 
         /// <summary>Gets or sets whether F3 switches the snaps: on by default.</summary>
         public bool F3TogglesSnaps { get; set; } = true;
@@ -579,6 +588,7 @@ namespace GeometryHelper.Dxf.Viewer
             w.Value("snaps", string.Join(",", SnapNames(Snaps)));
             w.Value("aperturePixels", _aperturePixels);
             w.Value("polarAngle", _polarAngle);
+            w.Value("polarMode", _polarMode);
             w.Value("f3TogglesSnaps", F3TogglesSnaps);
             w.Value("selectByDragging", SelectByDragging);
             w.Value("dynamicInput", DynamicInput);
@@ -775,6 +785,7 @@ namespace GeometryHelper.Dxf.Viewer
                 Text("canvas", "snaps", v => _s.Snaps = Snaps(v));
                 Number("canvas", "aperturePixels", v => _s.AperturePixels = Whole(v));
                 Number("canvas", "polarAngle", v => _s.PolarAngle = v);
+                Number("canvas", "polarMode", v => _s.PolarMode = Whole(v));
                 Flag("canvas", "f3TogglesSnaps", v => _s.F3TogglesSnaps = v);
                 Flag("canvas", "selectByDragging", v => _s.SelectByDragging = v);
                 Flag("canvas", "dynamicInput", v => _s.DynamicInput = v);

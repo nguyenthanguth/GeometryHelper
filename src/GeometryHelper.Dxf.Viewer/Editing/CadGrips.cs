@@ -40,17 +40,51 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>The words of a dimension: moves them, as DIMTEDIT does.</summary>
         Text,
+
+        /// <summary>A custom grip of a dynamic block's point, polar or XY parameter, a square in the dynamic grip colour: dragged, sets its values.</summary>
+        CustomPoint,
+
+        /// <summary>A custom grip of a dynamic block's linear parameter, an arrow: dragged along the parameter, sets its distance.</summary>
+        CustomLinear,
+
+        /// <summary>A custom grip of a dynamic block's rotation parameter, a circle: dragged round its base point, sets its angle.</summary>
+        CustomRotation,
+
+        /// <summary>A custom grip of a dynamic block's flip parameter, a bent arrow across its line: clicked, flips the block.</summary>
+        CustomFlip,
+
+        /// <summary>A custom grip of a dynamic block's visibility or lookup parameter, a triangle pointing down: clicked, lists the values.</summary>
+        CustomList,
     }
 
     /// <summary>One grip of an entity: where it is drawn and what dragging it does.</summary>
     public sealed class CadGrip
     {
         internal CadGrip(int index, CadGripKind kind, GeoPoint2 point)
+            : this(index, kind, point, null)
+        {
+        }
+
+        internal CadGrip(int index, CadGripKind kind, GeoPoint2 point, DxfDynamicBlockGrip custom)
         {
             Index = index;
             Kind = kind;
             Point = point;
+            Custom = custom;
+            Direction = custom == null ? new GeoVector2(0.0, 0.0) : new GeoVector2(custom.Direction.X, custom.Direction.Y);
         }
+
+        /// <summary>
+        /// Gets the custom grip of a dynamic block's parameter the grip stands for, what it drives and where its parameter
+        /// measures from; null for a grip of any other kind.
+        /// </summary>
+        public DxfDynamicBlockGrip Custom { get; }
+
+        /// <summary>
+        /// Gets the way a custom grip's arrow points, in the plan: along a linear parameter, across a flip parameter's line; nought
+        /// for a grip of no arrow.
+        /// </summary>
+        public GeoVector2 Direction { get; }
 
         /// <summary>Gets its place in the entity's list of grips, which <see cref="CadGrips.Drag"/> takes.</summary>
         public int Index { get; }
@@ -156,6 +190,12 @@ namespace GeometryHelper.Dxf.Viewer
                     break;
                 case DxfBlockReference insert:
                     Add(CadGripKind.Insertion, insert.Position.X, insert.Position.Y);
+
+                    foreach (DxfDynamicBlockGrip custom in CadDynamicBlocks.GripsOf(insert))
+                    {
+                        grips.Add(new CadGrip(grips.Count, CadDynamicBlocks.KindOf(custom), new GeoPoint2(custom.Position.X, custom.Position.Y), custom));
+                    }
+
                     break;
                 case DxfDimension dimension:
                     DimensionGrips(dimension, (kind, at) => Add(kind, at.X, at.Y));
@@ -232,6 +272,11 @@ namespace GeometryHelper.Dxf.Viewer
             if (entity is DxfDimension)
             {
                 return DragDimension(document, handle, gripIndex, grip.Point, to);
+            }
+
+            if (grip.Custom != null)
+            {
+                return CadDynamicBlocks.Drag(document, handle, grip, to);
             }
 
             GeoVector2 moved = to - grip.Point;

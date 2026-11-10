@@ -19,6 +19,29 @@ linear dimension.
 **FIXED.** ROTATE's ghost in a UCS turned from the world's now turns by the angle the objects are turned: in a UCS turned
 30 degrees it turned 30 degrees more than the result.
 
+**NEW.** BATTMAN, the presenter's Block Attribute Manager: the attribute definitions of a block in its order, with the
+INSERTs of it counted in the drawing and in model space, the modes as AutoCAD's letters I C V P L M and a tag given twice
+in red; Move Up, Move Down, Edit Attribute (Attribute, Text Options and Properties) and Remove, written into the block by
+Apply or OK, each one undo step; Sync brings every INSERT in line as ATTSYNC does, the values typed kept, and its Settings
+choose the columns of the grid and whether Apply syncs at once. A block GB of GRID, LEVEL and REV with LEVEL moved up and
+synced gives each INSERT LEVEL then GRID; AutoCAD 2021 audits the drawing with no error.
+
+**NEW.** ATTDIA is a variable of SETVAR, 0 by default; at 1 INSERT and -INSERT ask the values of a block's attributes in
+the presenter's Edit Attributes dialog, eight a page in the block's order, the constant ones left out and a value to be
+verified asked once. A title block of eleven attributes opens on Page 1 of 2.
+
+**NEW.** PURGE shows the presenter's Purge dialog: the named objects nothing uses by kind, with counts, a preview of a
+block, text style or dimension style, Confirm each item, Purge nested items, the geometry of no length and the empty
+texts, Purge Checked Items and Purge All, each purge one undo step; and Find Non-Purgeable Items, the objects in use with
+the reasons ("Layer WALLS is the current layer.", "Used by 2 objects in model space and 0 in layouts.", "Referenced by
+block GB.") and Select Objects. -PURGE stays typed, and now purges nested items too: a block OUTER inserted nowhere that
+holds the only INSERT of INNER takes INNER with it, and the layer only INNER used, where it took one pass before.
+
+**NEW.** CLASSICGROUP, AutoCAD 2021's Object Grouping dialog: the groups with Include Unnamed, Find Name, Highlight,
+New, Remove and Add asked on the command line with the dialog hidden, then shown again; Rename, Description, Explode,
+Selectable and Re-Order (Order Group: Re-Order, Highlight, Reverse Order) at once; OK keeps every change as one undo
+step, Cancel takes them back. The registry holds 167 commands.
+
 **FIXED.** `DxfPolyline2d.CurveFit` (PEDIT Fit) now gives AutoCAD 2021's arcs, vertex by vertex to 1E-11 on 60 polylines
 fitted in its console. The tangent between the ends of an open polyline, and everywhere round a closed one, is AutoCAD's
 blend of the two segments at the vertex weighted by the turns either side, not the circle through the vertex and its
@@ -58,9 +81,59 @@ of each, as AutoCAD 2021 draws it: a dimension of 100 with arrowheads of 2.5 has
 filled ones too. The ticks, Dot small, Dot small blank, Integral and None run to the tip and, as AutoCAD's, never move
 outside a short dimension.
 
+**NEW.** Dynamic blocks in use, in the core: `DxfBlockReference.GetDynamicGrips()` gives the custom grips AutoCAD shows on
+a dynamic INSERT, where its values put them (`DxfDynamicBlockGrip`: `GripType`, `Position`, `BasePoint`, `Direction`,
+`PropertyNames`); on AutoCAD 2021's Architectural and Annotation samples every custom grip came out at AutoCAD's point and
+in its order, the block properties table's grip apart. `DxfBlockReference.ResetBlock()` puts every value back to the
+block's own as AutoCAD's ResetBlock does: the INSERT places the dynamic block again, its AcDbBlockRepresentation goes, its
+place and ATTRIBs stay. `DxfDynamicBlockReferenceProperty` gains AutoCAD's `Show` and `VisibleInCurrentVisibilityState`,
+and `StateNames`, Not flipped and Flipped of a flip; `DxfBlockTableRecord.GetVisibilityStates()` lists a block's states
+with the entities each shows.
+
+**NEW.** Dynamic blocks in the presenter, to AutoCAD 2021: a selected dynamic INSERT shows its custom grips (arrows,
+squares, circles, flip arrows and list triangles in the dynamic grip colour); a grip dragged sets its value, taken to the
+value set, a flip grip clicked flips, a visibility or lookup grip lists its values at the grip, the current ticked.
+Properties has the Custom group (lists as drop-downs, distances and angles typed) and names an anonymous copy by its
+dynamic block; RESETBLOCK and the right-click Reset Block put the values back; each change is one undo step. The Block
+Editor's Visibility State box is live for a block with states. AutoCAD 2021 read every value the presenter set on the
+library's dynamic samples as the library reads it, and AUDIT found no error.
+
 **FIXED.** The presenter's -GROUP on a DXF of R2000 written without its OBJECTS section said "Object reference not set to
 an instance of an object."; the drawing is now given the named object dictionary AutoCAD makes on opening it, and the
-group goes in, one undo taking both back.
+group goes in, one undo taking both back. New of the Table Style and Multileader Style dialogs, and TABLE making
+Standard, failed the same way on such a drawing, and are given the dictionary now too.
+
+**FIXED.** A dimension the presenter made took its style's DIMSCALE, not the drawing's current one: DIMSCALE 10 typed
+with ISO-25 current left the next dimension's words 2.5 high. It now takes the header's `$DIMSCALE`, writing it as an
+override where it is not the style's, as AutoCAD 2021 does: words 25 high, arrowheads 25 long, and DIMBASELINE and QDIM
+spacing their lines DIMDLI times 10 apart.
+
+**NEW.** The presenter's point modifier TK (TRACK, TRACKING), as AutoCAD's: "First tracking point:", then "Next point
+(Press ENTER to end tracking):" until Enter, each point taken square from the one before along the UCS's axes, a distance
+typed going along the axis nearest the cursor. CIRCLE with TK from 100,0 and a click at (130, 50) is centred at
+(100, 50).
+
+**NEW.** The presenter's variables POLARMODE, FILEDIA and CMDDIA, and AUTOSNAP's other bits, as AutoCAD's. POLARMODE
+(kept in the settings file, `"polarMode"`) 2 runs object snap tracking on every polar angle and 8 acquires points only
+with Shift held (`ObjectSnap.TracksPolarAngles`, `ObjectSnap.AcquiresWithShift`); 1 and 4 are kept, not followed.
+AUTOSNAP 1, 2, 4 and 32 switch the snap marker, its name by the cursor, the magnet and the tip of ortho, polar and
+tracking (`ObjectSnap.ShowsMarker`, `ShowsSnapTip`, `Magnet`, `ShowsTrackingTip`). FILEDIA 0 makes PNGOUT, JPGOUT,
+BMPOUT and the window's SAVEAS ask for the file on the command line (`CadCommandSession.FileDialogs`); CMDDIA 0 makes
+PLOT ask -PLOT's prompts. Global settings › Canvas and cursor has a Polar angle field (POLARANG).
+
+**CHANGED.** Object snap tracking with POLAR on runs level and upright alone unless POLARMODE 2 is set, as AutoCAD's
+default POLARMODE 0 does; before, it ran on every polar angle whenever POLAR was on.
+
+**NEW.** `DxfOsnapPointRef.LastPointReference` and `WithLastPoint`: the reference of the point a PERpendicular or TANgent
+snap was drawn from, which AutoCAD writes after a reference whose group 75 is 1. **FIXED.** Such a DIMASSOC was read
+wrong: the last point's reference was taken for the next point, so a DIMLINEAR whose first point was perpendicular lost
+its second point's tie; and a reference was always written with 75 = 0.
+
+**NEW.** The presenter ties a dimension's second origin snapped PERpendicular (to a line, an arc or a circle) or TANgent
+(to an arc or a circle), with the point it was drawn from, and draws it again from that point when the object changes, as
+AutoCAD 2021 does: DIMALIGNED from (0, 0) perpendicular to (100, -20)-(100, 60) measures 100, and 120 once that line is
+moved 20 to the right; a tangent from (300, 100) to a circle of 25 about (200, 0) goes from (185.726, 20.524) to
+(184.593, 9.688) when the circle moves 10 down.
 
 **FIXED.** INSERT with Basepoint of a block in other units than the drawing landed off: a block in centimetres in a
 millimetre drawing, its base point 30 above its origin, came 270 too high. The shift is now scaled by the units too, in

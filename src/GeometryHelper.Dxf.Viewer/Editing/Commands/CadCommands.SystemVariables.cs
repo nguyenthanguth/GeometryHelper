@@ -59,6 +59,12 @@ namespace GeometryHelper.Dxf.Viewer
             // Whether INSERT asks the values of a block's attributes (1) or gives each its default (0), kept by the session.
             registry.AddVariable(CadSystemVariable.Whole("ATTREQ", false, 0, 1, s => (int)Kept(s, "attreq", 1.0), (c, v) => c.Remember("attreq", v)));
 
+            // Whether INSERT asks those values in the Edit Attributes dialog (1) or on the command line (0), kept by the session.
+            registry.AddVariable(CadSystemVariable.Whole("ATTDIA", false, 0, 1, s => (int)Kept(s, "attdia", 0.0), (c, v) => c.Remember("attdia", v)));
+            // Whether a command asks the window for a file (FILEDIA) or shows its dialog (CMDDIA, PLOT), 1, or asks on the command line, 0.
+            registry.AddVariable(CadSystemVariable.Whole("FILEDIA", false, 0, 1, s => s.FileDialogs ? 1 : 0, (c, v) => c.Remember("filedia", v)));
+            registry.AddVariable(CadSystemVariable.Whole("CMDDIA", false, 0, 1, s => (int)Kept(s, "cmddia", 1.0), (c, v) => c.Remember("cmddia", v)));
+
             // What the drawing shows and how it sorts.
             registry.AddVariable(Flag("ORTHOMODE", s => s.Document.Database.Orthomode, (c, v) => c.Database.Orthomode = v, "$ORTHOMODE"));
             registry.AddVariable(Flag("LWDISPLAY", s => s.Document.Database.LineWeightDisplay, (c, v) => c.Database.LineWeightDisplay = v, "$LWDISPLAY"));
