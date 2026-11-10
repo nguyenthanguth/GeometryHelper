@@ -21,6 +21,7 @@ document.Layers;                                                  // 0 (white) a
 |---|---|
 | `Open(path)`, `Open(stream, name)` | the drawing read by [`DxfDatabase.Open`](xref:GeometryHelper.Dxf.DxfDatabase); a stream has no file of its own, so `HasFile` is false and `Save()` refuses where `SaveAs(path)` does not |
 | `From(database, name)` | a drawing already in memory, as a model drawing's is |
+| a drawing with no handles | one of R12 written by hand, with neither header nor tables, is read anew with a handle for each entity, as AutoCAD gives them on opening it: the next above every handle of the file, in its order, with `$HANDSEED` above them and `$HANDLING` 1, a header made where it has none. The document picks, snaps and edits by handle and an undo reads the drawing back from its saved bytes, so the handles are written, and saved with it, as AutoCAD saves it. Three walls and a column read as LINEs 1 to 3 and the CIRCLE 4, and `Database` is the copy read anew |
 | `Database` | the [`DxfDatabase`](xref:GeometryHelper.Dxf.DxfDatabase); a new object after an undo or a redo, so hold the handle of an entity, not the entity |
 | `FindEntity(handle)`, `FindSpace(handle)` | the entity of a handle, or null where there is none or it is erased; the space that holds it |
 | `Layers` | a [`CadLayerInfo`](xref:GeometryHelper.Dxf.Viewer.CadLayerInfo) for each layer: name, colour as 0xRRGGBB, on, frozen, locked, linetype, line weight in millimetres |

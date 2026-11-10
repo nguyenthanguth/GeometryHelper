@@ -493,7 +493,9 @@ intersection, insertion, the crossing of two tracking lines) wins, the nearest o
 the cursor gives wherever its point lies (perpendicular, tangent, the centre of a circle whose rim is under the cursor, the
 insertion point of a block or a text under it); then a point on an extension, a parallel or a tracking line; then nearest.
 Where none is found the cursor is put on the grid, then held level or upright from the base point (ortho) or on a polar
-angle. The result is a [`CadSnapResult`](xref:GeometryHelper.Dxf.Viewer.CadSnapResult): the point, which
+angle. The entities of a file with no handles, as one of R12 written by hand, snap as those of any other: the document
+gives each a handle on opening it (see [The document](display.md#the-document)). The result is a
+[`CadSnapResult`](xref:GeometryHelper.Dxf.Viewer.CadSnapResult): the point, which
 [`CadSnapKind`](xref:GeometryHelper.Dxf.Viewer.CadSnapKind) gave it, the handle of the object, and the dotted `Tracks` drawn
 to it.
 
