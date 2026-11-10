@@ -149,6 +149,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         // A dynamic block's custom grips, in AutoCAD's dynamic grip colour (GRIPDYNCOLOR) and edged dark, as the design draws them.
         private static readonly Brush CustomGripBrush = Solid(0x19B5F0);
         private static readonly Pen CustomGripEdge = Frozen(new Pen(Solid(0x0B1220), 0.8));
+        private static readonly Brush GripTipFill = Solid(0x262B33);
+        private static readonly Pen GripTipEdge = Frozen(new Pen(Solid(0x3A414C), 1.0));
+        private static readonly Brush GripTipInk = Solid(0xC9D1DB);
+        private static readonly Typeface GripTipFace = new Typeface(new FontFamily("JetBrains Mono, Consolas"), FontStyles.Normal, FontWeights.Normal, FontStretches.Normal);
         private static readonly Brush CellFill = Frozen(new SolidColorBrush(Color.FromArgb(46, 0x3D, 0x9B, 0xFF)));
         private static readonly Pen CellPen = Frozen(new Pen(Solid(0x3D9BFF), 3.0));
         private static readonly Brush CellBrush = Solid(0x3D9BFF);
@@ -206,6 +210,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private GeoPoint2? _restAt;
         private double _restAperture;
         private int _hotGrip = -1;
+
+        // The tip of the custom grip under the cursor: "Width = 900.00 · snaps 800 / 900 / 1000"; null for none.
+        private string _gripTip;
 
         // The hot grips, each the handle of its object and its index there, the one a grip edit starts from first; a grip
         // Shift+clicked turns hot, and a grip edit runs while _gripEditing.
@@ -1751,6 +1758,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             if (hot != _hotGrip)
             {
                 _hotGrip = hot;
+                _gripTip = hot >= 0 ? GripTip(document, _grips[hot]) : null;
                 InvalidateVisual();
             }
 
@@ -2195,6 +2203,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             if (document == null || WorkSpace == null || (IsRunning && !Session.IsGripEditing) || document.Selection.Count == 0)
             {
                 _hotGrip = -1;
+                _gripTip = null;
                 return;
             }
 
@@ -2233,6 +2242,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 _hotGrip = -1;
             }
+
+            // The tip reads the values anew, as an edit may have changed them.
+            _gripTip = _hotGrip >= 0 ? GripTip(document, _grips[_hotGrip]) : null;
         }
 
         private static string ScaleText(double scale)
@@ -2615,6 +2627,84 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 }
 
                 dc.DrawRectangle(hot ? HotGripBrush : GripBrush, null, new Rect(at.X - half, at.Y - half, GripSize, GripSize));
+            }
+
+            // The tip of a custom grip hovered, beside it, as the design shows: the values it drives and the steps they snap to.
+            if (_gripTip != null && _hotGrip >= 0 && _hotGrip < _grips.Count)
+            {
+                Point at = ToScreen(view, _grips[_hotGrip].Grip.Point, scale);
+                double dip = VisualTreeHelper.GetDpi(this).PixelsPerDip;
+                var text = new FormattedText(_gripTip, CultureInfo.InvariantCulture, FlowDirection.LeftToRight, GripTipFace, 11.0, GripTipInk, dip);
+                var box = new Rect(at.X + 14.0, at.Y + 10.0, text.Width + 16.0, text.Height + 6.0);
+
+                // Kept on the canvas: to the left of the grip where it would run off the right.
+                if (box.Right > ActualWidth && at.X - 14.0 - box.Width >= 0.0)
+                {
+                    box.X = at.X - 14.0 - box.Width;
+                }
+
+                dc.DrawRoundedRectangle(GripTipFill, GripTipEdge, box, 2.0, 2.0);
+                dc.DrawText(text, new Point(box.X + 8.0, box.Y + 3.0));
+            }
+        }
+
+        /// <summary>
+        /// The tip of a custom grip: each property it drives and its value, a distance to 2 places and an angle in degrees, and
+        /// the values of the first's list it snaps to, as "Door width = 900.00 · snaps 800 / 900 / 1000"; null for a grip of
+        /// no dynamic block, or one whose properties cannot be read.
+        /// </summary>
+        private static string GripTip(CadDocument document, GripAt grip)
+        {
+            if (grip.Grip.Custom == null || !(document?.FindEntity(grip.Handle) is DxfBlockReference insert))
+            {
+                return null;
+            }
+
+            try
+            {
+                IReadOnlyList<DxfDynamicBlockReferenceProperty> properties = insert.DynamicBlockReferencePropertyCollection;
+                var parts = new List<string>();
+                string snaps = null;
+
+                foreach (string name in grip.Grip.Custom.PropertyNames)
+                {
+                    DxfDynamicBlockReferenceProperty property = properties.FirstOrDefault(p => p.PropertyName == name);
+
+                    if (property == null)
+                    {
+                        continue;
+                    }
+
+                    parts.Add(name + " = " + TipText(property, property.Value));
+                    object[] allowed = property.GetAllowedValues();
+
+                    if (snaps == null && allowed.Length > 0 && allowed[0] is double)
+                    {
+                        snaps = " · snaps " + string.Join(" / ", allowed.Select(v => ((double)v).ToString("0.##", CultureInfo.InvariantCulture)));
+                    }
+                }
+
+                return parts.Count == 0 ? null : string.Join(", ", parts) + snaps;
+            }
+            catch (Exception exception) when (exception is NotSupportedException || exception is InvalidOperationException || exception is FormatException)
+            {
+                return null;
+            }
+        }
+
+        /// <summary>A value of a property as the tip writes it: a distance to 2 places, an angle in degrees, a flip's state by its name.</summary>
+        private static string TipText(DxfDynamicBlockReferenceProperty property, object value)
+        {
+            switch (value)
+            {
+                case double angle when property.UnitsType == DxfDynamicBlockReferencePropertyUnitsType.Angular:
+                    return (angle * 180.0 / Math.PI).ToString("0.##", CultureInfo.InvariantCulture) + "°";
+                case double distance:
+                    return distance.ToString("0.00", CultureInfo.InvariantCulture);
+                case short state when property.StateNames.Count == 2 && (state == 0 || state == 1):
+                    return property.StateNames[state];
+                default:
+                    return Convert.ToString(value, CultureInfo.InvariantCulture);
             }
         }
 

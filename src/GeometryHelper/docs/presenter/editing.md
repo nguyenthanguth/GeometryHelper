@@ -134,7 +134,7 @@ x = 40, is attached top right at (80, 0). At 1 they are mirrored with the rest.
 | layers | LAYOFF, LAYON, LAYFRZ, LAYTHW, LAYLCK, LAYULK, LAYISO, LAYUNISO, VPLAYER (?, Freeze, Thaw, Reset, Newfrz, Vpvisdflt), LAYVPI |
 | utilities | SELECTALL, UNITS, -UNITS, SCRIPT, SETVAR (?) |
 | modify | TRIM, EXTEND, BREAK, BREAKATPOINT, JOIN, LENGTHEN, PEDIT (Close, Open, Join, Width, Edit vertex, Fit, Spline, Decurve, Ltype gen, Reverse, Undo; Multiple), OFFSET, FILLET, CHAMFER, STRETCH, ARRAY, ARRAYRECT, ARRAYPOLAR, -ARRAY, ALIGN |
-| blocks | BLOCK, -BLOCK, INSERT, -INSERT, WBLOCK, -WBLOCK, ATTDEF, -ATTDEF, EATTEDIT, ATTEDIT, -ATTEDIT, ATTSYNC (?, Name, Select), BASE, BEDIT, -BEDIT (?), BSAVE, BSAVEAS, BCLOSE (Save, Discard, Cancel), BAUTHORPALETTE |
+| blocks | BLOCK, -BLOCK, INSERT, -INSERT, WBLOCK, -WBLOCK, ATTDEF, -ATTDEF, EATTEDIT, ATTEDIT, -ATTEDIT, ATTSYNC (?, Name, Select), BASE, BEDIT, -BEDIT (?), BSAVE, BSAVEAS, BCLOSE (Save, Discard, Cancel), BAUTHORPALETTE, RESETBLOCK |
 | text and clipboard | TEXTEDIT, MTEDIT, COPYCLIP, CUTCLIP, COPYBASE, PASTECLIP, PASTEBLOCK, PASTEORIG, PASTESPEC |
 | plot | PLOT, -PLOT, PREVIEW, PAGESETUP, PNGOUT, JPGOUT, BMPOUT ([Plotting](plot.md)) |
 | dimension | DIM (Angular, Baseline, Continue, Ordinate, aLign, Distribute, LAyer, Undo), DIMLINEAR, DIMALIGNED, DIMRADIUS, DIMDIAMETER, DIMANGULAR, DIMORDINATE (Xdatum, Ydatum, Mtext, Text, Angle), DIMCONTINUE, DIMBASELINE, QDIM, DIMEDIT, DIMTEDIT, DIMSPACE, DIMBREAK, DIMJOGLINE (Remove), DIMREASSOCIATE (Select object), DIMDISASSOCIATE, -DIMDISASSOCIATE |
@@ -282,6 +282,12 @@ and goes on with it, the one opened left as it was. BCLOSE (BC) asks `Save chang
 saved, so a new block never saved is not made. A door of one line given a second and saved shows both in every INSERT,
 and one undo after BCLOSE takes the session back. Commands that leave the block or work on another space (BEDIT, XREF,
 LAYOUT, PLOT, PREVIEW, PAGESETUP, MSPACE, PSPACE, MVIEW, QSAVE, SAVEAS) say `Not allowed in the Block Editor.`.
+The Visibility State box of the Block Editor tab is live for a block of visibility states
+([`CadBlockEditor.VisibilityStates`](xref:GeometryHelper.Dxf.Viewer.CadBlockEditor.VisibilityStates)): the first is shown
+when the block opens, and another chosen (`CadDocument.SetBlockEditorVisibilityState`) hides what another state lists and
+it does not, which is then neither drawn nor picked; an object drawn in the editor joins every state. Choosing a state is a
+view of the block, no undo step. RESETBLOCK puts the dynamic block references selected back to their blocks' own values,
+one undo step, and says `2 blocks reset.`, counting every block reference selected as AutoCAD 2021 counts them.
 PROPERTIES, OPTIONS, LAYER and QSAVE ask the window for its panel or dialog (`UiRequested`), and say "is shown by the window"
 where none is listening. The window adds CLOSE, NEW, SAVEAS, PROPERTIESCLOSE, GRID, SNAP, ORTHO, POLAR, OSNAP, LAYMCUR and LAYMCH, and the plugin commands. The inquiry commands print in AutoCAD's words: DIST from (0, 0) to (100, 100) says `Distance = 141.4214,  Angle in XY Plane = 45,  Angle from XY Plane = 0`; AREA by points or by an object says `Area = 5000.0000, Perimeter = 300.0000`. Each command is a
 [`CadCommand`](xref:GeometryHelper.Dxf.Viewer.CadCommand): a name and an iterator that yields each
@@ -420,6 +426,7 @@ and its place; `document.GripDrag(handle, index, point)` drags one, as one undo 
 | radius and diameter DIMENSION | the chord point (a diameter's two), the words | a chord point goes round the circle towards the point |
 | angular DIMENSION | the vertex and the two line points (an angle between two lines: the ends of both lines), the arc, the words | a point measures anew; the arc runs through the point |
 | ordinate DIMENSION | the feature, the leader's end | moves that point |
+| dynamic INSERT | the insertion point, then its custom grips | a linear arrow sets the distance along its parameter, a rotation circle the angle about its base, a point, polar or XY square its values; a flip arrow clicked flips; a visibility or lookup triangle clicked lists its values |
 | anything else | none | |
 
 The plate's line has `End 0 (0, 0)`, `End 1 (100, 0)` and `Middle 2 (50, 0)`; dragging grip 1 to (120, 0) leaves its end at
@@ -429,6 +436,19 @@ to (150, 10) measures 150 with its line still 30 below; dragged by an end of its
 and words placed by DIMTEDIT go down with it. Its words dragged to (60, -50) stand there, the line moved to run under them
 where DIMTMOVE is 0 and a leader drawn to them where it is 1. A drag that would measure nothing, an origin onto the other,
 is refused.
+
+A dynamic block's custom grips are those AutoCAD 2021 shows, where the INSERT's values put them
+([`DxfBlockReference.GetDynamicGrips`](xref:GeometryHelper.Dxf.DxfBlockReference.GetDynamicGrips)), each a `CadGrip` of a
+custom kind (`CustomLinear`, `CustomPoint`, `CustomRotation`, `CustomFlip`, `CustomList`) carrying the core grip in
+`Custom`; the window draws them in the dynamic grip colour, of AutoCAD's shapes. A grip dragged, by `GripDrag` or by
+the STRETCH of a grip edit, asks a value worked out in the block's own coordinates, which the library takes to the
+parameter's value set and works the block out with, into an anonymous block still named by the dynamic block: the panel of
+a Width of 100, 150 or 200 at (1 000, 500) dragged by its arrow to (1 180, 530) is 200 wide, one undo step `GRIP`. A flip
+grip clicked flips the block ([`CadDynamicBlocks.Click`](xref:GeometryHelper.Dxf.Viewer.CadDynamicBlocks)); a visibility or
+lookup grip lists its values, the one shown ticked (`ValuesOf`), and one chosen is set (`Choose`). The right-click menu of a
+selection holding a dynamic block offers Reset Block, which runs RESETBLOCK. AutoCAD 2021 read every value the presenter set
+so on the library's dynamic samples as the library reads it (96 values, 61 grip edits and 6 resets), and AUDIT found no
+error.
 
 ## Model space through a viewport
 
@@ -507,7 +527,7 @@ The other kinds have AutoCAD 2021's rows too, each set the same way:
 | Hatch | Type, Pattern name, Angle, Scale, Spacing, Double, Origin X and Y, Elevation, Island detection, Background color | Associative, Area |
 | Dimension | Dim style; the Lines & Arrows, Text, Fit and Primary Units rows of the Dimension Style dialog's variables; Text override | Measurement |
 | MTEXT | Contents, Style, Justify, Direction, Text height, Rotation, Line space factor, distance and style, Defined width, Columns, Position | |
-| Block reference | Position, Scale X, Y and Z, Rotation, each attribute by its tag | Name, the Dynamic Block rows |
+| Block reference | Position, Scale X, Y and Z, Rotation, each attribute by its tag, the Custom rows of a dynamic block | Name (a dynamic block's own for its anonymous copy) |
 | Viewport | Center, Height, Width, On, Display locked, Standard scale, Custom scale | Clipped, Visual style |
 | Multileader | Multileader style, Leader type, Arrowhead, Horizontal landing, Landing distance, Contents, Text style, Text height | |
 
@@ -520,6 +540,15 @@ again: Precision 0.000 with Suppress trailing zeros No and Dim suffix " TYP" tur
 scales an ellipse of radii 20 and 10 whole, to 40 and 20; a Minor radius above the major is refused. A Height or Width of a
 viewport keeps its scale, the view growing with it. A row of a list ([`CadPropertyRow.Choices`](xref:GeometryHelper.Dxf.Viewer.CadPropertyRow.Choices))
 is a drop-down in the window, and the Contents row of one MTEXT offers its MTEXT editor.
+
+A dynamic block reference has the Custom group between Geometry and Misc
+([`CadProperties.CustomGroup`](xref:GeometryHelper.Dxf.Viewer.CadProperties.CustomGroup)), as AutoCAD's palette: each
+property it shows and the visibility state shown holds, by its name. A visibility state, a lookup's row and a flip's state
+(by the names its parameter gives them, Not flipped and Flipped) are drop-downs; a distance is typed to 4 places, an angle in
+degrees. Its rows are set by the property's name through
+[`CadDynamicBlocks.SetProperty`](xref:GeometryHelper.Dxf.Viewer.CadDynamicBlocks),
+one undo step `Properties`, a value taken to the value set: the panel's Width typed 170 is 150. Misc's Name reads
+the dynamic block's name, not that of the anonymous block the INSERT places.
 
 ## MATCHPROP
 
