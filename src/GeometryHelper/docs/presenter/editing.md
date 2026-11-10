@@ -389,8 +389,11 @@ With SELECTIONCYCLING 2, AutoCAD's default, a
 click where two lines cross shows the list of both near the cursor, the one drawn on top first, `Line · 0` and
 `Line · WALLS`, and the row chosen is taken as a click on that line alone; with 1 or 2, Shift+Space arms cycling, and each
 click at the crossing then takes the other line in place of the one before. A plain click there takes the line on top, as
-AutoCAD's does while SORTENTS holds its bit 1 (its default 127 does): of the objects within a tenth of the pickbox of the
-nearest, the one last in the draw order wins, so a line sent to the back with DRAWORDER is no longer the one picked. Ctrl+W
+AutoCAD's does while SORTENTS holds its bit 1 (its default 127 does): of all the objects within the pickbox, the one last
+in the draw order wins, however much nearer the others lie, so a line sent to the back with DRAWORDER is no longer the one
+picked. Under SORTENTS without that bit the one drawn first wins. AutoCAD 2021's `(ssget pt)` on two level lines, one
+through the point and one drawn later 0.9 of the pickbox above it, picks the later one; 1.1 of the pickbox above, outside
+the box, the other; under SORTENTS 0, the one drawn first. Ctrl+W
 switches cycling between 0 and 2, as in AutoCAD.
 
 XATTACH and -XREF Attach or Overlay attach a DXF as an external reference: a block flagged 4 (12 overlaid) naming the
