@@ -146,13 +146,13 @@ the ones wanted.
 - [x] Tests: the Wpf suite's 25 red tests came from its classes loading XAML in parallel (a race inside WPF), so the
       suite runs one test at a time; its picture goes to its own folder, and a view model made in a test keeps its
       settings in a file of the tests (S)
-- [ ] Tests: other fixed %TEMP% paths two worktrees can collide on (render and plot outputs of Dxf.Viewer.UnitTest,
+- [ ] Tests (running): other fixed %TEMP% paths two worktrees can collide on (render and plot outputs of Dxf.Viewer.UnitTest,
       Drawing.UnitTest and Drawing.Wpf.UnitTest) move to a folder per run (S)
 - [x] Layer States Manager, View Manager with New View, Drawing Units with Direction Control (designed in v110) (M)
 - [ ] Previews follow-ups (running): TRIM in Standard mode and Shift swapping TRIM and EXTEND; -ARRAY distances without a base point
       and polar -ARRAY; the TEXT box by justification; BREAK and the -ARRAY unit cell checked against what AutoCAD shows;
       a look by eye in the running app (S)
-- [ ] Managers follow-ups 2: an Edit Layer State dialog and a description in New; viewport overrides on restore; layout
+- [ ] Managers follow-ups 2 (running, non-UI parts): an Edit Layer State dialog and a description in New; viewport overrides on restore; layout
       views listed per layout; the xref rule of GetLayerStateNames for states AutoCAD's Import writes by name; ANGBASE and
       ANGDIR on typed polar angles; disabled GhComboBox drawn greyed (M)
 - [ ] Command line and Recent: AutoComplete inside a running command; Search Content; an EXPORT command (S)
