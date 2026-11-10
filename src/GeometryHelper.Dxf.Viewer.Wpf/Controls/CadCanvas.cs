@@ -47,6 +47,25 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public string Handle { get; }
     }
 
+    /// <summary>The arguments of a custom grip clicked: the handle of its block reference and the grip's index.</summary>
+    public sealed class CadGripEventArgs : EventArgs
+    {
+        /// <summary>Makes the arguments.</summary>
+        /// <param name="handle">The handle of the block reference.</param>
+        /// <param name="gripIndex">The index of the grip, as <see cref="CadGrips.Of"/> gives it.</param>
+        public CadGripEventArgs(string handle, int gripIndex)
+        {
+            Handle = handle;
+            GripIndex = gripIndex;
+        }
+
+        /// <summary>Gets the handle of the block reference.</summary>
+        public string Handle { get; }
+
+        /// <summary>Gets the index of the grip, as <see cref="CadGrips.Of"/> gives it.</summary>
+        public int GripIndex { get; }
+    }
+
     /// <summary>
     /// The canvas of the presenter: one space of a <see cref="CadDocument"/> drawn through <see cref="SkiaCanvasRenderer"/> into
     /// a bitmap of the device's pixels, and handled with the mouse as AutoCAD is. The wheel zooms about the cursor, 1.2 times
@@ -126,6 +145,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private static readonly Pen CrossingPen = Frozen(new Pen(Solid(0x3FB950), 1.0) { DashStyle = new DashStyle(new[] { 4.0, 3.0 }, 0.0) });
         private static readonly Brush DefaultGripBrush = Solid(0x3D9BFF);
         private static readonly Brush HotGripBrush = Solid(0xF85149);
+
+        // A dynamic block's custom grips, in AutoCAD's dynamic grip colour (GRIPDYNCOLOR) and edged dark, as the design draws them.
+        private static readonly Brush CustomGripBrush = Solid(0x19B5F0);
+        private static readonly Pen CustomGripEdge = Frozen(new Pen(Solid(0x0B1220), 0.8));
         private static readonly Brush CellFill = Frozen(new SolidColorBrush(Color.FromArgb(46, 0x3D, 0x9B, 0xFF)));
         private static readonly Pen CellPen = Frozen(new Pen(Solid(0x3D9BFF), 3.0));
         private static readonly Brush CellBrush = Solid(0x3D9BFF);
@@ -238,6 +261,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>Raised by Shift+right-click while a point is asked: the window shows the object snap menu at the cursor.</summary>
         public event EventHandler SnapMenuRequested;
+
+        /// <summary>
+        /// Raised by a click on a dynamic block's flip, visibility or lookup grip, as AutoCAD's: the window flips the block, or
+        /// shows the grip's list at the cursor. A drag grip starts the grip edit instead.
+        /// </summary>
+        public event EventHandler<CadGripEventArgs> CustomGripClicked;
+
+        /// <summary>Raised by a right-click while no command runs: the window shows the shortcut menu of the selection at the cursor.</summary>
+        public event EventHandler ShortcutMenuRequested;
 
         /// <summary>Raised by a double click on an object with no command running: the window edits a text in place, as AutoCAD's double click runs TEXTEDIT.</summary>
         public event EventHandler<CadObjectEventArgs> ObjectDoubleClicked;
@@ -971,8 +1003,16 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     // grips made hot before going with it, as AutoCAD's. Let go away from where it was pressed, the grip is
                     // dragged there.
                     var grip = new KeyValuePair<string, int>(_grips[_hotGrip].Handle, _grips[_hotGrip].Grip.Index);
+                    CadGripKind kind = _grips[_hotGrip].Grip.Kind;
 
-                    if ((Keyboard.Modifiers & ModifierKeys.Shift) != 0)
+                    if ((Keyboard.Modifiers & ModifierKeys.Shift) == 0 && (kind == CadGripKind.CustomFlip || kind == CadGripKind.CustomList))
+                    {
+                        // A dynamic block's flip grip flips it and a visibility or lookup grip lists its values, as AutoCAD's.
+                        _hot.Clear();
+                        _swallowUp = true;
+                        CustomGripClicked?.Invoke(this, new CadGripEventArgs(grip.Key, grip.Value));
+                    }
+                    else if ((Keyboard.Modifiers & ModifierKeys.Shift) != 0)
                     {
                         if (!_hot.Remove(grip))
                         {
@@ -1139,6 +1179,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 // A right click is Enter while a command runs, as AutoCAD has it by default.
                 Session.Enter();
                 SelectionChanged?.Invoke(this, EventArgs.Empty);
+                e.Handled = true;
+            }
+            else if (e.ChangedButton == MouseButton.Right && ShortcutMenuRequested != null)
+            {
+                // With no command running, the shortcut menu of the selection, as AutoCAD's.
+                ShortcutMenuRequested(this, EventArgs.Empty);
                 e.Handled = true;
             }
         }
@@ -2561,8 +2607,63 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 Point at = ToScreen(view, _grips[i].Grip.Point, scale);
                 bool hot = i == _hotGrip || _hot.Contains(new KeyValuePair<string, int>(_grips[i].Handle, _grips[i].Grip.Index));
+
+                if (_grips[i].Grip.Custom != null)
+                {
+                    DrawCustomGrip(dc, view, scale, _grips[i].Grip, at, hot ? HotGripBrush : CustomGripBrush);
+                    continue;
+                }
+
                 dc.DrawRectangle(hot ? HotGripBrush : GripBrush, null, new Rect(at.X - half, at.Y - half, GripSize, GripSize));
             }
+        }
+
+        /// <summary>
+        /// A custom grip of a dynamic block, of AutoCAD's shapes: a square for a point, a polar or an XY parameter, an arrow
+        /// along a linear parameter, a circle for a rotation, a bent arrow across a flip's line, a triangle pointing down for a
+        /// visibility or a lookup parameter; each a little larger than a plain grip, as the design draws them on a grid of 12.
+        /// </summary>
+        private void DrawCustomGrip(DrawingContext dc, CadView view, double scale, CadGrip grip, Point at, Brush fill)
+        {
+            double k = GripSize / 12.0 * 1.25;
+
+            // The way the arrow points on the screen: the grip's direction carried by the view, the screen's y down.
+            Point ahead = ToScreen(view, new GeoPoint2(grip.Point.X + grip.Direction.X, grip.Point.Y + grip.Direction.Y), scale);
+            double angle = Math.Atan2(ahead.Y - at.Y, ahead.X - at.X);
+
+            switch (grip.Kind)
+            {
+                case CadGripKind.CustomLinear:
+                    dc.DrawGeometry(fill, CustomGripEdge, Polygon(Shape(at, angle, k, -6, -7, 8, 0, -6, 7)));
+                    break;
+                case CadGripKind.CustomFlip:
+                    dc.DrawGeometry(fill, CustomGripEdge, Polygon(Shape(at, angle, k, -9, -3, 0, -3, 0, -8, 9, 0, 0, 8, 0, 3, -9, 3)));
+                    break;
+                case CadGripKind.CustomList:
+                    dc.DrawGeometry(fill, CustomGripEdge, Polygon(Shape(at, 0.0, k, -8, -5, 8, -5, 0, 6)));
+                    break;
+                case CadGripKind.CustomRotation:
+                    dc.DrawEllipse(fill, CustomGripEdge, at, 6.0 * k, 6.0 * k);
+                    break;
+                default:
+                    dc.DrawRectangle(fill, CustomGripEdge, new Rect(at.X - 6.0 * k, at.Y - 6.0 * k, 12.0 * k, 12.0 * k));
+                    break;
+            }
+        }
+
+        /// <summary>The corners of a shape given as x, y pairs on the design's grid, scaled, turned by an angle on the screen and put at a point.</summary>
+        private static Point[] Shape(Point at, double angle, double k, params double[] xy)
+        {
+            double cos = Math.Cos(angle), sin = Math.Sin(angle);
+            var points = new Point[xy.Length / 2];
+
+            for (int i = 0; i < points.Length; i++)
+            {
+                double x = xy[2 * i] * k, y = xy[2 * i + 1] * k;
+                points[i] = new Point(at.X + x * cos - y * sin, at.Y + x * sin + y * cos);
+            }
+
+            return points;
         }
 
         private void DrawTags(DrawingContext dc, CadView view, double scale)

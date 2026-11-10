@@ -213,14 +213,40 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Gets whether the block has changes not saved.</summary>
         public bool HasUnsavedChanges => _editor.HasUnsavedChanges;
 
-        /// <summary>
-        /// Gets whether the visibility state box is live: never in this version, as the drawing's library keeps a block's
-        /// visibility states to itself; the box is greyed, as for a block with none.
-        /// </summary>
-        public bool HasVisibilityStates => false;
+        /// <summary>Gets whether the visibility state box is live: where the block open has visibility states; greyed where it has none.</summary>
+        public bool HasVisibilityStates => _editor.VisibilityStates.Count > 0;
 
-        /// <summary>Gets the text of the visibility state box: "(none)" while greyed.</summary>
-        public string VisibilityState => "(none)";
+        /// <summary>Gets the states the visibility state box lists, in the block's order; "(none)" alone for a block of none.</summary>
+        public IReadOnlyList<string> VisibilityStates => HasVisibilityStates ? _editor.VisibilityStates : new[] { NoState };
+
+        /// <summary>
+        /// Gets or sets the state the box shows, and the editor with it: the entities another state lists and it does not are
+        /// hidden, as AutoCAD's Block Editor hides them; "(none)" for a block of none. A state set is a view of the block, not
+        /// an edit: no undo step, nothing to save.
+        /// </summary>
+        public string VisibilityState
+        {
+            get => _editor.VisibilityState ?? NoState;
+            set
+            {
+                if (value == null || value == NoState || value == _editor.VisibilityState)
+                {
+                    return;
+                }
+
+                CadEditResult result = _model.Document?.SetBlockEditorVisibilityState(value) ?? CadEditResult.Refuse("No drawing is shown.");
+
+                if (!result.Succeeded)
+                {
+                    _model.Say(result.Message);
+                }
+
+                Raise(nameof(VisibilityState));
+            }
+        }
+
+        /// <summary>The text of the visibility state box of a block of no states.</summary>
+        private const string NoState = "(none)";
 
         /// <summary>Gets the command of Edit Block: the block open closed, then the Edit Block Definition dialog.</summary>
         public ICommand EditBlockCommand { get; }
@@ -245,6 +271,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             Raise(nameof(Name));
             Raise(nameof(HasUnsavedChanges));
+            Raise(nameof(HasVisibilityStates));
+            Raise(nameof(VisibilityStates));
+            Raise(nameof(VisibilityState));
         }
     }
 
