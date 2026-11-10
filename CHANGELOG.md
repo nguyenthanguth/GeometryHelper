@@ -107,6 +107,11 @@ and the angle between items are asked, each measured from the centre to the curs
 them. Four items round the origin with the cursor at (-10, 10) preview three copies 45 degrees apart, the 135 degrees
 the pick there fills.
 
+**NEW.** PASTECLIP and PASTEBLOCK show the Clipboard's objects at the cursor while they ask the insertion point, held
+by their base point as the paste puts them, and drawn by the layers and blocks they bring before the drawing has them;
+text of another app is shown as the MTEXT it becomes. PASTEORIG asks no point and previews nothing. Nothing comes into
+the drawing until the point is picked.
+
 **FIXED.** ROTATE's ghost in a UCS turned from the world's now turns by the angle the objects are turned: in a UCS turned
 30 degrees it turned 30 degrees more than the result.
 

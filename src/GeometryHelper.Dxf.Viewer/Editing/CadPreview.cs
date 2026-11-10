@@ -20,6 +20,7 @@ namespace GeometryHelper.Dxf.Viewer
         private readonly CadCommandSession _session;
         private readonly Func<CadInput, IEnumerable<DxfEntity>> _make;
         private readonly Func<CadInput, IReadOnlyList<Affine2>> _moves;
+        private Func<CadInput, IReadOnlyList<DisplayItem2>> _drawn;
         private bool _fades;
         private bool _swaps;
         private DisplayBuilder _builder;
@@ -70,6 +71,18 @@ namespace GeometryHelper.Dxf.Viewer
         /// <returns>The items.</returns>
         public IReadOnlyList<DisplayItem2> Items(GeoPoint2 cursor)
         {
+            if (_drawn != null)
+            {
+                try
+                {
+                    return _drawn(Answer(cursor)) ?? NoItems;
+                }
+                catch (Exception)
+                {
+                    return NoItems;
+                }
+            }
+
             if (_make == null)
             {
                 return NoItems;
@@ -187,6 +200,17 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         internal static CadPreview Cutting(CadCommandContext c, Func<CadInput, IEnumerable<DxfEntity>> make, bool extend)
             => new CadPreview(c.Session, make, null, null, false) { _fades = !extend, _swaps = true };
+
+        /// <summary>
+        /// A preview of the objects of another drawing, drawn by its own layers, styles and blocks under the move the answer at
+        /// the cursor gives, as PASTECLIP shows the Clipboard's objects before the drawing has them.
+        /// </summary>
+        internal static CadPreview Bringing(CadCommandContext c, DxfDatabase from, Func<CadInput, Affine2> move)
+        {
+            var builder = new DisplayBuilder(from, c.Document);
+            var entities = new List<DxfEntity>(from.ModelSpace);
+            return new CadPreview(c.Session, null, null, null, false) { _drawn = input => builder.BuildLoose(entities, move(input)) };
+        }
 
         /// <summary>A preview of one entity made from the answer a point picked at the cursor gives; null from the maker previews nothing.</summary>
         internal static CadPreview MakingOne(CadCommandContext c, Func<CadInput, DxfEntity> make, bool band = false)
