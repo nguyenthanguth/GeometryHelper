@@ -241,6 +241,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             Raise(nameof(Session));
             Raise(nameof(Space));
             Raise(nameof(View));
+            RaiseDrafting();
             Raise(nameof(CurrentLayer));
             RaiseStyles();
             Raise(nameof(Prompt));
