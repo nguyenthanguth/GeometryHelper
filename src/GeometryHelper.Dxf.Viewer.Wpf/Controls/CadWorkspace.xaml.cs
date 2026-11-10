@@ -1445,6 +1445,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             InPlaceTextBox.Visibility = Visibility.Collapsed;
 
+            MTextEditorBox.Document = _model.Document;
+
             if (MTextEditorBox.Model != _model.TextEditor)
             {
                 MTextEditorBox.Model = _model.TextEditor;

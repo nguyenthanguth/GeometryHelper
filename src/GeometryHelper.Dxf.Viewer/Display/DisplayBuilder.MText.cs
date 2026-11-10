@@ -28,11 +28,42 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>
+        /// The layout of the words of an MTEXT being edited, as <see cref="LayoutOf"/> lays out the MTEXT's own, with where
+        /// each place of the editor stands (<see cref="CadMTextLayout.OfEditor"/>).
+        /// </summary>
+        internal CadMTextLayout EditorLayoutOf(DxfMText text, CadMTextContent content)
+        {
+            CadFontFace styleFace = FaceOf(text.TextStyleName);
+            return CadMTextLayout.OfEditor(
+                text,
+                content,
+                look => look.Font == null ? styleFace : FaceOfFont(look.Font, look.IsShx),
+                WidthFactorOf(text.TextStyleName),
+                ObliqueOf(text.TextStyleName));
+        }
+
+        /// <summary>
+        /// The parts of a layout of an MTEXT being edited, as the canvas draws an MTEXT (<see cref="MTextParts"/>), in the
+        /// MTEXT's own frame: its location at nought, x along its direction and y up. Letters of no colour of their own are
+        /// <paramref name="rgb"/>, those coded ByLayer <paramref name="layerRgb"/>.
+        /// </summary>
+        internal List<DisplayItem2> EditorParts(DxfMText text, CadMTextLayout layout, int rgb, int layerRgb)
+        {
+            GeoPoint3 at = text.Location;
+            GeoVector3 direction = text.Direction;
+            double turn = Math.Atan2(direction.Y, direction.X);
+            double cos = Math.Cos(turn);
+            double sin = Math.Sin(turn);
+            var own = new Affine2(cos, -sin, sin, cos, -((cos * at.X) + (sin * at.Y)), (sin * at.X) - (cos * at.Y));
+            return MTextParts(text, layout, new Frame(own), new DisplayStyle(rgb, 0.25, null), null, null, layerRgb);
+        }
+
+        /// <summary>
         /// The parts an MTEXT is drawn as (<see cref="DisplayText2.Parts"/>): its mask first, its frame, then each run of each
         /// line a text of its own where the layout puts it, in its font (bold and italic faces of a TrueType font), height,
         /// width factor, slant and colour, and the lines under, over and through the runs and of the stacks.
         /// </summary>
-        private List<DisplayItem2> MTextParts(DxfMText text, CadMTextLayout layout, Frame frame, DisplayStyle style, string handle, string layerName)
+        private List<DisplayItem2> MTextParts(DxfMText text, CadMTextLayout layout, Frame frame, DisplayStyle style, string handle, string layerName, int? layerRgb = null)
         {
             var parts = new List<DisplayItem2>(layout.Pieces.Count + layout.Strokes.Count + 2);
             Affine2 m = frame.Matrix;
@@ -83,7 +114,7 @@ namespace GeometryHelper.Dxf.Viewer
                 if (!ReferenceEquals(piece.Look, last))
                 {
                     last = piece.Look;
-                    int rgb = RgbOf(last, style, layerName);
+                    int rgb = layerRgb.HasValue && last.ColorIndex >= 256 && !last.TrueColor.HasValue ? layerRgb.Value : RgbOf(last, style, layerName);
                     lastStyle = rgb == style.Rgb ? plain : new DisplayStyle(rgb, style.LineWeight, null);
                 }
 
@@ -121,7 +152,7 @@ namespace GeometryHelper.Dxf.Viewer
                 if (!ReferenceEquals(stroke.Look, last))
                 {
                     last = stroke.Look;
-                    int rgb = RgbOf(last, style, layerName);
+                    int rgb = layerRgb.HasValue && last.ColorIndex >= 256 && !last.TrueColor.HasValue ? layerRgb.Value : RgbOf(last, style, layerName);
                     lastStyle = rgb == style.Rgb ? plain : new DisplayStyle(rgb, style.LineWeight, null);
                 }
 
