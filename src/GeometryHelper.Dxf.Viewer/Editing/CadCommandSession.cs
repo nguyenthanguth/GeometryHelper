@@ -187,7 +187,9 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>Starts a command by its name or alias, ending any command running first as Esc would.</summary>
         /// <param name="typed">The name or alias: MOVE, M.</param>
-        /// <returns>False, with "Unknown command" in the history, where the registry knows no such command.</returns>
+        /// <returns>False, with "Unknown command" in the history, where the registry knows no such command; false, with "Not
+        /// allowed in the Block Editor.", for a command that leaves the block while the Block Editor is open (BEDIT, XREF,
+        /// LAYOUT, PLOT and the others).</returns>
         public bool Start(string typed)
         {
             if (IsRunning)
@@ -215,6 +217,14 @@ namespace GeometryHelper.Dxf.Viewer
             if (!string.Equals(command.Name, name, StringComparison.OrdinalIgnoreCase))
             {
                 Write(command.Name);
+            }
+
+            // The Block Editor refuses what leaves the block or works on another space, as AutoCAD's.
+            if (Document.BlockEditor != null && CadCommands.LeavesBlockEditor(command.Name))
+            {
+                Write(CadBlockEditor.NotAllowed);
+                Changed();
+                return false;
             }
 
             var preSelected = new List<string>();

@@ -131,6 +131,12 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Gets the layout of a paper space, null for model space.</summary>
         public DxfLayout Layout { get; private set; }
 
+        /// <summary>
+        /// Gets whether the Block Editor shows this space now (BEDIT): the block opened, which is drawn as model space is but
+        /// on the Block Editor's own background, or model space itself where &lt;Current Drawing&gt; was opened.
+        /// </summary>
+        public bool IsBlockEditor { get; internal set; }
+
         /// <summary>Points the space at its block and layout in a drawing read again, as undo reads it.</summary>
         internal void Rebind(DxfBlockTableRecord block, DxfLayout layout)
         {
@@ -329,11 +335,12 @@ namespace GeometryHelper.Dxf.Viewer
                 {
                     // Only what the edits since the list was made changed is drawn again.
                     _stale.Remove(space);
-                    list = _builder.Patch(space.Block, space.IsModel, stale.List, stale.Handles, stale.List.LayerMask(stale.Layers));
+                    list = _builder.Patch(space.Block, ReferenceEquals(space, ModelSpace), stale.List, stale.Handles, stale.List.LayerMask(stale.Layers));
                 }
                 else
                 {
-                    list = _builder.Build(space.Block, space.IsModel);
+                    // Only model space's own list is the one viewports draw; the Block Editor's block is drawn as model space is, but is not it.
+                    list = _builder.Build(space.Block, ReferenceEquals(space, ModelSpace));
                 }
 
                 _displays[space] = list;
@@ -414,7 +421,7 @@ namespace GeometryHelper.Dxf.Viewer
             _byHandle = new Dictionary<string, DxfEntity>(StringComparer.OrdinalIgnoreCase);
             _spaceByHandle = new Dictionary<string, CadSpace>(StringComparer.OrdinalIgnoreCase);
 
-            foreach (CadSpace space in _spaces)
+            foreach (CadSpace space in AllSpaces)
             {
                 foreach (DxfEntity entity in space.Block)
                 {
