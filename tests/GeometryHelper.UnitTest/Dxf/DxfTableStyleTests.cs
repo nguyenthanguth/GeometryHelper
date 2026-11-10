@@ -277,5 +277,86 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Equal(1980, table.BlockTableRecord.OfType<DxfMText>().Count());
             Assert.True(watch.ElapsedMilliseconds < 1000, "Drawn in " + watch.ElapsedMilliseconds + " ms.");
         }
+
+        /// <summary>
+        /// A table of four rows of two columns 30 wide and 15 high, "R0" to "R3" in its second column, in a style whose title
+        /// is 7 high at the top left, header 5 at the middle right and data 3 at the bottom centre, leaving out what is given.
+        /// </summary>
+        private static DxfTable OfKinds(DxfDatabase db, bool titleOut, bool headerOut)
+        {
+            var style = new DxfTableStyle();
+            db.TableStyleDictionary.SetAt("GH_KINDS", style);
+            style.SetTextHeight(7.0, DxfRowType.TitleRow);
+            style.SetTextHeight(5.0, DxfRowType.HeaderRow);
+            style.SetTextHeight(3.0, DxfRowType.DataRow);
+            style.SetAlignment(DxfCellAlignment.TopLeft, DxfRowType.TitleRow);
+            style.SetAlignment(DxfCellAlignment.MiddleRight, DxfRowType.HeaderRow);
+            style.SetAlignment(DxfCellAlignment.BottomCenter, DxfRowType.DataRow);
+            var table = new DxfTable(new GeoPoint3(0.0, 0.0, 0.0), 4, 2, 15.0, 30.0);
+            db.ModelSpace.AppendEntity(table);
+            table.TableStyle = style;
+
+            for (int row = 0; row < 4; row++)
+            {
+                table.SetTextString(row, 1, "R" + row);
+            }
+
+            style.IsTitleSuppressed = titleOut;
+            style.IsHeaderSuppressed = headerOut;
+            return table;
+        }
+
+        [Theory]
+        [InlineData(true, false, DxfRowType.HeaderRow, DxfRowType.DataRow)]
+        [InlineData(false, true, DxfRowType.TitleRow, DxfRowType.DataRow)]
+        [InlineData(true, true, DxfRowType.DataRow, DxfRowType.DataRow)]
+        [InlineData(false, false, DxfRowType.TitleRow, DxfRowType.HeaderRow)]
+        public void ATableOfNoFlagsOfItsOwn_LeavesOutTheTitleOrHeaderItsStyleLeavesOut_AsAutoCadReadsIt(bool titleOut, bool headerOut, DxfRowType first, DxfRowType second)
+        {
+            DxfDatabase db = Metric();
+            DxfTable table = OfKinds(db, titleOut, headerOut);
+
+            Assert.Equal(titleOut, table.IsTitleSuppressed);
+            Assert.Equal(headerOut, table.IsHeaderSuppressed);
+            Assert.Equal(first, table.RowType(0));
+            Assert.Equal(second, table.RowType(1));
+            Assert.Equal(DxfRowType.DataRow, table.RowType(3));
+
+            // Drawn as AutoCAD 2021 drew it after RecomputeTableBlock: "R1" of the data 3 high at the bottom centre of its row,
+            // 1.5 above its bottom; of the header 5 high at its middle right.
+            table.RecomputeTableBlock();
+            DxfMText r1 = table.BlockTableRecord.OfType<DxfMText>().Single(m => m.Contents == "R1");
+
+            if (second == DxfRowType.HeaderRow)
+            {
+                Assert.Equal(5.0, r1.TextHeight);
+                Assert.Equal(DxfAttachmentPoint.MiddleRight, r1.Attachment);
+                Assert.Equal(58.5, r1.Location.X, 9);
+                Assert.Equal(-22.5, r1.Location.Y, 9);
+            }
+            else
+            {
+                Assert.Equal(3.0, r1.TextHeight);
+                Assert.Equal(DxfAttachmentPoint.BottomCenter, r1.Attachment);
+                Assert.Equal(45.0, r1.Location.X, 9);
+                Assert.Equal(-28.5, r1.Location.Y, 9);
+            }
+        }
+
+        [Fact]
+        public void ATablesOwnZero_DoesNotShowATitleItsStyleLeavesOut_AsAutoCadReadsIt()
+        {
+            // AutoCAD 2021 read a table of its own 93 1 and 280 0, in a style that leaves the title out, without its title.
+            DxfDatabase db = Metric();
+            OfKinds(db, true, false);
+            string text = db.ToText().Replace("\r\n", "\n");
+            string head = " 93\n0\n 94\n0\n 95\n0\n 96\n0\n141\n";
+            Assert.Contains(head, text, StringComparison.Ordinal);
+            text = text.Replace(head, " 93\n1\n 94\n0\n 95\n0\n 96\n0\n280\n0\n141\n");
+
+            DxfTable read = Table(DxfDatabase.Parse(text));
+            Assert.True(read.IsTitleSuppressed);
+            Assert.Equal(DxfRowType.HeaderRow, read.RowType(0));
+        }
     }
 }

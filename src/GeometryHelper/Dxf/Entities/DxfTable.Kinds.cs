@@ -360,8 +360,8 @@ namespace GeometryHelper.Dxf
         /// </summary>
         private int[] KeptKinds(Layout layout, bool shownOf = false)
         {
-            bool titleOn = shownOf ? TableWhole(layout, 280, 0) == 0 : !IsTitleSuppressed;
-            bool headerOn = shownOf ? TableWhole(layout, 281, 0) == 0 : !IsHeaderSuppressed;
+            bool titleOn = shownOf ? !LeftOut(layout, 280) : !IsTitleSuppressed;
+            bool headerOn = shownOf ? !LeftOut(layout, 281) : !IsHeaderSuppressed;
             int[] kinds = PlaceKinds(layout.Rows, titleOn, headerOn);
             DxfItem content = IsResident ? ContentItem() : null;
             ContentKinds read = content == null ? null : ContentKindsOf(content);

@@ -6,6 +6,15 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** `DxfTable.IsTitleSuppressed` and `IsHeaderSuppressed` read only the table's own 280 and 281, so a table of no
+flag of its own in a table style that leaves the title or the header out was drawn and read with a title and a header it
+does not have. They now read the title or header left out where the table's own flag or its style's says so, as AutoCAD
+2021 reads a table, and `RowType`, `RecomputeTableBlock`, the row kinds rows put in and taken out keep and the presenter
+all follow. A table of four rows in a style that leaves the title out has its first row the header and the rest data,
+"R1" in its second row drawn 3 high at the bottom centre at (45, -28.5) as the data, not 5 high at the middle right as a
+header; AutoCAD 2021 gave the same rows `_HEADER` and `_DATA` and drew "R1" there. A table's own `280 0` does not show a
+title its style leaves out: AutoCAD read one of its own `93 1`, `280 0` in that style without its title.
+
 **NEW.** Tab in the last cell of a table in the presenter adds a row, as AutoCAD 2021's table editor does. The new row goes
 under the last, empty, with the cell styles, alignments and height of the last row, and its first cell opens for typing;
 the row is an undo step of its own after the cell's words. AutoCAD's `InsertRowsAndInherit` gave a row added under a row

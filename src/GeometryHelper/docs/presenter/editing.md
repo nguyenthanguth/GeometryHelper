@@ -283,6 +283,9 @@ Tab goes to the next cell, Shift+Tab to the one before, Enter to the one below a
 row under it, as AutoCAD's table editor does, of the cell styles and the height of the last row and empty, and goes to its
 first cell; the row is an undo step of its own. Five columns 63.5 wide and
 four rows of data of AutoCAD's Standard make a table 317.5 wide and 56 high, its title 11 high and its other rows 9.
+A table is drawn with its first row in the Title cell style of its table style, its second in the Header and the rest in
+the Data, each look a cell does not give of its own; where the table or its style leaves the title out, the first row is
+the header, and where the header is left out too, every row is data, as AutoCAD 2021 reads such a table.
 -TABLE asks the columns, the rows of data and the point (Style, Width, Height) on the command line, and TABLEDIT a cell
 to type in; a double click or F2 on a cell runs it. TABLESTYLE (TS) shows the Table Style dialog
 ([`CadTableStyleEditor`](xref:GeometryHelper.Dxf.Viewer.CadTableStyleEditor)); a style changed draws its tables anew. A
