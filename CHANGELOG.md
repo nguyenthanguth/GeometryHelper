@@ -6,6 +6,17 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**CHANGED.** The presenter's window opens a drawing in the background. The file is read and its display list and pick
+index made on a worker thread, and the drawing is shown once they are made; meanwhile the status bar says "Opening
+plan.dxf: drawing 45 %" with a Stop button, the view shown pans and zooms, another drawing open is shown, and Esc or Stop
+stops the opening. A command typed or started meanwhile is not run, the command line saying why, so that none runs on a
+drawing half drawn. A drawing of 1 000 000 entities that held the window for 15 s while it opened and drew its first
+frame now holds it for 0.2 s at most while it opens, then 0.8 s for that frame; the display list is the one it was, item
+for item. **NEW.** `MainViewModel.OpenAsync`, `OpensInBackground`, `IsOpening`, `OpeningText`, `CancelOpening` and
+`CancelOpeningCommand`, and `CadDocument.PrepareDisplay`, which makes a space's display ahead, telling how far it has got
+and stopping when asked. `Open` still opens a drawing before it returns unless `OpensInBackground` is set, as a test or a
+screenshot needs.
+
 **CHANGED.** The presenter draws the highlight of a large selection on several threads. Where several thousand items are
 selected, the canvas is cut into tiles, a thread a tile, and an item reaching into several tiles is drawn once every one
 of their threads has drawn what comes before it; a text, a hatch, a ray or a picture is drawn with the other threads
