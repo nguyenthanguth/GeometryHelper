@@ -598,5 +598,54 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Equal(3, shapes.Count);
             Assert.Equal("DisplayPolyline2 open 10.000000 0.000000 0.000000 5.000000", shapes[2]);
         }
+
+        /// <summary>The items model space draws for one object.</summary>
+        private static List<string> ShapesOf(CadDocument document, string handle)
+            => Shapes(document.GetDisplay(document.ModelSpace).Items.Where(i => string.Equals(i.Handle, handle, StringComparison.OrdinalIgnoreCase)));
+
+        [Fact]
+        public void QuickTrim_PreviewsThePieceTheCutTakesOut_Faded()
+        {
+            CadCommandSession session = Started("LINE", P(-50, 0), P(100, 0), Enter, "LINE", P(0, -50), P(0, 100), Enter, "TRIM");
+            Assert.StartsWith("Select object to trim", session.PromptText);
+            CadPreview preview = session.Prompt.Preview;
+            Assert.True(preview.Fades);
+            string first = All<DxfLine>(session.Document.ModelSpace).First().Handle;
+            List<string> whole = ShapesOf(session.Document, first);
+
+            List<string> gone = Shapes(preview.Items(P(-25, 0)));
+            Run(session, P(-25, 0));
+
+            Assert.Equal("DisplayPolyline2 open -50.000000 0.000000 0.000000 0.000000", Assert.Single(gone));
+            Assert.Equal("DisplayPolyline2 open -50.000000 0.000000 100.000000 0.000000", Assert.Single(whole));
+            Assert.Equal("DisplayPolyline2 open 0.000000 0.000000 100.000000 0.000000", Assert.Single(ShapesOf(session.Document, first)));
+        }
+
+        [Fact]
+        public void QuickTrimOfAnObjectNothingCuts_PreviewsAllOfIt_AsItIsErased()
+        {
+            CadCommandSession session = Started("LINE", P(0, 0), P(100, 0), Enter, "LINE", P(0, 50), P(100, 50), Enter, "TRIM");
+            string first = All<DxfLine>(session.Document.ModelSpace).First().Handle;
+            List<string> whole = ShapesOf(session.Document, first);
+
+            Assert.Equal(whole, Shapes(session.Prompt.Preview.Items(P(40, 0))));
+            Run(session, P(40, 0));
+            Assert.Null(session.Document.FindEntity(first));
+        }
+
+        [Fact]
+        public void QuickExtend_PreviewsTheObjectRunOnToTheEdge()
+        {
+            CadCommandSession session = Started("LINE", P(0, 0), P(50, 0), Enter, "LINE", P(100, -50), P(100, 50), Enter, "EXTEND");
+            Assert.StartsWith("Select object to extend", session.PromptText);
+            Assert.False(session.Prompt.Preview.Fades);
+            string first = All<DxfLine>(session.Document.ModelSpace).First().Handle;
+
+            List<string> previewed = Shapes(session.Prompt.Preview.Items(P(40, 0)));
+            Run(session, P(40, 0));
+
+            Assert.Equal("DisplayPolyline2 open 0.000000 0.000000 100.000000 0.000000", Assert.Single(previewed));
+            Assert.Equal(ShapesOf(session.Document, first), previewed);
+        }
     }
 }

@@ -38,6 +38,13 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         public bool ShowsBand { get; }
 
+        /// <summary>
+        /// Gets whether <see cref="Items"/> are pieces the answer takes out of the drawing rather than objects it makes, drawn
+        /// faded as AutoCAD 2021's TRIM draws the piece under the cursor it would cut away: of a line 150 long crossed at 50,
+        /// the 50 on the cursor's side.
+        /// </summary>
+        public bool Fades { get; private set; }
+
         /// <summary>Gets the objects whose copies <see cref="Moves"/> places, in ordinal order; empty where the preview moves none.</summary>
         public IReadOnlyList<string> Handles { get; }
 
@@ -152,6 +159,10 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>A preview of entities made from the answer a point picked at the cursor gives.</summary>
         internal static CadPreview Making(CadCommandContext c, Func<CadInput, IEnumerable<DxfEntity>> make, bool band = false)
             => new CadPreview(c.Session, make, null, null, band);
+
+        /// <summary>A preview of the pieces the answer at the cursor takes out of the drawing, drawn faded, as TRIM previews them.</summary>
+        internal static CadPreview Fading(CadCommandContext c, Func<CadInput, IEnumerable<DxfEntity>> make)
+            => new CadPreview(c.Session, make, null, null, false) { Fades = true };
 
         /// <summary>A preview of one entity made from the answer a point picked at the cursor gives; null from the maker previews nothing.</summary>
         internal static CadPreview MakingOne(CadCommandContext c, Func<CadInput, DxfEntity> make, bool band = false)
