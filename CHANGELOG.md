@@ -68,6 +68,26 @@ snap spacing, writes it into the drawing shown, so that a save keeps it; LWDISPL
 changes Global settings. The snaps step by the drawing's SNAPUNIT and the grid is drawn at its GRIDUNIT, 10 across and
 20 up for a GRIDUNIT of (10, 20). POLAR, OTRACK, OSNAP and DYN stay the window's.
 
+**NEW.** [`DwgReader`](xref:GeometryHelper.Dwg.DwgReader) reads the types it left out, in all six versions (AutoCAD
+2000 to 2018): VIEWPORT, so a layout comes with its viewports, numbered as AutoCAD numbers them; HATCH with every kind
+of boundary, pattern lines, solid fill and gradient; LEADER, MULTILEADER with MLEADERSTYLE, and TOLERANCE; IMAGE with
+IMAGEDEF and IMAGEDEF_REACTOR, and WIPEOUT; MLINE; REGION, 3DSOLID and BODY of AutoCAD 2000 (their SAT text) and from
+AutoCAD 2013 (the GUID of their data); ACAD_TABLE to AutoCAD 2007 and TABLESTYLE to 2007; the colour of a book with its
+name, from its DBCOLOR; an attribute of several lines of AutoCAD 2018 with its MTEXT; and the proxy graphics of an
+entity where AutoCAD saved them. Each was checked against AutoCAD 2021's own DXF of the same drawing in every version:
+eight drawings more, 0 differences outside what AutoCAD itself changes as it writes. See the guide page "Reading DWG
+files" for what is still left out: tables and table styles from AutoCAD 2010, SHAPE, the ACIS data of AutoCAD 2004 to
+2010 and of the data store, MATERIAL, VISUALSTYLE and the other style objects, proxies, OLE frames and the data of
+dynamic blocks.
+
+**FIXED.** [`DwgReader`](xref:GeometryHelper.Dwg.DwgReader), from AutoCAD 2004: an entity of a colour of a book (as
+PANTONE Yellow 012 C) was left out as broken, with a Warn line; it is read with that colour. An element of a multiline
+style before AutoCAD 2018 in Continuous, or any linetype but ByLayer and ByBlock, came out ByLayer; it comes out with
+its linetype.
+
+**FIXED.** `DxfViewport.GetFrozenLayers` and `IsLayerFrozenInViewport` read the frozen layers of a DXF of AutoCAD 2000,
+which AutoCAD writes under group 341 rather than 331; they found none.
+
 **FIXED.** The plane the DXF editing model finds for a 3D polyline or a spline no longer throws on points it cannot
 place. Points a nanometre off one line, as (0, 0, 0), (1 000, 0, 0) and (2 000, 1E-9, 0), or a normal given of length
 1E-7, threw "Cannot normalize a zero-length vector" out of `DxfPolyline3d.GetOffsetCurves`, the offsets of

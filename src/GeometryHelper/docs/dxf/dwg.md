@@ -46,17 +46,28 @@ layer, the units of a block.
 
 The file is turned, in memory, into the DXF that says the same, record for record and with the handles of the file,
 and that DXF is read. Compared with the DXF AutoCAD itself writes of the same DWG, the records are the same group for
-group, numbers to nine places: eight drawings in each of the six versions read, and a drawing of 100 000 lines in each.
+group, numbers to nine places: sixteen drawings in each of the six versions read, and a drawing of 100 000 lines in
+each.
 
 | Part | Read |
 |---|---|
 | Header | the header variables of the version, `$DWGCODEPAGE` and `$MEASUREMENT` among them |
 | Classes | every class of the file |
 | Tables | VPORT, LTYPE, LAYER, STYLE, VIEW, UCS, APPID, DIMSTYLE, BLOCK_RECORD |
-| Blocks | every block with its entities; the layouts as `*Paper_Space`, `*Paper_Space0` and on |
-| Entities | LINE, POINT, CIRCLE, ARC, ELLIPSE, SPLINE, RAY, XLINE, LWPOLYLINE, POLYLINE (2D, 3D, polygon mesh, polyface mesh) with its vertices, TEXT, MTEXT, ATTDEF, INSERT, alone or as an array, with its ATTRIBs, SOLID, TRACE, 3DFACE, DIMENSION (linear, aligned, angular by two lines or three points, radius, diameter, ordinate) |
-| Objects | DICTIONARY, XRECORD, LAYOUT, GROUP, MLINESTYLE, and the small objects a new drawing holds (ACDBDICTIONARYWDFLT, DICTIONARYVAR, ACDBPLACEHOLDER, SCALE) |
-| Of each | layer, linetype, colour (from AutoCAD 2004 with its true colour and transparency), linetype scale, visibility, lineweight, owner, reactors, extension dictionary and extended data |
+| Blocks | every block with its entities; the layouts as `*Paper_Space`, `*Paper_Space0` and on, with their viewports |
+| Entities | LINE, POINT, CIRCLE, ARC, ELLIPSE, SPLINE, RAY, XLINE, LWPOLYLINE, POLYLINE (2D, 3D, polygon mesh, polyface mesh) with its vertices, TEXT, MTEXT, ATTDEF, INSERT, alone or as an array, with its ATTRIBs (of several lines too), SOLID, TRACE, 3DFACE, DIMENSION (linear, aligned, angular by two lines or three points, radius, diameter, ordinate), VIEWPORT, HATCH (every boundary kind, pattern, solid fill, gradient), LEADER, MULTILEADER, TOLERANCE, MLINE, IMAGE, WIPEOUT, REGION, 3DSOLID and BODY (see below), ACAD_TABLE to AutoCAD 2007 |
+| Objects | DICTIONARY, XRECORD, LAYOUT, GROUP, MLINESTYLE, MLEADERSTYLE, IMAGEDEF, IMAGEDEF_REACTOR, DBCOLOR, TABLESTYLE to AutoCAD 2007, and the small objects a new drawing holds (ACDBDICTIONARYWDFLT, DICTIONARYVAR, ACDBPLACEHOLDER, SCALE) |
+| Of each | layer, linetype, colour (from AutoCAD 2004 with its true colour and transparency, and a colour of a book with its name), linetype scale, visibility, lineweight, owner, reactors, extension dictionary, extended data, and the proxy graphics where AutoCAD saved them |
+
+A layout's viewports come numbered (group 69) as AutoCAD numbers them, which the file does not say: from AutoCAD 2004
+the layout lists them, the one showing the paper first; in an AutoCAD 2000 file the viewport whose view is the paper
+itself is number 1 and the others follow in the order they were made. Their frozen layers come under group 341 in a
+DXF of AutoCAD 2000 and 331 later, and `DxfViewport.GetFrozenLayers` reads both.
+
+A REGION, 3DSOLID or BODY carries its ACIS data as DXF does. An AutoCAD 2000 file keeps it as SAT text, which comes
+out line for line. From AutoCAD 2013 the data is in a store of the file that DXF writes in a section of its own
+(ACDSDATA), which is not written yet: the entity comes with the GUID of its record but without its shape. AutoCAD 2004
+to 2010 keep it as SAB, binary ACIS, where DXF wants SAT text; those entities are not read.
 
 Texts come back as they were typed, "Tiếng Việt café 日本語" letter for letter: before AutoCAD 2007 they are in the
 drawing's code page, with letters beyond it as `\U+XXXX`, and from AutoCAD 2007 they are UTF-16 in the file and UTF-8 in
@@ -70,30 +81,27 @@ palette is AutoCAD 2021's (see [`DxfColor`](xref:GeometryHelper.Dxf.DxfColor)).
 
 A type that is not read is left out, with what it owns, and counted: one Debug line of
 [`GeometryHelperLog`](xref:GeometryHelper.GeometryHelperLog) names the types with the count of each
-(`DwgReader: types that are not read yet were left out: HATCH 1 LEADER 1 MATERIAL 3 …`), and one Info line sums the
+(`DwgReader: types that are not read yet were left out: MATERIAL 3 VISUALSTYLE 24 …`), and one Info line sums the
 call.
 
-- Entities: VIEWPORT (so a layout comes without its viewports), HATCH, LEADER, TOLERANCE, MLINE, SHAPE, REGION,
-  3DSOLID, BODY, the OLE frames, images and wipeouts, proxies, and every entity of a class the list above does not name.
-- Objects: MATERIAL, VISUALSTYLE, TABLESTYLE, MLEADERSTYLE, CELLSTYLEMAP, the detail and section view styles, and the
-  other objects of classes. AutoCAD makes these anew in a drawing that lacks them.
+- Entities: ACAD_TABLE from AutoCAD 2010 (its content is a TABLECONTENT of its own, which DXF writes in the form of
+  AutoCAD 2007), SHAPE (DXF names the shape, and only the SHX file of its style gives the name of its number), REGION,
+  3DSOLID and BODY of AutoCAD 2004 to 2010 (see above), the OLE frames, proxies, and every entity of a class the list
+  above does not name.
+- Objects: MATERIAL, VISUALSTYLE, TABLESTYLE from AutoCAD 2010, CELLSTYLEMAP, TABLECONTENT, TABLEGEOMETRY, DATATABLE,
+  RASTERVARIABLES, WIPEOUTVARIABLES, the detail and section view styles, the data of dynamic blocks, and the other
+  objects of classes. AutoCAD makes most of these anew in a drawing that lacks them.
 - A true colour does not exist in the format of AutoCAD 2000. AutoCAD keeps one as round-trip data: extended data of
   the application `ACAD` that starts with `RTT` on an entity, and an extension dictionary holding `ACAD_XREC_ROUNDTRIP`
   on a layer. That data is passed on as the file has it; it is not turned into the entity's true colour, so the entity
   shows the indexed colour AutoCAD chose as the nearest.
 - `$TDCREATE` and `$TDUPDATE` are not given: the file holds the two times as universal time, and they are given as
   `$TDUCREATE` and `$TDUUPDATE`.
-- An attribute of several lines (AutoCAD 2018) holds an MTEXT of its own, which is not read yet; such an ATTRIB or
-  ATTDEF is left out and counted with the types not read.
-- A colour taken from a colour book keeps its index and RGB value; the name of the book and of the colour (group 430)
-  is not looked up. No test drawing has one yet.
 - The normal (210) of a planar SPLINE that is not drawn in the XY plane is worked out from its points, its sign by the
   rule that its largest part is positive. AutoCAD agrees on 8 of the 10 splines of the test drawing in five tilted
   planes; for a plane facing (−1, −1, −2) AutoCAD keeps the normal facing down. The curve is the same either way.
 - From AutoCAD 2013 the file keeps a periodic spline clamped and marked closed alone; a closed spline of these versions
   is given as periodic too (group 70 bit 2), as AutoCAD writes it.
-- The polygon mesh, the polyface mesh and the INSERT as an array are read as the format describes them, but have not
-  been compared with AutoCAD's DXF as the rest has.
 - The preview image of the file is skipped.
 
 The order of the OBJECTS section is the root dictionary first and then by handle, not AutoCAD's; nothing reads that
@@ -116,7 +124,8 @@ Where an entity is left out, those after it in its block are still read. No brok
 memory. 10 500 copies of the drawings of AutoCAD 2000 and 12 800 of the later versions, with bits changed at random
 (half of the later ones inside the decompressed objects under a repaired check sum), were each read or refused in under
 0.14 s, the process never above 36 MB; 8 000 copies of the drawings of AutoCAD 2007, changed the same way, in under
-0.15 s and 58 MB. The sections of one file may decompress to at most 64 times the size of the file
+0.15 s and 58 MB; 19 200 copies of the drawings of hatches, viewports, leaders, images, multilines, tables and solids
+in every version, half changed inside the objects of those types, in under 0.22 s and 75 MB. The sections of one file may decompress to at most 64 times the size of the file
 and 8 MB more, a page to at most 1 MB; AutoCAD's drawings take 5 times their size or less.
 
 ## Speed

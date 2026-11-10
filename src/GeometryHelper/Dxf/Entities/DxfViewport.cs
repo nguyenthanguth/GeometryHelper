@@ -1001,7 +1001,8 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Gets the layers frozen in the viewport, as AutoCAD's <c>GetFrozenLayers</c> gives their ids: those its groups 331 name
-        /// by handle (the names of its extended data in a file older than R2000) that the layer table has, in their order.
+        /// by handle (341 in a DXF of R2000, the names of its extended data in a file older than R2000) that the layer table has,
+        /// in their order.
         /// </summary>
         /// <returns>The layers, a new list.</returns>
         public IReadOnlyList<DxfLayerTableRecord> GetFrozenLayers()
@@ -1899,7 +1900,8 @@ namespace GeometryHelper.Dxf
             {
                 foreach (DxfTypedValue group in GetOwnGroups(0))
                 {
-                    if (group.TypeCode == 331)
+                    // AutoCAD writes them under 341 in a DXF of R2000, under 331 from R2004.
+                    if (group.TypeCode == 331 || group.TypeCode == 341)
                     {
                         keys.Add(group.Value.Trim());
                     }

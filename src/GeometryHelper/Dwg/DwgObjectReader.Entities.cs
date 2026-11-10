@@ -325,19 +325,22 @@ namespace GeometryHelper.Dwg
             int version = 0;
             int locked = 0;
 
+            ulong style = 0;
+            List<DwgGroup> embedded = null;
+            int attributeType = 0;
+            int reallyLocked = 0;
+
             if (kind != 0)
             {
                 version = R2010Plus ? _data.RawChar() : 0;
+                attributeType = R2018Plus ? _data.RawChar() : 0;
 
-                if (R2018Plus)
+                if (attributeType == 2 || attributeType == 4)
                 {
-                    // An attribute of several lines holds an MTEXT of its own, which is not read yet.
-                    int attributeType = _data.RawChar();
-
-                    if (attributeType == 2 || attributeType == 4)
-                    {
-                        return false;
-                    }
+                    // From R2018 an attribute of several lines holds an MTEXT of its own, its common entity data and all;
+                    // the handles of the text come first.
+                    style = H();
+                    embedded = ReadEmbeddedMText(out reallyLocked);
                 }
 
                 tag = T();
@@ -356,7 +359,11 @@ namespace GeometryHelper.Dwg
                 prompt = T();
             }
 
-            ulong style = H();
+            if (embedded == null)
+            {
+                style = H();
+            }
+
             _object.Add(100, "AcDbText");
             AddNonZero(39, thickness);
             _object.AddPoint(10, new[] { insertion[0], insertion[1], elevation });
@@ -410,7 +417,102 @@ namespace GeometryHelper.Dwg
                 _object.Add(280, locked);
             }
 
+            if (embedded != null)
+            {
+                _object.Add(71, attributeType);
+                _object.Add(72, reallyLocked);
+                _object.AddPoint(11, new[] { alignment[0], alignment[1], elevation });
+                _object.Add(101, "Embedded Object");
+                _object.Body.AddRange(embedded);
+            }
+
             return true;
+        }
+
+        /// <summary>
+        /// The MTEXT of an attribute of several lines (R2018): its common entity data, read past as the file has it, and its
+        /// own data, whose groups DXF writes after <c>101 Embedded Object</c>; then the annotative data, whose last value
+        /// DXF writes as 72 of the attribute.
+        /// </summary>
+        private List<DwgGroup> ReadEmbeddedMText(out int reallyLocked)
+        {
+            if (_data.Bits2() == 0)
+            {
+                H();
+            }
+
+            int reactors = Count(_data.BitLong());
+            bool noDictionary = ReadDictionaryFlags();
+
+            for (int i = 0; i < reactors; i++)
+            {
+                H();
+            }
+
+            if (!noDictionary)
+            {
+                H();
+            }
+
+            if (ReadEntityColour().HasBook)
+            {
+                H();
+            }
+
+            _data.BitDouble();
+            H();
+
+            if (_data.Bits2() == 3)
+            {
+                H();
+            }
+
+            if (_data.Bits2() == 3)
+            {
+                H();
+            }
+
+            _data.RawChar();
+
+            if (_data.Bits2() == 3)
+            {
+                H();
+            }
+
+            for (int i = 0; i < 3; i++)
+            {
+                if (_data.Bit())
+                {
+                    H();
+                }
+            }
+
+            _data.BitShort();
+            _data.RawChar();
+
+            // The groups of the MTEXT as its own record has them, but its subclass.
+            List<DwgGroup> body = _object.Body;
+            _object.Body = new List<DwgGroup>();
+            ReadMText();
+            List<DwgGroup> groups = _object.Body;
+            _object.Body = body;
+            groups.RemoveAll(group => group.Code == 100);
+            reallyLocked = 0;
+            int annotative = _data.BitShort();
+
+            if (annotative > 0)
+            {
+                if (annotative * 8L > _data.Remaining)
+                {
+                    throw new FormatException("The annotative data of the attribute run past its end.");
+                }
+
+                _data.Bytes(annotative);
+                H();
+                reallyLocked = _data.BitShort();
+            }
+
+            return groups;
         }
 
         private void ReadMText()
@@ -423,8 +525,7 @@ namespace GeometryHelper.Dwg
             double height = _data.BitDouble();
             int attachment = _data.BitShort();
             int flow = _data.BitShort();
-            _data.BitDouble();
-            _data.BitDouble();
+            _object.TextExtents = new[] { _data.BitDouble(), _data.BitDouble() };
             byte[] text = T();
             int spacingStyle = _data.BitShort();
             double spacing = _data.BitDouble();
@@ -885,6 +986,1149 @@ namespace GeometryHelper.Dwg
             }
 
             AddNonZero(70, flags);
+        }
+
+        /// <summary>
+        /// A VIEWPORT of a layout. Its number (group 69) and status (68) are not in the file: the transcoder gives them from
+        /// the order of the viewports of its layout, so the groups carry a <see cref="DwgViewportNumber"/> here.
+        /// </summary>
+        private void ReadViewport()
+        {
+            double[] centre = _data.Point3();
+            double width = _data.BitDouble();
+            double height = _data.BitDouble();
+            double[] target = _data.Point3();
+            double[] direction = _data.Point3();
+            double twist = _data.BitDouble();
+            double viewHeight = _data.BitDouble();
+            double lens = _data.BitDouble();
+            double front = _data.BitDouble();
+            double back = _data.BitDouble();
+            double snapAngle = _data.BitDouble();
+            double[] viewCentre = _data.RawPoint2();
+            double[] snapBase = _data.RawPoint2();
+            double[] snapSpacing = _data.RawPoint2();
+            double[] gridSpacing = _data.RawPoint2();
+            int circleZoom = _data.BitShort();
+            int gridMajor = R2007Plus ? _data.BitShort() : 0;
+            int frozen = Count(_data.BitLong());
+            int status = _data.BitLong();
+            byte[] styleSheet = T();
+            int renderMode = _data.RawChar();
+            bool ucsAtOrigin = _data.Bit();
+            bool ucsPerViewport = _data.Bit();
+            double[] ucsOrigin = _data.Point3();
+            double[] ucsX = _data.Point3();
+            double[] ucsY = _data.Point3();
+            double elevation = _data.BitDouble();
+            int orthographic = _data.BitShort();
+            int shadePlot = R2004Plus ? _data.BitShort() : 0;
+            bool defaultLights = false;
+            int lightingType = 0;
+            double brightness = 0.0;
+            double contrast = 0.0;
+            DwgColour ambient = null;
+
+            if (R2007Plus)
+            {
+                defaultLights = _data.Bit();
+                lightingType = _data.RawChar();
+                brightness = _data.BitDouble();
+                contrast = _data.BitDouble();
+                ambient = ReadColour();
+            }
+
+            var layers = new List<ulong>(Math.Min(frozen, 1024));
+
+            for (int i = 0; i < frozen; i++)
+            {
+                layers.Add(H());
+            }
+
+            ulong boundary = H();
+
+            if (!R2004Plus)
+            {
+                H();
+            }
+
+            ulong namedUcs = H();
+            ulong baseUcs = H();
+            ulong background = 0;
+            ulong visualStyle = 0;
+            ulong shadePlotId = 0;
+            ulong sun = 0;
+
+            if (R2007Plus)
+            {
+                background = H();
+                visualStyle = H();
+                shadePlotId = H();
+                sun = H();
+            }
+
+            _object.Add(100, "AcDbViewport");
+            _object.AddPoint(10, centre);
+            _object.Add(40, width);
+            _object.Add(41, height);
+            _object.Add(68, new DwgViewportNumber(_object.Handle, true));
+            _object.Add(69, new DwgViewportNumber(_object.Handle, false));
+            _object.AddPoint(12, viewCentre);
+            _object.AddPoint(13, snapBase);
+            _object.AddPoint(14, snapSpacing);
+            _object.AddPoint(15, gridSpacing);
+            _object.AddPoint(16, direction);
+            _object.AddPoint(17, target);
+            _object.Add(42, lens);
+            _object.Add(43, front);
+            _object.Add(44, back);
+            _object.Add(45, viewHeight);
+            _object.Add(50, Degrees(snapAngle));
+            _object.Add(51, Degrees(twist));
+            _object.Add(72, circleZoom);
+
+            foreach (ulong layer in layers)
+            {
+                _object.Add(R2004Plus ? 331 : 341, layer);
+            }
+
+            _object.Add(90, status);
+
+            if (boundary != 0)
+            {
+                _object.Add(340, boundary);
+            }
+
+            _object.Add(1, styleSheet);
+            _object.Add(281, renderMode);
+            _object.Add(71, ucsPerViewport ? 1 : 0);
+            _object.Add(74, ucsAtOrigin ? 1 : 0);
+            _object.AddPoint(110, ucsOrigin);
+            _object.AddPoint(111, ucsX);
+            _object.AddPoint(112, ucsY);
+
+            if (namedUcs != 0)
+            {
+                _object.Add(345, namedUcs);
+            }
+
+            if (baseUcs != 0)
+            {
+                _object.Add(346, baseUcs);
+            }
+
+            _object.Add(79, orthographic);
+            _object.Add(146, elevation);
+
+            if (R2004Plus)
+            {
+                _object.Add(170, shadePlot);
+            }
+
+            if (!R2007Plus)
+            {
+                return;
+            }
+
+            _object.Add(61, gridMajor);
+
+            if (background != 0)
+            {
+                _object.Add(332, background);
+            }
+
+            if (shadePlotId != 0)
+            {
+                _object.Add(333, shadePlotId);
+            }
+
+            if (visualStyle != 0)
+            {
+                _object.Add(348, visualStyle);
+            }
+
+            _object.Add(292, defaultLights ? 1 : 0);
+            _object.Add(282, lightingType);
+            _object.Add(141, brightness);
+            _object.Add(142, contrast);
+            AddColour(_object.Body, ambient, false, 63, 421);
+
+            if (sun != 0)
+            {
+                _object.Add(361, sun);
+            }
+        }
+
+        /// <summary>
+        /// A HATCH: from R2004 its gradient, then its plane, its pattern name, its boundary paths (a polyline with or
+        /// without bulges, or edges: lines, arcs, elliptic arcs and splines, with fit points from R2010), the objects each
+        /// path follows, its style and pattern lines, and its seed points. DXF writes the gradient at the end, and from
+        /// R2004 only for a solid fill.
+        /// </summary>
+        private void ReadHatch()
+        {
+            var gradient = new List<DwgGroup>();
+
+            if (R2004Plus)
+            {
+                gradient.Add(new DwgGroup(450, _data.BitLong()));
+                gradient.Add(new DwgGroup(451, _data.BitLong()));
+                gradient.Add(new DwgGroup(460, _data.BitDouble()));
+                gradient.Add(new DwgGroup(461, _data.BitDouble()));
+                gradient.Add(new DwgGroup(452, _data.BitLong()));
+                gradient.Add(new DwgGroup(462, _data.BitDouble()));
+                int colours = Count(_data.BitLong());
+                gradient.Add(new DwgGroup(453, colours));
+
+                for (int i = 0; i < colours; i++)
+                {
+                    gradient.Add(new DwgGroup(463, _data.BitDouble()));
+                    AddColour(gradient, ReadColour(), false, 63, 421);
+                }
+
+                gradient.Add(new DwgGroup(470, T()));
+            }
+
+            double elevation = _data.BitDouble();
+            double[] normal = _data.Point3();
+            byte[] name = T();
+            bool solid = _data.Bit();
+            bool associative = _data.Bit();
+            int paths = Count(_data.BitLong());
+            bool derived = false;
+            _object.Add(100, "AcDbHatch");
+            _object.AddPoint(10, new[] { 0.0, 0.0, elevation });
+            _object.AddPoint(210, normal);
+            _object.Add(2, name);
+            _object.Add(70, solid ? 1 : 0);
+            _object.Add(71, associative ? 1 : 0);
+            _object.Add(91, paths);
+
+            for (int i = 0; i < paths; i++)
+            {
+                int flags = _data.BitLong();
+                derived |= (flags & 4) != 0;
+                _object.Add(92, flags);
+
+                if ((flags & 2) != 0)
+                {
+                    bool bulges = _data.Bit();
+                    bool closed = _data.Bit();
+                    int count = Count(_data.BitLong());
+                    _object.Add(72, bulges ? 1 : 0);
+                    _object.Add(73, closed ? 1 : 0);
+                    _object.Add(93, count);
+
+                    for (int j = 0; j < count; j++)
+                    {
+                        _object.AddPoint(10, _data.RawPoint2());
+
+                        if (bulges)
+                        {
+                            _object.Add(42, _data.BitDouble());
+                        }
+                    }
+                }
+                else
+                {
+                    int edges = Count(_data.BitLong());
+                    _object.Add(93, edges);
+
+                    for (int j = 0; j < edges; j++)
+                    {
+                        ReadHatchEdge();
+                    }
+                }
+
+                int sources = Count(_data.BitLong());
+                _object.Add(97, sources);
+
+                for (int j = 0; j < sources; j++)
+                {
+                    _object.Add(330, H());
+                }
+            }
+
+            _object.Add(75, _data.BitShort());
+            _object.Add(76, _data.BitShort());
+
+            if (!solid)
+            {
+                _object.Add(52, Degrees(_data.BitDouble()));
+                _object.Add(41, _data.BitDouble());
+                _object.Add(77, _data.Bit() ? 1 : 0);
+                int lines = _data.BitShort();
+
+                if (lines < 0 || lines > _data.Remaining)
+                {
+                    throw new FormatException("The hatch names more pattern lines than it has room for.");
+                }
+
+                _object.Add(78, lines);
+
+                for (int i = 0; i < lines; i++)
+                {
+                    _object.Add(53, Degrees(_data.BitDouble()));
+                    _object.Add(43, _data.BitDouble());
+                    _object.Add(44, _data.BitDouble());
+                    _object.Add(45, _data.BitDouble());
+                    _object.Add(46, _data.BitDouble());
+                    int dashes = _data.BitShort();
+
+                    if (dashes < 0 || dashes > _data.Remaining)
+                    {
+                        throw new FormatException("The hatch names more dashes than it has room for.");
+                    }
+
+                    _object.Add(79, dashes);
+
+                    for (int j = 0; j < dashes; j++)
+                    {
+                        _object.Add(49, _data.BitDouble());
+                    }
+                }
+            }
+
+            if (derived)
+            {
+                _object.Add(47, _data.BitDouble());
+            }
+
+            int seeds = Count(_data.BitLong());
+            _object.Add(98, seeds);
+
+            for (int i = 0; i < seeds; i++)
+            {
+                _object.AddPoint(10, _data.RawPoint2());
+            }
+
+            if (solid)
+            {
+                _object.Body.AddRange(gradient);
+            }
+        }
+
+        /// <summary>One edge of a boundary path of a HATCH: its kind (group 72) and its data.</summary>
+        private void ReadHatchEdge()
+        {
+            int kind = _data.RawChar();
+            _object.Add(72, kind);
+
+            switch (kind)
+            {
+                case 1:
+                    _object.AddPoint(10, _data.RawPoint2());
+                    _object.AddPoint(11, _data.RawPoint2());
+                    break;
+                case 2:
+                    _object.AddPoint(10, _data.RawPoint2());
+                    _object.Add(40, _data.BitDouble());
+                    _object.Add(50, Degrees(_data.BitDouble()));
+                    _object.Add(51, Degrees(_data.BitDouble()));
+                    _object.Add(73, _data.Bit() ? 1 : 0);
+                    break;
+                case 3:
+                    _object.AddPoint(10, _data.RawPoint2());
+                    _object.AddPoint(11, _data.RawPoint2());
+                    _object.Add(40, _data.BitDouble());
+                    _object.Add(50, Degrees(_data.BitDouble()));
+                    _object.Add(51, Degrees(_data.BitDouble()));
+                    _object.Add(73, _data.Bit() ? 1 : 0);
+                    break;
+                case 4:
+                    _object.Add(94, _data.BitLong());
+                    bool rational = _data.Bit();
+                    _object.Add(73, rational ? 1 : 0);
+                    _object.Add(74, _data.Bit() ? 1 : 0);
+                    int knots = Count(_data.BitLong());
+                    int controls = Count(_data.BitLong());
+                    _object.Add(95, knots);
+                    _object.Add(96, controls);
+
+                    for (int i = 0; i < knots; i++)
+                    {
+                        _object.Add(40, _data.BitDouble());
+                    }
+
+                    for (int i = 0; i < controls; i++)
+                    {
+                        _object.AddPoint(10, _data.RawPoint2());
+
+                        if (rational)
+                        {
+                            _object.Add(42, _data.BitDouble());
+                        }
+                    }
+
+                    if (R2010Plus)
+                    {
+                        int fits = Count(_data.BitLong());
+                        _object.Add(97, fits);
+
+                        for (int i = 0; i < fits; i++)
+                        {
+                            _object.AddPoint(11, _data.RawPoint2());
+                        }
+
+                        if (fits > 0)
+                        {
+                            _object.AddPoint(12, _data.RawPoint2());
+                            _object.AddPoint(13, _data.RawPoint2());
+                        }
+                    }
+
+                    break;
+                default:
+                    throw new FormatException("The hatch has an edge of the unknown kind " + kind + ".");
+            }
+        }
+
+        /// <summary>
+        /// A LEADER: the kind of its annotation and path, its points, its plane and offsets, the size of the box of its
+        /// text, its hook line and arrow, and the handles of its annotation and dimension style. DXF leaves the arrow out
+        /// where it is on, the path where it is straight, the annotation kind and the box where there is none.
+        /// </summary>
+        private void ReadLeader()
+        {
+            _data.Bit();
+            int annotation = _data.BitShort();
+            int path = _data.BitShort();
+            int count = Count(_data.BitLong());
+            var points = new List<double[]>(Math.Min(count, 1024));
+
+            for (int i = 0; i < count; i++)
+            {
+                points.Add(_data.Point3());
+            }
+
+            _data.Point3();
+            double[] normal = _data.Point3();
+            double[] horizontal = _data.Point3();
+            double[] blockOffset = _data.Point3();
+            double[] annotationOffset = _data.Point3();
+            // From R2010 the box of the text is not kept; AutoCAD writes the extents its MTEXT keeps, which the transcoder
+            // puts in place of these.
+            double boxHeight = R2010Plus ? double.NaN : _data.BitDouble();
+            double boxWidth = R2010Plus ? double.NaN : _data.BitDouble();
+            _data.Bit();
+            bool arrow = _data.Bit();
+            _data.BitShort();
+            _data.Bit();
+            _data.Bit();
+            ulong annotationHandle = H();
+            ulong style = H();
+            _object.Annotation = annotationHandle;
+            _object.Add(100, "AcDbLeader");
+            _object.Add(3, new DwgName(style, "Standard"));
+
+            if (!arrow)
+            {
+                _object.Add(71, 0);
+            }
+
+            AddNonZero(72, path);
+
+            if (annotation != 3)
+            {
+                _object.Add(73, annotation);
+                _object.Add(40, boxHeight);
+                _object.Add(41, boxWidth);
+            }
+
+            _object.Add(76, count);
+
+            foreach (double[] point in points)
+            {
+                _object.AddPoint(10, point);
+            }
+
+            if (annotationHandle != 0)
+            {
+                _object.Add(340, annotationHandle);
+            }
+
+            AddExtrusion(normal);
+
+            if (horizontal[0] != 1.0 || horizontal[1] != 0.0 || horizontal[2] != 0.0)
+            {
+                _object.AddPoint(211, horizontal);
+            }
+
+            if (blockOffset[0] != 0.0 || blockOffset[1] != 0.0 || blockOffset[2] != 0.0)
+            {
+                _object.AddPoint(212, blockOffset);
+            }
+
+            if (annotationOffset[0] != 0.0 || annotationOffset[1] != 0.0 || annotationOffset[2] != 0.0)
+            {
+                _object.AddPoint(213, annotationOffset);
+            }
+        }
+
+        /// <summary>A TOLERANCE, a feature control frame: its point, direction, plane and text, and its dimension style.</summary>
+        private void ReadTolerance()
+        {
+            double[] insertion = _data.Point3();
+            double[] direction = _data.Point3();
+            double[] normal = _data.Point3();
+            byte[] text = T();
+            ulong style = H();
+            _object.Add(100, "AcDbFcf");
+            _object.Add(3, new DwgName(style, "Standard"));
+            _object.AddPoint(10, insertion);
+            _object.Add(1, text);
+            AddExtrusion(normal);
+
+            if (direction[0] != 1.0 || direction[1] != 0.0 || direction[2] != 0.0)
+            {
+                _object.AddPoint(11, direction);
+            }
+        }
+
+        /// <summary>
+        /// An IMAGE or a WIPEOUT (<paramref name="subclass"/>): its corner and pixel vectors, its size, its display flags and
+        /// levels, and its clip boundary, two corners or a polygon. A wipeout names no image definition and no reactor, and
+        /// DXF writes both as 0.
+        /// </summary>
+        private void ReadRasterImage(string subclass)
+        {
+            int version = _data.BitLong();
+            double[] insertion = _data.Point3();
+            double[] u = _data.Point3();
+            double[] v = _data.Point3();
+            double[] size = _data.RawPoint2();
+            int flags = _data.BitShort();
+            bool clipped = _data.Bit();
+            int brightness = _data.RawChar();
+            int contrast = _data.RawChar();
+            int fade = _data.RawChar();
+            bool inside = R2010Plus && _data.Bit();
+            int clipType = _data.BitShort();
+            var vertices = new List<double[]>();
+
+            if (clipType == 1)
+            {
+                vertices.Add(_data.RawPoint2());
+                vertices.Add(_data.RawPoint2());
+            }
+            else if (clipType == 2)
+            {
+                int count = Count(_data.BitLong());
+
+                for (int i = 0; i < count; i++)
+                {
+                    vertices.Add(_data.RawPoint2());
+                }
+
+                // The file keeps the polygon open; DXF closes it with its first vertex again.
+                if (count > 0 && (vertices[0][0] != vertices[count - 1][0] || vertices[0][1] != vertices[count - 1][1]))
+                {
+                    vertices.Add(vertices[0]);
+                }
+            }
+
+            ulong definition = H();
+            ulong reactor = H();
+            _object.Add(100, subclass);
+            _object.Add(90, version);
+            _object.AddPoint(10, insertion);
+            _object.AddPoint(11, u);
+            _object.AddPoint(12, v);
+            _object.AddPoint(13, size);
+            _object.Add(340, definition);
+            _object.Add(70, flags);
+            _object.Add(280, clipped ? 1 : 0);
+            _object.Add(281, brightness);
+            _object.Add(282, contrast);
+            _object.Add(283, fade);
+
+            if (R2010Plus)
+            {
+                _object.Add(290, inside ? 1 : 0);
+            }
+
+            _object.Add(360, reactor);
+            _object.Add(71, clipType);
+            _object.Add(91, vertices.Count);
+
+            foreach (double[] vertex in vertices)
+            {
+                _object.AddPoint(14, vertex);
+            }
+        }
+
+        /// <summary>
+        /// An MLINE: its scale, justification, start, plane and flags, then for each vertex its point, direction and mitre
+        /// and for each line of the style its segment and fill parameters; the style by handle, and DXF names it too.
+        /// </summary>
+        private void ReadMLine()
+        {
+            double scale = _data.BitDouble();
+            int justification = _data.RawChar();
+            double[] start = _data.Point3();
+            double[] normal = _data.Point3();
+            int flags = _data.BitShort();
+            int lines = _data.RawChar();
+            int count = _data.BitShort();
+
+            if (count < 0 || count > _data.Remaining)
+            {
+                throw new FormatException("The MLINE names more vertices than it has room for.");
+            }
+
+            var vertices = new List<DwgGroup>();
+
+            for (int i = 0; i < count; i++)
+            {
+                AddPoint(vertices, 11, _data.Point3());
+                AddPoint(vertices, 12, _data.Point3());
+                AddPoint(vertices, 13, _data.Point3());
+
+                for (int j = 0; j < lines; j++)
+                {
+                    ReadMLineParameters(vertices, 74, 41);
+                    ReadMLineParameters(vertices, 75, 42);
+                }
+            }
+
+            ulong style = H();
+            _object.Add(100, "AcDbMline");
+            _object.Add(2, new DwgName(style, "STANDARD"));
+            _object.Add(340, style);
+            _object.Add(40, scale);
+            _object.Add(70, justification);
+            _object.Add(71, flags);
+            _object.Add(72, count);
+            _object.Add(73, lines);
+            _object.AddPoint(10, start);
+            _object.AddPoint(210, normal);
+            _object.Body.AddRange(vertices);
+        }
+
+        /// <summary>A count of parameters (a bit short) under <paramref name="countCode"/> and the parameters under <paramref name="code"/>.</summary>
+        private void ReadMLineParameters(List<DwgGroup> groups, int countCode, int code)
+        {
+            int count = _data.BitShort();
+
+            if (count < 0 || count > _data.Remaining)
+            {
+                throw new FormatException("The MLINE names more parameters than it has room for.");
+            }
+
+            groups.Add(new DwgGroup(countCode, count));
+
+            for (int i = 0; i < count; i++)
+            {
+                groups.Add(new DwgGroup(code, _data.BitDouble()));
+            }
+        }
+
+        /// <summary>
+        /// A REGION, a 3DSOLID or a BODY (<paramref name="solid"/> for a 3DSOLID): its ACIS data as DXF carries it. Before
+        /// R2013 the data is SAT text in blocks, each character but a line end kept as 0x9F less it, and DXF writes it so,
+        /// a line a group 1 (pieces past 255 under 3). From R2013 the data is in the data store of the file, which DXF
+        /// writes in its own section; the entity carries its GUID, after the wireframe and silhouettes, which are read past.
+        /// False where the data is SAB (version 2), which DXF before R2013 does not carry.
+        /// </summary>
+        private bool ReadModelerGeometry(bool solid)
+        {
+            _object.Add(100, "AcDbModelerGeometry");
+
+            if (!R2013Plus)
+            {
+                bool empty = _data.Bit();
+                var text = new List<byte>();
+
+                if (!empty)
+                {
+                    _data.Bit();
+                    int version = _data.BitShort();
+
+                    if (version != 1)
+                    {
+                        return false;
+                    }
+
+                    for (int size = _data.BitLong(); size != 0; size = _data.BitLong())
+                    {
+                        if (size < 0 || size * 8L > _data.Remaining)
+                        {
+                            throw new FormatException("The ACIS data of the entity run past its end.");
+                        }
+
+                        text.AddRange(_data.Bytes(size));
+                    }
+                }
+
+                _object.Add(70, 1);
+                AddSatLines(text);
+            }
+            else
+            {
+                ReadWireframe();
+
+                int materials = Count(_data.BitLong());
+
+                for (int i = 0; i < materials; i++)
+                {
+                    _data.BitLong();
+                    _data.BitLong();
+                    H();
+                }
+
+                _object.Add(290, _data.Bit() ? 1 : 0);
+                int a = _data.BitLong();
+                short b = (short)_data.BitShort();
+                short c = (short)_data.BitShort();
+                byte[] rest = _data.Bytes(8);
+                _data.BitLong();
+                _object.Add(2, new Guid(a, b, c, rest).ToString("B"));
+            }
+
+            if (solid && R2007Plus)
+            {
+                _object.Add(100, "AcDb3dSolid");
+                _object.Add(350, H());
+            }
+
+            return true;
+        }
+
+        /// <summary>The SAT text of an ACIS entity, a line a group 1 and its pieces past 255 bytes under 3.</summary>
+        private void AddSatLines(List<byte> text)
+        {
+            int start = 0;
+
+            for (int i = 0; i <= text.Count; i++)
+            {
+                if (i < text.Count && text[i] != (byte)'\n')
+                {
+                    continue;
+                }
+
+                // A line of SAT ends in a carriage return and a line feed, which DXF does not keep.
+                int end = i > start && text[i - 1] == (byte)'\r' ? i - 1 : i;
+
+                if (i > start || i < text.Count)
+                {
+                    for (int at = start, code = 1; at < end || code == 1; at += 255, code = 3)
+                    {
+                        _object.Add(code, text.GetRange(at, Math.Min(255, end - at)).ToArray());
+                    }
+                }
+
+                start = i + 1;
+            }
+        }
+
+        /// <summary>The wireframe and the silhouettes of an ACIS entity from R2013, read past.</summary>
+        private void ReadWireframe()
+        {
+            if (!_data.Bit())
+            {
+                return;
+            }
+
+            if (_data.Bit())
+            {
+                _data.Point3();
+            }
+
+            _data.BitLong();
+
+            if (_data.Bit())
+            {
+                ReadWires();
+            }
+
+            int silhouettes = Count(_data.BitLong());
+
+            for (int i = 0; i < silhouettes; i++)
+            {
+                _data.BitLongLong();
+                _data.Point3();
+                _data.Point3();
+                _data.Point3();
+                _data.Bit();
+
+                if (_data.Bit())
+                {
+                    ReadWires();
+                }
+            }
+
+            _data.Bit();
+        }
+
+        private void ReadWires()
+        {
+            int wires = Count(_data.BitLong());
+
+            for (int i = 0; i < wires; i++)
+            {
+                _data.RawChar();
+                _data.BitLong();
+                _data.BitShort();
+                _data.BitLong();
+                int points = Count(_data.BitLong());
+
+                for (int j = 0; j < points; j++)
+                {
+                    _data.Point3();
+                }
+
+                if (_data.Bit())
+                {
+                    for (int j = 0; j < 4; j++)
+                    {
+                        _data.Point3();
+                    }
+
+                    _data.BitDouble();
+                    _data.Bit();
+                    _data.Bit();
+                    _data.Bit();
+                }
+            }
+        }
+
+        /// <summary>
+        /// An ACAD_TABLE before R2007: a block reference to its anonymous block, then its flags, direction, rows and columns
+        /// with their sizes, its style, its cells (a text or a block each, with overrides) and the overrides of the whole
+        /// table. DXF writes the overrides' flags (93 to 96) before the sizes. False from R2007, whose cells carry values,
+        /// and from R2010, whose content is a TABLECONTENT of its own; neither is read yet.
+        /// </summary>
+        private bool ReadTable()
+        {
+            if (R2010Plus)
+            {
+                return false;
+            }
+
+            double[] insertion = _data.Point3();
+            double[] scale = { 1.0, 1.0, 1.0 };
+
+            switch (_data.Bits2())
+            {
+                case 0:
+                    scale[0] = _data.RawDouble();
+                    scale[1] = _data.BitDoubleDefault(scale[0]);
+                    scale[2] = _data.BitDoubleDefault(scale[0]);
+                    break;
+                case 1:
+                    scale[1] = _data.BitDoubleDefault(1.0);
+                    scale[2] = _data.BitDoubleDefault(1.0);
+                    break;
+                case 2:
+                    scale[0] = _data.RawDouble();
+                    scale[1] = scale[0];
+                    scale[2] = scale[0];
+                    break;
+            }
+
+            double rotation = _data.BitDouble();
+            double[] extrusion = _data.Point3();
+            bool attributes = _data.Bit();
+            int owned = R2004Plus && attributes ? Count(_data.BitLong()) : 0;
+            ulong block = H();
+
+            if (attributes)
+            {
+                ReadOwnedHandles(owned);
+                _object.SeqEnd = H();
+            }
+
+            int flags = _data.BitShort();
+            double[] direction = _data.Point3();
+            int columns = Count(_data.BitLong());
+            int rows = Count(_data.BitLong());
+            var widths = new double[columns];
+            var heights = new double[rows];
+
+            for (int i = 0; i < columns; i++)
+            {
+                widths[i] = _data.BitDouble();
+            }
+
+            for (int i = 0; i < rows; i++)
+            {
+                heights[i] = _data.BitDouble();
+            }
+
+            if ((long)rows * columns > _data.Remaining)
+            {
+                throw new FormatException("The table names more cells than it has room for.");
+            }
+
+            ulong style = H();
+            var cells = new List<DwgGroup>();
+
+            for (int i = 0; i < rows * columns; i++)
+            {
+                ReadTableCell(cells);
+            }
+
+            var overrides = new List<DwgGroup>();
+            int tableOverrides = _data.Bit() ? ReadTableOverrides(overrides) : 0;
+            int borderColours = _data.Bit() ? ReadBorderOverrides(overrides, 0) : 0;
+            int borderWeights = _data.Bit() ? ReadBorderOverrides(overrides, 1) : 0;
+            int borderVisibility = _data.Bit() ? ReadBorderOverrides(overrides, 2) : 0;
+
+            _object.Add(100, "AcDbBlockReference");
+
+            if (attributes)
+            {
+                _object.Add(66, 1);
+            }
+
+            _object.Add(2, new DwgName(block));
+            _object.AddPoint(10, insertion);
+
+            for (int i = 0; i < 3; i++)
+            {
+                if (scale[i] != 1.0)
+                {
+                    _object.Add(41 + i, scale[i]);
+                }
+            }
+
+            AddNonZero(50, Degrees(rotation));
+            AddExtrusion(extrusion);
+            _object.Add(100, "AcDbTable");
+            _object.Add(342, style);
+            _object.Add(343, block);
+            _object.AddPoint(11, direction);
+            _object.Add(90, flags);
+            _object.Add(91, rows);
+            _object.Add(92, columns);
+            _object.Add(93, tableOverrides);
+            _object.Add(94, borderColours);
+            _object.Add(95, borderWeights);
+            _object.Add(96, borderVisibility);
+
+            foreach (double height in heights)
+            {
+                _object.Add(141, height);
+            }
+
+            foreach (double width in widths)
+            {
+                _object.Add(142, width);
+            }
+
+            _object.Body.AddRange(cells);
+            _object.Body.AddRange(overrides);
+            return true;
+        }
+
+        /// <summary>One cell of a table before R2007: its kind, edges, merging and size, its overrides, and its text or block.</summary>
+        private void ReadTableCell(List<DwgGroup> groups)
+        {
+            int type = _data.BitShort();
+            int edges = _data.RawChar();
+            bool merged = _data.Bit();
+            bool autoFit = _data.Bit();
+            int width = _data.BitLong();
+            int height = _data.BitLong();
+            double rotation = _data.BitDouble();
+            ulong value = H();
+            var content = new List<DwgGroup>();
+
+            if (type == 1 && value == 0 && !R2007Plus)
+            {
+                content.Add(new DwgGroup(1, T()));
+            }
+            else if (type == 1 && value != 0)
+            {
+                content.Add(new DwgGroup(344, value));
+            }
+            else if (type == 2)
+            {
+                content.Add(new DwgGroup(340, value));
+                content.Add(new DwgGroup(144, _data.BitDouble()));
+
+                if (_data.Bit())
+                {
+                    int definitions = _data.BitShort();
+
+                    if (definitions < 0 || definitions > _data.Remaining)
+                    {
+                        throw new FormatException("The table cell names more attribute definitions than it has room for.");
+                    }
+
+                    content.Add(new DwgGroup(179, definitions));
+
+                    for (int i = 0; i < definitions; i++)
+                    {
+                        content.Add(new DwgGroup(331, H()));
+                        _data.BitShort();
+                        content.Add(new DwgGroup(300, T()));
+                    }
+                }
+            }
+
+            groups.Add(new DwgGroup(171, type));
+            groups.Add(new DwgGroup(172, edges));
+            groups.Add(new DwgGroup(173, merged ? 1 : 0));
+            groups.Add(new DwgGroup(174, autoFit ? 1 : 0));
+            groups.Add(new DwgGroup(175, width));
+            groups.Add(new DwgGroup(176, height));
+
+            if (_data.Bit())
+            {
+                // Bit 0x40000 is of a later release, which keeps it here and has no value for it; DXF leaves it out.
+                int flags = _data.BitLong();
+                groups.Add(new DwgGroup(R2007Plus ? 91 : 177, R2007Plus ? flags : flags & 0x3FFFF));
+                groups.Add(new DwgGroup(178, (int)_data.RawChar()));
+                ReadFlagged(groups, flags, 0x01, 170, 'S');
+                ReadFlagged(groups, flags, 0x02, 283, 'B');
+                ReadFlagged(groups, flags, 0x04, 63, 'C');
+                ReadFlagged(groups, flags, 0x08, 64, 'C');
+                ReadFlagged(groups, flags, 0x10, 7, 'H');
+                ReadFlagged(groups, flags, 0x20, 140, 'D');
+                ReadFlagged(groups, flags, 0x40, 69, 'C');
+                ReadFlagged(groups, flags, 0x400, 279, 'S');
+                ReadFlagged(groups, flags, 0x400, 289, 'S');
+                ReadFlagged(groups, flags, 0x80, 65, 'C');
+                ReadFlagged(groups, flags, 0x800, 275, 'S');
+                ReadFlagged(groups, flags, 0x800, 285, 'S');
+                ReadFlagged(groups, flags, 0x100, 66, 'C');
+                ReadFlagged(groups, flags, 0x1000, 276, 'S');
+                ReadFlagged(groups, flags, 0x1000, 286, 'S');
+                ReadFlagged(groups, flags, 0x200, 68, 'C');
+                ReadFlagged(groups, flags, 0x2000, 278, 'S');
+                ReadFlagged(groups, flags, 0x2000, 288, 'S');
+            }
+            else
+            {
+                groups.Add(new DwgGroup(R2007Plus ? 91 : 177, 0));
+                groups.Add(new DwgGroup(178, 0));
+            }
+
+            groups.Add(new DwgGroup(145, rotation));
+            groups.AddRange(content);
+
+            if (R2007Plus)
+            {
+                groups.Add(new DwgGroup(92, _data.BitLong()));
+                ReadCellValue(groups);
+            }
+        }
+
+        /// <summary>
+        /// The value of a table cell from R2007, between <c>301 CELL_VALUE</c> and <c>304 ACVALUE_END</c>: its flags, its type
+        /// and, unless flag 1 says it is empty, the value (a string as UTF-16 counted in bytes), its unit type, its format and
+        /// the text it shows.
+        /// </summary>
+        private void ReadCellValue(List<DwgGroup> groups)
+        {
+            int flags = _data.BitLong();
+            int type = _data.BitLong();
+            groups.Add(new DwgGroup(301, "CELL_VALUE"));
+
+            groups.Add(new DwgGroup(93, flags));
+            groups.Add(new DwgGroup(90, type));
+
+            if ((flags & 1) == 0)
+            {
+                switch (type)
+                {
+                    case 0:
+                    case 1:
+                        groups.Add(new DwgGroup(91, _data.BitLong()));
+                        break;
+                    case 2:
+                        groups.Add(new DwgGroup(140, _data.BitDouble()));
+                        break;
+                    case 4:
+                    case 512:
+                        int length = _data.BitLong();
+
+                        if (length < 2 || length * 8L > _data.Remaining)
+                        {
+                            throw new FormatException("The value of the table cell runs past its end.");
+                        }
+
+                        byte[] utf16 = _data.Bytes(length);
+                        groups.Add(new DwgGroup(1, System.Text.Encoding.UTF8.GetBytes(System.Text.Encoding.Unicode.GetString(utf16, 0, length - 2))));
+                        break;
+                    default:
+                        throw new FormatException("The table cell has a value of the kind " + type + ", which is not read.");
+                }
+            }
+
+            groups.Add(new DwgGroup(94, _data.BitLong()));
+            groups.Add(new DwgGroup(300, T()));
+            groups.Add(new DwgGroup(302, T()));
+            groups.Add(new DwgGroup(304, "ACVALUE_END"));
+        }
+
+        /// <summary>
+        /// A value present where <paramref name="bit"/> is set in <paramref name="flags"/>, under <paramref name="code"/>:
+        /// <c>S</c> a bit short, <c>B</c> a bit, <c>C</c> a CMC colour (its index), <c>H</c> a handle, <c>D</c> a bit double.
+        /// </summary>
+        private void ReadFlagged(List<DwgGroup> groups, int flags, int bit, int code, char kind)
+        {
+            if ((flags & bit) == 0)
+            {
+                return;
+            }
+
+            switch (kind)
+            {
+                case 'S': groups.Add(new DwgGroup(code, _data.BitShort())); break;
+                case 'B': groups.Add(new DwgGroup(code, _data.Bit() ? 1 : 0)); break;
+                case 'C': groups.Add(new DwgGroup(code, ReadColour(true).Index)); break;
+                case 'H': groups.Add(new DwgGroup(code, H())); break;
+                default: groups.Add(new DwgGroup(code, _data.BitDouble())); break;
+            }
+        }
+
+        /// <summary>The overrides of a whole table before R2007; returns their flags.</summary>
+        private int ReadTableOverrides(List<DwgGroup> groups)
+        {
+            int flags = _data.BitLong();
+            ReadFlagged(groups, flags, 0x01, 280, 'B');
+            ReadFlagged(groups, flags, 0x04, 70, 'S');
+            ReadFlagged(groups, flags, 0x08, 40, 'D');
+            ReadFlagged(groups, flags, 0x10, 41, 'D');
+            ReadFlagged(groups, flags, 0x20, 64, 'C');
+            ReadFlagged(groups, flags, 0x40, 64, 'C');
+            ReadFlagged(groups, flags, 0x80, 64, 'C');
+            ReadFlagged(groups, flags, 0x100, 283, 'B');
+            ReadFlagged(groups, flags, 0x200, 283, 'B');
+            ReadFlagged(groups, flags, 0x400, 283, 'B');
+            ReadFlagged(groups, flags, 0x800, 63, 'C');
+            ReadFlagged(groups, flags, 0x1000, 63, 'C');
+            ReadFlagged(groups, flags, 0x2000, 63, 'C');
+            ReadFlagged(groups, flags, 0x4000, 170, 'S');
+            ReadFlagged(groups, flags, 0x8000, 170, 'S');
+            ReadFlagged(groups, flags, 0x10000, 170, 'S');
+            ReadFlagged(groups, flags, 0x20000, 7, 'H');
+            ReadFlagged(groups, flags, 0x40000, 7, 'H');
+            ReadFlagged(groups, flags, 0x80000, 7, 'H');
+            ReadFlagged(groups, flags, 0x100000, 140, 'D');
+            ReadFlagged(groups, flags, 0x200000, 140, 'D');
+            ReadFlagged(groups, flags, 0x400000, 140, 'D');
+            return flags;
+        }
+
+        /// <summary>
+        /// The border overrides of a whole table before R2007, 18 borders by flag: <paramref name="kind"/> 0 colours, 1
+        /// lineweights, 2 visibilities. Returns their flags.
+        /// </summary>
+        private int ReadBorderOverrides(List<DwgGroup> groups, int kind)
+        {
+            int[] colourCodes = { 64, 65, 66, 63, 68, 69 };
+            int flags = _data.BitLong();
+
+            for (int i = 0; i < 18; i++)
+            {
+                int code = kind == 0 ? colourCodes[i % 6] : kind == 1 ? 274 + (i % 6) : 284 + (i % 6);
+                ReadFlagged(groups, flags, 1 << i, code, kind == 0 ? 'C' : 'S');
+            }
+
+            return flags;
         }
 
         private void ReadDimension(int type)

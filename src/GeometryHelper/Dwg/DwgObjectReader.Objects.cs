@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 
 namespace GeometryHelper.Dwg
@@ -31,6 +32,107 @@ namespace GeometryHelper.Dwg
                 _object.Add(100, "AcDbDictionaryWithDefault");
                 _object.Add(340, H());
             }
+        }
+
+        /// <summary>An IMAGEDEF: the file of a raster image, its size in pixels, whether it is loaded, its units and the size of a pixel.</summary>
+        private void ReadImageDefinition()
+        {
+            int version = _data.BitLong();
+            double[] size = _data.RawPoint2();
+            byte[] file = T();
+            bool loaded = _data.Bit();
+            int units = _data.RawChar();
+            double[] pixel = _data.RawPoint2();
+            _object.Add(100, "AcDbRasterImageDef");
+            _object.Add(90, version);
+            _object.Add(1, file);
+            _object.AddPoint(10, size);
+            _object.AddPoint(11, pixel);
+            _object.Add(280, loaded ? 1 : 0);
+            _object.Add(281, units);
+        }
+
+        /// <summary>An IMAGEDEF_REACTOR: its class version, then its image, its owner, which DXF writes again.</summary>
+        private void ReadImageDefinitionReactor()
+        {
+            _object.Add(100, "AcDbRasterImageDefReactor");
+            _object.Add(90, _data.BitLong());
+            _object.Add(330, _object.Owner);
+        }
+
+        /// <summary>
+        /// A DBCOLOR, a colour of a book: from R2004 a CMC colour with its name and its book, which DXF writes as 62, 420
+        /// and 430; before R2004 an index, which DXF does not write.
+        /// </summary>
+        private void ReadBookColour()
+        {
+            _object.Add(100, "AcDbColor");
+
+            if (!R2004Plus)
+            {
+                _data.BitShort();
+                return;
+            }
+
+            _object.BookColour = ReadColour();
+            AddColour(_object.Body, _object.BookColour, false);
+        }
+
+        /// <summary>
+        /// A TABLESTYLE before R2010: its description, flow, margins and what it suppresses, then the styles of the data,
+        /// title and header rows, each a text style, height, alignment, colours, from R2007 a data format, and six borders.
+        /// False from R2010, whose styles are cell styles, not read yet.
+        /// </summary>
+        private bool ReadTableStyle()
+        {
+            if (R2010Plus)
+            {
+                return false;
+            }
+
+            _object.Add(100, "AcDbTableStyle");
+            _object.Add(3, T());
+            _object.Add(70, _data.BitShort());
+            _object.Add(71, _data.BitShort());
+            _object.Add(40, _data.BitDouble());
+            _object.Add(41, _data.BitDouble());
+            _object.Add(280, _data.Bit() ? 1 : 0);
+            _object.Add(281, _data.Bit() ? 1 : 0);
+
+            for (int row = 0; row < 3; row++)
+            {
+                ulong textStyle = H();
+
+                if (textStyle != 0)
+                {
+                    _object.Add(7, new DwgName(textStyle, "Standard"));
+                }
+
+                _object.Add(140, _data.BitDouble());
+                _object.Add(170, _data.BitShort());
+                _object.Add(62, ReadColour(true).Index);
+                _object.Add(63, ReadColour(true).Index);
+                _object.Add(283, _data.Bit() ? 1 : 0);
+                var borders = new List<DwgGroup>();
+
+                for (int i = 0; i < 6; i++)
+                {
+                    borders.Add(new DwgGroup(274 + i, _data.BitShort()));
+                    borders.Add(new DwgGroup(284 + i, _data.Bit() ? 1 : 0));
+                    borders.Add(new DwgGroup(64 + i, ReadColour(true).Index));
+                }
+
+                if (R2007Plus)
+                {
+                    _object.Add(90, _data.BitLong());
+                    _object.Add(91, _data.BitLong());
+                    _object.Add(1, T());
+                }
+
+                _object.Body.AddRange(borders);
+            }
+
+            return true;
         }
 
         private void ReadDictionaryVariable()
@@ -97,8 +199,17 @@ namespace GeometryHelper.Dwg
                 }
                 else
                 {
+                    // Before R2018 the linetype is its place among the linetypes of the table, 32767 ByLayer, 32766 ByBlock.
                     int linetype = _data.BitShort();
-                    _object.Add(6, linetype == 32766 ? "BYBLOCK" : "BYLAYER");
+
+                    if (linetype == 32766 || linetype == 32767)
+                    {
+                        _object.Add(6, linetype == 32766 ? "BYBLOCK" : "BYLAYER");
+                    }
+                    else
+                    {
+                        _object.Add(6, new DwgLinetypeIndex(linetype));
+                    }
                 }
             }
         }
@@ -247,8 +358,29 @@ namespace GeometryHelper.Dwg
             int ortho = _data.BitShort();
             double[] extentsMin = _data.Point3();
             double[] extentsMax = _data.Point3();
+            int viewports = R2004Plus ? Count(_data.BitLong()) : 0;
             ulong block = H();
             ulong viewport = H();
+
+            if (R2004Plus)
+            {
+                // The base and the named UCS, which DXF does not write here, then the viewports of the layout in their order.
+                H();
+                H();
+                _object.Viewports = new List<ulong>(Math.Min(viewports, 1024));
+
+                for (int i = 0; i < viewports; i++)
+                {
+                    _object.Viewports.Add(H());
+                }
+
+                // A layout no viewport was made current in keeps none as the last active; DXF names the first, the one
+                // showing the paper.
+                if (viewport == 0 && viewports > 0)
+                {
+                    viewport = _object.Viewports[0];
+                }
+            }
             _object.Add(100, "AcDbPlotSettings");
             _object.Add(1, pageSetup);
             _object.Add(2, printer);
