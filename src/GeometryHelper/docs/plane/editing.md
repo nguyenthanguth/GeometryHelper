@@ -165,7 +165,8 @@ corners eat into the edge between them:
 | the corner is straighter than `Tolerance.EqualAngleRad` | the cut would be an edge of zero length |
 
 What was skipped, and why, is written to [`GeometryHelperLog`](xref:GeometryHelper.GeometryHelperLog). `TryChamferAt` reports `false` instead, for
-a caller who needs to know about one corner in particular. Every cut is measured on the shape as it came
+a caller who needs to know about one corner in particular, and for a cut that would leave no polygon: the triangle
+(0, 0), (100, 0), (0, 100) cut 100 back each way from its corner at the origin. Every cut is measured on the shape as it came
 in, never on a shape half cut already, so the answer does not depend on which vertex the walk began at.
 
 The shape is put back together within the tolerance asked, as a curved one is, so a cut longer than the tolerance

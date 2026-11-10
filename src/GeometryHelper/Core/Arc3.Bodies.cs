@@ -166,7 +166,9 @@ namespace GeometryHelper.Core
         /// A face reads an end of the arc standing within the point tolerance of its plane, and within the tolerance of its
         /// outline in that plane, as on it, and the two together reach further than the tolerance off an edge or a corner of the
         /// box: an arc starting 0.00064 off a corner of the box 30 by 20 by 10 in each of the three directions, and running away
-        /// from it, is 0.0011 from the box, and is given no point now, where it was given one.
+        /// from it, is 0.0011 from the box, and is given no point now, where it was given one. A box flat on one axis is the
+        /// rectangle across it, and an arc through the box 100 by 100 by 0 is given the point where it passes the rectangle; a
+        /// box flat on two axes or three, a segment or a point, has no face and is given no point.
         /// </remarks>
         public static GeoPoint3[] GetIntersections(GeoArc3 arc, GeoObb3 box, Tolerance tolerance)
         {
@@ -183,7 +185,7 @@ namespace GeometryHelper.Core
         {
             var found = new List<GeoPoint3>();
 
-            foreach (GeoPolygon3 face in box.GetFaces())
+            foreach (GeoPolygon3 face in box.GetFacesWithArea())
             {
                 foreach (GeoPoint3 candidate in CrossingsOf(arc, face, tolerance))
                 {

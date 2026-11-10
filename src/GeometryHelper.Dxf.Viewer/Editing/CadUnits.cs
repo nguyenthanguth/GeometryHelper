@@ -130,8 +130,15 @@ namespace GeometryHelper.Dxf.Viewer
                         return false;
                     }
 
-                    double whole = feet.Groups["feet"].Success ? double.Parse(feet.Groups["feet"].Value, CultureInfo.InvariantCulture) : 0.0;
+                    double whole = feet.Groups["feet"].Success ? Digits(feet.Groups["feet"].Value) : 0.0;
                     value = (whole * 12.0 + inches) * (feet.Groups["sign"].Value == "-" ? -1.0 : 1.0);
+
+                    if (double.IsInfinity(value))
+                    {
+                        value = 0.0;
+                        return false;
+                    }
+
                     return true;
                 }
             }
@@ -165,7 +172,8 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             if (typed.Length > 1 && (typed.EndsWith("g", StringComparison.OrdinalIgnoreCase) || typed.EndsWith("r", StringComparison.OrdinalIgnoreCase))
-                && double.TryParse(typed.Substring(0, typed.Length - 1), NumberStyles.Float, CultureInfo.InvariantCulture, out number))
+                && double.TryParse(typed.Substring(0, typed.Length - 1), NumberStyles.Float, CultureInfo.InvariantCulture, out number)
+                && !double.IsNaN(number) && !double.IsInfinity(number))
             {
                 radians = char.ToLowerInvariant(typed[typed.Length - 1]) == 'g' ? number * Math.PI / 200.0 : number;
                 return true;
@@ -237,10 +245,17 @@ namespace GeometryHelper.Dxf.Viewer
                 return false;
             }
 
-            degrees = double.Parse(dms.Groups["d"].Value, CultureInfo.InvariantCulture)
-                + (dms.Groups["m"].Success ? double.Parse(dms.Groups["m"].Value, CultureInfo.InvariantCulture) / 60.0 : 0.0)
-                + (dms.Groups["s"].Success ? double.Parse(dms.Groups["s"].Value, CultureInfo.InvariantCulture) / 3600.0 : 0.0);
+            degrees = Digits(dms.Groups["d"].Value)
+                + (dms.Groups["m"].Success ? Digits(dms.Groups["m"].Value) / 60.0 : 0.0)
+                + (dms.Groups["s"].Success ? Digits(dms.Groups["s"].Value) / 3600.0 : 0.0);
             degrees = dms.Groups["sign"].Value == "-" ? -degrees : degrees;
+
+            if (double.IsInfinity(degrees))
+            {
+                degrees = 0.0;
+                return false;
+            }
+
             return true;
         }
 
@@ -255,16 +270,32 @@ namespace GeometryHelper.Dxf.Viewer
                 return false;
             }
 
-            double bottom = fraction.Groups["bottom"].Success ? double.Parse(fraction.Groups["bottom"].Value, CultureInfo.InvariantCulture) : 1.0;
+            double bottom = fraction.Groups["bottom"].Success ? Digits(fraction.Groups["bottom"].Value) : 1.0;
 
             if (bottom == 0.0)
             {
                 return false;
             }
 
-            value = (fraction.Groups["whole"].Success ? double.Parse(fraction.Groups["whole"].Value, CultureInfo.InvariantCulture) : 0.0)
-                + (fraction.Groups["top"].Success ? double.Parse(fraction.Groups["top"].Value, CultureInfo.InvariantCulture) / bottom : 0.0);
+            value = (fraction.Groups["whole"].Success ? Digits(fraction.Groups["whole"].Value) : 0.0)
+                + (fraction.Groups["top"].Success ? Digits(fraction.Groups["top"].Value) / bottom : 0.0);
+
+            if (double.IsNaN(value) || double.IsInfinity(value))
+            {
+                value = 0.0;
+                return false;
+            }
+
             return true;
+        }
+
+        /// <summary>
+        /// A run of digits the patterns above matched, with or without a point, as a number: infinity for one past the largest
+        /// double, which <see cref="double.Parse(string, IFormatProvider)"/> threw on in .NET Framework.
+        /// </summary>
+        private static double Digits(string digits)
+        {
+            return double.TryParse(digits, NumberStyles.Float, CultureInfo.InvariantCulture, out double number) ? number : double.PositiveInfinity;
         }
 
         private static string Sexagesimal(double degrees, int places)

@@ -1311,7 +1311,7 @@ namespace GeometryHelper.Geometry
         /// <summary>
         /// Joins this body to a box.
         /// </summary>
-        /// <remarks>A box is read as the body it bounds, which is exact: six flat faces, no fitting and no approximation. The answer is a <see cref="GeoSolid3"/> because a boolean of two boxes is hardly ever a box.</remarks>
+        /// <remarks>A box is read as the body it bounds, which is exact: six flat faces, no fitting and no approximation. The answer is a <see cref="GeoSolid3"/> because a boolean of two boxes is hardly ever a box. A box flat on some axis bounds no body, and the answer is false.</remarks>
         public bool TryUnion(GeoObb3 other, out GeoSolid3 result) => TryUnion(other, out result, Tolerance.Global);
 
         /// <summary>
@@ -1323,12 +1323,12 @@ namespace GeometryHelper.Geometry
         /// <returns>true when the two made a body; otherwise, false.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the box is null.</exception>
         public bool TryUnion(GeoObb3 other, out GeoSolid3 result, Tolerance tolerance)
-            => Boolean3.TryUnion(this, AsBody(other, nameof(other)), out result, tolerance);
+            => AsBody(other, nameof(other)) is GeoSolid3 box ? Boolean3.TryUnion(this, box, out result, tolerance) : NoBody(out result);
 
         /// <summary>
         /// Keeps what this body and a box both enclose.
         /// </summary>
-        /// <remarks>A box is read as the body it bounds, which is exact: six flat faces, no fitting and no approximation. The answer is a <see cref="GeoSolid3"/> because a boolean of two boxes is hardly ever a box.</remarks>
+        /// <remarks>A box is read as the body it bounds, which is exact: six flat faces, no fitting and no approximation. The answer is a <see cref="GeoSolid3"/> because a boolean of two boxes is hardly ever a box. A box flat on some axis bounds no body, and the answer is false.</remarks>
         public bool TryIntersect(GeoObb3 other, out GeoSolid3 result) => TryIntersect(other, out result, Tolerance.Global);
 
         /// <summary>
@@ -1340,12 +1340,12 @@ namespace GeometryHelper.Geometry
         /// <returns>true when the two made a body; otherwise, false.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the box is null.</exception>
         public bool TryIntersect(GeoObb3 other, out GeoSolid3 result, Tolerance tolerance)
-            => Boolean3.TryIntersect(this, AsBody(other, nameof(other)), out result, tolerance);
+            => AsBody(other, nameof(other)) is GeoSolid3 box ? Boolean3.TryIntersect(this, box, out result, tolerance) : NoBody(out result);
 
         /// <summary>
         /// Takes a box out of this body.
         /// </summary>
-        /// <remarks>A box is read as the body it bounds, which is exact: six flat faces, no fitting and no approximation. The answer is a <see cref="GeoSolid3"/> because a boolean of two boxes is hardly ever a box.</remarks>
+        /// <remarks>A box is read as the body it bounds, which is exact: six flat faces, no fitting and no approximation. The answer is a <see cref="GeoSolid3"/> because a boolean of two boxes is hardly ever a box. A box flat on some axis bounds no body, and the answer is false.</remarks>
         public bool TrySubtract(GeoObb3 tool, out GeoSolid3 result) => TrySubtract(tool, out result, Tolerance.Global);
 
         /// <summary>
@@ -1357,10 +1357,11 @@ namespace GeometryHelper.Geometry
         /// <returns>true when the two made a body; otherwise, false.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the box is null.</exception>
         public bool TrySubtract(GeoObb3 tool, out GeoSolid3 result, Tolerance tolerance)
-            => Boolean3.TrySubtract(this, AsBody(tool, nameof(tool)), out result, tolerance);
+            => AsBody(tool, nameof(tool)) is GeoSolid3 box ? Boolean3.TrySubtract(this, box, out result, tolerance) : NoBody(out result);
 
         /// <summary>
-        /// Reads a box as the body it bounds, complaining in the caller's own words when it is null.
+        /// Reads a box as the body it bounds, complaining in the caller's own words when it is null; null for a box flat on
+        /// some axis, which bounds none.
         /// </summary>
         private static GeoSolid3 AsBody(GeoObb3 box, string name)
         {
@@ -1369,7 +1370,14 @@ namespace GeometryHelper.Geometry
                 throw new ArgumentNullException(name);
             }
 
-            return box.ToSolid();
+            return box.HasFaces ? box.ToSolid() : null;
+        }
+
+        /// <summary>No result, and false: the answer of a boolean with a box that bounds no body.</summary>
+        private static bool NoBody(out GeoSolid3 result)
+        {
+            result = null;
+            return false;
         }
 
         #endregion

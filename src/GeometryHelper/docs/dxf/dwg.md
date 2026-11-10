@@ -110,7 +110,7 @@ Every check sum of the file is checked.
 | has a wrong check sum in the file header, the header variables, the classes or the object map, or is cut short there | `FormatException` naming the part |
 | from AutoCAD 2004: has a page whose check sum is wrong, that does not decompress to its size, or that names more data than the file can hold | `FormatException` |
 | from AutoCAD 2007 to 2009: has a wrong CRC in its file header, its page map, its section map or a page | `FormatException`; a byte changed in the parity of a Reed-Solomon block changes nothing read, and the file reads |
-| has one object with a wrong check sum, one that cannot be decoded, or one whose values the library's geometry refuses (a damaged spline whose plane cannot be worked out) | that object is left out and the others are read; one Warn line gives the count and the first fault |
+| has one object with a wrong check sum, one that cannot be decoded, or one whose values the library's geometry refuses (a damaged spline whose points lie too far apart for their plane to be worked out) | that object is left out and the others are read; one Warn line gives the count and the first fault |
 
 Where an entity is left out, those after it in its block are still read. No broken file makes the reader hang or eat
 memory. 10 500 copies of the drawings of AutoCAD 2000 and 12 800 of the later versions, with bits changed at random

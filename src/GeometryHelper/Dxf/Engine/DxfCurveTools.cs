@@ -14,7 +14,9 @@ namespace GeometryHelper.Dxf
         /// The normal of the plane some points lie in within the point tolerance, false where they lie in none. The normal
         /// preferred is taken where the points lie in a plane square to it; otherwise the plane is that of the points (by
         /// Newell's sum round them), its normal turned to the side its largest part is above nought on; a row of points on
-        /// one line lies in the plane through it nearest the world's floor.
+        /// one line lies in the plane through it nearest the world's floor. False, never a throw, for points that give no plane
+        /// to tell: none, one, all within the point tolerance of the first, or any not finite; and for points so far apart
+        /// that their sums run past the largest double. On false the normal is (0, 0, 1).
         /// </summary>
         internal static bool TryPlane(IReadOnlyList<GeoPoint3> points, GeoVector3 preferred, out GeoVector3 normal)
         {
@@ -23,17 +25,44 @@ namespace GeometryHelper.Dxf
 
             if (points.Count == 0)
             {
-                return true;
+                return false;
             }
 
-            if (preferred.IsValid && preferred.Length > 0.0 && Within(points, preferred.Normalize(), slack))
+            foreach (GeoPoint3 p in points)
             {
-                normal = preferred.Normalize();
+                if (!p.IsValid)
+                {
+                    return false;
+                }
+            }
+
+            // The farthest point from the first: none past the point tolerance, or one past the largest double, and there
+            // is no plane to tell.
+            GeoPoint3 o = points[0];
+            GeoVector3 along = default(GeoVector3);
+
+            foreach (GeoPoint3 p in points)
+            {
+                GeoVector3 d = o.GetVectorTo(p);
+
+                if (d.Length > along.Length)
+                {
+                    along = d;
+                }
+            }
+
+            if (!(along.Length > slack) || !Unit(along, out GeoVector3 u))
+            {
+                return false;
+            }
+
+            if (preferred.IsValid && Unit(preferred, out GeoVector3 given) && Within(points, given, slack))
+            {
+                normal = given;
                 return true;
             }
 
             double nx = 0.0, ny = 0.0, nz = 0.0;
-            GeoPoint3 o = points[0];
 
             for (int i = 0; i < points.Count; i++)
             {
@@ -48,31 +77,13 @@ namespace GeometryHelper.Dxf
 
             var newell = new GeoVector3(nx, ny, nz);
 
-            if (newell.Length > 0.0 && Within(points, newell.Normalize(), slack))
+            if (Unit(newell, out GeoVector3 across) && Within(points, across, slack))
             {
-                normal = Upward(newell.Normalize());
+                normal = Upward(across);
                 return true;
             }
 
             // On one line, or nearly: the plane through the line nearest the floor.
-            GeoVector3 along = default(GeoVector3);
-
-            foreach (GeoPoint3 p in points)
-            {
-                GeoVector3 d = o.GetVectorTo(p);
-
-                if (d.Length > along.Length)
-                {
-                    along = d;
-                }
-            }
-
-            if (!(along.Length > slack))
-            {
-                return true;
-            }
-
-            GeoVector3 u = along.Normalize();
             var up = new GeoVector3(0.0, 0.0, 1.0);
             GeoVector3 square = up.Add(u.Multiply(-up.DotProduct(u)));
 
@@ -82,7 +93,12 @@ namespace GeometryHelper.Dxf
                 square = x.Add(u.Multiply(-x.DotProduct(u)));
             }
 
-            GeoVector3 candidate = Upward(square.Normalize());
+            if (!Unit(square, out GeoVector3 flat))
+            {
+                return false;
+            }
+
+            GeoVector3 candidate = Upward(flat);
 
             if (Within(points, candidate, slack))
             {
@@ -119,6 +135,24 @@ namespace GeometryHelper.Dxf
             return big < 0.0 ? n.Negate() : n;
         }
 
+        /// <summary>
+        /// A vector divided by its length, as <see cref="GeoVector3.Normalize()"/> divides it but with no floor on the length:
+        /// false for a vector of no length or of one past the largest double, which has no direction to give.
+        /// </summary>
+        private static bool Unit(GeoVector3 v, out GeoVector3 unit)
+        {
+            double length = v.Length;
+
+            if (!(length > 0.0) || double.IsInfinity(length))
+            {
+                unit = default(GeoVector3);
+                return false;
+            }
+
+            unit = new GeoVector3(v.X / length, v.Y / length, v.Z / length);
+            return true;
+        }
+
         /// <summary>Whether points all lie within a distance of the plane through the first square to a normal.</summary>
         private static bool Within(IReadOnlyList<GeoPoint3> points, GeoVector3 normal, double slack)
         {
@@ -126,7 +160,8 @@ namespace GeometryHelper.Dxf
 
             foreach (GeoPoint3 p in points)
             {
-                if (Math.Abs(o.GetVectorTo(p).DotProduct(normal)) > slack)
+                // Written as what the distance has to be, so that one run past the largest double, a NaN, is not within.
+                if (!(Math.Abs(o.GetVectorTo(p).DotProduct(normal)) <= slack))
                 {
                     return false;
                 }
