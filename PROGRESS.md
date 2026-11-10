@@ -143,8 +143,11 @@ the ones wanted.
       the command line keeping its own copy; with DYN off only the command line (M) (designed in v111)
 - [x] Previews round 2: FILLET and CHAMFER hovering the second object, TRIM and EXTEND Quick mode, LENGTHEN Dynamic,
       HATCH pick points, TEXT, TABLE, MLEADER, QDIM, BREAK, ALIGN, the Points of ROTATE/SCALE Reference, -ARRAY (M)
-- [ ] Tests (running): the Wpf suite and a parallel run share the global settings file and fail together; give tests
-      their own settings path (S)
+- [x] Tests: the Wpf suite's 25 red tests came from its classes loading XAML in parallel (a race inside WPF), so the
+      suite runs one test at a time; its picture goes to its own folder, and a view model made in a test keeps its
+      settings in a file of the tests (S)
+- [ ] Tests: other fixed %TEMP% paths two worktrees can collide on (render and plot outputs of Dxf.Viewer.UnitTest,
+      Drawing.UnitTest and Drawing.Wpf.UnitTest) move to a folder per run (S)
 - [x] Layer States Manager, View Manager with New View, Drawing Units with Direction Control (designed in v110) (M)
 - [ ] Previews follow-ups (running): TRIM in Standard mode and Shift swapping TRIM and EXTEND; -ARRAY distances without a base point
       and polar -ARRAY; the TEXT box by justification; BREAK and the -ARRAY unit cell checked against what AutoCAD shows;
