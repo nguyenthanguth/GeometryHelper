@@ -1,4 +1,4 @@
-# 78 Our own DWG reader (W1: the bit layer and R2000; W2: R2004 to R2018)
+# 78 Our own DWG reader (W1: the bit layer and R2000; W2: R2004 to R2018; W3: R2007)
 
 A DWG is read by code of our own into the records the library already has for a DXF, so that everything built on a DXF
 document works on a DWG: `DxfDatabase`, `DxfReader`, the presenter. Stage W1, done here, is the bit layer and the format
@@ -236,6 +236,7 @@ DECIDED: a true colour of a table record is written with the nearest colour inde
 does not hold (it holds 0 beside it). The palette is the library's but for the greys 250 to 255, which the library has as
 ezdxf does (250 black) and AutoCAD as 51, 80, 105, 130, 190, 255; the reader uses AutoCAD's there. A layer of RGB
 10, 200, 30 gets 102 and a viewport's ambient 0x333333 gets 250, as in AutoCAD's DXF.
+Superseded in W3: the palette of the library is now AutoCAD's, all of it, and the reader has no greys of its own.
 
 DECIDED: before R2010 `$XCLIPFRAME` is group 290, on or off; the value 2 of later releases is written 0, as AutoCAD
 writes it.
@@ -279,6 +280,78 @@ the suite 3 000 pages of noise, 160 files changed anywhere and 480 changed insid
 Speed, best of five, 100 000 lines: `DwgReader.Read` takes 720 to 771 ms in every version (418 to 477 ms of it to DXF),
 `DxfReader.Read` of AutoCAD's 14 MB DXF 246 to 303 ms.
 
+## W3: R2007 (AC1021) and the palette
+
+| Path | What it holds |
+|---|---|
+| `src/GeometryHelper/Dwg/DwgContainer.R2007.cs` | the container of AC1021: the file header, the page map and section map, the pages coded by Reed-Solomon |
+| `src/GeometryHelper/Dwg/DwgLz21.cs` | the decompression of R2007 |
+| `src/GeometryHelper/Dwg/DwgCrc.cs` | also the CRCs of 64 bits, normal and mirrored, their two seeds, and the sum of a data page of R2007 |
+
+The file of R2007: the version and a few fields at 0x00 as in R2004, then 0x400 bytes at 0x80, three Reed-Solomon
+(255, 239) blocks interleaved, whose data holds the CRC of a check sequence, its key, the CRC and the size of the
+compressed data, and the data, 0x110 bytes once decompressed: the places, sizes, CRCs and repeat factors of the page map
+and the section map, and the file's CRC seed. The pages start at 0x480. The page map and the section map are system
+pages: their data, compressed where that is shorter, padded to eight bytes, repeated as often as the page holds it and
+coded by Reed-Solomon (255, 239), interleaved. The page map is pairs of size and number from 0x480 on; the section map
+gives each section its size, its page size, its coding (4 interleaved, 1 not), its name in UTF-16 (the length counts
+bytes) and its pages with their offset, number, sizes, sum and CRC. A data page is Reed-Solomon (255, 251) blocks. The
+sections read are those of R2004.
+
+DECIDED: the parity bytes of the Reed-Solomon code are not used to correct anything. The data bytes are taken out of
+their blocks and the CRCs and sums decide whether they are whole: a DWG with a changed data byte is broken, as it is in
+every other version, and one whose parity alone is changed reads as if whole.
+
+DECIDED: every sum of R2007 is checked, and each was found to hold on AutoCAD's files before it was made a refusal: the
+normal 64-bit CRC of the check sequence (seed 1 from 0 over the key and the key turned by itself), of the compressed
+data of the file header and of its data (seed 2 from 0); the mirrored 64-bit CRC of the page map and the section map,
+compressed and not (seed 1 from the file's CRC seed); and of each data page the mirrored CRC of its compressed bytes
+(seed 1 from the file's CRC seed) and the 32-bit sum of its data (from 0, the bytes of each eight in the order of the
+specification). AutoCAD's CRC seed is 0 in every test drawing. The tables of the two CRCs are made from their
+polynomials (0x42F0E1EBA9EA3693, and 0x95AC9329AC4BC9B5 reflected), not copied.
+
+DECIDED: the decompression is ported from the specification and ACadSharp (MIT): a run of literal bytes comes out in an
+order of its own for each length from 1 to 31 (a table of 31 orders, checked against both sources), in groups of 32
+reversed by eights. 3 000 slices of AutoCAD's objects compressed by ACadSharp's compressor come back byte for byte.
+
+DECIDED: a data page of R2007 may be larger than its section's page size: in the eight test drawings AutoCAD 2021 wrote
+pages of the objects of up to 68 480 bytes under a page size of 63 488. A page is held to 1 MB, as in R2004, not to the
+section's page size.
+
+DECIDED: from R2007 the description in AcDb:Template is counted in UTF-16 characters, as ACadSharp reads it; AutoCAD's
+is empty.
+
+DECIDED: the decoders needed nothing new for AC1021: every branch W2 wrote for it from the specification (the string
+stream, the UTF-16 texts, the object head with its size in bits, the string stream of the header and the classes) read
+the eleven drawings right the first time.
+
+DECIDED: the palette of `DxfColor` is AutoCAD 2021's, all 255 indexes: a probe wrote
+`Color.FromColorIndex(ColorMethod.ByAci, i).ColorValue` and `EntityColor.LookUpRgb(i)` for 1 to 255, which agree. The
+table taken from ezdxf differed at 197 of them: eight of the ten shades of each hue (12 is 0xCC0000 in AutoCAD, 0xA50000
+in ezdxf), a few odd entries of ezdxf (109 0x135817, 149 0x135858), and the greys 250 to 255, which are 0x333333,
+0x5B5B5B, 0x848484, 0xADADAD, 0xD6D6D6 and white. W2's greys (51, 80, 105, 130, 190, 255) were right for 250 and 255
+only; its workaround in the reader is gone, and the nearest index of a true colour comes from `DxfColor` alone. The test
+drawings of every version still compare clean: a layer of RGB 10, 200, 30 gets 102 and an ambient 0x333333 gets 250.
+
+Proof: the eight drawings of W1 and the three of W2 (anonymous blocks, tilted splines, 100 000 lines, made in AC1021 by
+probe `GhDwg3`, W2's route) compare with AutoCAD's DXF of them with no difference but W2's two spline normals.
+
+DECIDED: an object whose decoded values the library's geometry refuses is one broken object, not a broken file. The fuzz
+of AC1021 found a SPLINE changed so that `DxfCurveTools.TryPlane` throws an `InvalidOperationException` ("Cannot
+normalize a zero-length vector"), which went past the transcoder's catch of `FormatException` and refused the whole file
+(in every version). The transcoder now leaves such an object out with the Warn line; `TryPlane` throwing on points no
+drawing has is the core's to settle (it is outside this stage).
+
+Fuzz: 8 000 changed copies of the ten small AC1021 drawings, half with bytes changed inside the decompressed objects
+under a repaired check sum: 2 faults of another kind before the fix above, both that spline, 0 after; each read or
+refused in under 0.15 s, the process under 58 MB (GCHeapHardLimit 4 GB). The decompression: 3 000 slices round trip,
+and the same with bytes changed returned or refused, none past its output, in under 5 ms. In the suite: the two AC1021
+drawings in both seeded fuzz theories, 3 000 inputs of noise to `DwgLz21`, and a byte changed every 97 bytes of a file.
+
+Speed, best of five, 100 000 lines in AC1021: `DwgReader.Read` 750 to 816 ms (471 to 502 ms of it to DXF), beside 747 to
+796 ms (448 to 470 ms) for AC1018 in the same runs on a machine under other load; `DxfReader.Read` of AutoCAD's DXF 270
+to 305 ms. Taking the data out of the blocks one block at a time, not by a division per byte, took 829 ms to 750 ms.
+
 ## Left open by W1
 
 | What | State |
@@ -298,7 +371,7 @@ Speed, best of five, 100 000 lines: `DwgReader.Read` takes 720 to 771 ms in ever
 | Stage | Needs |
 |---|---|
 | W2: R2004, R2010, R2013, R2018 (AC1018 to AC1032) | done, see W2 above. As planned: a second container behind the same hand-over (`Header`, `Classes`, `ObjectMap`, the bytes of the objects): the encrypted file header, the page map and section map, the LZ77 decompression of pages, the 32-bit check sum. Objects are no longer at offsets of the file but of the decompressed AcDbObjects section, so `DwgObjectReader` is to take that array. The decoders take the version: R2004 colours (CMC with a true colour and a book name), the count of owned objects in place of first and last handles, no next and previous links; R2010 the type as two bits and bytes, the size of the handle stream in the object's head; R2013 and R2018 a few more fields. The probe already wrote the eight drawings in AC1018, AC1021, AC1024, AC1027 and AC1032 with their answer keys (scratch, `out/`), ready to be the proof |
-| W3: R2007 (AC1021) | its own container (Reed-Solomon coded pages, its own compression, the CRCs of 64 bits). The decoders already take AC1021: every branch of W2 for the string stream, the UTF-16 texts and the fields of R2007 is written from 1021 up, and the object head of R2007 (a bit size, as R2000, with the string stream found from it) is in `DwgObjectReader.Read`. None of it has met a file of R2007 yet; the eight drawings of AC1021 with their keys are in W1's scratch, `out/` |
+| W3: R2007 (AC1021) | done, see W3 above |
 | later: the entities and objects left out | a decoder each in `DwgObjectReader`, a drawing each from the probe; nothing in the container changes |
 | later: writing a DWG | the bit writer as the mirror of `DwgBitReader`, and the tables of `DwgHeaderVariables` and the decoders read the other way |
 

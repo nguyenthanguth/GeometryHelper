@@ -10,7 +10,7 @@ namespace GeometryHelper.Dwg
     /// its offsets count into. Reading the container is the only step that knows where a version keeps its sections. Of
     /// R2000 (AC1015) the sections lie in the file as they are, found through the section locator records of the file
     /// header; of R2004 (AC1018) and of R2010 to R2018 (AC1024, AC1027, AC1032) they are compressed pages, read in
-    /// DwgContainer.R2004.cs. R2007 (AC1021) has a container of its own and is not read yet.
+    /// DwgContainer.R2004.cs; R2007 (AC1021) has a container of its own, read in DwgContainer.R2007.cs.
     /// </summary>
     internal sealed partial class DwgContainer
     {
@@ -129,9 +129,12 @@ namespace GeometryHelper.Dwg
                 case "AC1027":
                 case "AC1032":
                     return ReadR18(file, version);
+                case "AC1021":
+                    return ReadR21(file, version);
                 default:
                     throw new NotSupportedException("The DWG version " + version + " (" + ReleaseOf(version) + ") is not read yet; DWG files of "
-                        + "AC1015 (AutoCAD 2000), AC1018 (AutoCAD 2004), AC1024 (AutoCAD 2010), AC1027 (AutoCAD 2013) and AC1032 (AutoCAD 2018) are.");
+                        + "AC1015 (AutoCAD 2000), AC1018 (AutoCAD 2004), AC1021 (AutoCAD 2007), AC1024 (AutoCAD 2010), AC1027 (AutoCAD 2013) "
+                        + "and AC1032 (AutoCAD 2018) are.");
             }
         }
 
