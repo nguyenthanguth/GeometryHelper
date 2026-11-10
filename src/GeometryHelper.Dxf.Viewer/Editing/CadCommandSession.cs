@@ -530,7 +530,7 @@ namespace GeometryHelper.Dxf.Viewer
                         return Answer(new CadInput(CadInputKind.Point, point, 0.0, typed, null), echo, point);
                     }
 
-                    if (Prompt.BasePoint != null && TryNumber(typed, out double along))
+                    if (Prompt.BasePoint != null && TryLength(typed, out double along))
                     {
                         // Direct distance entry: the distance along the rubber band, from the base point towards the cursor.
                         GeoPoint2 from = Prompt.BasePoint.Value;
@@ -548,7 +548,7 @@ namespace GeometryHelper.Dxf.Viewer
 
                     return Invalid(Prompt.Keywords.Count > 0 ? "Point or option keyword required." : "Invalid point.", echo);
                 case CadPromptKind.Distance:
-                    if (TryNumber(typed, out double distance))
+                    if (TryLength(typed, out double distance))
                     {
                         return Answer(new CadInput(CadInputKind.Number, default, distance, typed, null), echo, null);
                     }
@@ -560,9 +560,9 @@ namespace GeometryHelper.Dxf.Viewer
 
                     return Invalid("Requires numeric distance, second point, or option keyword.", echo);
                 case CadPromptKind.Angle:
-                    if (TryNumber(typed, out double degrees))
+                    if (TryAngle(typed, out double radians))
                     {
-                        return Answer(new CadInput(CadInputKind.Number, default, degrees * Math.PI / 180.0, typed, null), echo, null);
+                        return Answer(new CadInput(CadInputKind.Number, default, radians, typed, null), echo, null);
                     }
 
                     if (Prompt.BasePoint != null && TryPoint(typed, out GeoPoint2 toward2))
@@ -1130,20 +1130,19 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (polar > 0)
             {
-                if (!TryNumber(text.Substring(0, polar), out double length) || !TryNumber(text.Substring(polar + 1), out double degrees))
+                if (!TryLength(text.Substring(0, polar), out double length) || !TryAngle(text.Substring(polar + 1), out double angle))
                 {
                     return false;
                 }
 
-                double angle = degrees * Math.PI / 180.0;
                 offset = new GeoVector2(length * Math.Cos(angle), length * Math.Sin(angle));
             }
             else
             {
                 string[] parts = text.Split(',');
 
-                if (parts.Length < 2 || parts.Length > 3 || !TryNumber(parts[0], out double x) || !TryNumber(parts[1], out double y)
-                    || (parts.Length == 3 && !TryNumber(parts[2], out _)))
+                if (parts.Length < 2 || parts.Length > 3 || !TryLength(parts[0], out double x) || !TryLength(parts[1], out double y)
+                    || (parts.Length == 3 && !TryLength(parts[2], out _)))
                 {
                     return false;
                 }
@@ -1157,5 +1156,11 @@ namespace GeometryHelper.Dxf.Viewer
 
         private static bool TryNumber(string text, out double value)
             => double.TryParse(text.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out value) && !double.IsNaN(value) && !double.IsInfinity(value);
+
+        /// <summary>A length typed, read in the drawing's LUNITS: feet and inches in engineering and architectural units, as AutoCAD reads them.</summary>
+        private bool TryLength(string text, out double value) => CadUnits.TryLength(text, Document.Database.Lunits, out value);
+
+        /// <summary>An angle typed, read in the drawing's AUNITS: grads or radians where they are its units, and any angle with its own mark.</summary>
+        private bool TryAngle(string text, out double radians) => CadUnits.TryAngle(text, Document.Database.Aunits, out radians);
     }
 }

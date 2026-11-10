@@ -82,7 +82,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// Gets the line written to the error output when the arguments of <c>--screenshot</c> do not read: the options the
         /// presenter knows, after the name of the program.
         /// </summary>
-        protected virtual string Usage => "Usage: " + (Assembly.GetEntryAssembly()?.GetName().Name ?? "app") + " --screenshot out.png [file.dxf] [--size 1600 960] [--space \"Layout1\"] [--select H1,H2] [--run \"MOVE;0,0\"] [--cursor x,y] [--toggle GRID,SNAP] [--layers] [--tab Insert|Annotate|View|Plugins|Settings] [--dialog save-changes|options|settings:Category|plugins|plugin-settings|plugin-untrusted|color|truecolor|truecolor-rgb|dsettings[:Tab]|osnap-menu|snap-menu|drawings-menu|scale-menu|missing-shx|missing-shx-replace|ptype|linetype|linetype-load|select-linetype|hatch|hatch-gradient|hatch-user|hatch-solid|hatch-file|block|insert|wblock|attdef|eattedit[:Tab]|battman|battman-edit[:Tab]|battman-settings|attdia|purge|purge-nonpurgeable|classicgroup|group-order|style|style-new|dimstyle|dimstyle-new|dimstyle-modify[:Tab]|dimstyle-override[:Tab]|dimstyle-compare[:Other]|mleaderstyle|mleaderstyle-modify[:Tab]|matchprop|pastespec|app-menu[:Item]|cmdline-menu|input-settings-menu|recent-commands-menu|autocomplete:Text] [--recent \"a.dxf|*b.dxf\"] [--plugin path.dll]";
+        protected virtual string Usage => "Usage: " + (Assembly.GetEntryAssembly()?.GetName().Name ?? "app") + " --screenshot out.png [file.dxf] [--size 1600 960] [--space \"Layout1\"] [--select H1,H2] [--run \"MOVE;0,0\"] [--cursor x,y] [--toggle GRID,SNAP] [--layers] [--tab Insert|Annotate|View|Plugins|Settings] [--dialog save-changes|options|settings:Category|plugins|plugin-settings|plugin-untrusted|color|truecolor|truecolor-rgb|dsettings[:Tab]|osnap-menu|snap-menu|drawings-menu|scale-menu|missing-shx|missing-shx-replace|ptype|linetype|linetype-load|select-linetype|hatch|hatch-gradient|hatch-user|hatch-solid|hatch-file|block|insert|wblock|attdef|eattedit[:Tab]|battman|battman-edit[:Tab]|battman-settings|attdia|purge|purge-nonpurgeable|classicgroup|group-order|layerstate|view|newview|units|units-direction|style|style-new|dimstyle|dimstyle-new|dimstyle-modify[:Tab]|dimstyle-override[:Tab]|dimstyle-compare[:Other]|mleaderstyle|mleaderstyle-modify[:Tab]|matchprop|pastespec|app-menu[:Item]|cmdline-menu|input-settings-menu|recent-commands-menu|autocomplete:Text] [--recent \"a.dxf|*b.dxf\"] [--plugin path.dll]";
 
         /// <summary>
         /// Runs the app on the STA thread of its entry point: the window until it is closed, or the screenshot where the first
@@ -988,7 +988,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// Block Attribute Manager on the first block with attributes), <c>battman-edit[:Tab]</c> (its Edit Attribute on the
         /// first row, on a tab), <c>battman-settings</c>; <c>attdia</c> (Edit Attributes of an INSERT of that block, ATTDIA
         /// set to 1); <c>purge</c> and <c>purge-nonpurgeable</c> (Purge in each mode, the current layer chosen in the second);
-        /// <c>classicgroup</c> (Object Grouping, the first group chosen) and <c>group-order</c> (its Order Group).
+        /// <c>classicgroup</c> (Object Grouping, the first group chosen) and <c>group-order</c> (its Order Group); <c>layerstate</c>
+        /// (the Layer States Manager, the first state chosen); <c>view</c> (the View Manager, the first named view chosen) and
+        /// <c>newview</c> (its New View); <c>units</c> (Drawing Units) and <c>units-direction</c> (its Direction Control).
         /// </summary>
         private static bool ManagerDialog(MainViewModel model, string dialogName, ref string run, out Window window, out FrameworkElement root)
         {
@@ -998,7 +1000,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             string kind = parts[0].ToLowerInvariant();
 
             if (kind != "battman" && kind != "battman-edit" && kind != "battman-settings" && kind != "attdia" && kind != "purge" && kind != "purge-nonpurgeable"
-                && kind != "classicgroup" && kind != "group-order" && kind != "layerstate")
+                && kind != "classicgroup" && kind != "group-order" && kind != "layerstate" && kind != "view" && kind != "newview" && kind != "units" && kind != "units-direction")
             {
                 return false;
             }
@@ -1095,6 +1097,45 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     states.Selected = states.States.FirstOrDefault();
                     var statesWindow = new LayerStatesWindow(states);
                     (window, root) = (statesWindow, statesWindow.Body);
+                    return true;
+                case "view":
+                case "newview":
+                    model.ShowViewManager = dialog => { shown = dialog; return true; };
+                    model.Execute("VIEW");
+                    model.ShowViewManager = null;
+                    var views = (ViewManagerViewModel)shown;
+                    views.Selected = views.Nodes.FirstOrDefault(n => n.IsNamed) ?? views.Selected;
+
+                    if (kind == "view")
+                    {
+                        var viewsWindow = new ViewManagerWindow(views);
+                        (window, root) = (viewsWindow, viewsWindow.Body);
+                    }
+                    else
+                    {
+                        var newView = new NewViewWindow(new NewViewViewModel(views.Request) { ViewName = "Stair core" });
+                        (window, root) = (newView, newView.Body);
+                    }
+
+                    return true;
+                case "units":
+                case "units-direction":
+                    model.ShowDrawingUnits = dialog => { shown = dialog; return true; };
+                    model.Execute("UNITS");
+                    model.ShowDrawingUnits = null;
+                    var units = (DrawingUnitsViewModel)shown;
+
+                    if (kind == "units")
+                    {
+                        var unitsWindow = new DrawingUnitsWindow(units);
+                        (window, root) = (unitsWindow, unitsWindow.Body);
+                    }
+                    else
+                    {
+                        var direction = new DirectionControlWindow(new DirectionControlViewModel(units.Request));
+                        (window, root) = (direction, direction.Body);
+                    }
+
                     return true;
                 default:
                     model.ShowGroupManager = dialog => { shown = dialog; return true; };

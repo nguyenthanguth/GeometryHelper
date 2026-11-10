@@ -514,6 +514,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 _model.ConfirmPurgeItem = question => CadQuestionWindow.ConfirmPurgeItem(Window.GetWindow(this), question);
                 _model.ShowGroupManager = dialog => GroupManagerWindow.Show(Window.GetWindow(this), dialog);
                 _model.ShowLayerStates = dialog => LayerStatesWindow.Show(Window.GetWindow(this), dialog);
+                _model.ShowViewManager = dialog => ViewManagerWindow.Show(Window.GetWindow(this), dialog);
+                _model.ShowDrawingUnits = dialog => DrawingUnitsWindow.Show(Window.GetWindow(this), dialog);
                 _model.AskRedefineBlock = name => CadQuestionWindow.AskRedefineBlock(Window.GetWindow(this), name);
                 _model.ShowBlockEdit = dialog => BlockEditWindow.Show(Window.GetWindow(this), dialog);
                 _model.AskSaveBlockChanges = name => BlockCloseWindow.Ask(Window.GetWindow(this), name);

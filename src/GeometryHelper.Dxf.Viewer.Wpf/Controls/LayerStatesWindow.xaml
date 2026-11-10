@@ -63,7 +63,7 @@
                     </Button>
                     <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
                         <Button Style="{StaticResource StylePrimaryButton}" Content="Restore" Padding="14,5" Margin="0,0,8,0" Click="OnRestore" IsEnabled="{Binding HasSelected}" IsDefault="True" />
-                        <Button Style="{StaticResource GhDialogButton}" Content="Close" Padding="14,5" Background="#C2410C" Foreground="White" FontWeight="SemiBold" BorderThickness="0" Click="OnClose" IsCancel="True" />
+                        <Button Style="{StaticResource GhDialogButton}" Content="Close" Padding="14,5" Background="{StaticResource GhClose}" Foreground="White" FontWeight="SemiBold" BorderThickness="0" Click="OnClose" IsCancel="True" />
                     </StackPanel>
                     <TextBlock Margin="8,0" VerticalAlignment="Center" Foreground="{StaticResource GhTextMuted}" Text="The Layer properties panel folds away with &lt;&lt; and opens with &gt;&gt;." />
                 </DockPanel>
