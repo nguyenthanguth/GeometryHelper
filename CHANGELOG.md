@@ -6,6 +6,26 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** [`DwgReader`](xref:GeometryHelper.Dwg.DwgReader) reads DWG files of AutoCAD 2007, 2008 and 2009 (AC1021),
+which it refused by name until now. Their container is read: the file header and the pages coded by Reed-Solomon, the
+compression of R2007 and its CRCs of 64 bits, each checked. The eight test drawings of AutoCAD 2021 in AC1021, a drawing
+of anonymous blocks and one of 100 000 lines compare with AutoCAD's DXF of them record for record; a drawing of tilted
+splines differs only in the two spline normals the other versions differ in. The drawing of 100 000 lines reads in
+750 ms, its AC1018 copy in 747 ms in the same runs.
+
+**FIXED.** [`DwgReader`](xref:GeometryHelper.Dwg.DwgReader), in every version: an object whose decoded values the
+library's geometry refuses, such as a damaged SPLINE whose plane cannot be worked out, is left out with the Warn line of
+broken objects, the others read. It refused the whole file with a `FormatException` before. Found by the fuzz of the
+AC1021 reader, 2 of 8 000 changed files.
+
+**CHANGED.** The colours of [`DxfColor`](xref:GeometryHelper.Dxf.DxfColor) by index are AutoCAD 2021's, as its
+`Color.FromColorIndex(ColorMethod.ByAci, i).ColorValue` gives them, where they were ezdxf's table. 197 of the 255
+indexes change: the darker shades of each hue (12 was 0xA50000 and is 0xCC0000, 14 was 0x7F0000 and is 0x990000), a few
+entries of ezdxf's table that were wrong (109 was 0x135817 and is 0x264C2F), and the greys 250 to 254, which are
+0x333333, 0x5B5B5B, 0x848484, 0xADADAD and 0xD6D6D6 (250 was black). The presenter draws these colours, and the nearest
+index of a true colour is found among them: 0x333333 is 250, RGB 10, 200, 30 is 102. The indexes 1 to 11, the two
+brightest of each hue (10 and 11, 20 and 21, and on) and 255 are unchanged.
+
 **CHANGED.** The dynamic input of the presenter shows the length and the angle in their fields alone, with no dimension
 line, extension lines, angle arc or dashed base line drawn under them. That is every prompt with these fields: the
 second point of LINE, PLINE, ARC, CIRCLE's 2P, ELLIPSE's axis, POLYGON's edge, XLINE, RAY, MOVE, COPY, STRETCH, OFFSET
