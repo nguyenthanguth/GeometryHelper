@@ -388,6 +388,8 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Equal("DIMORDINATE", registry.Find("DOR").Name);
             Assert.Equal("DIMORDINATE", registry.Find("DIMORD").Name);
             Assert.Equal("DIMJOGLINE", registry.Find("DJL").Name);
+            Assert.Equal("DIMJOGGED", registry.Find("DJO").Name);
+            Assert.Equal("DIMJOGGED", registry.Find("JOG").Name);
             Assert.Equal("DIM", registry.Find("DIM").Name);
         }
     }

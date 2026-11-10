@@ -39,6 +39,12 @@ namespace GeometryHelper.Dxf.Viewer
                     add(CadGripKind.DefinitionPoint, P2(diametric.FarChordPoint));
                     add(CadGripKind.Text, WordsAt(dimension));
                     break;
+                case DxfRadialDimensionLarge jogged:
+                    add(CadGripKind.DefinitionPoint, P2(jogged.ChordPoint));
+                    add(CadGripKind.DefinitionPoint, P2(jogged.OverrideCenter));
+                    add(CadGripKind.Jog, P2(jogged.JogPoint));
+                    add(CadGripKind.Text, WordsAt(dimension));
+                    break;
                 case DxfPoint3AngularDimension three:
                     add(CadGripKind.DefinitionPoint, P2(three.CenterPoint));
                     add(CadGripKind.DefinitionPoint, P2(three.XLine1Point));
@@ -156,6 +162,8 @@ namespace GeometryHelper.Dxf.Viewer
                     return (to - P2(radial.Center)).Length > least;
                 case DxfDiametricDimension diametric when gripIndex <= 1:
                     return (to - Middle(P2(diametric.ChordPoint), P2(diametric.FarChordPoint))).Length > least;
+                case DxfRadialDimensionLarge jogged when gripIndex == 0 || gripIndex == 3:
+                    return (to - P2(jogged.Center)).Length > least;
                 case DxfOrdinateDimension ordinate:
                     return ((gripIndex == 0 ? P2(ordinate.LeaderEndPoint) : P2(ordinate.DefiningPoint)) - to).Length > least;
                 default:
@@ -205,6 +213,9 @@ namespace GeometryHelper.Dxf.Viewer
                         CadCommands.DragWords(dimension, to);
                     }
 
+                    break;
+                case DxfRadialDimensionLarge jogged:
+                    CadCommands.MoveJogged(jogged, gripIndex, to);
                     break;
                 case DxfPoint3AngularDimension three:
                     switch (gripIndex)

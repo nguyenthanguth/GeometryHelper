@@ -6,6 +6,24 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** The presenter has DIMJOGGED (DJO, JOG), AutoCAD 2021's jogged radius, with its prompts word for word ("Select
+arc or circle:", "Specify center location override:", "Specify dimension line location or [Mtext/Text/Angle]:", "Specify
+jog location:", and "Object selected is not a circle or arc." for anything else). Its line runs from the centre drawn
+along the radius's parallel, across at DIMJOGANG and on to the arrowhead at the rim, the jog half way between the two
+lines: a circle of 50 about the origin, its centre drawn at (0, -100), its words at (30, 0) and its jog at (15, -50) has its
+lines from (0, -100) to (65, -100), on to (-35, 0) and on to (47.5, 0). Words put on the other side of the rim from the
+foot of the centre drawn go three quarters of the way from that centre to the rim, as AutoCAD puts them, which is the
+radius at -23.6 degrees round 5 could not explain. Its picture is drawn again when its style changes, and its grips are
+its chord point, the centre drawn, its jog (the new `CadGripKind.Jog`) and its words. Of 152 pictures drawn by AutoCAD,
+varying the words' place, the centre drawn, the jog and DIMJOGANG, 145 match; the seven left have a jog given past the
+rim or far off its middle line, DIMJOGANG 90, or words on the line pushed past the arrowhead.
+
+**FIXED.** `DxfRadialDimensionLarge` read and wrote its points under the wrong groups. AutoCAD 2021 writes the centre
+drawn as group 13, the jog as 14 and the chord point as 15, where the library took 13 for the chord point, 14 for the
+centre drawn and 15 for the jog, as ezdxf 1.4.5 does; a jogged radius AutoCAD made was read with its radius measured to
+its jog. `ChordPoint`, `OverrideCenter` and `JogPoint` now read and write AutoCAD's groups. AutoCAD writes nought for
+`JogAngle` (group 40) and draws the jog at the dimension's DIMJOGANG.
+
 **FIXED.** The presenter measures a dimension's words with the MTEXT layout the canvas draws them with, the letters by
 their ink, and fits them as AutoCAD 2021 does. Words in the canvas's own ghsimplex were taken as 0.7 of their height a
 letter; "100" of ghsimplex widened 1.5 times is now 9.107 wide, as AutoCAD lays it out. Words on a linear dimension's

@@ -15,7 +15,7 @@ namespace GeometryHelper.Dxf.Viewer
     {
         /// <summary>
         /// Draws a dimension's block anew from its points and the variables it reads now (its overrides, else its style's): a
-        /// linear, aligned, ordinate, radius, diameter, angular or arc length dimension whose block is its own anonymous one, a linear one's
+        /// linear, aligned, ordinate, radius, jogged radius, diameter, angular or arc length dimension whose block is its own anonymous one, a linear one's
         /// jog of DIMJOGLINE with it. The entities of the block
         /// are erased and the new picture appended. False, and nothing changed, for another kind or a block not its own.
         /// </summary>
@@ -123,6 +123,8 @@ namespace GeometryHelper.Dxf.Viewer
                     return AngularPicture(dimension, style, textHeight, null, null, P2(three.CenterPoint), new[] { P2(three.XLine1Point), P2(three.XLine2Point) }, P2(three.ArcPoint));
                 case DxfArcDimension arcLength:
                     return ArcLengthPicture(arcLength, style, textHeight);
+                case DxfRadialDimensionLarge jogged:
+                    return JoggedPicture(jogged, style, textHeight);
                 case DxfLineAngularDimension2 two:
                     var first = new DxfLine(two.XLine1Start, two.XLine1End);
                     var second = new DxfLine(two.XLine2Start, two.XLine2End);

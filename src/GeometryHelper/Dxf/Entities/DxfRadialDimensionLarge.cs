@@ -11,8 +11,9 @@ namespace GeometryHelper.Dxf
     /// </summary>
     /// <remarks>
     /// The dimension of the radius 25 about (300, -40, 0), at 45 degrees, has <see cref="Center"/> (group 10),
-    /// <see cref="ChordPoint"/> (13), <see cref="OverrideCenter"/> (14), the centre drawn, <see cref="JogPoint"/> (15),
-    /// <see cref="JogAngle"/> (40, in radians) and a <see cref="DxfDimension.Measurement"/> of 25. As every
+    /// <see cref="OverrideCenter"/> (13), the centre drawn, <see cref="JogPoint"/> (14), <see cref="ChordPoint"/> (15),
+    /// <see cref="JogAngle"/> (40, in radians) and a <see cref="DxfDimension.Measurement"/> of 25: the groups as AutoCAD 2021
+    /// writes them (ezdxf 1.4.5 takes 13 for the chord point, 14 for the override centre and 15 for the jog). As every
     /// <see cref="DxfDimension"/>, it is drawn by its block, which is not drawn anew when a point is moved.
     /// </remarks>
     public sealed class DxfRadialDimensionLarge : DxfDimension
@@ -55,22 +56,22 @@ namespace GeometryHelper.Dxf
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased.</exception>
         public GeoPoint3 Center { get => DefinitionPoint; set => SetDefinitionPoint(value); }
 
-        /// <summary>Gets or sets the point of the circle or arc measured to (groups 13, 23, 33), as AutoCAD's <c>ChordPoint</c>, in world coordinates.</summary>
+        /// <summary>Gets or sets the point of the circle or arc measured to (groups 15, 25, 35), as AutoCAD's <c>ChordPoint</c>, in world coordinates.</summary>
         /// <exception cref="ArgumentException">Thrown when a coordinate set is not a finite number.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased.</exception>
-        public GeoPoint3 ChordPoint { get => SubPoint(13); set => SetSubPoint(13, value); }
+        public GeoPoint3 ChordPoint { get => SubPoint(15); set => SetSubPoint(15, value); }
 
-        /// <summary>Gets or sets the centre drawn in place of the true one (groups 14, 24, 34), as AutoCAD's <c>OverrideCenter</c>, in world coordinates.</summary>
+        /// <summary>Gets or sets the centre drawn in place of the true one (groups 13, 23, 33), as AutoCAD's <c>OverrideCenter</c>, in world coordinates.</summary>
         /// <exception cref="ArgumentException">Thrown when a coordinate set is not a finite number.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased.</exception>
-        public GeoPoint3 OverrideCenter { get => SubPoint(14); set => SetSubPoint(14, value); }
+        public GeoPoint3 OverrideCenter { get => SubPoint(13); set => SetSubPoint(13, value); }
 
-        /// <summary>Gets or sets where the line jogs (groups 15, 25, 35), as AutoCAD's <c>JogPoint</c>, in world coordinates.</summary>
+        /// <summary>Gets or sets where the line jogs (groups 14, 24, 34), as AutoCAD's <c>JogPoint</c>, in world coordinates.</summary>
         /// <exception cref="ArgumentException">Thrown when a coordinate set is not a finite number.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased.</exception>
-        public GeoPoint3 JogPoint { get => SubPoint(15); set => SetSubPoint(15, value); }
+        public GeoPoint3 JogPoint { get => SubPoint(14); set => SetSubPoint(14, value); }
 
-        /// <summary>Gets or sets the angle of the jog (group 40 of AcDbRadialDimensionLarge, in radians as the file writes it), as AutoCAD's <c>JogAngle</c>; nought where the record gives none.</summary>
+        /// <summary>Gets or sets the angle of the jog (group 40 of AcDbRadialDimensionLarge, in radians as the file writes it), as AutoCAD's <c>JogAngle</c>; nought where the record gives none. AutoCAD 2021's DIMJOGGED writes nought and draws the jog at the dimension's DIMJOGANG.</summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the angle set is not a finite number.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the dimension is erased.</exception>
         public double JogAngle { get => SubReal(40, 0.0); set => SetSubReal(40, value, JogAngle); }
@@ -91,9 +92,9 @@ namespace GeometryHelper.Dxf
         {
             Guard.Finite(jogAngle, nameof(jogAngle), "An angle has to be a finite number.");
             var groups = new List<DxfTypedValue> { new DxfTypedValue(100, "AcDbRadialDimensionLarge") };
-            groups.AddRange(PointGroups(13, chord));
-            groups.AddRange(PointGroups(14, overrideCenter));
-            groups.AddRange(PointGroups(15, jog));
+            groups.AddRange(PointGroups(13, overrideCenter));
+            groups.AddRange(PointGroups(14, jog));
+            groups.AddRange(PointGroups(15, chord));
             groups.Add(new DxfTypedValue(40, Numbers.Exact(jogAngle + 0.0)));
             return groups;
         }

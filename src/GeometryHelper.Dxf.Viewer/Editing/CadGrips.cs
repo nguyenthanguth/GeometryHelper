@@ -59,6 +59,9 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>A custom grip of a dynamic block's visibility or lookup parameter, a triangle pointing down: clicked, lists the values.</summary>
         CustomList,
+
+        /// <summary>The jog of a jogged radius dimension: moves the jog, kept half way between the radius and its parallel through the centre drawn.</summary>
+        Jog,
     }
 
     /// <summary>One grip of an entity: where it is drawn and what dragging it does.</summary>
