@@ -206,8 +206,84 @@ namespace GeometryHelper.Dxf.Viewer
             return lengths > 0.0 ? Math.Acos(Math.Max(-1.0, Math.Min(1.0, (u.X * v.X + u.Y * v.Y) / lengths))) : 0.0;
         }
 
-        /// <summary>UNITS: the window's dialog where it has one, else the prompts of -UNITS.</summary>
-        private static IEnumerable<CadPrompt> Units(CadCommandContext c) => c.Session.Request("UNITS") ? Array.Empty<CadPrompt>() : UnitsTyped(c);
+        /// <summary>
+        /// UNITS: the window's Drawing Units, shown again after Direction Control's pick of two points, its values written to
+        /// the header on OK as one undo step; with no window, the prompts of -UNITS.
+        /// </summary>
+        private static IEnumerable<CadPrompt> Units(CadCommandContext c)
+        {
+            var request = new CadUnitsRequest(c.Database);
+
+            while (true)
+            {
+                request.Action = CadDialogAction.Cancel;
+
+                if (!c.Session.Request("UNITS", c.Document, request))
+                {
+                    foreach (CadPrompt prompt in UnitsTyped(c))
+                    {
+                        yield return prompt;
+                    }
+
+                    yield break;
+                }
+
+                if (request.Action != CadDialogAction.SelectObjects)
+                {
+                    break;
+                }
+
+                yield return CadPrompt.ForPoint("Pick angle");
+
+                if (!c.Input.IsPoint)
+                {
+                    continue;
+                }
+
+                GeoPoint2 from = c.Input.Point;
+                yield return CadPrompt.ForPoint("Specify second point", from);
+
+                if (c.Input.IsPoint && (c.Input.Point - from).Length > 0.0)
+                {
+                    GeoVector2 way = c.Input.Point - from;
+                    double angle = Math.Atan2(way.Y, way.X);
+                    request.BaseAngle = angle < 0.0 ? angle + 2.0 * Math.PI : angle;
+                }
+            }
+
+            if (request.Action != CadDialogAction.Ok)
+            {
+                yield break;
+            }
+
+            DxfDatabase database = c.Database;
+            var records = new List<CadEditRecord>();
+            Setting(records, "$LUNITS", database.Lunits, request.LengthUnits);
+            Setting(records, "$LUPREC", database.Luprec, request.LengthPrecision);
+            Setting(records, "$AUNITS", database.Aunits, request.AngleUnits);
+            Setting(records, "$AUPREC", database.Auprec, request.AnglePrecision);
+            Setting(records, "$ANGBASE", database.Angbase, request.BaseAngle);
+            Setting(records, "$ANGDIR", database.Angdir ? 1 : 0, request.Clockwise ? 1 : 0);
+            Setting(records, "$INSUNITS", (int)database.Insunits, (int)request.InsertionUnits);
+
+            if (records.Count > 0)
+            {
+                c.Apply(records, s =>
+                {
+                    s.Database.Lunits = request.LengthUnits;
+                    s.Database.Luprec = request.LengthPrecision;
+                    s.Database.Aunits = request.AngleUnits;
+                    s.Database.Auprec = request.AnglePrecision;
+                    s.Database.Angbase = request.BaseAngle;
+                    s.Database.Angdir = request.Clockwise;
+
+                    if (s.Database.Insunits != request.InsertionUnits)
+                    {
+                        s.Database.Insunits = request.InsertionUnits;
+                    }
+                });
+            }
+        }
 
         /// <summary>
         /// -UNITS: how lengths and angles are shown ($LUNITS, $LUPREC, $AUNITS, $AUPREC), the direction of angle nought ($ANGBASE)

@@ -166,6 +166,31 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             return question.ShowDialog() == true;
         }
 
+        /// <summary>Asks whether New View redefines the view of a name used, as the View Manager asks: "View Stair core already exists. Redefine?".</summary>
+        /// <param name="owner">The window it is shown over; null for none.</param>
+        /// <param name="name">The name of the view.</param>
+        /// <returns>Whether to redefine it.</returns>
+        public static bool AskRedefineView(Window owner, string name)
+        {
+            var question = new CadQuestionWindow(
+                "View " + name + " already exists. Redefine?",
+                "Redefine saves the view on screen, or the window picked, under the name in the place of the view it had.",
+                string.Empty,
+                "Redefine",
+                "Don't redefine");
+
+            if (owner != null && owner.IsVisible)
+            {
+                question.Owner = owner;
+            }
+            else
+            {
+                question.WindowStartupLocation = WindowStartupLocation.CenterScreen;
+            }
+
+            return question.ShowDialog() == true;
+        }
+
         /// <summary>
         /// Asks whether to purge one object, as AutoCAD's Confirm Purge asks with Confirm each item to be purged: "Purge layer
         /// "TMP"?", then Purge this item, Skip this item and Cancel.

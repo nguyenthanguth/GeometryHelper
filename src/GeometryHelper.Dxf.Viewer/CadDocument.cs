@@ -59,6 +59,12 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>
+        /// Gets or sets the part of the space a named view restored in it shows when the space is next shown, as VIEW Restore
+        /// asks of a space other than the one on screen; null where none is waiting. The window zooms to it and sets it null.
+        /// </summary>
+        public DisplayBox? PendingView { get; set; }
+
+        /// <summary>
         /// Gets the sheet of paper a layout is drawn on, in the units of paper space, as AutoCAD shows it behind the layout:
         /// the paper size of its plot settings about its plotted area, the printable area's lower left corner at the origin,
         /// so that a layout of A3 on its side with margins of 7.5 at the sides and 20 above and below lies from (-7.5, -20) to

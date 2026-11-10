@@ -46,6 +46,36 @@ labelled with the ranges the group allows, a group of twelve moved from 3 to 0 r
 Highlight < now steps through the members on the canvas one at a time, `Object 0 of 11 [Next/Previous/eXit]:`, Enter
 bringing Object Grouping back; Object Grouping's own Highlight still shows the whole group at once.
 
+**NEW.** `DxfDatabase.ViewTable`, the named views of a drawing as AutoCAD's `ViewTable`: `DxfViewTableRecord` has its
+`CenterPoint`, `Height`, `Width`, `IsPaperspaceView`, `Target`, `ViewDirection`, `ViewTwist` and `LayerState`, the
+layer state its layer snapshot is kept in, and is added, renamed and erased as AutoCAD 2021 writes a view: a view of the
+window (10, 20) to (110, 80) is written with its centre (60, 50), 100 wide and 60 high, looking down Z with a lens of 50,
+pointing at the visual style 2D Wireframe. Its extension dictionary is erased with it.
+
+**NEW.** Layer states in the presenter, as AutoCAD 2021 keeps them: LAYERSTATE (LAS) opens the Layer States Manager (New,
+Update, Edit, Rename, Delete, Import, Export, the properties to restore, Turn off layers not found in layer state,
+Restore), and -LAYER (-LA), now a command of its own, has stAte with ?, Save, Restore, Edit, Name, Delete, Import and
+EXport in AutoCAD's words. A state is an XRECORD of ACAD_LAYERSTATES under the layer table's extension dictionary, its
+groups those AutoCAD 2021 wrote of the same drawing; a .las file Export writes of a drawing of the layers 0, A red, B off
+and C frozen is AutoCAD 2021's to the byte, and Import reads it. Each run is one undo step; AutoCAD 2021 audits a drawing
+with two states with no error and lists them.
+
+**NEW.** Named views in the presenter: VIEW (V) opens the View Manager (Current, Model Views, Layout Views, Preset Views
+greyed; Set Current, New, Update Layers, Edit Boundaries, Delete; the name, height and width) and its New View, and -VIEW
+(-V) asks ?, Delete, Orthographic, Restore, Save, sEttings (Layer snapshot) and Window as AutoCAD 2021 does, ? listing
+`"Stair core"` with M or P. A layer snapshot is the hidden layer state ACAD_VIEWS_ and the view's name, restored with the
+view. AutoCAD 2021 audits a drawing with three views, one of a layout, with no error and restores them.
+
+**NEW.** UNITS opens the presenter's Drawing Units, its Sample Output following each change, and Direction Control, whose
+pick asks two points; OK writes LUNITS, LUPREC, AUNITS, AUPREC, ANGDIR, INSUNITS and ANGBASE as one undo step. -UNITS
+stays typed. `CadUnits` writes 15.5 as 1.55E+01, 15.50, 1'-3.50", 1'-3 1/2" or 15 1/2 and 45 degrees as 45.0000,
+45d0'0", 50.0000g, 0.7854r or N 45d0'0" E, and typed lengths and angles are read in the drawing's units: `1'3-1/2"<100`
+in architectural units and grads is 15.5 straight up. The status bar shows coordinates in LUNITS where they are not
+decimal.
+
+**CHANGED.** The presenter's LAYER on the command line offers stAte after Unlock, as AutoCAD's -LAYER does; the registry
+holds 173 commands.
+
 **NEW.** The presenter previews the object a prompt is about to make, as AutoCAD 2021 drags it: `CadPrompt.Preview`
 (`CadPreview`) gives the display items of what a point picked at the cursor would make, made by the command's own code,
 and the canvas draws them in the current layer's colour. RECTANG asking its other corner draws the rectangle, not a dashed

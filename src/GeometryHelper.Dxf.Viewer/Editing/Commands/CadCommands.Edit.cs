@@ -553,7 +553,16 @@ namespace GeometryHelper.Dxf.Viewer
                 yield break;
             }
 
-            string[] options = { "Set", "New", "ON", "OFF", "Freeze", "Thaw", "LOck", "Unlock" };
+            foreach (CadPrompt prompt in LayerTyped(c))
+            {
+                yield return prompt;
+            }
+        }
+
+        /// <summary>-LAYER: AutoCAD's options on the command line, stAte among them, until Enter.</summary>
+        private static IEnumerable<CadPrompt> LayerTyped(CadCommandContext c)
+        {
+            string[] options = { "Set", "New", "ON", "OFF", "Freeze", "Thaw", "LOck", "Unlock", "stAte" };
             c.Write("Current layer:  \"" + c.Database.Clayer + "\"");
 
             while (true)
@@ -567,6 +576,16 @@ namespace GeometryHelper.Dxf.Viewer
 
                 string option = c.Input.Text;
                 string ask;
+
+                if (option == "stAte")
+                {
+                    foreach (CadPrompt prompt in LayerStateTyped(c))
+                    {
+                        yield return prompt;
+                    }
+
+                    continue;
+                }
 
                 switch (option)
                 {
