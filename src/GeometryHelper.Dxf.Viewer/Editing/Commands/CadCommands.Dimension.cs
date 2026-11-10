@@ -58,7 +58,7 @@ namespace GeometryHelper.Dxf.Viewer
                 }
 
                 p2 = c.Input.Point;
-                tied[1] = CadDimAssociation.FromSnap(c.Document, 1, c.Input.Snap);
+                tied[1] = CadDimAssociation.FromSnap(c.Document, 1, c.Input.Snap, p1, tied[0]);
             }
             else
             {
@@ -152,7 +152,7 @@ namespace GeometryHelper.Dxf.Viewer
             string words = Words(style, made, measured, text, string.Empty);
             c.Write("Dimension text = " + words);
             double textHeight = TextHeight(c, style);
-            return AddedHandle(Place(c, style, textHeight, made, WithTextAngle(made, Linear(style, textHeight, p1, p2, q1, q2, words), textAngle)));
+            return AddedHandle(Place(c, style, textHeight, made, WithTextAngle(made, Linear(style, Dimscale(c), textHeight, p1, p2, q1, q2, words), textAngle)));
         }
 
         /// <summary>Gives a dimension to be made the angle its words were given (Text angle), and its picture's words that turn.</summary>
@@ -269,7 +269,7 @@ namespace GeometryHelper.Dxf.Viewer
                 : new DxfRadialDimension(P3(center), P3(chord), leader, text ?? string.Empty, null);
             string words = Words(style, made, measured, text, prefix);
             double textHeight = TextHeight(c, style);
-            return AddedHandle(Place(c, style, textHeight, made, WithTextAngle(made, Radial(style, textHeight, center, radius, chord, far, location, diameter, words), textAngle)));
+            return AddedHandle(Place(c, style, textHeight, made, WithTextAngle(made, Radial(style, Dimscale(c), textHeight, center, radius, chord, far, location, diameter, words), textAngle)));
         }
 
         private static IEnumerable<CadPrompt> DimAngular(CadCommandContext c) => DimAngularFrom(c, null, null);
@@ -420,7 +420,7 @@ namespace GeometryHelper.Dxf.Viewer
             string words = Words(style, made, sweep, text, string.Empty);
             c.Write("Dimension text = " + words);
             double textHeight = TextHeight(c, style);
-            string handle = AddedHandle(Place(c, style, textHeight, made, Angular(style, textHeight, vertex, radius, from, sweep, near, far, words)));
+            string handle = AddedHandle(Place(c, style, textHeight, made, Angular(style, Dimscale(c), textHeight, vertex, radius, from, sweep, near, far, words)));
 
             CadDimAssociation.Tie(c, handle, tiedArc != null ? CadDimAssociation.ArcEnds(tiedArc) : first != null ? CadDimAssociation.TwoLines(first, second) : snapped);
         }
@@ -634,9 +634,9 @@ namespace GeometryHelper.Dxf.Viewer
         /// puts them, so the line is not broken for them and they are not moved outside. <paramref name="jog"/> is the point of
         /// a jog of DIMJOGLINE on the line, drawn <paramref name="jogHeight"/> high.
         /// </remarks>
-        internal static List<DxfEntity> Linear(DxfDimStyleTableRecord style, double textHeight, GeoPoint2 p1, GeoPoint2 p2, GeoPoint2 q1, GeoPoint2 q2, string words, bool placed = false, GeoPoint2? jog = null, double jogHeight = 0.0)
+        internal static List<DxfEntity> Linear(DxfDimStyleTableRecord style, double dimscale, double textHeight, GeoPoint2 p1, GeoPoint2 p2, GeoPoint2 q1, GeoPoint2 q2, string words, bool placed = false, GeoPoint2? jog = null, double jogHeight = 0.0)
         {
-            Sizes(style, textHeight, out double scale, out double arrow, out double height, out double gap, out double offset, out double beyond);
+            Sizes(style, dimscale, textHeight, out double scale, out double arrow, out double height, out double gap, out double offset, out double beyond);
             var picture = new List<DxfEntity>();
             GeoVector2 along = (q2 - q1) / (q2 - q1).Length;
             double angle = Math.Atan2(along.Y, along.X);
@@ -1022,9 +1022,10 @@ namespace GeometryHelper.Dxf.Viewer
             return kept;
         }
 
-        private static void Sizes(DxfDimStyleTableRecord style, double textHeight, out double scale, out double arrow, out double height, out double gap, out double offset, out double beyond)
+        /// <summary>The sizes of a picture: the style's times the scale of <paramref name="dimscale"/>, a DIMSCALE of nought or less drawn as 1.</summary>
+        private static void Sizes(DxfDimStyleTableRecord style, double dimscale, double textHeight, out double scale, out double arrow, out double height, out double gap, out double offset, out double beyond)
         {
-            scale = style.Dimscale > 0.0 ? style.Dimscale : 1.0;
+            scale = dimscale > 0.0 ? dimscale : 1.0;
             arrow = style.Dimasz * scale;
             height = textHeight * scale;
             gap = Math.Abs(style.Dimgap) * scale;
@@ -1173,14 +1174,22 @@ namespace GeometryHelper.Dxf.Viewer
         private static double TextHeight(CadCommandContext c, DxfDimStyleTableRecord style) => c.Remembered("dim.text.height", style.Dimtxt);
 
         /// <summary>
+        /// The DIMSCALE of a dimension to be made: the drawing's current one, its header's <c>$DIMSCALE</c>, as AutoCAD's new
+        /// dimension takes the current value and not its style's; <c>Place</c> writes it as an override where they differ.
+        /// DIMSCALE 100 typed with the style's 1 draws arrowheads of 2.5 as 250.
+        /// </summary>
+        private static double Dimscale(CadCommandContext c) => c.Database.Dimscale;
+
+        /// <summary>
         /// Adds a dimension with its picture to the space: the picture appended to an anonymous block *D, which the block
-        /// table names as AutoCAD names its own (*D1, *D2), and given to the dimension as its block, its text height an
-        /// override where it is not the style's.
+        /// table names as AutoCAD names its own (*D1, *D2), and given to the dimension as its block, its text height and the
+        /// drawing's DIMSCALE overrides where they are not the style's.
         /// </summary>
         private static CadEditResult Place(CadCommandContext c, DxfDimStyleTableRecord style, double textHeight, DxfDimension dimension, List<DxfEntity> picture)
         {
             CadSpace space = c.Space;
             string layer = c.Session.DimLayer;
+            double dimscale = Dimscale(c);
             return c.Apply(null, s =>
             {
                 var block = new DxfBlockTableRecord { Name = "*D" };
@@ -1211,6 +1220,9 @@ namespace GeometryHelper.Dxf.Viewer
                 // A text height other than the style's is an override, as DIMOVERRIDE writes one, so that a CAD drawing the
                 // dimension again from its style draws its text as high as its picture has it.
                 dimension.Dimtxt = textHeight;
+
+                // The current DIMSCALE other than the style's is an override too, as AutoCAD writes the one typed at the prompt.
+                dimension.Dimscale = dimscale;
                 s.Added(space, dimension);
             });
         }

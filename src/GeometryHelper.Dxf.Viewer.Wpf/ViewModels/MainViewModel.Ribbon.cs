@@ -423,10 +423,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             return Array.Empty<CadPrompt>();
         }
 
-        /// <summary>SAVEAS: the window's Save As dialog; with no window, "Save drawing as &lt;file&gt;:" asked on the command line, as AutoCAD asks it with FILEDIA 0.</summary>
+        /// <summary>SAVEAS: the window's Save As dialog; with no window, or FILEDIA 0, "Save drawing as &lt;file&gt;:" asked on the command line, as AutoCAD asks it with FILEDIA 0.</summary>
         private IEnumerable<CadPrompt> SaveAsBody(CadCommandContext c)
         {
-            if (SaveAsRequested != null)
+            if (SaveAsRequested != null && c.Session.FileDialogs)
             {
                 _afterCommand = () => SaveAsRequested?.Invoke(this, EventArgs.Empty);
                 yield break;

@@ -4,7 +4,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 {
     /// <summary>
     /// The system variables the window keeps, added to each command line beside those of the drawing: OSMODE and the status
-    /// bar's toggles (ORTHOMODE, SNAPMODE, GRIDMODE, DYNMODE, AUTOSNAP's tracking bits), POLARANG, and PICKBOX, APERTURE and
+    /// bar's toggles (ORTHOMODE, SNAPMODE, GRIDMODE, DYNMODE), AUTOSNAP, POLARANG and POLARMODE, and PICKBOX, APERTURE and
     /// LWDISPLAY of Global settings. Each is set at once, with no step of undo, as AutoCAD keeps them out of the drawing; the
     /// status bar and the canvas follow.
     /// </summary>
@@ -12,9 +12,6 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     {
         // OSMODE's bit that keeps the object snaps ticked but off, as F3 leaves them.
         private const int SnapsOff = 16384;
-
-        // AUTOSNAP's bits the canvas always has: the marker, its tooltip, the magnet and the tooltips of tracking.
-        private const int AutoSnapAlways = 1 | 2 | 4 | 32;
 
         // DYNMODE as last set, its sign aside: which of pointer and dimensional input F12 brings back.
         private int _dynamicMode = 3;
@@ -27,7 +24,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             registry.AddVariable(ToggleVariable("SNAPMODE", "SNAP"));
             registry.AddVariable(ToggleVariable("GRIDMODE", "GRID"));
             registry.AddVariable(CadSystemVariable.Real("POLARANG", 360.0, () => _settings.PolarAngle, SetPolarAngle));
-            registry.AddVariable(CadSystemVariable.Integer("AUTOSNAP", 0, 63, () => AutoSnapAlways | (FindToggle("POLAR").IsOn ? 8 : 0) | (FindToggle("OTRACK").IsOn ? 16 : 0), SetAutosnap));
+            registry.AddVariable(CadSystemVariable.Integer("POLARMODE", 0, 15, () => _settings.PolarMode, SetPolarMode));
+            registry.AddVariable(CadSystemVariable.Integer("AUTOSNAP", 0, 63, Autosnap, SetAutosnap));
             registry.AddVariable(CadSystemVariable.Integer("DYNMODE", -3, 3, DynamicMode, SetDynamicMode));
             registry.AddVariable(CadSystemVariable.Integer("PICKBOX", 1, 50, () => _settings.PickboxPixels, v => ChangeSettings(s => s.PickboxPixels = v)));
             registry.AddVariable(CadSystemVariable.Integer("APERTURE", 2, 50, () => _settings.AperturePixels, v => ChangeSettings(s => s.AperturePixels = v)));
@@ -63,11 +61,37 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             FindToggle("OSNAP").IsOn = (value & SnapsOff) == 0;
         }
 
-        /// <summary>AUTOSNAP set: POLAR follows its bit 8 and OTRACK its bit 16; the canvas keeps its markers, tooltips and magnet.</summary>
+        /// <summary>
+        /// AUTOSNAP as AutoCAD reads it: 1 the marker, 2 the snap's tooltip, 4 the magnet, 8 POLAR, 16 OTRACK, 32 the tooltips
+        /// of polar, tracking and ortho; 63 with everything on.
+        /// </summary>
+        private int Autosnap()
+            => (Snap.ShowsMarker ? 1 : 0) | (Snap.ShowsSnapTip ? 2 : 0) | (Snap.Magnet ? 4 : 0) | (FindToggle("POLAR").IsOn ? 8 : 0)
+                | (FindToggle("OTRACK").IsOn ? 16 : 0) | (Snap.ShowsTrackingTip ? 32 : 0);
+
+        /// <summary>AUTOSNAP set: the canvas draws the marker, the tips and the magnet by its bits 1, 2, 4 and 32, POLAR follows 8 and OTRACK 16.</summary>
         private void SetAutosnap(int value)
         {
+            Snap.ShowsMarker = (value & 1) != 0;
+            Snap.ShowsSnapTip = (value & 2) != 0;
+            Snap.Magnet = (value & 4) != 0;
+            Snap.ShowsTrackingTip = (value & 32) != 0;
             FindToggle("POLAR").IsOn = (value & 8) != 0;
             FindToggle("OTRACK").IsOn = (value & 16) != 0;
+        }
+
+        /// <summary>POLARMODE set: the snaps follow it and the window keeps it in the settings file, as POLARANG.</summary>
+        private void SetPolarMode(int value)
+        {
+            ApplyPolarMode(value);
+            ChangeSettings(s => s.PolarMode = value);
+        }
+
+        /// <summary>POLARMODE's bits the snaps follow: 2 tracking on every polar angle, 8 points acquired only with Shift held.</summary>
+        private void ApplyPolarMode(int value)
+        {
+            Snap.TracksPolarAngles = (value & 2) != 0;
+            Snap.AcquiresWithShift = (value & 8) != 0;
         }
 
         /// <summary>

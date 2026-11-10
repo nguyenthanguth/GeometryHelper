@@ -170,11 +170,17 @@ DIMJOGLINE (DJL) puts a jog in the line of a linear dimension, kept as AutoCAD k
 drawn 1.5 times the height of the words; Remove takes it out. DIM dimensions what is clicked: a line, then where its
 dimension goes or a second line for the angle; a circle's diameter, an arc's radius; a click on nothing starts a linear
 dimension. Its options run the commands of their names, and LAyer puts the dimensions made next on a layer.
+A new dimension takes the drawing's current DIMSCALE, not its style's, and writes it as an override where the two
+differ, as AutoCAD does: DIMSCALE 10 typed with ISO-25 current draws the words of a dimension 25 high and its arrowheads
+25 long, and DIMBASELINE puts each next line 37.5 further out.
 
 A dimension made with DIMASSOC 2 (the default) whose points were picked with an object snap is associative, as in AutoCAD
 2021: DIMLINEAR, DIMALIGNED and DIM tie each origin snapped with ENDpoint, MIDpoint, CENter, QUAdrant, NODe or NEArest to
 its line, arc, circle, polyline segment or point (both ends where a line is selected), and one snapped with INTersection to
-the two lines, arcs or circles that cross there; DIMRADIUS and DIMDIAMETER tie the center of the circle or arc, DIMANGULAR
+the two lines, arcs or circles that cross there; the second origin snapped with PERpendicular (to a line, an arc or a
+circle) or TANgent (to an arc or a circle) is tied with the point it was drawn from, as AutoCAD writes it, and drawn
+again from that point when the object moves: DIMALIGNED from (0, 0) perpendicular to (100, -20)-(100, 60) measures 100,
+and 120 once that line is moved 20 to the right. DIMRADIUS and DIMDIAMETER tie the center of the circle or arc, DIMANGULAR
 of an arc its two ends and center, of two lines the four ends, of three points those snapped, DIMORDINATE its feature;
 DIMCONTINUE and DIMBASELINE tie their first point to what the last dimension's second (or the base's first) was tied to,
 and QDIM the ends of lines, the vertices of polylines and the centers of circles, all kept in a DIMASSOC as AutoCAD keeps
@@ -349,8 +355,8 @@ and set where the presenter keeps it, listed in [`CadCommandRegistry.Variables`]
 | Kept in | Variables | A change |
 |---|---|---|
 | the header of the drawing, written as AutoCAD writes it | CLAYER, CECOLOR, CELTYPE, CELWEIGHT, CELTSCALE, LTSCALE, PSLTSCALE, MSLTSCALE, DIMSCALE, DIMASSOC, TEXTSIZE, TEXTSTYLE, FILLETRAD, CHAMFERA, CHAMFERB, PDMODE, PDSIZE, MIRRTEXT, SORTENTS, IMAGEFRAME, CANNOSCALE, INSBASE, LIMMIN, LIMMAX | one undo step |
-| the document or the session | PICKSTYLE, SELECTIONCYCLING, PICKFIRST, PICKADD, ATTREQ, ATTDIA, OFFSETDIST, TILEMODE (the space shown) | at once, no undo step |
-| the window: the status bar, the snaps and Global settings | OSMODE, ORTHOMODE, SNAPMODE, GRIDMODE, POLARANG, AUTOSNAP, DYNMODE, PICKBOX, APERTURE, LWDISPLAY | at once, no undo step; kept in the settings file |
+| the document or the session | PICKSTYLE, SELECTIONCYCLING, PICKFIRST, PICKADD, ATTREQ, ATTDIA, FILEDIA, CMDDIA, OFFSETDIST, TILEMODE (the space shown) | at once, no undo step |
+| the window: the status bar, the snaps and Global settings | OSMODE, ORTHOMODE, SNAPMODE, GRIDMODE, POLARANG, POLARMODE, AUTOSNAP, DYNMODE, PICKBOX, APERTURE, LWDISPLAY | at once, no undo step; kept in the settings file |
 | read only | DIMSTYLE, EXTMIN, EXTMAX, UCSNAME, UCSORG, DWGNAME, DWGPREFIX, DATE, CDATE | |
 
 FILLETRAD 5 writes `$FILLETRAD` 40 `5` into the header and U takes it back to 10. OSMODE 4133 ticks Endpoint, Center,
@@ -364,8 +370,15 @@ and 2 add, Shift taking out. ATTREQ 0 makes INSERT give each attribute its defau
 default, makes it ask them in the Edit Attributes dialog where there is a window. DYNMODE keeps -3 to
 3, negative while DYN is off, so that F12 brings the same value back; the one box of dynamic input shows both pointer and
 dimensional input whichever of 1 to 3 is set. The window keeps PICKBOX, APERTURE, LWDISPLAY and POLARANG in
-the settings file as it keeps DYN and the snaps, POLARANG 30 written `"polarAngle": 30`. POLARMODE, FILEDIA and
-CMDDIA are not variables of the presenter yet.
+the settings file as it keeps DYN and the snaps, POLARANG 30 written `"polarAngle": 30`, and POLARMODE too: its 2 runs
+the lines of object snap tracking on every polar angle (0, AutoCAD's default, runs them level and upright alone), and its 8
+acquires a point only with Shift held; 1 and 4 (angles from the last segment, additional angles) are kept and not
+followed. AUTOSNAP's bits are AutoCAD's: 1 the marker, 2 the snap's name by the cursor, 4 the magnet (off, the rubber
+band stays at the cursor while the marker shows the snap, which a click still takes), 8 POLAR, 16 OTRACK, 32 the tip
+of ortho, polar and tracking; the marker, tips and magnet are kept for the session of the window. FILEDIA 0 makes PNGOUT,
+JPGOUT, BMPOUT and the window's SAVEAS ask for the file on the command line, as in a script; CMDDIA 0 makes PLOT ask
+-PLOT's prompts. Both are kept by the session, as ATTREQ. ATTDIA 1 makes INSERT ask the attribute values in
+the Edit Attributes dialog, as ATTREQ 1 asks them.
 CECOLOR, CELTYPE and LTSCALE typed alone ask their own prompts, as before (`Enter new object color [Truecolor/COlorbook]
 <BYLAYER>:`); SETVAR asks them in its words, a text in quotes, `<"ByLayer">`. A window adds its own with
 `registry.AddVariable(CadSystemVariable.Integer(...))` or `CadSystemVariable.Real(...)`.
@@ -433,14 +446,18 @@ Any prompt for a point takes AutoCAD's point modifiers, typed or chosen from the
 | FROM | `Base point:`, then `<Offset>:` | the offset point: `@dx,dy` and `@distance<angle` are measured from the base point |
 | M2P, MTP | `First point of mid:`, `Second point of mid:` | the point midway |
 | TT | `Specify temporary OTRACK point:` | no point: the prompt is asked again, and while OTRACK is on tracking lines run from the point |
+| TK, TRACK, TRACKING | `First tracking point:`, then `Next point (Press ENTER to end tracking):` until Enter | the point tracked: each next point taken square from the one before, along the axis it lies farther along |
 | .X .Y .Z .XY .XZ .YZ | `of`, then `(need YZ):` and so on | the coordinates named from the first point, the rest from the second |
 
 LINE with FROM, the base point 100,50 and the offset `@30,20` starts at (130, 70); M2P between (0, 0) and (100, 40) gives
-(50, 20), and M2P at the radius of a circle centred at (0, 0) between (0, 0) and (60, 80) gives a radius of 50. `.X` of
+(50, 20), and M2P at the radius of a circle centred at (0, 0) between (0, 0) and (60, 80) gives a radius of 50. CIRCLE
+with TK from 100,0 and a click at (130, 50) centres the circle at (100, 50), the middle of a plate 200 by 100; a distance
+typed at `Next point` runs along the axis nearest the cursor, so 60 with the cursor at (80, 10) reaches (60, 0). `.X` of
 (30, 999) with (888, 40) gives (30, 40). At `(need YZ):` the coordinates can be typed alone, in the order X, Y, Z:
 `40,3` gives Y 40. Z, which a plan has none of, is asked as AutoCAD asks it and left out. Coordinates are those of the
 UCS. Each point a modifier asks may be snapped (END typed, or the menu) and may be given by another modifier, as FROM
-with M2P for its base point. Enter at a modifier's prompt is not a point and is asked again; Esc cancels the command.
+with M2P for its base point. Enter at a modifier's prompt is not a point and is asked again, but for TK's `Next point`,
+where it ends tracking; Esc cancels the command.
 
 ## Grips
 

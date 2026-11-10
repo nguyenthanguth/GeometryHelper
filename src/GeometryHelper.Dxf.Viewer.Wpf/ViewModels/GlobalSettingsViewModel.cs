@@ -859,6 +859,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     new GlobalSettingRow(GlobalSettingKind.Checks, "Snap to", null, () => string.Empty, null, Changed, checks: snaps.Select(m => new GlobalSettingCheck(m == CadSnapModes.Center ? "Centre" : m == CadSnapModes.GeometricCenter ? "Geometric centre" : m == CadSnapModes.ApparentIntersection ? "Apparent intersection" : m.ToString(),
                         () => (s.Snaps & m) != 0, on => { s.Snaps = on ? s.Snaps | m : s.Snaps & ~m; Changed(); })).ToList()),
                     Number("Aperture", "px", () => s.AperturePixels, v => s.AperturePixels = Whole(v)),
+                    Number("Polar angle", "°", () => s.PolarAngle, v => s.PolarAngle = v),
                     Toggle("F3 toggles snaps", () => s.F3TogglesSnaps, v => s.F3TogglesSnaps = v),
                 }),
                 new GlobalSettingSection("Input", new[]

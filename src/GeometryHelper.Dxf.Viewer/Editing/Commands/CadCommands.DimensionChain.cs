@@ -120,12 +120,14 @@ namespace GeometryHelper.Dxf.Viewer
                 if (c.Input.IsPoint)
                 {
                     Chain next = chain.Copy();
-                    double spacing = baseline ? style.Dimdli * (style.Dimscale > 0.0 ? style.Dimscale : 1.0) : 0.0;
+                    double spacing = baseline ? style.Dimdli * (Dimscale(c) > 0.0 ? Dimscale(c) : 1.0) : 0.0;
                     string handle;
 
                     // AutoCAD 2021 ties the new dimension's second point to what it was snapped to, and its first to what the
                     // origin it starts from was tied to: DIMCONTINUE the last one's second, DIMBASELINE the base's first.
-                    DxfOsnapPointRef snapped = CadDimAssociation.FromSnap(c.Document, 1, c.Input.Snap);
+                    DxfOsnapPointRef snapped = chain.Ordinate || chain.Angular
+                        ? CadDimAssociation.FromSnap(c.Document, 1, c.Input.Snap)
+                        : CadDimAssociation.FromSnap(c.Document, 1, c.Input.Snap, chain.Origin, chain.OriginTie);
 
                     if (chain.Ordinate)
                     {
@@ -347,7 +349,7 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             double textHeight = TextHeight(c, style);
-            return AddedHandle(Place(c, style, textHeight, made, Linear(style, textHeight, p1, p2, q1, q2, words)));
+            return AddedHandle(Place(c, style, textHeight, made, Linear(style, Dimscale(c), textHeight, p1, p2, q1, q2, words)));
         }
 
         /// <summary>
@@ -395,7 +397,7 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             double textHeight = TextHeight(c, style);
-            return AddedHandle(Place(c, style, textHeight, made, Angular(style, textHeight, vertex, radius, from, sweep, near, far, words)));
+            return AddedHandle(Place(c, style, textHeight, made, Angular(style, Dimscale(c), textHeight, vertex, radius, from, sweep, near, far, words)));
         }
 
         /// <summary>
@@ -653,7 +655,7 @@ namespace GeometryHelper.Dxf.Viewer
             double across = level ? at.Y : at.X;
             double middle = level ? (minY + maxY) / 2.0 : (minX + maxX) / 2.0;
             GeoVector2 square = new GeoVector2(-Math.Sin(angle), Math.Cos(angle)) * (across >= middle ? 1.0 : -1.0);
-            double spacing = style.Dimdli * (style.Dimscale > 0.0 ? style.Dimscale : 1.0);
+            double spacing = style.Dimdli * (Dimscale(c) > 0.0 ? Dimscale(c) : 1.0);
             int made = 0;
 
             // Ties a dimension made to what its points are tied to, numbered from the first given; false where none was made.
@@ -754,7 +756,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             GeoVector2 unit = toward / toward.Length;
             double textHeight = TextHeight(c, style);
-            double scale = style.Dimscale > 0.0 ? style.Dimscale : 1.0;
+            double scale = Dimscale(c) > 0.0 ? Dimscale(c) : 1.0;
             GeoPoint2 chord = center + unit * radius;
             GeoPoint2 far = center - unit * radius;
             double leader = 2.0 * style.Dimasz * scale;
@@ -763,7 +765,7 @@ namespace GeometryHelper.Dxf.Viewer
                 ? (DxfDimension)new DxfDiametricDimension(P3(chord), P3(far), leader, string.Empty, null)
                 : new DxfRadialDimension(P3(center), P3(chord), leader, string.Empty, null);
             string words = Words(style, made, diameter ? 2.0 * radius : radius, null, prefix);
-            return AddedHandle(Place(c, style, textHeight, made, Radial(style, textHeight, center, radius, chord, far, chord + unit * leader, diameter, words))) != null;
+            return AddedHandle(Place(c, style, textHeight, made, Radial(style, Dimscale(c), textHeight, center, radius, chord, far, chord + unit * leader, diameter, words))) != null;
         }
     }
 }

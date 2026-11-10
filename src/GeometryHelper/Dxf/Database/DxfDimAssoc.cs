@@ -84,11 +84,11 @@ namespace GeometryHelper.Dxf
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the index is not 0 to 3.</exception>
         /// <exception cref="ArgumentNullException">Thrown when the handle is null.</exception>
         public DxfOsnapPointRef(int pointIndex, DxfOsnapType osnapType, string objectHandle, int gsMarker, double nearParameter, GeoPoint3 point, string intersectionObjectHandle)
-            : this(pointIndex, osnapType, objectHandle, 2, gsMarker, nearParameter, point, intersectionObjectHandle, 2, 0)
+            : this(pointIndex, osnapType, objectHandle ?? throw new ArgumentNullException(nameof(objectHandle)), 2, gsMarker, nearParameter, point, intersectionObjectHandle, 2, 0, null)
         {
         }
 
-        private DxfOsnapPointRef(int pointIndex, DxfOsnapType osnapType, string objectHandle, int subentType, int gsMarker, double nearParameter, GeoPoint3 point, string intersectionObjectHandle, int intersectionSubentType, int intersectionGsMarker)
+        private DxfOsnapPointRef(int pointIndex, DxfOsnapType osnapType, string objectHandle, int subentType, int gsMarker, double nearParameter, GeoPoint3 point, string intersectionObjectHandle, int intersectionSubentType, int intersectionGsMarker, DxfOsnapPointRef lastPointReference)
         {
             if (pointIndex < 0 || pointIndex > 3)
             {
@@ -97,7 +97,7 @@ namespace GeometryHelper.Dxf
 
             PointIndex = pointIndex;
             OsnapType = osnapType;
-            ObjectHandle = objectHandle ?? throw new ArgumentNullException(nameof(objectHandle));
+            ObjectHandle = objectHandle;
             SubentType = subentType;
             GsMarker = gsMarker;
             NearParameter = nearParameter;
@@ -105,6 +105,7 @@ namespace GeometryHelper.Dxf
             IntersectionObjectHandle = intersectionObjectHandle;
             IntersectionSubentType = intersectionSubentType;
             IntersectionGsMarker = intersectionGsMarker;
+            LastPointReference = lastPointReference;
         }
 
         /// <summary>Gets which point of the dimension the reference ties, 0 to 3.</summary>
@@ -113,7 +114,10 @@ namespace GeometryHelper.Dxf
         /// <summary>Gets the object snap the point was taken by (group 72).</summary>
         public DxfOsnapType OsnapType { get; }
 
-        /// <summary>Gets the handle of the entity snapped to (group 331).</summary>
+        /// <summary>
+        /// Gets the handle of the entity snapped to (group 331); null for a <see cref="LastPointReference"/> of a point tied to
+        /// nothing, which AutoCAD writes with no 331.
+        /// </summary>
         public string ObjectHandle { get; }
 
         /// <summary>Gets the kind of the part of the entity snapped to (group 73): 2, an edge, for a line, an arc or a circle.</summary>
@@ -138,6 +142,43 @@ namespace GeometryHelper.Dxf
 
         internal int IntersectionGsMarker { get; }
 
+        /// <summary>
+        /// Gets the reference of the point a perpendicular or a tangent was drawn from (group 75 written 1, then that reference),
+        /// as AutoCAD 2021 writes a DIMALIGNED from the start of a line to the foot of its perpendicular on another: the
+        /// start of the first line; its <see cref="ObjectHandle"/> null and its snap <see cref="DxfOsnapType.None"/> where that
+        /// point was tied to nothing. Its <see cref="PointIndex"/> is not written. Null for a point of any other snap.
+        /// </summary>
+        public DxfOsnapPointRef LastPointReference { get; }
+
+        /// <summary>
+        /// Gives a copy of the reference that names the reference of the point its perpendicular or tangent was drawn from, as
+        /// AutoCAD 2021 writes a PERpendicular or a TANgent snap: the second point of a DIMALIGNED snapped perpendicular to a
+        /// line from the start of another is <c>perpendicular.WithLastPoint(start)</c>.
+        /// </summary>
+        /// <param name="lastPoint">The reference of the point drawn from; its own last point is left out.</param>
+        /// <returns>The copy.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the reference is null.</exception>
+        public DxfOsnapPointRef WithLastPoint(DxfOsnapPointRef lastPoint)
+        {
+            if (lastPoint == null)
+            {
+                throw new ArgumentNullException(nameof(lastPoint));
+            }
+
+            var last = new DxfOsnapPointRef(lastPoint.PointIndex, lastPoint.OsnapType, lastPoint.ObjectHandle, lastPoint.SubentType, lastPoint.GsMarker, lastPoint.NearParameter, lastPoint.Point, lastPoint.IntersectionObjectHandle, lastPoint.IntersectionSubentType, lastPoint.IntersectionGsMarker, null);
+            return new DxfOsnapPointRef(PointIndex, OsnapType, ObjectHandle, SubentType, GsMarker, NearParameter, Point, IntersectionObjectHandle, IntersectionSubentType, IntersectionGsMarker, last);
+        }
+
+        /// <summary>
+        /// Gives a copy of the reference whose perpendicular or tangent was drawn from a point tied to nothing, as AutoCAD 2021
+        /// writes one: a last point reference of no snap and no object, at the point.
+        /// </summary>
+        /// <param name="point">The point drawn from, in world coordinates.</param>
+        /// <returns>The copy.</returns>
+        public DxfOsnapPointRef WithLastPoint(GeoPoint3 point)
+            => new DxfOsnapPointRef(PointIndex, OsnapType, ObjectHandle, SubentType, GsMarker, NearParameter, Point, IntersectionObjectHandle, IntersectionSubentType, IntersectionGsMarker,
+                new DxfOsnapPointRef(PointIndex, DxfOsnapType.None, null, 0, 0, 0.0, point, null, 0, 0, null));
+
         /// <inheritdoc/>
         public override string ToString() => PointIndex.ToString(CultureInfo.InvariantCulture) + " " + OsnapType + " " + ObjectHandle;
 
@@ -154,50 +195,17 @@ namespace GeometryHelper.Dxf
                     continue;
                 }
 
-                int type = 0;
-                string handle = null;
-                int subent = 0;
-                int marker = 0;
-                double parameter = 0.0;
-                double x = 0.0;
-                double y = 0.0;
-                double z = 0.0;
-                string other = null;
-                int otherSubent = 0;
-                int otherMarker = 0;
-                int j = i + 1;
-
-                for (; j < groups.Count && groups[j].TypeCode != 1; j++)
-                {
-                    string value = (groups[j].Value ?? string.Empty).Trim();
-
-                    switch (groups[j].TypeCode)
-                    {
-                        case 72: type = Whole(value); break;
-                        case 331: handle = value; break;
-                        case 73: subent = Whole(value); break;
-                        case 91: marker = Whole(value); break;
-                        case 40: parameter = Real(value); break;
-                        case 10: x = Real(value); break;
-                        case 20: y = Real(value); break;
-                        case 30: z = Real(value); break;
-                        case 332: other = value; break;
-                        case 74: otherSubent = Whole(value); break;
-                        case 92: otherMarker = Whole(value); break;
-                    }
-                }
-
-                i = j - 1;
-
                 // The references follow the bits of group 90 from the lowest, as AutoCAD writes them.
                 while (next < 4 && (flags & (1 << next)) == 0)
                 {
                     next++;
                 }
 
-                if (next < 4 && handle != null)
+                DxfOsnapPointRef reference = ReadOne(groups, ref i, Math.Min(next, 3));
+
+                if (next < 4 && reference.ObjectHandle != null)
                 {
-                    found.Add(new DxfOsnapPointRef(next, (DxfOsnapType)type, handle, subent, marker, parameter, new GeoPoint3(x, y, z), other, otherSubent, otherMarker));
+                    found.Add(reference);
                 }
 
                 next++;
@@ -206,14 +214,75 @@ namespace GeometryHelper.Dxf
             return found;
         }
 
-        /// <summary>Writes the reference as AutoCAD 2021 writes one: 1, 72, 331, 73, 91, 40, 10, the second entity of an intersection, 75.</summary>
+        /// <summary>
+        /// Reads one reference from its group 1 at <paramref name="i"/>, and the reference of its last point after it where its
+        /// 75 is 1, as AutoCAD writes a perpendicular or a tangent; <paramref name="i"/> left at the last group read.
+        /// </summary>
+        private static DxfOsnapPointRef ReadOne(IReadOnlyList<DxfTypedValue> groups, ref int i, int index)
+        {
+            int type = 0;
+            string handle = null;
+            int subent = 0;
+            int marker = 0;
+            double parameter = 0.0;
+            double x = 0.0;
+            double y = 0.0;
+            double z = 0.0;
+            string other = null;
+            int otherSubent = 0;
+            int otherMarker = 0;
+            bool hasLast = false;
+            int j = i + 1;
+
+            for (; j < groups.Count && groups[j].TypeCode != 1; j++)
+            {
+                string value = (groups[j].Value ?? string.Empty).Trim();
+
+                switch (groups[j].TypeCode)
+                {
+                    case 72: type = Whole(value); break;
+                    case 331: handle = value; break;
+                    case 73: subent = Whole(value); break;
+                    case 91: marker = Whole(value); break;
+                    case 40: parameter = Real(value); break;
+                    case 10: x = Real(value); break;
+                    case 20: y = Real(value); break;
+                    case 30: z = Real(value); break;
+                    case 332: other = value; break;
+                    case 74: otherSubent = Whole(value); break;
+                    case 92: otherMarker = Whole(value); break;
+                    case 75: hasLast = Whole(value) == 1; break;
+                }
+            }
+
+            i = j - 1;
+            DxfOsnapPointRef last = null;
+
+            if (hasLast && j < groups.Count)
+            {
+                i = j;
+                last = ReadOne(groups, ref i, index);
+            }
+
+            return new DxfOsnapPointRef(index, (DxfOsnapType)type, handle, subent, marker, parameter, new GeoPoint3(x, y, z), other, otherSubent, otherMarker, last);
+        }
+
+        /// <summary>
+        /// Writes the reference as AutoCAD 2021 writes one: 1, 72, 331, 73, 91, 40, 10, the second entity of an intersection,
+        /// 75, then its last point's reference where it has one; a last point tied to nothing with no 331, 73 and 91.
+        /// </summary>
         internal void Write(List<KeyValuePair<int, string>> groups)
         {
             groups.Add(Pair(1, "AcDbOsnapPointRef"));
             groups.Add(Pair(72, ((int)OsnapType).ToString(CultureInfo.InvariantCulture)));
-            groups.Add(Pair(331, ObjectHandle));
-            groups.Add(Pair(73, SubentType.ToString(CultureInfo.InvariantCulture)));
-            groups.Add(Pair(91, GsMarker.ToString(CultureInfo.InvariantCulture)));
+
+            if (ObjectHandle != null)
+            {
+                groups.Add(Pair(331, ObjectHandle));
+                groups.Add(Pair(73, SubentType.ToString(CultureInfo.InvariantCulture)));
+                groups.Add(Pair(91, GsMarker.ToString(CultureInfo.InvariantCulture)));
+            }
+
             groups.Add(Pair(40, Numbers.Exact(NearParameter)));
             groups.Add(Pair(10, Numbers.Exact(Point.X)));
             groups.Add(Pair(20, Numbers.Exact(Point.Y)));
@@ -226,7 +295,8 @@ namespace GeometryHelper.Dxf
                 groups.Add(Pair(92, IntersectionGsMarker.ToString(CultureInfo.InvariantCulture)));
             }
 
-            groups.Add(Pair(75, "0"));
+            groups.Add(Pair(75, LastPointReference == null ? "0" : "1"));
+            LastPointReference?.Write(groups);
         }
 
         private static KeyValuePair<int, string> Pair(int code, string value) => new KeyValuePair<int, string>(code, value);

@@ -299,7 +299,8 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// Adds a style, as New of the Table Style dialog: a copy of the settings of another (Start With), under a name no style
-        /// of the drawing has, letters of either case the same; the dictionary ACAD_TABLESTYLE made where the drawing has none.
+        /// of the drawing has, letters of either case the same; the dictionary ACAD_TABLESTYLE made where the drawing has none,
+        /// and the named object dictionary first where the drawing was written without it.
         /// </summary>
         /// <param name="document">The document.</param>
         /// <param name="name">The new name, as GH_SCHEDULE.</param>
@@ -331,6 +332,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             DxfTableStyle source = from == null ? null : Find(document.Database, from);
             CadTableStyleSettings settings = source == null ? Standard(document.Database) : CadTableStyleSettings.Of(source);
+            document.EnsureNamedObjectsDictionary();
             return document.ApplyEdit("TABLESTYLE", new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "New table style", null, trimmed) }, s =>
             {
                 var style = new DxfTableStyle();
@@ -479,9 +481,13 @@ namespace GeometryHelper.Dxf.Viewer
                 throw new ArgumentNullException(nameof(document));
             }
 
-            return Find(document.Database, "Standard") != null
-                ? CadEditResult.Done(Array.Empty<CadEditRecord>())
-                : document.ApplyEdit("TABLESTYLE", new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "New table style", null, "Standard") }, s => EnsureStandard(s.Database));
+            if (Find(document.Database, "Standard") != null)
+            {
+                return CadEditResult.Done(Array.Empty<CadEditRecord>());
+            }
+
+            document.EnsureNamedObjectsDictionary();
+            return document.ApplyEdit("TABLESTYLE", new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "New table style", null, "Standard") }, s => EnsureStandard(s.Database));
         }
 
         /// <summary>Gets the settings of AutoCAD's Standard in a drawing's units: millimetres (title 6, header and data 4.5, margins 1.5), else inches (0.25, 0.18 and 0.06).</summary>

@@ -443,7 +443,7 @@ namespace GeometryHelper.Dxf.Viewer
         /// Enter, Last the object made last, Previous the objects the command before took, Group by name, Remove and Add to
         /// take out and put in, Undo the last change, Multiple points until Enter, SIngle to end with the first objects taken,
         /// AUto; anything else is "*Invalid selection*" with the options listed.
-        /// A point modifier, FROM, M2P, TT or a point filter, starts at a prompt for a point (<see cref="StartPointModifier"/>).
+        /// A point modifier, FROM, M2P, TT, TK or a point filter, starts at a prompt for a point (<see cref="StartPointModifier"/>).
         /// </summary>
         /// <param name="text">The text.</param>
         /// <returns>Whether it was taken.</returns>
@@ -534,7 +534,7 @@ namespace GeometryHelper.Dxf.Viewer
                     {
                         // Direct distance entry: the distance along the rubber band, from the base point towards the cursor.
                         GeoPoint2 from = Prompt.BasePoint.Value;
-                        GeoVector2 toward = Cursor.HasValue ? Cursor.Value - from : new GeoVector2(1.0, 0.0);
+                        GeoVector2 toward = Cursor.HasValue ? (IsTrackingOn() ? Square(from, Cursor.Value) : Cursor.Value) - from : new GeoVector2(1.0, 0.0);
                         double length = toward.Length;
                         GeoVector2 unit = length > 0.0 ? toward / length : new GeoVector2(1.0, 0.0);
                         GeoPoint2 reached = from + unit * along;
@@ -782,6 +782,13 @@ namespace GeometryHelper.Dxf.Viewer
         /// factor ("text.widthFactor") and the height of the text of the dimensions DIM* makes ("dim.text.height").
         /// </summary>
         public Dictionary<string, double> Remembered { get; } = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>
+        /// Gets whether a command asks the window for a file by its file dialog, as AutoCAD's FILEDIA 1, the default; FILEDIA 0
+        /// typed makes PNGOUT, JPGOUT, BMPOUT and the window's SAVEAS ask "Enter file name:" or "Save drawing as" on the
+        /// command line instead, as AutoCAD does in a script.
+        /// </summary>
+        public bool FileDialogs => !(Remembered.TryGetValue("filedia", out double value) && value == 0.0);
 
         internal void EnsureGroup(string name)
         {
