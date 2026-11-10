@@ -319,6 +319,134 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             }
         }
 
+        /// <summary>The ends of the lines of model space, each as text to a millionth, in the order of the handles given.</summary>
+        private static List<string> Ends(CadDocument document, IEnumerable<string> handles, Affine2 m)
+        {
+            var ends = new List<string>();
+
+            foreach (string handle in handles)
+            {
+                var line = (DxfLine)document.FindEntity(handle);
+                var text = new StringBuilder();
+                Numbers(text, new[] { m.X(line.StartPoint.X, line.StartPoint.Y), m.Y(line.StartPoint.X, line.StartPoint.Y), m.X(line.EndPoint.X, line.EndPoint.Y), m.Y(line.EndPoint.X, line.EndPoint.Y) });
+                ends.Add(text.ToString());
+            }
+
+            return ends;
+        }
+
+        /// <summary>
+        /// Checks that the prompt waiting moves the copies of the one line selected, with the cursor at a point, where picking
+        /// the point there (and the inputs after it) leaves the line.
+        /// </summary>
+        private static void MovesAsMade(CadCommandSession session, string line, GeoPoint2 cursor, params object[] after)
+        {
+            CadPreview preview = session.Prompt?.Preview;
+            Assert.NotNull(preview);
+            Assert.Equal(new[] { line }, preview.Handles);
+            List<string> previewed = Ends(session.Document, new[] { line }, Assert.Single(preview.Moves(cursor)));
+            Run(session, cursor);
+            Run(session, after);
+            Assert.Equal(previewed, Ends(session.Document, new[] { line }, Affine2.Identity));
+        }
+
+        private static CadCommandSession WithALine(out string line)
+        {
+            CadCommandSession session = Started("LINE", P(10, 0), P(30, 10), Enter);
+            line = All<DxfLine>(session.Document.ModelSpace).Single().Handle;
+            return session;
+        }
+
+        [Fact]
+        public void RotateScaleAndMirror_MoveTheGhostAsTheyMoveTheObjects_ByAReferenceToo()
+        {
+            CadCommandSession session = WithALine(out string line);
+            Run(session, "ROTATE", new[] { line }, Enter, P(0, 0));
+            MovesAsMade(session, line, P(-3, 5));
+
+            Run(session, "ROTATE", new[] { line }, Enter, P(0, 0), "R", "30");
+            Assert.StartsWith("Specify the new angle", session.PromptText);
+            MovesAsMade(session, line, P(5, 5));
+
+            Run(session, "SCALE", new[] { line }, Enter, P(0, 0));
+            MovesAsMade(session, line, P(2, 0));
+
+            Run(session, "SCALE", new[] { line }, Enter, P(0, 0), "R", "4");
+            Assert.StartsWith("Specify new length", session.PromptText);
+            MovesAsMade(session, line, P(3, 0));
+
+            Run(session, "MIRROR", new[] { line }, Enter, P(0, 0));
+            MovesAsMade(session, line, P(10, 10), "Y");
+        }
+
+        [Fact]
+        public void RotateInATurnedUcs_TurnsTheGhostByTheAngleItTurnsTheObjects()
+        {
+            CadCommandSession session = WithALine(out string line);
+            Run(session, "UCS", "Z", "30");
+            Run(session, "ROTATE", new[] { line }, Enter, P(0, 0));
+            MovesAsMade(session, line, P(0, 10));
+        }
+
+        [Fact]
+        public void RectangularArray_PreviewsEveryCopyWhileItsOptionsAreOffered()
+        {
+            CadCommandSession session = WithALine(out string line);
+            Run(session, "ARRAYRECT", new[] { line }, Enter);
+            Assert.StartsWith("Select grip to edit array", session.PromptText);
+            IReadOnlyList<Affine2> moves = session.Prompt.Preview.Moves(P(0, 0));
+            Assert.Equal(11, moves.Count);
+            HashSet<string> before = Handles(session.Document);
+            List<string> previewed = moves.SelectMany(m => Ends(session.Document, new[] { line }, m)).OrderBy(s => s, StringComparer.Ordinal).ToList();
+
+            Run(session, Enter);
+
+            List<string> made = Ends(session.Document, Handles(session.Document).Where(h => !before.Contains(h)), Affine2.Identity).OrderBy(s => s, StringComparer.Ordinal).ToList();
+            Assert.Equal(made, previewed);
+        }
+
+        [Fact]
+        public void PolarArray_PreviewsEveryCopy()
+        {
+            CadCommandSession session = WithALine(out string line);
+            Run(session, "ARRAYPOLAR", new[] { line }, Enter, P(0, 0));
+            IReadOnlyList<Affine2> moves = session.Prompt.Preview.Moves(P(0, 0));
+            Assert.Equal(5, moves.Count);
+            HashSet<string> before = Handles(session.Document);
+            List<string> previewed = moves.SelectMany(m => Ends(session.Document, new[] { line }, m)).OrderBy(s => s, StringComparer.Ordinal).ToList();
+
+            Run(session, Enter);
+
+            List<string> made = Ends(session.Document, Handles(session.Document).Where(h => !before.Contains(h)), Affine2.Identity).OrderBy(s => s, StringComparer.Ordinal).ToList();
+            Assert.Equal(made, previewed);
+        }
+
+        [Fact]
+        public void Offset_PreviewsTheCopyOnTheCursorsSide_AtTheDistanceAndThrough()
+        {
+            CadCommandSession session = WithALine(out string line);
+            Run(session, "OFFSET", "5", new[] { line });
+            Assert.StartsWith("Specify point on side to offset", session.PromptText);
+            PreviewMakes(session, P(10, 20));
+
+            Run(session, Esc, "OFFSET", "T", new[] { line });
+            PreviewMakes(session, P(30, -20), Esc);
+        }
+
+        [Fact]
+        public void Stretch_PreviewsTheObjectsStretched()
+        {
+            CadCommandSession session = Started("PLINE", P(0, 0), P(100, 0), P(100, 50), Enter, "LINE", P(200, 0), P(220, 0), Enter);
+            Run(session, "STRETCH", "C", P(90, -10), P(230, 60), Enter, P(100, 0));
+            CadPreview preview = session.Prompt.Preview;
+            List<string> previewed = Shapes(preview.Items(P(130, 10)));
+            Assert.Equal(2, previewed.Count);
+
+            Run(session, P(130, 10));
+
+            Assert.Equal(Shapes(session.Document.GetDisplay(session.Document.ModelSpace).Items), previewed);
+        }
+
         [Fact]
         public void Revcloud_PreviewsTheCloudOfTheRectangleAndOfThePolygonSoFar()
         {

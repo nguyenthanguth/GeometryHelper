@@ -141,9 +141,13 @@ namespace GeometryHelper.Dxf.Viewer
 
             double angle;
 
+            // The objects turned about the base point by an angle, as they are turned once it is given.
+            GeoTransform3 Turned(double by) => GeoTransform3.RotationAxis(P3(center), Up, by);
+
             while (true)
             {
-                yield return CadPrompt.ForAngle("Specify rotation angle", center, new[] { "Copy", "Reference" }, Number(last * 180.0 / Math.PI));
+                yield return CadPrompt.ForAngle("Specify rotation angle", center, new[] { "Copy", "Reference" }, Number(last * 180.0 / Math.PI))
+                    .Previewing(CadPreview.MovingOne(c, c.Selected, input => CadPreview.Flat(Turned(input.Number)), true));
 
                 if (c.Input.Is("Copy"))
                 {
@@ -167,7 +171,9 @@ namespace GeometryHelper.Dxf.Viewer
                         yield break;
                     }
 
-                    yield return CadPrompt.ForAngle("Specify the new angle", center, new[] { "Points" }, Number(0.0));
+                    double from = reference.Value.Value;
+                    yield return CadPrompt.ForAngle("Specify the new angle", center, new[] { "Points" }, Number(0.0))
+                        .Previewing(CadPreview.MovingOne(c, c.Selected, input => CadPreview.Flat(Turned(input.Number - from)), true));
                     var target = new Ref<double?>();
 
                     if (c.Input.Is("Points"))
@@ -196,7 +202,7 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             c.Remember("rotate", angle);
-            Transform(c, c.Selected, GeoTransform3.RotationAxis(P3(center), Up, angle), copy, "Rotate", Values(center.X, center.Y, angle));
+            Transform(c, c.Selected, Turned(angle), copy, "Rotate", Values(center.X, center.Y, angle));
         }
 
         private static IEnumerable<CadPrompt> Scale(CadCommandContext c)
@@ -223,9 +229,13 @@ namespace GeometryHelper.Dxf.Viewer
             double last = c.Remembered("scale", 1.0);
             double factor;
 
+            // The objects scaled about the base point by a factor, as they are scaled once it is given; none for a factor of nought.
+            Affine2? Scaled(double by) => by > 0.0 ? CadPreview.Flat(GeoTransform3.Scaling(P3(center), by)) : (Affine2?)null;
+
             while (true)
             {
-                yield return CadPrompt.ForDistance("Specify scale factor", center, new[] { "Copy", "Reference" }, Length(last));
+                yield return CadPrompt.ForDistance("Specify scale factor", center, new[] { "Copy", "Reference" }, Length(last))
+                    .Previewing(CadPreview.MovingOne(c, c.Selected, input => Scaled(input.Number), true));
 
                 if (c.Input.Is("Copy"))
                 {
@@ -249,7 +259,9 @@ namespace GeometryHelper.Dxf.Viewer
                         yield break;
                     }
 
-                    yield return CadPrompt.ForDistance("Specify new length", center, new[] { "Points" }, Length(1.0));
+                    double length = reference.Value.Value;
+                    yield return CadPrompt.ForDistance("Specify new length", center, new[] { "Points" }, Length(1.0))
+                        .Previewing(CadPreview.MovingOne(c, c.Selected, input => length > c.Session.Tolerance.EqualPoint ? Scaled(input.Number / length) : null, true));
                     var target = new Ref<double?>();
 
                     if (c.Input.Is("Points"))
@@ -316,9 +328,17 @@ namespace GeometryHelper.Dxf.Viewer
             GeoPoint2 first = c.Input.Point;
             GeoPoint2 second;
 
+            // The objects mirrored across the line from the first point, as they are once the second is given.
+            GeoTransform3 Mirrored(GeoPoint2 end)
+            {
+                GeoVector2 way = end - first;
+                return GeoTransform3.Mirror(new GeoPlane3(P3(first), new GeoVector3(-way.Y, way.X, 0.0).Normalize()));
+            }
+
             while (true)
             {
-                yield return CadPrompt.ForPoint("Specify second point of mirror line", first);
+                yield return CadPrompt.ForPoint("Specify second point of mirror line", first)
+                    .Previewing(CadPreview.MovingOne(c, c.Selected, input => (input.Point - first).Length > c.Session.Tolerance.EqualPoint ? CadPreview.Flat(Mirrored(input.Point)) : (Affine2?)null, true));
 
                 if (!c.Input.IsPoint)
                 {
@@ -336,9 +356,7 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             yield return CadPrompt.ForKeyword("Erase source objects?", new[] { "Yes", "No" }, "No");
-            GeoVector2 along = second - first;
-            var normal = new GeoVector3(-along.Y, along.X, 0.0).Normalize();
-            GeoTransform3 mirror = GeoTransform3.Mirror(new GeoPlane3(P3(first), normal));
+            GeoTransform3 mirror = Mirrored(second);
 
             // MIRRTEXT 0, AutoCAD's default, keeps texts readable; 1 mirrors them with the rest.
             Func<DxfEntity, ReadableMirror> readable = null;
@@ -717,15 +735,19 @@ namespace GeometryHelper.Dxf.Viewer
             return ucs.IsWorld ? new GeoVector2(point.X, point.Y) : point - new GeoPoint2(ucs.Origin.X, ucs.Origin.Y);
         }
 
-        /// <summary>Asks the base point and the second point, or a displacement, as MOVE asks them.</summary>
-        private static IEnumerable<CadPrompt> Displacement(CadCommandContext c, Ref<GeoVector2?> result)
+        /// <summary>
+        /// Asks the base point and the second point, or a displacement, as MOVE asks them; the second point previewing what
+        /// <paramref name="preview"/> makes of the displacement to the cursor, where it is given.
+        /// </summary>
+        private static IEnumerable<CadPrompt> Displacement(CadCommandContext c, Ref<GeoVector2?> result, Func<GeoVector2, IEnumerable<DxfEntity>> preview = null)
         {
             yield return CadPrompt.ForPoint("Specify base point", null, new[] { "Displacement" }, "Displacement");
 
             if (c.Input.IsPoint)
             {
                 GeoPoint2 from = c.Input.Point;
-                yield return CadPrompt.ForPoint("Specify second point or", from, null, "use first point as displacement");
+                CadPrompt second = CadPrompt.ForPoint("Specify second point or", from, null, "use first point as displacement");
+                yield return preview == null ? second : second.Previewing(CadPreview.Making(c, input => preview(input.Point - from), true));
                 result.Value = c.Input.IsPoint ? c.Input.Point - from : AsDisplacement(c, from);
                 yield break;
             }
