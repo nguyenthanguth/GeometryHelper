@@ -1,2 +1,5 @@
 # One line ending for every text file: LF, on disk as in the repository.
 * text=auto eol=lf
+
+# The test drawings of the DWG reader, gzipped.
+*.gz binary
