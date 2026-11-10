@@ -141,7 +141,7 @@ x = 40, is attached top right at (80, 0). At 1 they are mirrored with the rest.
 
 ### The commands
 
-[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 173 commands, named as AutoCAD names them, and of the system variables SETVAR sets:
+[`CadCommandRegistry.CreateDefault()`](xref:GeometryHelper.Dxf.Viewer.CadCommandRegistry) makes the registry of 175 commands, named as AutoCAD names them, and of the system variables SETVAR sets:
 
 | Group | Commands |
 |---|---|
@@ -154,11 +154,11 @@ x = 40, is attached top right at (80, 0). At 1 they are mirrored with the rest.
 | modify | TRIM, EXTEND, BREAK, BREAKATPOINT, JOIN, LENGTHEN, PEDIT (Close, Open, Join, Width, Edit vertex, Fit, Spline, Decurve, Ltype gen, Reverse, Undo; Multiple), OFFSET, FILLET, CHAMFER, STRETCH, ARRAY, ARRAYRECT, ARRAYPOLAR, -ARRAY, ALIGN |
 | blocks | BLOCK, -BLOCK, INSERT, -INSERT, WBLOCK, -WBLOCK, ATTDEF, -ATTDEF, EATTEDIT, ATTEDIT, -ATTEDIT, ATTSYNC (?, Name, Select), BATTMAN, BASE, BEDIT, -BEDIT (?), BSAVE, BSAVEAS, BCLOSE (Save, Discard, Cancel), BAUTHORPALETTE, RESETBLOCK |
 | text and clipboard | TEXTEDIT, MTEDIT, COPYCLIP, CUTCLIP, COPYBASE, PASTECLIP, PASTEBLOCK, PASTEORIG, PASTESPEC |
-| plot | PLOT, -PLOT, PREVIEW, PAGESETUP, PNGOUT, JPGOUT, BMPOUT ([Plotting](plot.md)) |
+| plot | PLOT, -PLOT, PREVIEW, PAGESETUP, PNGOUT, JPGOUT, BMPOUT, EXPORT, -EXPORT (Dwf, dwfX, Pdf) ([Plotting](plot.md)) |
 | dimension | DIM (Angular, Baseline, Continue, Ordinate, aLign, Distribute, LAyer, Undo), DIMLINEAR, DIMALIGNED, DIMRADIUS, DIMDIAMETER, DIMANGULAR, DIMARC (Mtext, Text, Angle, Partial, Leader), DIMORDINATE (Xdatum, Ydatum, Mtext, Text, Angle), DIMCONTINUE, DIMBASELINE, QDIM, DIMEDIT, DIMTEDIT, DIMSPACE, DIMBREAK, DIMJOGLINE (Remove), DIMREASSOCIATE (Select object), DIMDISASSOCIATE, -DIMDISASSOCIATE |
 | tables | TABLE, -TABLE (Style, Width, Height), TABLESTYLE, TABLEDIT |
 | selection | QSELECT, FIND, DRAWORDER (Above objects, Under objects, Front, Back), TEXTTOFRONT, GROUP, -GROUP (?, Order, Add, Remove, Explode, REName, Selectable, Create), UNGROUP, CLASSICGROUP |
-| housekeeping | PURGE, -PURGE (Blocks, Dimstyles, LAyers, LTypes, MUltileaderstyles, Plotstyles, SHapes, textSTyles, Tablestyles, Visualstyles, Regapps, Zero-length geometry, Empty text objects, All) |
+| housekeeping | PURGE, -PURGE (Blocks, Dimstyles, Groups, LAyers, LTypes, MUltileaderstyles, Plotstyles, SHapes, textSTyles, Tablestyles, Visualstyles, Regapps, Zero-length geometry, Empty text objects, All) |
 | references and images | XATTACH, IMAGEATTACH, XREF, EXTERNALREFERENCES, IMAGE, -XREF (?, Bind, Detach, Path, pathType, Unload, Reload, Overlay, Attach), -IMAGE (?, Detach, Path, Reload, Unload, Attach), IMAGECLIP (ON, OFF, Delete, New boundary), TRANSPARENCY |
 
 A dimension's picture is laid out from its style as AutoCAD 2021 lays it out: DIMTAD puts the words on the line, which
@@ -171,15 +171,30 @@ at the back of each arrowhead, 2.5 in from its tip, but for the ticks, Dot small
 which take no room and never move out. DIMTVP lifts the words of DIMTAD 0 by that many times their height, the line
 broken about them below 0.7; a DIMGAP below nought draws a box round the words, the gap clear of them.
 
+DIMTMOVE says where words go that the fit moves out or DIMTEDIT puts by hand. Under 0 they stand beside the line, which
+DIMTEDIT moves to run through the point given, the words above it there (on it for DIMTAD 0, the line broken a gap
+clear of them, and run on to a gap short of them past an end). Under 2 the fit puts them over the line, away from the
+points, DIMEXE, one and a half DIMGAP and half their height out (their height more where they stand below it as they
+read): "4" moved out of a dimension of 4 stands 5.9375 below the middle of its line; DIMTEDIT puts their middle at the
+point. Under 1 the same place is a leader's end, the leader from the middle of the line a third as far along again, and
+a landing on to the words; DIMTEDIT draws a leader to words further from the line than DIMGAP and half the heights of
+the words and the arrowheads, 3.15 with ISO-25's sizes, the words starting at the point, and none to words nearer.
+
 Radius, diameter and angular dimensions follow the same variables. A radius of 20 with its line put 45 from the centre
 has its arrowhead outside the rim, its line from the back of it on under the words, and a line from the centre to the
 rim by DIMTOFL, or with DIMTOFL off the centre mark of DIMCEN (centre lines too where DIMCEN is below nought); put 8 from
 the centre, the arrowhead stands inside and the line runs in past the words. Inside a small circle DIMATFIT 3 keeps the
 words where they are put, no nearer the rim than two arrowheads and the gap; 0 to 2 put them in the middle of the line
-where they fit, else outside past the rim. An angle of 60 degrees with its arc 30 from the vertex has its arc from the
-back of one arrowhead to the back of the other, 4.78 to 55.22 degrees, the arrowheads set along their chords; an angle
-of 8 degrees has its words and arrowheads outside past its first ray, the arc run on and a line along it to the words.
-DIMJUST 1 puts an angle's words next to its second ray, 2 next to its first. Words of an angle moved by DIMTEDIT stand
+where they fit, else outside past the rim. A diameter's words on its line (DIMTAD 0) take a gap each side and, with
+the arrowheads inside, the arrowheads' room too: "%%c6" 4.357 wide fits a diameter of 6 under DIMATFIT 1, the line
+through the circle broken a gap clear of it. An angle's extension lines run from DIMEXO off its points to DIMEXE past
+the arc wherever that is any length: points 20 out and the arc 20.3 out give lines from 20.625 to 21.55. An angle of 60
+degrees with its arc 30 from the vertex has its arc from the back of one arrowhead to the back of the other, 4.78 to
+55.22 degrees, the arrowheads set along their chords; an angle of 8 degrees has its words and arrowheads outside past
+its first ray, the arc run on and a line along it to the words, or under DIMTMOVE 1 and 2 over the arc, out along the
+middle of its sweep: under 1 past a leader from the arc to two arrowheads beyond it (beyond the farthest point where
+that is further), under 2 their middle there, or where the points lie beyond the arc where the words first fit between
+the extension lines. DIMJUST 1 puts an angle's words next to its second ray, 2 next to its first. Words of an angle moved by DIMTEDIT stand
 on the arc, which then runs through the point given, under DIMTMOVE 0 ("60°" moved 50 out at 30 degrees stands 51.9
 out, above the arc as it reads), level past a leader from the middle of the arc under 1, and turned along the arc under
 2. Those of a radius or a diameter slide along its line, which stays, to where the point falls on it under 0 and 1, and
@@ -290,8 +305,9 @@ in its order: a line sent to the back with `DR`, Back is drawn under every other
 ACAD_GROUP dictionary, named with Name, unnamed (`*A1`) without; with PICKSTYLE 1, the default, a pick of one member
 takes the whole of a selectable group, and Ctrl+Shift+A switches that off and on (`<Group off>`). -PURGE never deletes
 what AutoCAD keeps: layer 0 and Defpoints, the linetypes ByLayer, ByBlock and Continuous, the styles Standard and the
-current ones, the blocks of the spaces, the plot style Normal and every visual style; with "Verify each name to be
-purged?" Yes it asks `Purge layer "EMPTY1"? [Yes/No] <No>:` of each. It purges pass after pass until nothing more is
+current ones, the blocks of the spaces, the plot style Normal and every visual style; a group it deletes when the group
+holds nothing, named or unnamed (`Deleting group "*A1".`), whether it was never given a member or its members were all
+erased; with "Verify each name to be purged?" Yes it asks `Purge layer "EMPTY1"? [Yes/No] <No>:` of each. It purges pass after pass until nothing more is
 unused, so that a block OUTER inserted nowhere, holding the only INSERT of INNER, takes INNER with it, and the layer only
 INNER's circle was on; a name answered No is not asked again. PURGE shows the Purge dialog where there is a window (the
 typed form otherwise): the named objects nothing uses by kind, with Confirm each item, Purge nested items, the geometry
@@ -307,11 +323,27 @@ Highlight < hides both dialogs and steps through the members on the canvas one a
 LAYERSTATE shows the Layer States Manager and -LAYER State asks the same on the command line: a state is an XRECORD of
 ACAD_LAYERSTATES, written group for group as AutoCAD 2021 writes it (mask 2047 for every property, the layers last first
 by handle), restored in the properties its mask holds, and exported to a .las file AutoCAD 2021 writes to the byte; each
-run is one undo step. VIEW shows the View Manager and its New View, -VIEW asks on the command line: a view is a record of
+run is one undo step. With "Apply properties as viewport overrides" ticked while a viewport of a layout is worked
+through, or is the one selected on the paper, Restore leaves the layers alone and writes the state into that viewport:
+a colour, linetype, lineweight or transparency of the state that is not the layer's own becomes its override there (one
+that is the layer's own takes the override off), a layer the state has off or frozen is frozen in the viewport and one
+it has on and thawed is thawed there, and with "Turn off layers not found in layer state" the layers the state does not
+name are frozen there too. Locking, plotting, the freeze in new viewports and the current layer have no form of one
+viewport and stay as they are. VIEW shows the View Manager and its New View, -VIEW asks on the command line: a view is a record of
 the VIEW table (`db.ViewTable`), its layer snapshot the hidden state ACAD_VIEWS_ and its name, restored with it; Edit
 Boundaries and Define window ask two corners and bring the dialog back, Cancel takes the run back. UNITS shows Drawing Units
 and its Direction Control, writing LUNITS, LUPREC, AUNITS, AUPREC, ANGDIR, INSUNITS and ANGBASE on OK as one step; typed
 lengths and angles are read in those units, `1'3-1/2"` in architectural units and `100` as grads where AUNITS is 2.
+A typed angle is counted as AutoCAD counts it. A direction (the angle of `@100<30`, a text's rotation, an xline's
+angle, a hatch pattern's, the new angle of ROTATE's Reference) is from ANGBASE and, with ANGDIR 1, clockwise: with
+ANGBASE 90 and ANGDIR 1, `@100<30` ends at 50, 86.6. A turn (ROTATE's angle, an arc's included angle, a block's
+rotation, CHAMFER's and LENGTHEN's angles, the angles of a polar array, UCS Z) follows ANGDIR only, so 30 at ROTATE turns
+30 degrees clockwise; a point picked there turns by its direction less ANGBASE. An obliquing angle follows neither.
+`<<` before the angle reads it in degrees from the X axis counter-clockwise whatever the settings (`@100<<30` ends at
+86.6, 50), and `<<<` the same in the drawing's angle units. The angles DIST, LIST, the Properties palette, the tip by the
+cursor and the coordinate readout write are counted the same way, east as 90 there; what the drawing keeps stays
+counter-clockwise from the X axis. `CadUnits.ToDirection` and `FromDirection` are the two conversions, and
+`session.CountAngle(radians)` the second with the drawing's settings.
 With SELECTIONCYCLING 2, AutoCAD's default, a
 click where two lines cross shows the list of both near the cursor, the one drawn on top first, `Line · 0` and
 `Line · WALLS`, and the row chosen is taken as a click on that line alone; with 1 or 2, Shift+Space arms cycling, and each
@@ -511,7 +543,8 @@ and its place; `document.GripDrag(handle, index, point)` drags one, as one undo 
 | CIRCLE | the centre, four quadrants | the centre moves it; a quadrant changes the radius |
 | ARC | two ends, the middle, the centre | the middle bends the arc through the point |
 | polylines | each vertex, the middle of each segment | a vertex moves; the middle of a straight segment moves it, of an arc segment bends it |
-| TEXT, MTEXT, INSERT | the insertion point | moves it |
+| TEXT, INSERT | the insertion point | moves it |
+| MTEXT | the location and the corners of its box (top left, top right, bottom left, bottom right; the location first where it is at none of them); the location alone for an MTEXT of no width or in columns | the location moves it; a corner takes its two sides of the box to the point, which sets the defined width and height, the location staying at the point of the new box the attachment names |
 | VIEWPORT | four corners, the middle | a corner resizes the frame, the opposite corner, the scale and the centre of the view kept |
 | linear and aligned DIMENSION | the two extension line origins, the two ends of the dimension line, the words | an origin measures anew, the dimension line kept where it is; an end of the line moves the line through the point; the words move as DIMTEDIT moves them |
 | radius and diameter DIMENSION | the chord point (a diameter's two), the words | a chord point goes round the circle towards the point |
@@ -527,6 +560,19 @@ to (150, 10) measures 150 with its line still 30 below; dragged by an end of its
 and words placed by DIMTEDIT go down with it. Its words dragged to (60, -50) stand there, the line moved to run under them
 where DIMTMOVE is 0 and a leader drawn to them where it is 1. A drag that would measure nothing, an origin onto the other,
 is refused.
+
+An MTEXT's grips are AutoCAD 2021's too. Its box is its defined width across and its defined height down, or with no
+defined height the height of its lines. "II" over "II" in letters 10 high, 240 wide and attached top left at the origin,
+has its grips at (0, 0), (240, 0), (0, -26.67) and (240, -26.67). The top right one dragged to (260, -12) leaves the
+MTEXT 260 wide with a defined height of 14.67, located at (0, -12); the bottom left one dragged by the same leaves it 220
+wide and 38.67 high at (20, 0). The words wrap anew at the new width. The box is never lower than one text height, the
+side dragged staying at the point, and a box dragged to no width is refused. In a drawing before R2007, whose MTEXT
+holds no defined height, a corner changes the width alone.
+
+EXPLODE breaks an MTEXT into a TEXT for each run of each line, where the picture draws it and of its height, width
+factor and slant, with `%%U`, `%%O` or `%%K` before the words of a run lined under, over or through, and a LINE for
+the bar of each stack, all in the MTEXT's text style, layer and colour. A run in a font or colour of its own (`\f`,
+`\C`) becomes a TEXT in the MTEXT's style and colour, as in AutoCAD.
 
 A dynamic block's custom grips are those AutoCAD 2021 shows, where the INSERT's values put them
 ([`DxfBlockReference.GetDynamicGrips`](xref:GeometryHelper.Dxf.DxfBlockReference.GetDynamicGrips)), each a `CadGrip` of a

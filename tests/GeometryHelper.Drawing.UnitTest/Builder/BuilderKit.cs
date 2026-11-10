@@ -99,16 +99,14 @@ namespace GeometryHelper.Drawing.UnitTest.Builder
             }
         }
 
-        /// <summary>A folder of %TEMP%/gk/drawing/build, made where missing.</summary>
+        /// <summary>The folder build of the run (<see cref="TestRun"/>), made where missing.</summary>
         public static string Folder()
         {
-            string folder = Path.Combine(Path.GetTempPath(), "gk", "drawing", "build");
-            Directory.CreateDirectory(folder);
-            return folder;
+            return TestRun.Folder("build");
         }
 
         /// <summary>
-        /// Draws a space of a drawing, as the presenter shows it, into a PNG under %TEMP%/gk/drawing/build or a folder given;
+        /// Draws a space of a drawing, as the presenter shows it, into a PNG in the folder build of the run or a folder given;
         /// gives the path. The layout is drawn on its paper, model space on what it draws.
         /// </summary>
         public static string SavePicture(DxfDatabase database, string spaceName, string name, string folder = null)

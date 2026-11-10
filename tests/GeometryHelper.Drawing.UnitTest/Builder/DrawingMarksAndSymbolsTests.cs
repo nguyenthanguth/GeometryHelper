@@ -541,7 +541,7 @@ namespace GeometryHelper.Drawing.UnitTest.Builder
         [Fact]
         public void TheDrawingsOfTheTestBodiesAreDrawnToPicturesToLookAt()
         {
-            string folder = Path.Combine(Path.GetTempPath(), "gk", "drawing", "integrate2");
+            string folder = TestRun.Folder("integrate2");
             DrawingSettings tc2 = DrawingSettings.Part;
             tc2.Views.Details.Add(new DetailViewRequest("B", ViewKind.Front, new GeoRectangle2(2800, -200, 300, 400), 4));
             var cases = new[]

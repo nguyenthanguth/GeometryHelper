@@ -100,6 +100,9 @@ and the 3D polyline of point 13 fitted at SPLINETYPE 5 its `Type mismatch`, as A
    - Now: the library sets the frame (flag 16 of group 90) from R2004 on; ezdxf from R2007.
    - A change if: AutoCAD 2004 to 2006 does not read the flag; then the library should refuse it before R2007.
    - AutoCAD 2021: reads the flag in both, AUDIT finding nothing; AutoCAD 2004 to 2006, the question, were not at hand.
+     In a drawing of R2018 it discards an MTEXT with the frame alone (90 of 16) and no 63 and 45 after it ("Missing DXF
+     group code: 90"), and in a drawing of R2004 to R2013 one that has them: `ShowBorders` writes 63 256, 45 1.5 and 441 0
+     in R2018 alone.
 
 9. **An MTEXT set in columns.**
    - Try: open in AutoCAD the MTEXTs set by `SetStaticColumns`, `SetDynamicColumns` and `SetColumnHeight` in a drawing of R2018
@@ -1215,7 +1218,11 @@ and the 3D polyline of point 13 fitted at SPLINETYPE 5 its `Type mismatch`, as A
       xref, named `70-b-xref-source__GH_XR_STATE`, names its layers by name (8) where the others name them by handle (330),
       and is not kept once the drawing is saved and opened again. A record is 91 the mask, 301 the description, 290, 302, then
       for each layer 330 (or 8), 90, 62, 370, 331, 1 and 440.
-    - Now: `GetLayerStateNames(includeHidden, includeXref)` takes the flags so, `GetLayerStateNames()` gives every state; the
+      A state imported from a .las file (`-LAYER` stAte Import) names its layers by name too, plain names as `XR_DOORS`
+      and `0`, and `-LAYER` stAte `?` lists it with the states saved in the drawing; of records put in by hand, `?` leaves
+      out only the hidden one.
+    - Now: `GetLayerStateNames(includeHidden, includeXref)` takes the flags so, a state of an xref being one named
+      `xref__state` whose layers are all named by name as `xref|layer`; `GetLayerStateNames()` gives every state; the
       layers, mask and description are still not read.
 
 71. **A GEODATA with no class.**

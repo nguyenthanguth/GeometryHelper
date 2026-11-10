@@ -290,7 +290,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     Entry("JPG", IconImage, "An image of the drawing area as shown (JPGOUT)", Start("JPGOUT"), open),
                     Entry("BMP", IconImage, "An image of the drawing area as shown (BMPOUT)", Start("BMPOUT"), open),
                     Entry("Block or objects to a DXF", IconBlock, "Write a block or the objects selected to a new file (WBLOCK)", Start("WBLOCK"), open),
-                    Entry("Other Formats", IconOther, "Export to another format (EXPORT, not built yet)", null),
+                    Entry("Other Formats", IconOther, "Export to another format: Bitmap here; the rest of AutoCAD's list is refused (EXPORT)", Start("EXPORT"), open),
                 }),
                 new AppMenuItemViewModel("print", "Print", IconPrint, null, null, true, new[]
                 {

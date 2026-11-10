@@ -6,6 +6,101 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**CHANGED.** The dynamic input of the presenter shows the length and the angle in their fields alone, with no dimension
+line, extension lines, angle arc or dashed base line drawn under them. That is every prompt with these fields: the
+second point of LINE, PLINE, ARC, CIRCLE's 2P, ELLIPSE's axis, POLYGON's edge, XLINE, RAY, MOVE, COPY, STRETCH, OFFSET
+by two points and a grip stretched or moved, a distance asked from a base point and an angle asked from one. The length
+sits beside the middle of the rubber band, 8 pixels off it on one side, and the angle 50 pixels along the band from the
+base point, 8 pixels off it on the other, so that neither covers the band. The prompt's box never hides a field: where
+it would, the length goes to the band's other side or the box moves up or down clear of the fields, whichever moves less.
+With the cursor by the canvas's right edge the box stands left of it, and over a band rising 11 degrees it covered the
+length, now set below the band. Typing, Tab to lock and a held value holding
+the band work as before: 300 locked at a line from (1 000, 1 000) with the cursor at (1 300, 1 400) still ends it at
+(1 180, 1 240). RECTANG's X and Y fields and the X and Y of pointer input are unchanged.
+
+**NEW.** EXPORT and -EXPORT in the presenter, as AutoCAD 2021 has them. EXPORT's Export Data dialog lists AutoCAD's
+types: 3D DWF, 3D DWFx, ACIS, Bitmap, Block, DXX Extract, Encapsulated PS, IGES, Lithography, Metafile, V7 DGN and V8 DGN.
+Bitmap is written as BMPOUT writes it. The other types have no writer and are refused, with nothing written:
+`Metafile (*.wmf) has no writer in the presenter: nothing was exported.` -EXPORT asks
+`Enter file format [Dwf/dwfX/Pdf] <dwfX>`, then `Enter plot area [Display/Extents/Window] <Display>:` (on a layout
+`[Current layout/All layouts]`), then `Detailed plot configuration? [Yes/No] <No>:`, word for word as AutoCAD 2021's
+console asks them. It then asks for the file in a Save As PDF dialog, or on the command line with FILEDIA 0, and writes
+the PDF with -PLOT's writer. Dwf, dwfX and All layouts are refused. The format answered becomes the next default. The
+file dialogs go through `MainViewModel.AskExportFile` and a [`CadExportJob`](xref:GeometryHelper.Dxf.Viewer.CadExportJob),
+and Other Formats under Export in the application menu, greyed until now, runs EXPORT. The registry holds 175 commands.
+
+**NEW.** The presenter's command line searches the drawing's content, as AutoCAD 2021's Search Content: below the
+commands and system variables, under a rule, the AutoComplete list holds the blocks, layers, hatch patterns, text styles
+and dimension styles whose names begin with the letters typed, then those with the letters inside, each kind by name and
+marked at the right. WAL typed in a drawing of the block WALL_TAG and the layers WALLS and WALL-FINISH lists
+`WALL_TAG Block`, `WALL-FINISH Layer` and `WALLS Layer`; a kind's keyword (BLOCK or INSERT, LAYER, HATCH, TEXTSTYLE or
+STYLE, DIMSTYLE) lists every name of the kind. Choosing a row acts on it: a layer is made current through CLAYER, a block
+inserted through -INSERT, which then asks the insertion point, a hatch pattern given to HATCH, a text style or a
+dimension style made current. Search Content of the command line's Input Settings, greyed until now, switches it and is
+kept in the settings file; it is on by default, as in AutoCAD. As AutoCAD's help says, the content is searched at the
+command line only, not in the box of dynamic input at the cursor. AutoCAD's choice and order of the kinds (Input Search
+Options), its collapsible section and its picture of a hatch pattern under the pointer are not built: they need a dialog
+and a list of their own.
+
+**FIXED.** The presenter's dimension pictures follow DIMTMOVE as AutoCAD 2021 draws them. Words the fit moves out of a
+linear dimension stand over its line under DIMTMOVE 2, on the side away from the points, DIMEXE, one and a half DIMGAP
+and half their height out, their height more where they read below it ("4" of a dimension of 4, 5.9375 below the middle
+of its line), and under DIMTMOVE 1 beside a leader to that place and a landing; an angle's go over its arc along the
+middle of its sweep, past a leader under 1. DIMTEDIT of a linear dimension under DIMTMOVE 0 runs the line through the
+point given and stands the words above it there, on it with the line broken for DIMTAD 0, where the line ran a gap and
+half their height under them; under 1 a leader is drawn to words further from the line than DIMGAP and half the heights
+of the words and the arrowheads, and none to words nearer; under 2 the words' middle is the point, the line broken where
+it runs through them. A dimension of AutoCAD's with its words moved is drawn as AutoCAD drew it. Of 846 pictures
+AutoCAD drew for this, 762 match to 0.001. Left: 56 angles whose arc passes exactly through their points, where
+AutoCAD's side of one extension line follows the rounding of the coordinates, and 28 radii and diameters of a small
+circle made under DIMTMOVE 1 or 2 with their point inside it.
+
+**FIXED.** Two more rules of the presenter's radius, diameter and angular pictures follow AutoCAD 2021. A diameter's
+words on its line (DIMTAD 0) need their width and a gap each side, and with the arrowheads inside the arrowheads' room
+as well, as a linear dimension's do: "%%c6" 4.357 wide now stands at the centre of a diameter of 6 under DIMATFIT 1,
+DIMTOFL's line through the circle broken a gap clear of it, where it stood outside. An angle's extension lines run from
+DIMEXO off its points to DIMEXE past the arc wherever that is any length, as a linear dimension's: with its points 20
+from the vertex and its arc 20.3 out they run from 20.625 to 21.55, where none were drawn. Checked against 70 new
+pictures AutoCAD drew, all matching to 0.001; the 676 of the earlier rounds still match.
+
+**NEW.** PURGE and -PURGE of the presenter purge groups, as AutoCAD 2021's do: the Groups option of -PURGE and of its
+All, and a Groups node in the tree of the Purge dialog. A group is purged when it holds nothing, whether it was never
+given a member or its members were all erased, named or unnamed: of a drawing with the groups EMPTY and FULL and an
+unnamed group whose one line was erased, -PURGE Groups says `Deleting group "*A1".`, `Deleting group "EMPTY".`,
+`2 groups deleted.` and keeps FULL, and a second run says `No unreferenced groups found.`. Find Non-Purgeable Items
+lists FULL with `Group FULL holds objects.`.
+
+**FIXED.** A disabled drop-down and a disabled button of the presenter look disabled. The shared styles of the theme
+gave neither a disabled look, so the Live section, Visual style and Background boxes of New View, the Lighting box of
+Drawing Units and the ribbon buttons that need a drawing, or are not built yet, read as ones to press, and a disabled
+drop-down still lit its border under the mouse. A disabled drop-down now shows its words muted and its box at half
+strength and does not answer the mouse; a disabled button shows its icon and words at 45 per cent.
+
+**FIXED.** The presenter's Layer States Manager restores a state into the current viewport of a layout where "Apply
+properties as viewport overrides" is ticked; the tick was read and then ignored, and the layers themselves were changed.
+A state that has the layer A red and 0.50 wide, B off and C frozen, restored so into a viewport after A was made green,
+leaves A green in the drawing and gives it a red, 0.50 override in that viewport, freezes B and C there, and leaves
+every other viewport alone; a property the state and the layer agree on takes its override off, and a layer the state
+has on and thawed is thawed there. With "Turn off layers not found in layer state" the layers the state does not name
+are frozen in the viewport. One undo step, as the restore into the layers is. On the Model tab, and on the paper with
+no viewport chosen, Restore changes the layers as before.
+
+**FIXED.** `DxfLayerStateManager.GetLayerStateNames(includeHidden, false)` left out a layer state imported from a .las
+file. AutoCAD 2021 writes such a state with its layers by name (group 8: `XR_DOORS`, `0`), which the library took for
+the mark of an xref's state; `-LAYER` stAte `?` lists it with the drawing's own. A state is now an xref's only where it is
+named `xref__state` and every layer of its record is named as `xref|layer`, as AutoCAD writes
+`70-b-xref-source__GH_XR_STATE` of the layer `70-b-xref-source|XR_WALLS`.
+
+**FIXED.** The presenter's typed and shown angles follow ANGBASE and ANGDIR as AutoCAD 2021's do; they were read from
+the X axis counter-clockwise whatever UNITS had set (only an arc's included angle followed ANGDIR). With ANGBASE 90 and
+ANGDIR 1, `@100<30` now ends at 50, 86.6 and not 86.6, 50; 30 at ROTATE turns 30 degrees clockwise, the base left out
+as AutoCAD leaves it out of a turn; DIST writes a line to the east as "Angle in XY Plane = 90", and LIST, the Properties
+palette, the cursor tip, the coordinate readout and the angle box of dynamic input count the same way. `@100<<30` and
+`@100<<<30` end at 86.6, 50 whatever the settings. Prompts whose default is a direction offer it counted
+("Specify rotation angle or [Copy/Reference] <90>:"). New: `CadUnits.ToDirection` and `FromDirection`,
+`CadCommandSession.CountAngle`, and `CadPrompt.AsksTurn` and `AsksPlainAngle`, which say how the session reads an angle
+typed at a prompt. A drawing with ANGBASE 0 and ANGDIR 0 behaves as before.
+
 **NEW.** `DwgReader` (namespace `GeometryHelper.Dwg`) reads a DWG file of AutoCAD 2000 (AC1015), 2004 (AC1018), 2010
 (AC1024), 2013 (AC1027) and 2018 and later (AC1032) by the library's own code, as the drawing its DXF would give:
 `DwgReader.Read` gives the `DxfDocument` of `DxfReader` and `DwgReader.Open` the `DxfDatabase`, from a path or a stream.
@@ -21,6 +116,34 @@ one Debug line; a DWG of another version, AutoCAD 2007 (AC1021) among them, is r
 that names it. Every check sum is checked, from 2004 those of every compressed page too: a wrong one in the header, the
 classes, the object map or a page refuses the file with a `FormatException`, and one broken object is left out with a
 Warn line while the others are read. See the guide page "Reading DWG files".
+
+**CHANGED.** The presenter lays the words of an MTEXT out as AutoCAD 2021 does, where it drew one line a paragraph 1.25
+heights apart. The words wrap at the MTEXT's width (group 41) at their spaces alone, never after a hyphen, a word too
+long standing whole past the width and `\~` holding two words together; a width of 0 wraps nothing. Lines stand 5/3 of
+the height apart times the factor (44): exactly so under `Exactly`, and under `AtLeast` further where a taller run or a
+stacked fraction needs the room. `\S` stacks its parts with a bar (`/`), with none (`^`) or along a diagonal (`#`), each
+part as high as its ink, and `\A` sets the words beside it at its bottom, middle or top. The paragraph codes `\p` set
+indents and margins, the alignment (left, centre, right, justified, distributed), tab stops (left, centre, right,
+decimal; every 4 heights where none is set), the space before and after and a line spacing of the paragraph's own.
+Static and dynamic columns take the lines that fit their heights, `\N` starting the next. The background mask and the
+frame are drawn around the lines, the scale factor less 1 of a height out (1.5 for a frame alone). "II II II" 20 wide in
+letters 10 high whose I is inked 1 in and moves the pen 4 is set as "II II" and, 16.67 below it, "II". Held against
+AutoCAD's own fragments of 155 MTEXTs (536 lines), in an SHX font and in Arial: 150 have the same breaks with every line
+within 0.2 % of the height of where AutoCAD puts it. `DisplayText2.Parts` is now set for every MTEXT: a text for each
+run of each line, the mask (`DisplayFill2`) and the frame first; the box of the MTEXT's item is that of its parts.
+
+**CHANGED.** The presenter's grips and EXPLODE of an MTEXT follow its new layout, as AutoCAD 2021's do. An MTEXT with a
+width has a grip at each corner of its box besides its location (`CadGripKind.Corner`; the location alone for no width
+or for columns), and a corner dragged takes its two sides of the box to the point: "II" over "II" 240 wide at the
+origin, its top right corner dragged to (260, -12), is 260 wide with a defined height of 14.67 and located at (0, -12).
+`CadGrips.Of` therefore gives four or five grips where it gave one, the location no longer always the first. EXPLODE
+makes a TEXT of each run of each line where the picture draws it, and a LINE of the bar of each stack, where it made the
+TEXTs of the library's own simpler layout.
+
+**FIXED.** `DxfMText.ShowBorders` set in a drawing of R2018 with no background writes the colour and the scale of a
+background (63 256, 45 1.5, 441 0) after its group 90 of 16: AutoCAD 2021 discarded the whole drawing without them
+("Missing DXF group code: 90"). In a drawing of R2004 to R2013 it writes none, as before: there AutoCAD discards the
+drawing that has them.
 
 **NEW.** DIMARC (DAR), the presenter's arc length dimension, as AutoCAD 2021 makes it and stored as the library's
 `DxfArcDimension`: Mtext and Text for its words, Angle for theirs, Partial for the length between two points of the arc,

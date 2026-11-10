@@ -83,7 +83,7 @@ namespace GeometryHelper.Dxf.Viewer
                 settings.WidthFactor = c.Input.Number;
             }
 
-            yield return CadPrompt.ForAngle("Specify obliquing angle", null, null, Number(settings.ObliqueAngle * 180.0 / Math.PI));
+            yield return CadPrompt.ForAngle("Specify obliquing angle", null, null, Number(settings.ObliqueAngle * 180.0 / Math.PI)).Plain();
 
             if (c.Input.Kind == CadInputKind.Number)
             {

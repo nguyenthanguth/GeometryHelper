@@ -354,14 +354,14 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (c.Input.Is("Angle between"))
                 {
-                    yield return CadPrompt.ForAngle("Specify angle between items", null, new[] { "Expression" }, Number(step * 180.0 / Math.PI));
+                    yield return CadPrompt.ForAngle("Specify angle between items", null, new[] { "Expression" }, Number(step * 180.0 / Math.PI)).Turning();
                     step = c.Input.Kind == CadInputKind.Number ? c.Input.Number : step;
                     continue;
                 }
 
                 if (c.Input.Is("Fill angle"))
                 {
-                    yield return CadPrompt.ForAngle("Specify the angle to fill (+=ccw, -=cw)", null, new[] { "EXpression" }, Number(Fill(items, step) * 180.0 / Math.PI));
+                    yield return CadPrompt.ForAngle("Specify the angle to fill " + FillWays(c), null, new[] { "EXpression" }, Number(Fill(items, step) * 180.0 / Math.PI)).Turning();
 
                     if (c.Input.Kind == CadInputKind.Number)
                     {
@@ -463,14 +463,14 @@ namespace GeometryHelper.Dxf.Viewer
                 int items = c.Input.Kind == CadInputKind.Number ? (int)c.Input.Number : 0;
 
                 // The copies the angle to the cursor from the centre would make, turned as they are unless No is answered after.
-                CadPrompt filling = CadPrompt.ForAngle("Specify the angle to fill (+=ccw, -=cw)", centre, null, "360");
+                CadPrompt filling = CadPrompt.ForAngle("Specify the angle to fill " + FillWays(c), centre, null, "360").Turning();
                 yield return items < 2 ? filling : filling.Previewing(CadPreview.Moving(c, c.Selected, input => PolarMoves(centre, basePoint, items, StepOf(items, input.Number), 1, 0.0, true).ConvertAll(CadPreview.Flat), true));
                 double fill = c.Input.Kind == CadInputKind.Number ? c.Input.Number : 2.0 * Math.PI;
                 double step;
 
                 if (items <= 0)
                 {
-                    yield return CadPrompt.ForAngle("Angle between items", centre).Previewing(CadPreview.Moving(c, c.Selected, input =>
+                    yield return CadPrompt.ForAngle("Angle between items", centre).Turning().Previewing(CadPreview.Moving(c, c.Selected, input =>
                     {
                         if (Math.Abs(input.Number) <= Tolerance.Default.EqualAngleRad)
                         {
@@ -616,6 +616,9 @@ namespace GeometryHelper.Dxf.Viewer
 
             return moves;
         }
+
+        /// <summary>The ways a fill angle turns, as AutoCAD says them: a number above nought is clockwise with ANGDIR 1.</summary>
+        private static string FillWays(CadCommandContext c) => c.Database.Angdir ? "(+=cw, -=ccw)" : "(+=ccw, -=cw)";
 
         /// <summary>The items of a polar array filling an angle a given angle apart: a whole turn by 60 degrees has six, a half turn seven.</summary>
         private static int Between(double fill, double step)

@@ -98,7 +98,7 @@ namespace GeometryHelper.Dxf.Viewer
                 case DxfMLeader _:
                     return MLeader(db, label, text, number, v, out write, out error);
                 case DxfBlockReference insert:
-                    return Insert(label, text, insert, number, v, out write, out error);
+                    return Insert(db, label, text, insert, number, v, out write, out error);
                 case DxfViewport _:
                     return Viewport(label, text, number, v, out write, out error);
             }
@@ -150,7 +150,7 @@ namespace GeometryHelper.Dxf.Viewer
                     };
                     return true;
                 case "Angle":
-                    write = e => ((DxfHatch)e).PatternAngle = Turn(v);
+                    write = e => ((DxfHatch)e).PatternAngle = Direction(db, v);
                     error = solid ? "A solid fill has no angle." : number ? null : label + " is a number.";
                     return true;
                 case "Scale":
@@ -425,7 +425,7 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>The rows of a block reference: its place, scales and rotation, and the value of an attribute by its tag.</summary>
-        private static bool Insert(string label, string text, DxfBlockReference insert, bool number, double v, out Action<DxfEntity> write, out string error)
+        private static bool Insert(DxfDatabase db, string label, string text, DxfBlockReference insert, bool number, double v, out Action<DxfEntity> write, out string error)
         {
             write = null;
             string notNumber = label + " is a number.";
@@ -451,7 +451,7 @@ namespace GeometryHelper.Dxf.Viewer
                     }
 
                 case "Rotation":
-                    write = e => ((DxfBlockReference)e).Rotation = Turn(v);
+                    write = e => ((DxfBlockReference)e).Rotation = Direction(db, v);
                     error = number ? null : notNumber;
                     return true;
             }

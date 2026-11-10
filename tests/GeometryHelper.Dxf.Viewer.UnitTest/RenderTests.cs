@@ -11,11 +11,11 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 {
     /// <summary>
     /// Drawings drawn by <see cref="SkiaCanvasRenderer"/> into a bitmap with no window, their pixels read back; each scene is
-    /// also written as a PNG to %TEMP%\gk\drawing\render, to be looked at.
+    /// also written as a PNG to the folder render of the run (<see cref="TestRun"/>), deleted when the run ends.
     /// </summary>
     public class RenderTests
     {
-        private static readonly string Folder = Path.Combine(Path.GetTempPath(), "gk", "drawing", "render");
+        private static readonly string Folder = TestRun.Folder("render");
 
         /// <summary>Draws a space of a document into a bitmap and writes it as a PNG of the scene's name.</summary>
         private static SKBitmap Render(string scene, CadDocument document, CadSpace space, CadView view, CanvasOptions options = null)

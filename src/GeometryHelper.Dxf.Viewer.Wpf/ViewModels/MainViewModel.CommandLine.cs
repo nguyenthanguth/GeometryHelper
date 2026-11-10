@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using GeometryHelper.Dxf;
 
 namespace GeometryHelper.Dxf.Viewer.Wpf
 {
@@ -13,7 +14,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     {
         private bool _isSelected;
 
-        internal CommandSuggestionViewModel(string name, string command, bool isVariable, int hit, int hitLength, string note, string synonymOf, bool startsMidString, string iconKey)
+        internal CommandSuggestionViewModel(string name, string command, bool isVariable, int hit, int hitLength, string note, string synonymOf, bool startsMidString, string iconKey,
+            string contentType = null, bool startsContent = false, Action run = null)
         {
             Name = name;
             Command = command;
@@ -22,6 +24,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             Synonym = synonymOf == null ? string.Empty : " (" + synonymOf + ")";
             StartsMidString = startsMidString;
             IconKey = iconKey;
+            ContentType = contentType;
+            StartsContent = startsContent;
+            Run = run;
             hit = Math.Max(0, Math.Min(hit, name.Length));
             hitLength = Math.Max(0, Math.Min(hitLength, name.Length - hit));
             Before = name.Substring(0, hit);
@@ -29,11 +34,29 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             After = name.Substring(hit + hitLength);
         }
 
-        /// <summary>Gets the name shown: LAYER, ROUND, LASTPOINT.</summary>
+        /// <summary>Gets the name shown: LAYER, ROUND, LASTPOINT; for a named object, its name as the drawing has it: WALLS.</summary>
         public string Name { get; }
 
-        /// <summary>Gets what choosing the row runs: the command's name, the command a synonym stands for (FILLET for ROUND), or the variable's name.</summary>
+        /// <summary>
+        /// Gets what choosing the row runs: the command's name, the command a synonym stands for (FILLET for ROUND), or the
+        /// variable's name; for a named object, the command that acts on it: CLAYER, -INSERT, HATCH, TEXTSTYLE or DIMSTYLE.
+        /// </summary>
         public string Command { get; }
+
+        /// <summary>
+        /// Gets the kind of named object the row is, as Search Content lists them: "Block", "Layer", "Hatch", "Text Style" or
+        /// "Dim Style"; null for a command, a synonym or a variable.
+        /// </summary>
+        public string ContentType { get; }
+
+        /// <summary>Gets whether the row is the first named object of the list, drawn below a rule.</summary>
+        public bool StartsContent { get; }
+
+        /// <summary>Gets whether a rule is drawn above the row: the first of the names with the letters inside, or the first named object.</summary>
+        public bool StartsGroup => StartsMidString || StartsContent;
+
+        /// <summary>What choosing a named object does: the layer made current, the block inserted; null for any other row.</summary>
+        internal Action Run { get; }
 
         /// <summary>Gets whether the row is a system variable, drawn with {x}.</summary>
         public bool IsVariable { get; }
@@ -82,6 +105,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// letters, commands and synonyms by how often they were used, then by name, then the variables; then, below a rule, the
     /// names with the letters inside, by use, then where the letters stand, then by name. The window shows the list after
     /// <see cref="GlobalSettings.AutoCompleteDelay"/> milliseconds without a key.
+    /// </para>
+    /// <para>
+    /// With <see cref="GlobalSettings.SearchContent"/> on and the list at the command line, below another rule come the named
+    /// objects of the drawing, as AutoCAD 2021's Search Content: its blocks, layers, hatch patterns, text styles and dimension
+    /// styles, each with its kind at the right. Choosing one acts on it: a layer, a text style or a dimension style is made
+    /// current, a block is inserted, a hatch pattern is taken by HATCH.
     /// </para>
     /// <para>
     /// The synonyms built in: ROUND for FILLET, BEVEL for CHAMFER, DELETE and REMOVE for ERASE, DUPLICATE for COPY, FLIP for
@@ -173,6 +202,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             List<CommandSuggestionViewModel> rows = Suggest(_current.Session.Registry, typed);
 
+            // The named objects, as AutoCAD's Search Content: at the command line alone, not in the box at the cursor.
+            if (_settings.SearchContent && !DynamicInput.IsOn)
+            {
+                rows.AddRange(SuggestContent(typed, rows.Count == 0));
+            }
+
             if (rows.Count > 0)
             {
                 rows[0].IsSelected = true;
@@ -218,13 +253,22 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             CommandText = string.Empty;
             _recall = -1;
-            Execute(row.Command);
+
+            if (row.Run != null)
+            {
+                row.Run();
+            }
+            else
+            {
+                Execute(row.Command);
+            }
+
             return true;
         }
 
         /// <summary>
         /// The menu of a right click on the command line: Recent Commands, Input Settings (AutoComplete, AutoCorrect, Search
-        /// System Variables, Search Content greyed, Mid-string Search, Delay Time…), Copy, Copy History, Paste, Paste To
+        /// System Variables, Search Content, Mid-string Search, Delay Time…), Copy, Copy History, Paste, Paste To
         /// CmdLine and Options….
         /// </summary>
         /// <param name="selectedText">The text selected in the command line, which Copy copies; null or empty for none.</param>
@@ -238,7 +282,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 new CadMenuItemViewModel("AutoComplete", () => ChangeSettings(s => s.AutoComplete = !s.AutoComplete), isChecked: _settings.AutoComplete),
                 new CadMenuItemViewModel("AutoCorrect", () => ChangeSettings(s => s.AutoCorrect = !s.AutoCorrect), isChecked: _settings.AutoCorrect),
                 new CadMenuItemViewModel("Search System Variables", () => ChangeSettings(s => s.SearchSystemVariables = !s.SearchSystemVariables), isChecked: _settings.SearchSystemVariables),
-                new CadMenuItemViewModel("Search Content", () => { }, false, "Not built yet: AutoCAD's search of the blocks, layers, hatches and styles of the drawing.", false),
+                new CadMenuItemViewModel("Search Content", () => ChangeSettings(s => s.SearchContent = !s.SearchContent), isChecked: _settings.SearchContent),
                 new CadMenuItemViewModel("Mid-string Search", () => ChangeSettings(s => s.MidStringSearch = !s.MidStringSearch), isChecked: _settings.MidStringSearch),
                 CadMenuItemViewModel.Separator(),
                 new CadMenuItemViewModel("Delay Time…", () => StartCommand("INPUTSEARCHDELAY"), _current != null, _current == null ? "Needs a drawing open: the delay is asked on the command line." : null),
@@ -461,6 +505,100 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             return rows;
         }
 
+        /// <summary>
+        /// The rows of Search Content for a name typed: the blocks, layers, hatch patterns, text styles and dimension styles of
+        /// the drawing, in that order, as AutoCAD 2021's Content Type list has them. In each kind, the names that begin with
+        /// the letters, then, with Mid-string Search, those with the letters inside, each by name; a kind's keyword typed
+        /// (BLOCK or INSERT, LAYER, HATCH, TEXTSTYLE or STYLE, DIMSTYLE) lists every name of the kind.
+        /// </summary>
+        /// <param name="typed">What is typed.</param>
+        /// <param name="first">Whether the rows are the first of the list, so that no rule is drawn above them.</param>
+        private List<CommandSuggestionViewModel> SuggestContent(string typed, bool first)
+        {
+            const int MostRows = 100;
+            string key = typed.ToUpperInvariant();
+            DxfDatabase database = _current.Document.Database;
+            var rows = new List<CommandSuggestionViewModel>();
+            var kinds = new[]
+            {
+                new ContentKind("Block", new[] { "BLOCK", "INSERT" }, "-INSERT", "GhIconInsertBlock", CadBlocks.Named(database).Select(b => b.Name)),
+                new ContentKind("Layer", new[] { "LAYER" }, "CLAYER", "GhIconLayers", _layers.Select(l => l.Name)),
+                new ContentKind("Hatch", new[] { "HATCH" }, "HATCH", IconOf("HATCH"), CadPatternFile.BuiltIn.Select(p => p.Name)),
+                new ContentKind("Text Style", new[] { "TEXTSTYLE", "STYLE" }, "TEXTSTYLE", "GhIconText", CadTextStyleEditor.Styles(database).Select(s => s.Name)),
+                new ContentKind("Dim Style", new[] { "DIMSTYLE" }, "DIMSTYLE", "GhIconDimension", CadDimStyleEditor.Styles(database).Select(s => s.Name)),
+            };
+
+            foreach (ContentKind kind in kinds)
+            {
+                bool every = kind.Keywords.Contains(key);
+                IEnumerable<string> names = kind.Names.Where(n => !string.IsNullOrEmpty(n)).Distinct(StringComparer.OrdinalIgnoreCase);
+                IEnumerable<string> begin = names.Where(n => n.StartsWith(key, StringComparison.OrdinalIgnoreCase));
+                IEnumerable<string> inside = _settings.MidStringSearch || every
+                    ? names.Where(n => !n.StartsWith(key, StringComparison.OrdinalIgnoreCase) && (every || n.IndexOf(key, StringComparison.OrdinalIgnoreCase) > 0))
+                    : Enumerable.Empty<string>();
+
+                foreach (string name in begin.OrderBy(n => n, StringComparer.OrdinalIgnoreCase).ThenBy(n => n, StringComparer.Ordinal)
+                    .Concat(inside.OrderBy(n => n, StringComparer.OrdinalIgnoreCase).ThenBy(n => n, StringComparer.Ordinal)))
+                {
+                    if (rows.Count == MostRows)
+                    {
+                        return rows;
+                    }
+
+                    int hit = Math.Max(0, name.IndexOf(key, StringComparison.OrdinalIgnoreCase));
+                    int length = name.IndexOf(key, StringComparison.OrdinalIgnoreCase) < 0 ? 0 : key.Length;
+                    string chosen = name;
+                    rows.Add(new CommandSuggestionViewModel(name, kind.Command, false, hit, length, kind.Name, null, false, kind.IconKey,
+                        kind.Name, !first && rows.Count == 0, () => ActOnContent(kind.Name, chosen)));
+                }
+            }
+
+            return rows;
+        }
+
+        /// <summary>
+        /// A named object of Search Content chosen, as AutoCAD 2021 acts on it: a layer, a text style or a dimension style made
+        /// current, a block inserted by -INSERT, a hatch pattern made HATCH's and HATCH started.
+        /// </summary>
+        private void ActOnContent(string kind, string name)
+        {
+            switch (kind)
+            {
+                case "Layer":
+                    StartWithAnswer("CLAYER", name);
+                    break;
+                case "Block":
+                    StartWithAnswer("-INSERT", name);
+                    break;
+                case "Text Style":
+                    StartWithAnswer("TEXTSTYLE", name);
+                    break;
+                case "Dim Style":
+                    CurrentDimStyle = name;
+                    break;
+                case "Hatch":
+                    CadHatchSettings hatch = _current.Document.HatchSettings;
+                    hatch.Type = CadHatchType.Pattern;
+                    hatch.PatternName = name;
+                    hatch.PatternFile = null;
+                    StartCommand("HATCH");
+                    break;
+            }
+        }
+
+        /// <summary>Starts a command and answers its first prompt with a name, spaces and all, as a line typed would.</summary>
+        private void StartWithAnswer(string command, string answer)
+        {
+            StartCommand(command);
+
+            if (_current.Session.IsRunning)
+            {
+                _current.Session.Feed(answer);
+                SyncHistory();
+                RunAfterCommand();
+            }
+        }
+
         private int Uses(string name) => _settings.CommandUses.TryGetValue(name, out int count) ? count : 0;
 
         /// <summary>The icon of a command: its own where the icon set has one, the layers' for the LAY commands, the prompt's for any other.</summary>
@@ -469,6 +607,29 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 : command.StartsWith("LAY", StringComparison.Ordinal) ? "GhIconLayers"
                 : command.StartsWith("DIM", StringComparison.Ordinal) ? "GhIconDimension"
                 : "GhIconPrompt";
+
+        /// <summary>A kind of named object Search Content lists: its name, the keywords that list it whole, the command that acts on it, its icon and the names of the drawing.</summary>
+        private sealed class ContentKind
+        {
+            public ContentKind(string name, string[] keywords, string command, string iconKey, IEnumerable<string> names)
+            {
+                Name = name;
+                Keywords = keywords;
+                Command = command;
+                IconKey = iconKey;
+                Names = names.ToList();
+            }
+
+            public string Name { get; }
+
+            public string[] Keywords { get; }
+
+            public string Command { get; }
+
+            public string IconKey { get; }
+
+            public IReadOnlyList<string> Names { get; }
+        }
 
         /// <summary>A name the list may show: a command's, a synonym's or a variable's, and what it runs.</summary>
         private sealed class Candidate

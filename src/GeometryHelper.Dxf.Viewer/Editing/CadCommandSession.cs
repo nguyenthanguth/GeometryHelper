@@ -37,10 +37,14 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         public CadImageJob Image => Payload as CadImageJob;
 
+        /// <summary>Gets the file EXPORT or -EXPORT asks for, the <see cref="Payload"/> of those requests; null for every other request.</summary>
+        public CadExportJob Export => Payload as CadExportJob;
+
         /// <summary>
         /// Gets what is asked: PROPERTIES, LAYER, OPTIONS, QSAVE, RECOVER, PLOT, PREVIEW, PAGESETUP, -PLOT to write a plot to a
-        /// file, PNGOUT, JPGOUT or BMPOUT for the file of an image, IMAGEOUT to draw the image and write it, or MATCHPROP for
-        /// its Property Settings dialog, which sets the session's <see cref="CadCommandSession.MatchProperties"/>.
+        /// file, PNGOUT, JPGOUT or BMPOUT for the file of an image, IMAGEOUT to draw the image and write it, EXPORT or -EXPORT
+        /// for the file of an export, or MATCHPROP for its Property Settings dialog, which sets the session's
+        /// <see cref="CadCommandSession.MatchProperties"/>.
         /// </summary>
         public string Name { get; }
 
@@ -560,7 +564,7 @@ namespace GeometryHelper.Dxf.Viewer
 
                     return Invalid("Requires numeric distance, second point, or option keyword.", echo);
                 case CadPromptKind.Angle:
-                    if (TryAngle(typed, out double radians))
+                    if (TryAngle(typed, Prompt, out double radians))
                     {
                         return Answer(new CadInput(CadInputKind.Number, default, radians, typed, null), echo, null);
                     }
@@ -568,7 +572,7 @@ namespace GeometryHelper.Dxf.Viewer
                     if (Prompt.BasePoint != null && TryPoint(typed, out GeoPoint2 toward2))
                     {
                         GeoVector2 way = toward2 - Prompt.BasePoint.Value;
-                        return Answer(new CadInput(CadInputKind.Number, toward2, Ucs.AngleToUcs(Math.Atan2(way.Y, way.X)), typed, null), echo, toward2);
+                        return Answer(new CadInput(CadInputKind.Number, toward2, PickedAngle(Prompt, way), typed, null), echo, toward2);
                     }
 
                     return Invalid("Requires valid numeric angle or second point.", echo);
@@ -958,7 +962,7 @@ namespace GeometryHelper.Dxf.Viewer
                     }
 
                     GeoVector2 way = point - Prompt.BasePoint.Value;
-                    return Answer(new CadInput(CadInputKind.Number, point, Ucs.AngleToUcs(Math.Atan2(way.Y, way.X)), null, null) { Control = control }, echo, point);
+                    return Answer(new CadInput(CadInputKind.Number, point, PickedAngle(Prompt, way), null, null) { Control = control }, echo, point);
             }
         }
 
@@ -1138,7 +1142,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (polar > 0)
             {
-                if (!TryLength(text.Substring(0, polar), out double length) || !TryAngle(text.Substring(polar + 1), out double angle))
+                if (!TryLength(text.Substring(0, polar), out double length) || !TryAngle(text.Substring(polar + 1), null, out double angle))
                 {
                     return false;
                 }
@@ -1168,7 +1172,69 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>A length typed, read in the drawing's LUNITS: feet and inches in engineering and architectural units, as AutoCAD reads them.</summary>
         private bool TryLength(string text, out double value) => CadUnits.TryLength(text, Document.Database.Lunits, out value);
 
-        /// <summary>An angle typed, read in the drawing's AUNITS: grads or radians where they are its units, and any angle with its own mark.</summary>
-        private bool TryAngle(string text, out double radians) => CadUnits.TryAngle(text, Document.Database.Aunits, out radians);
+        /// <summary>
+        /// An angle typed, read in the drawing's AUNITS: grads or radians where they are its units, and any angle with its own
+        /// mark. It is counted as the drawing counts angles, from ANGBASE and clockwise with ANGDIR 1, as AutoCAD counts
+        /// @100&lt;30: at a prompt for an amount turned (<see cref="CadPrompt.AsksTurn"/>) ANGDIR alone turns it, and at one
+        /// taken as typed neither does. A &lt; before it, as in @100&lt;&lt;30, is AutoCAD's override: decimal degrees from east,
+        /// counter-clockwise; two, as in @100&lt;&lt;&lt;30, the drawing's units from east, counter-clockwise.
+        /// </summary>
+        /// <param name="text">The text after the &lt; of a polar point, or the answer to a prompt for an angle.</param>
+        /// <param name="prompt">The prompt for an angle answered; null for the angle of a polar point.</param>
+        /// <param name="radians">The angle, in radians, counter-clockwise in the UCS.</param>
+        private bool TryAngle(string text, CadPrompt prompt, out double radians)
+        {
+            string typed = text.Trim();
+            DxfDatabase database = Document.Database;
+
+            // A polar point has one < before its angle already; a prompt for an angle takes << and <<< whole.
+            int marks = prompt == null ? 1 : 0;
+
+            while (marks < 3 && typed.StartsWith("<", StringComparison.Ordinal))
+            {
+                typed = typed.Substring(1).TrimStart();
+                marks++;
+            }
+
+            if (marks > 1)
+            {
+                return CadUnits.TryAngle(typed, marks == 2 ? 0 : database.Aunits, out radians);
+            }
+
+            if (!CadUnits.TryAngle(typed, database.Aunits, out radians))
+            {
+                return false;
+            }
+
+            if (prompt == null || !prompt.AsksPlainAngle)
+            {
+                radians = CadUnits.ToDirection(radians, prompt != null && prompt.AsksTurn ? 0.0 : database.Angbase, database.Angdir);
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// The angle a point picked answers a prompt for an angle with: its direction from the base point, counter-clockwise
+        /// from the X axis of the UCS, and for an amount turned (<see cref="CadPrompt.AsksTurn"/>) from ANGBASE, as AutoCAD's
+        /// ROTATE turns nothing where the point is picked along the base direction.
+        /// </summary>
+        /// <param name="prompt">The prompt answered.</param>
+        /// <param name="way">The way from the base point to the point picked, in world coordinates.</param>
+        /// <returns>The angle, in radians.</returns>
+        internal double PickedAngle(CadPrompt prompt, GeoVector2 way)
+        {
+            double direction = Ucs.AngleToUcs(Math.Atan2(way.Y, way.X));
+            return prompt != null && prompt.AsksTurn ? direction - Document.Database.Angbase : direction;
+        }
+
+        /// <summary>
+        /// Counts a direction as the drawing counts angles, for a readout or a default in angle brackets: from ANGBASE, clockwise
+        /// with ANGDIR 1, from nought up to a whole turn, as AutoCAD's DIST writes 90 for a line drawn east in a drawing whose
+        /// angles are counted from north, clockwise.
+        /// </summary>
+        /// <param name="direction">The direction, in radians counter-clockwise from the X axis of the UCS.</param>
+        /// <returns>The angle counted, in radians.</returns>
+        public double CountAngle(double direction) => CadUnits.FromDirection(direction, Document.Database.Angbase, Document.Database.Angdir);
     }
 }

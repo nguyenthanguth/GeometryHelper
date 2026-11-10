@@ -177,11 +177,11 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Equal(0xFF0000, second.Style.Rgb);
             Assert.Equal(first.Style.Rgb, shown.Style.Rgb);
 
-            // Attached top left: the first line's capitals hang from (10, 20); AB, 0.6 of 2.5 a letter, is 3 wide.
-            Assert.Equal(10.0, first.X, 9);
-            Assert.Equal(17.5, first.Y, 9);
-            Assert.Equal(13.0, second.X, 9);
-            Assert.Equal(17.5, second.Y, 9);
+            // Attached top left: the line hangs from (10, 20), the second run on the baseline of the first and after it.
+            Assert.InRange(first.Y, 16.5, 17.5);
+            Assert.Equal(first.Y, second.Y, 9);
+            Assert.InRange(first.X, 9.0, 10.0);
+            Assert.True(second.X > first.X + 1.0);
         }
 
         [Fact]
@@ -196,19 +196,22 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Equal("Arial", texts[1].FontName);
             Assert.Equal(5.0, texts[3].Height, 9);
 
-            // C is underlined 0.2 of its height below its baseline, from its start to its end, 1.5 along.
+            // C is underlined 0.2 of its height below its baseline, from its start to its end, where D begins.
             DisplayPolyline2 line = Assert.Single(shown.Parts.OfType<DisplayPolyline2>());
             Assert.Equal(texts[2].X, line.Xy[0], 9);
-            Assert.Equal(texts[2].X + 1.5, line.Xy[2], 9);
+            Assert.Equal(texts[3].X, line.Xy[2], 9);
             Assert.Equal(texts[2].Y - 0.5, line.Xy[1], 9);
         }
 
         [Fact]
-        public void AnMTextOfOneLook_IsStillDrawnWhole()
+        public void AnMTextOfOneLook_IsDrawnALineAPart_AndKeepsItsWordsWhole()
         {
             DisplayText2 shown = Shown(@"\W0.8000;PLATE\PSUB");
 
-            Assert.Null(shown.Parts);
+            DisplayText2[] lines = shown.Parts.OfType<DisplayText2>().ToArray();
+            Assert.Equal(new[] { "PLATE", "SUB" }, lines.Select(t => t.Text).ToArray());
+            Assert.All(lines, t => Assert.Equal(0.8, t.WidthFactor, 9));
+            Assert.True(lines[1].Y < lines[0].Y - 2.5);
             Assert.Equal("PLATE\nSUB", shown.Text);
         }
     }

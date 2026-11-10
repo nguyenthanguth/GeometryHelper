@@ -145,6 +145,7 @@ namespace GeometryHelper.Dxf.Viewer
             registry.Add(new CadCommand("MTEDIT", MTextEdit));
             AddPlotTo(registry);
             AddImageOutTo(registry);
+            AddExportTo(registry);
             registry.Add(new CadCommand("QSELECT", QuickSelect));
             registry.Add(new CadCommand("FIND", Find, true));
             registry.Add(new CadCommand("DRAWORDER", DrawOrder, true));
@@ -647,5 +648,11 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         private static string Number(double value) => value.ToString("0.####", CultureInfo.InvariantCulture);
+
+        /// <summary>
+        /// A direction as the default of a prompt for one, in degrees counted as the drawing counts angles: from ANGBASE,
+        /// clockwise with ANGDIR 1, so that a text along east is offered as 90 where angles are counted from north.
+        /// </summary>
+        private static string Counted(CadCommandContext c, double direction) => Number(c.Session.CountAngle(direction) * 180.0 / Math.PI);
     }
 }

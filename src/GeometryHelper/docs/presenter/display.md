@@ -68,7 +68,8 @@ How each entity is drawn:
 | 3DFACE | its edges |
 | SOLID, WIPEOUT | a fill; a wipeout is a mask |
 | HATCH | a solid fill, a gradient filled with the colour half way along it, or the lines of its pattern cut by its loops; a hatch that holds no lines of its pattern, or would draw more than 20 000, is drawn by its boundary |
-| TEXT, MTEXT | a text item; the library has no fonts, so the box of a text is estimated from its height and its characters |
+| TEXT | a text item; the library has no fonts, so the box of a text is estimated from its height and its characters |
+| MTEXT | a text item whose `Parts` are its picture, laid out as AutoCAD 2021 lays it out: the mask and the frame, then a text for each run of each line and a polyline for each line under, over or through a run and for the bar of a stack; see below |
 | INSERT, MINSERT | the block's entities under the INSERT's matrix, to a depth of 12 blocks; every item is picked as the INSERT; the values of its ATTRIBs are drawn where the file puts them, an invisible one left out |
 | DIMENSION, TABLE | the block AutoCAD drew it with |
 | LEADER, MLEADER | exploded, as AutoCAD breaks them: the arrowhead, then the line or spline |
@@ -79,6 +80,38 @@ How each entity is drawn:
 An entity that is not visible, or lies on a layer that is off or frozen, is left out. ByLayer and ByBlock colour, line weight
 and linetype are resolved here, a line weight left at the default being 0.25 mm, and dashes are the linetype's pattern
 times LTSCALE and the entity's own scale. One entity that cannot be drawn never stops the others: it is passed over.
+
+### MTEXT
+
+The words of an MTEXT are set in the fonts of the document (`document.Fonts`), measured letter by letter, by the rules
+AutoCAD 2021 was found to follow on 155 MTEXTs of 536 lines:
+
+- **Wrapping.** The words wrap at the defined width (group 41) at their spaces alone: never after a hyphen, a word too
+  long stands whole past the width, and `\~` holds two words together. A width of 0 wraps nothing. The attachment (71)
+  hangs the lines by a corner, a side or the middle of the box the width and the lines make; a defined height (46)
+  taller than the lines moves no line.
+- **Line spacing.** From one baseline to the next is 5/3 of the text height times the factor (44). Under `Exactly`
+  (73 = 2) it is that whatever the runs. Under `AtLeast` (73 = 1) each line has a top, the height of its tallest run or
+  of its stack, its first baseline that far below the top of the MTEXT; the next line's top lies the factor times
+  (the top of this line + a third of its tallest run's height + a third of the text height) below this line's top. For
+  lines of the text height alone that is the same 5/3; in an MTEXT 2.5 high, the line after one with a run 5 high has
+  its top 5 + 5/3 + 2.5/3 = 7.5 below that line's top. An empty paragraph is a line of 5/3 of the height.
+- **Stacks.** `\S1/2;` sets its parts one over the other with a bar, `\S1^2;` with none, and `\S1#2;` along a diagonal,
+  each part as high as its ink; `\A0;`, `\A1;` and `\A2;` set the words beside a stack at its bottom, middle or top.
+- **Paragraphs.** In a `\p` code, `i`, `l` and `r` indent the first line, the left and the right; `ql`, `qc`, `qr`,
+  `qj` and `qd` align left, centre, right, justified and distributed; `t` sets tab stops (left, centre, right, decimal;
+  with none a stop every 4 heights); `b` and `a` give space before and after the paragraph, and `sm`, `se` and `sa` a
+  line spacing of the paragraph's own (a multiple, exactly, at least).
+- **Columns.** Static and dynamic columns take the lines that fit their height, each column its width and the gutter
+  on from the last; `\N` starts the next column.
+- **Mask and frame.** The background mask reaches the scale factor (45) less 1 of a text height beyond the lines, and
+  the frame (R2018) stands where a mask of its scale would, 1.5 for a frame with no mask.
+
+"II II II" 20 wide in letters 10 high, whose I is inked 1 in and moves the pen 4, is set as "II II" and, 16.67 below it,
+"II": an item whose box is 20 wide and 26.67 high. The box of an MTEXT's item is that of its parts, so picking, window
+selection and the highlight follow the lines as they are drawn. Not as AutoCAD: a flow direction (72) of top to bottom
+is set left to right, `\pxsm` with a factor is 0.05 of a height off on one line in 536, and `\M+` codes are shown as
+written.
 
 ### Viewports
 

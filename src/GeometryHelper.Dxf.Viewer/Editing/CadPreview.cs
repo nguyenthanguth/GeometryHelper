@@ -194,7 +194,7 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             GeoVector2 way = cursor - from.Value;
-            double number = prompt.Kind == CadPromptKind.Distance ? way.Length : _session.Ucs.AngleToUcs(Math.Atan2(way.Y, way.X));
+            double number = prompt.Kind == CadPromptKind.Distance ? way.Length : _session.PickedAngle(prompt, way);
             return new CadInput(CadInputKind.Number, cursor, number, null, null);
         }
 

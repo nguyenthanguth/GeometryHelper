@@ -54,6 +54,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private AppMenuViewModel _appMenu;
         private MainViewModel _model;
         private Point _dynamicAt;
+        private bool _fieldsPlaced;
+        private Rect _lengthOtherSide;
         private DateTime _lastAutosave = DateTime.UtcNow;
 
         /// <summary>Makes the workspace.</summary>
@@ -565,6 +567,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 _model.ShowPlotPreview = preview => PlotPreviewWindow.Show(Window.GetWindow(this), preview);
                 _model.AskPlotFile = AskPlotFile;
                 _model.AskImageFile = AskImageFile;
+                _model.AskExportFile = AskExportFile;
                 _model.WindowsPrinters = WindowsPrinters;
                 _model.ShowQuickSelect = dialog => QuickSelectWindow.Show(Window.GetWindow(this), dialog);
                 _model.ShowFindReplace = dialog => FindReplaceWindow.Show(Window.GetWindow(this), dialog);
@@ -611,6 +614,38 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             return dialog.ShowDialog(Window.GetWindow(this)) == true ? dialog.FileName : null;
+        }
+
+        /// <summary>
+        /// Export Data of EXPORT, or Save As PDF of -EXPORT: the standard Save dialog of the job's types, its type chosen first;
+        /// the file and the type chosen put into the job, the file null where it is cancelled.
+        /// </summary>
+        private void AskExportFile(CadExportJob job)
+        {
+            string Filter(string type) => type + "|" + string.Join(";", CadExportJob.ExtensionsOf(type).Select(e => "*" + e));
+            string folder = Path.GetDirectoryName(job.FileName);
+            var dialog = new SaveFileDialog
+            {
+                Title = job.Title,
+                Filter = string.Join("|", job.FileTypes.Select(Filter)),
+                FilterIndex = job.FileTypes.ToList().IndexOf(job.FileType) + 1,
+                FileName = Path.GetFileName(job.FileName),
+            };
+
+            if (folder != null && Directory.Exists(folder))
+            {
+                dialog.InitialDirectory = folder;
+            }
+
+            if (dialog.ShowDialog(Window.GetWindow(this)) == true)
+            {
+                job.FileName = dialog.FileName;
+                job.FileType = job.FileTypes[Math.Max(0, Math.Min(job.FileTypes.Count - 1, dialog.FilterIndex - 1))];
+            }
+            else
+            {
+                job.FileName = null;
+            }
         }
 
         /// <summary>The printers of Windows by name, each with whether it is on the network, as the print spooler lists them.</summary>
@@ -820,7 +855,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>
         /// Puts the box of dynamic input 18 px right of the cursor and 14 px below it, as AutoCAD's tooltip, or on the other side
-        /// of it where it would leave the canvas, and draws the dimensional input. While the AutoComplete list
+        /// of it where it would leave the canvas, and places the dimensional input, the box kept off its fields. While the AutoComplete list
         /// or the options menu is open under the box, the box stays where it is, so that the pointer can reach a row.
         /// </summary>
         private void PlaceDynamicInput(double x, double y)
@@ -864,17 +899,19 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             Canvas.SetLeft(DynamicInputBox, left);
             Canvas.SetTop(DynamicInputBox, top);
+            KeepFieldsClear(left, top);
         }
 
         /// <summary>
-        /// The dimensional input of a point, a distance or an angle asked from a base point, as AutoCAD draws it: a dimension
-        /// line 18 px off the rubber band with its extension lines and the length in a field at its middle; the X axis of the
-        /// UCS dashed from the base point, the arc of the angle 70 px round it and the angle in a field beyond the arc's
-        /// middle. The view shows the length's part, the angle's or both, as the prompt asks.
+        /// The dimensional input of a point, a distance or an angle asked from a base point, the fields alone with nothing drawn
+        /// under them: the length by the middle of the rubber band, 8 px off it to its left as it runs from the base point, and
+        /// the angle 50 px along the band from the base point, 8 px off it to its right, so that neither covers the band. The
+        /// view shows the length's field, the angle's or both, as the prompt asks.
         /// </summary>
         private void PlaceDimensionalInput(CadView view, double scale, Point cursor)
         {
             CadPrompt prompt = _model.Session?.Prompt;
+            _fieldsPlaced = false;
 
             if (!_model.IsDynamicInputDimensional || prompt?.BasePoint == null)
             {
@@ -882,59 +919,92 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             GeoPoint2 from = prompt.BasePoint.Value;
-            GeoVector2 axisWorld = _model.Session.Ucs.ToWorld(new GeoVector2(1.0, 0.0));
             view.DrawingToPixel(from.X, from.Y, out double bx, out double by);
-            view.DrawingToPixel(from.X + axisWorld.X * 1000.0, from.Y + axisWorld.Y * 1000.0, out double ax, out double ay);
             var origin = new Point(bx / scale, by / scale);
-            Vector axis = new Point(ax / scale, ay / scale) - origin;
             Vector band = cursor - origin;
 
-            if (band.Length < 1.0 || axis.Length <= 0.0)
+            if (band.Length < 1.0)
             {
                 DimensionalInput.Visibility = Visibility.Hidden;
                 return;
             }
 
             DimensionalInput.ClearValue(VisibilityProperty);
-            axis.Normalize();
             Vector along = band / band.Length;
             var normal = new Vector(along.Y, -along.X);
-            const double Gap = 18.0;
-            const double Overshoot = 8.0;
-            const double Radius = 70.0;
-
-            var lines = new StreamGeometry();
-
-            using (StreamGeometryContext context = lines.Open())
-            {
-                context.BeginFigure(origin + normal * Gap, false, false);
-                context.LineTo(cursor + normal * Gap, true, false);
-                context.BeginFigure(origin, false, false);
-                context.LineTo(origin + normal * (Gap + Overshoot), true, false);
-                context.BeginFigure(cursor, false, false);
-                context.LineTo(cursor + normal * (Gap + Overshoot), true, false);
-            }
-
-            DimensionalLines.Data = lines;
-            DimensionalAxis.Data = new LineGeometry(origin, origin + axis * (Radius + 10.0));
-
-            // The angle counterclockwise on the screen from the X axis to the band, 0 to 360 degrees, as the field gives it.
-            double start = Math.Atan2(-axis.Y, axis.X);
-            double sweep = Math.Atan2(-along.Y, along.X) - start;
-            sweep = sweep < 0.0 ? sweep + 2.0 * Math.PI : sweep;
-            Point On(double angle, double radius) => origin + new Vector(Math.Cos(angle), -Math.Sin(angle)) * radius;
-            var arc = new StreamGeometry();
-
-            using (StreamGeometryContext context = arc.Open())
-            {
-                context.BeginFigure(On(start, Radius), false, false);
-                context.ArcTo(On(start + sweep, Radius), new Size(Radius, Radius), 0.0, sweep > Math.PI, SweepDirection.Counterclockwise, true, false);
-            }
-
-            DimensionalArc.Data = arc;
-            Centre(LengthField, origin + band / 2.0 + normal * Gap);
-            Centre(AngleField, On(start + sweep / 2.0, Radius + 25.0));
+            const double Gap = 8.0;
+            const double Near = 50.0;
+            Put(LengthField, Beside(LengthField, origin + band / 2.0, normal, Gap));
+            Put(AngleField, Beside(AngleField, origin + along * Near, -normal, Gap));
+            _lengthOtherSide = Beside(LengthField, origin + band / 2.0, -normal, Gap);
+            _fieldsPlaced = true;
         }
+
+        /// <summary>
+        /// The box of the prompt kept off the fields of dimensional input, which it would hide: of the length moved to the band's
+        /// other side and the box moved up or down clear of the fields, inside the canvas, the one that moves a box the least.
+        /// </summary>
+        private void KeepFieldsClear(double left, double top)
+        {
+            if (!_fieldsPlaced)
+            {
+                return;
+            }
+
+            Rect length = _model.IsDynamicInputLength ? Placed(LengthField) : Rect.Empty;
+            Rect angle = _model.IsDynamicInputAngle ? Placed(AngleField) : Rect.Empty;
+            double width = DynamicInputBox.ActualWidth;
+            double height = DynamicInputBox.ActualHeight;
+            const double Clear = 2.0;
+            bool Hides(Rect box, Rect field) => !field.IsEmpty && new Rect(box.X - Clear, box.Y - Clear, box.Width + 2.0 * Clear, box.Height + 2.0 * Clear).IntersectsWith(field);
+            var at = new Rect(left, top, width, height);
+
+            if (!Hides(at, length) && !Hides(at, angle))
+            {
+                return;
+            }
+
+            double least = double.MaxValue;
+            double bestTop = top;
+            bool flip = false;
+
+            if (!length.IsEmpty && !Hides(at, angle) && !Hides(at, _lengthOtherSide) && !_lengthOtherSide.IntersectsWith(angle))
+            {
+                least = (_lengthOtherSide.TopLeft - length.TopLeft).Length;
+                flip = true;
+            }
+
+            foreach (Rect field in new[] { length, angle })
+            {
+                if (field.IsEmpty)
+                {
+                    continue;
+                }
+
+                foreach (double y in new[] { field.Top - Clear - height, field.Bottom + Clear })
+                {
+                    var moved = new Rect(left, y, width, height);
+
+                    if (y >= 0.0 && y + height <= CanvasView.ActualHeight && !Hides(moved, length) && !Hides(moved, angle) && Math.Abs(y - top) < least)
+                    {
+                        least = Math.Abs(y - top);
+                        bestTop = y;
+                        flip = false;
+                    }
+                }
+            }
+
+            if (flip)
+            {
+                Put(LengthField, _lengthOtherSide);
+            }
+            else
+            {
+                Canvas.SetTop(DynamicInputBox, bestTop);
+            }
+        }
+
+        private static Rect Placed(FrameworkElement field) => new Rect(Canvas.GetLeft(field), Canvas.GetTop(field), field.ActualWidth, field.ActualHeight);
 
         /// <summary>A number typed into a field of dynamic input, or locked by Tab: the dimensions and the preview are drawn again at the point it holds.</summary>
         private void HoldAgain()
@@ -955,11 +1025,19 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             Canvas.SetTop(DynamicInputBox, Math.Max(0.0, Math.Min(top, CanvasView.ActualHeight - DynamicInputBox.ActualHeight)));
         }
 
-        private static void Centre(FrameworkElement field, Point at)
+        /// <summary>Where a field goes off a point of the rubber band towards one side, its nearest edge the gap from the point.</summary>
+        private static Rect Beside(FrameworkElement field, Point at, Vector side, double gap)
         {
             field.UpdateLayout();
-            Canvas.SetLeft(field, at.X - field.ActualWidth / 2.0);
-            Canvas.SetTop(field, at.Y - field.ActualHeight / 2.0);
+            double reach = (Math.Abs(side.X) * field.ActualWidth + Math.Abs(side.Y) * field.ActualHeight) / 2.0;
+            Point centre = at + side * (gap + reach);
+            return new Rect(centre.X - field.ActualWidth / 2.0, centre.Y - field.ActualHeight / 2.0, field.ActualWidth, field.ActualHeight);
+        }
+
+        private static void Put(FrameworkElement field, Rect at)
+        {
+            Canvas.SetLeft(field, at.X);
+            Canvas.SetTop(field, at.Y);
         }
 
         /// <summary>A row of the options menu of dynamic input clicked: the prompt takes its keyword.</summary>

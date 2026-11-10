@@ -15,6 +15,9 @@ namespace GeometryHelper.Dxf.Viewer
     {
         private static readonly Lazy<SortedDictionary<string, string>> Files = new Lazy<SortedDictionary<string, string>>(Scan);
 
+        // The path of each font file by "/" and its name, and of each family's faces by the family, "|" and 1 or 0 for bold and for italic; written by the scan.
+        private static Dictionary<string, string> _paths = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
         /// <summary>
         /// Gets or sets how wide the canvas draws letters of a TrueType font one unit high at their own width: given the family
         /// (null for the canvas's own font), whether bold, whether italic and the letters, the width from the start of the first
@@ -48,10 +51,48 @@ namespace GeometryHelper.Dxf.Viewer
             return Files.Value.Where(p => string.Equals(p.Value, file, StringComparison.OrdinalIgnoreCase)).Select(p => p.Key).FirstOrDefault();
         }
 
+        /// <summary>
+        /// Gets the path of the font file a face is read from, for measuring its letters: a file by its path, or in the Fonts
+        /// folders by its name; a family by the file of its bold, italic or regular face as asked, the regular one where it has
+        /// no such face; Arial for no name. Null where no file is found.
+        /// </summary>
+        internal static string PathOf(string name, bool bold, bool italic)
+        {
+            SortedDictionary<string, string> files = Files.Value;
+            string family = string.IsNullOrWhiteSpace(name) ? "Arial" : name.Trim();
+            string extension = Path.GetExtension(family).ToLowerInvariant();
+
+            if (extension == ".ttf" || extension == ".ttc" || extension == ".otf")
+            {
+                string styled = bold || italic ? FamilyOf(family) : null;
+
+                if (styled != null && _paths.TryGetValue(styled + (bold ? "|1" : "|0") + (italic ? "1" : "0"), out string face))
+                {
+                    return face;
+                }
+
+                if (Path.IsPathRooted(family) && File.Exists(family))
+                {
+                    return family;
+                }
+
+                return _paths.TryGetValue("/" + Path.GetFileName(family), out string byFile) ? byFile : null;
+            }
+
+            if (_paths.TryGetValue(family + (bold ? "|1" : "|0") + (italic ? "1" : "0"), out string found) || _paths.TryGetValue(family + "|00", out found))
+            {
+                return found;
+            }
+
+            return files.TryGetValue(family, out string regular) && _paths.TryGetValue("/" + regular, out found) ? found : null;
+        }
+
         private static SortedDictionary<string, string> Scan()
         {
             // For each family the file of its regular face, else of the shortest name, ties by the name's letters.
             var best = new SortedDictionary<string, KeyValuePair<int, string>>(StringComparer.OrdinalIgnoreCase);
+            var paths = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            var ranks = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
             var folders = new[]
             {
                 Environment.GetFolderPath(Environment.SpecialFolder.Fonts),
@@ -60,11 +101,11 @@ namespace GeometryHelper.Dxf.Viewer
 
             foreach (string folder in folders.Where(f => !string.IsNullOrEmpty(f) && Directory.Exists(f)))
             {
-                string[] paths;
+                string[] found;
 
                 try
                 {
-                    paths = Directory.GetFiles(folder);
+                    found = Directory.GetFiles(folder);
                 }
                 catch (Exception exception) when (exception is IOException || exception is UnauthorizedAccessException)
                 {
@@ -72,9 +113,9 @@ namespace GeometryHelper.Dxf.Viewer
                     continue;
                 }
 
-                Array.Sort(paths, StringComparer.OrdinalIgnoreCase);
+                Array.Sort(found, StringComparer.OrdinalIgnoreCase);
 
-                foreach (string path in paths)
+                foreach (string path in found)
                 {
                     string extension = Path.GetExtension(path).ToLowerInvariant();
 
@@ -84,6 +125,24 @@ namespace GeometryHelper.Dxf.Viewer
                     }
 
                     string file = Path.GetFileName(path);
+                    string styleName = face ?? string.Empty;
+                    bool bold = styleName.IndexOf("Bold", StringComparison.OrdinalIgnoreCase) >= 0;
+                    bool italic = styleName.IndexOf("Italic", StringComparison.OrdinalIgnoreCase) >= 0 || styleName.IndexOf("Oblique", StringComparison.OrdinalIgnoreCase) >= 0;
+                    string styled = family + (bold ? "|1" : "|0") + (italic ? "1" : "0");
+                    bool plain = styleName.Length == 0 || new[] { "Regular", "Bold", "Italic", "Bold Italic", "Oblique", "Bold Oblique" }.Contains(styleName, StringComparer.OrdinalIgnoreCase);
+                    int faceRank = (plain ? 0 : 1000) + file.Length;
+
+                    if (!paths.ContainsKey("/" + file))
+                    {
+                        paths["/" + file] = path;
+                    }
+
+                    if (!ranks.TryGetValue(styled, out int keptRank) || faceRank < keptRank || (faceRank == keptRank && string.CompareOrdinal(path, paths[styled]) < 0))
+                    {
+                        ranks[styled] = faceRank;
+                        paths[styled] = path;
+                    }
+
                     int rank = (string.Equals(face, "Regular", StringComparison.OrdinalIgnoreCase) ? 0 : 1000) + file.Length;
 
                     if (!best.TryGetValue(family, out KeyValuePair<int, string> kept) || rank < kept.Key || (rank == kept.Key && string.CompareOrdinal(file, kept.Value) < 0))
@@ -100,6 +159,7 @@ namespace GeometryHelper.Dxf.Viewer
                 files[pair.Key] = pair.Value.Value;
             }
 
+            _paths = paths;
             return files;
         }
 

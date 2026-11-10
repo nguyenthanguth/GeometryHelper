@@ -29,7 +29,7 @@ namespace GeometryHelper.Drawing.Wpf.UnitTest
     /// </summary>
     internal static class TestSettings
     {
-        private static readonly string Folder = Path.Combine(Path.GetTempPath(), "gk", "drawing", "wpf-b-tests", "settings-" + Guid.NewGuid().ToString("N"));
+        internal static readonly string Folder = Path.Combine(Path.GetTempPath(), "gk", "drawing", "wpf-b-tests", "settings-" + Guid.NewGuid().ToString("N"));
 
         [ModuleInitializer]
         internal static void Use()

@@ -19,8 +19,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         [Fact]
         public void ADrawingOfAHundredThousandEntitiesIsShownPickedAndDrawnWithinThreeTimesItsTargets()
         {
-            string path = Path.Combine(Path.GetTempPath(), "gk", "drawing", "speed-100k.dxf");
-            Directory.CreateDirectory(Path.GetDirectoryName(path));
+            string path = Path.Combine(TestRun.Folder("speed"), "speed-100k.dxf");
             File.WriteAllText(path, BigDrawing.Text(100000));
 
             var watch = Stopwatch.StartNew();

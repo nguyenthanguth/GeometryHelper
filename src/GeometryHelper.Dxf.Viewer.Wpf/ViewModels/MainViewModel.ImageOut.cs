@@ -5,7 +5,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 {
     /// <summary>
     /// PNGOUT, JPGOUT and BMPOUT's file, asked through a function the workspace sets, as AutoCAD's Create Raster File dialog;
-    /// with none, the command asks "Enter file name:" on the command line. The canvas draws and writes the image.
+    /// with none, the command asks "Enter file name:" on the command line. The canvas draws and writes the image. EXPORT's
+    /// and -EXPORT's file are asked the same way, through the standard Save dialog of the types they list.
     /// </summary>
     public sealed partial class MainViewModel
     {
@@ -28,6 +29,25 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             string offered = job.FileName;
             job.FileName = AskImageFile(Path.GetDirectoryName(offered), Path.GetFileName(offered));
+            e.Handled = true;
+        }
+
+        /// <summary>
+        /// Gets or sets how the workspace asks for the file of EXPORT (Export Data) and -EXPORT (Save As PDF): given the job,
+        /// whose title, types, type and file are those offered, it sets the file and the type chosen, or the file to null where
+        /// the dialog was cancelled. With none, the commands ask "Enter file name:" on the command line.
+        /// </summary>
+        public Action<CadExportJob> AskExportFile { get; set; }
+
+        /// <summary>EXPORT's and -EXPORT's request: the file and type chosen put into the job, the file null where the dialog was cancelled.</summary>
+        private void OnExportFileRequested(CadUiRequestEventArgs e)
+        {
+            if (e.Export == null || AskExportFile == null)
+            {
+                return;
+            }
+
+            AskExportFile(e.Export);
             e.Handled = true;
         }
     }

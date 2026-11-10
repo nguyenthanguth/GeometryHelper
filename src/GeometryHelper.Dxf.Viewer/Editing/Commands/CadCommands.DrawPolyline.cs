@@ -322,7 +322,7 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 case "Angle":
                 {
-                    yield return CadPrompt.ForAngle("Specify included angle", from);
+                    yield return CadPrompt.ForAngle("Specify included angle", from).Turning();
 
                     if (c.Input.Kind != CadInputKind.Number || !IncludedAngle(c, out double sweep))
                     {
@@ -414,7 +414,7 @@ namespace GeometryHelper.Dxf.Viewer
                     }
                     else if (c.Input.Is("Angle"))
                     {
-                        yield return CadPrompt.ForAngle("Specify included angle" + HoldCtrl, center)
+                        yield return CadPrompt.ForAngle("Specify included angle" + HoldCtrl, center).Turning()
                             .Previewing(Shown(input => Rotated(from, center, Included(c, input.Number, false)), input => Included(c, input.Number, false), true));
 
                         if (c.Input.Kind != CadInputKind.Number || !IncludedAngle(c, out sweep))
@@ -511,7 +511,7 @@ namespace GeometryHelper.Dxf.Viewer
                     }
                     else if (c.Input.Is("Angle"))
                     {
-                        yield return CadPrompt.ForAngle("Specify included angle", from);
+                        yield return CadPrompt.ForAngle("Specify included angle", from).Turning();
 
                         if (c.Input.Kind != CadInputKind.Number || !IncludedAngle(c, out double sweep))
                         {
@@ -579,7 +579,7 @@ namespace GeometryHelper.Dxf.Viewer
         private static IEnumerable<CadPrompt> ChordDirection(CadCommandContext c, GeoPoint2 from, GeoVector2 along, double length, double sweep, PlineArcEnd result, double[] widths)
         {
             double leaving = c.Session.Ucs.AngleToUcs(Math.Atan2(along.Y, along.X));
-            yield return CadPrompt.ForAngle("Specify direction of chord for arc" + HoldCtrl, from, null, Number(Turn(leaving) * 180.0 / Math.PI))
+            yield return CadPrompt.ForAngle("Specify direction of chord for arc" + HoldCtrl, from, null, Counted(c, Turn(leaving)))
                 .Previewing(CadPreview.MakingOne(c, input =>
                 {
                     double angle = c.Session.Ucs.AngleToWorld(input.Number);

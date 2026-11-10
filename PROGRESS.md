@@ -148,7 +148,7 @@ the ones wanted.
 - [x] Tests: the Wpf suite's 25 red tests came from its classes loading XAML in parallel (a race inside WPF), so the
       suite runs one test at a time; its picture goes to its own folder, and a view model made in a test keeps its
       settings in a file of the tests (S)
-- [ ] Tests (running): other fixed %TEMP% paths two worktrees can collide on (render and plot outputs of Dxf.Viewer.UnitTest,
+- [x] Tests: other fixed %TEMP% paths two worktrees can collide on (render and plot outputs of Dxf.Viewer.UnitTest,
       Drawing.UnitTest and Drawing.Wpf.UnitTest) move to a folder per run (S)
 - [x] Layer States Manager, View Manager with New View, Drawing Units with Direction Control (designed in v110) (M)
 - [x] Previews follow-ups: TRIM in Standard mode and Shift swapping TRIM and EXTEND; -ARRAY distances without a base point
@@ -156,15 +156,25 @@ the ones wanted.
 - [ ] Previews follow-ups 2: a look by eye in the running app (rounds 2 and 3); -ARRAY row distance by two points; TEXT
       Align box; -ARRAY unit cell as a rectangle only, if AutoCAD shows only that (check); paste preview speed on a large
       clipboard; `ALL` selecting nothing on a minimal hand-written DXF (cause unknown) (S)
-- [ ] Managers follow-ups 2 (running, non-UI parts): an Edit Layer State dialog and a description in New; viewport overrides on restore; layout
-      views listed per layout; the xref rule of GetLayerStateNames for states AutoCAD's Import writes by name; ANGBASE and
-      ANGDIR on typed polar angles; disabled GhComboBox drawn greyed (M)
-- [ ] Command line and Recent: AutoComplete inside a running command; Search Content; an EXPORT command (S)
+- [x] Managers follow-ups 2, non-UI parts: viewport overrides on restore; the xref rule of GetLayerStateNames; ANGBASE and
+      ANGDIR on typed and shown angles; disabled GhComboBox and GhFlatButton greyed; Groups in PURGE and -PURGE (M)
+- [ ] Managers follow-ups 3: an Edit Layer State dialog and a description in New (needs design); ANGBASE/ANGDIR still raw
+      in dimension and ellipse Properties rows, DIMEDIT oblique, -STYLE obliquing, MEASUREGEOM angle, the `<45` override;
+      ATTSYNC by Select on a block with no definitions and its extended data (AutoCAD unchecked: no ATTSYNC in
+      accoreconsole); GhDialogButton dimmed twice when disabled (S)
+- [x] Command line and Recent: Search Content; EXPORT and -EXPORT (AutoComplete inside a running command dropped: AutoCAD
+      2021 has none) (S)
+- [ ] Command line follow-ups: Input Search Options dialog, collapsible content section, hatch thumbnail on hover, visual
+      styles (need design); EXPORT writers for Metafile and the other refused types if wanted; -EXPORT Dwf/dwfX and All
+      layouts (S)
 - [ ] Dxf.App: an app icon, file association for .dxf (installer or registry), `--tab Home` in screenshot mode
 - [x] Images of an area: PNG and JPG devices in PLOT and -PLOT ("GeometryHelper PNG", "GeometryHelper JPG", as AutoCAD's
       PublishToWeb PNG/JPG), plot area Window, Extents, Display or Layout, size in pixels (1920 x 1080, 3840 x 2160 or
       typed) in place of a paper (designed in v111)
 - [x] Dynamic input: dimensional input (length and angle boxes) beyond LINE and PLINE (M)
+- [x] Dynamic input (user 2026-11-10): while drawing LINE and the other commands with length and
+      angle fields, draw no dimension line, extension lines or angle arc; keep the length and angle values in their boxes (S)
+- [ ] Dynamic input: with OSNAP the fields follow the raw cursor, not the snapped point the band is drawn to (S)
 - [ ] Dynamic input follow-ups: MIRROR and other commands still on X and Y; CIRCLE 3P; angle field from a reference line;
       grip rotate and scale tested on their own (S)
 - [ ] COPYVIEW (not in AutoCAD): the view as an image on the clipboard, also on the canvas right-click menu (optional)
@@ -172,18 +182,26 @@ the ones wanted.
 - [ ] Tables: rows grow for wrapped text; Tab in the last cell adds a row; first/second/other row cell styles
 
 - [ ] Ribbon: check drop-downs and the Insert block gallery at 125 % and 150 % display scaling; pin and Esc by hand
-- [ ] Ribbon: disabled buttons barely look greyed (GhFlatButton); Home panels a few pixels wider than their design widths
+- [ ] Ribbon: Home panels a few pixels wider than their design widths
 - [ ] Speed: undo without reloading the whole drawing (2.5 s at 1 000 000 entities): first the cheap wins (pack the undo state in parallel chunks, build the handle index lazily), then a core `DxfDatabase` fork that shares the read bytes (recommended over an in-place journal through the core)
 - [ ] Speed: draw the first display off the UI thread (10–13 s at 1 000 000 entities)
 - [ ] Speed: frame at extents at 1 000 000 entities (0.8–1.1 s, inside Skia); level of detail would change pixels (needs a decision)
 - [ ] Speed: highlight of 100 000 selected objects (1.2–1.6 s)
-- [ ] Dimensions (running): radius, diameter and angular pictures follow DIMTAD, DIMJUST and the fit rules (linear and ordinate do)
-- [ ] Dimensions (running): the dimension line starts at the back of a closed arrowhead, as AutoCAD draws it; words sized by the
-      font, not estimated
-- [ ] Dimensions (running): DIMTVP, DIMTMOVE 1's leader for words moved out by fit, DIMGAP below zero (box round the words);
+- [x] Dimensions: radius, diameter and angular pictures follow DIMTAD, DIMJUST and the fit rules (linear and ordinate do)
+- [x] Dimensions: the dimension line starts at the back of a closed arrowhead, as AutoCAD draws it
+- [x] Dimensions: DIMTVP, DIMTMOVE 1's leader for words moved out by fit, DIMGAP below zero (box round the words);
       DIMTEDIT on a DIMTAD 0 dimension puts the line through the words
-- [ ] Dimensions (running, not Mtext): DIM offers Jogged and Arc length, edits Mtext in the editor
-- [ ] MTEXT (running): word wrap at the width, stacked fractions, columns; line spacing 5/3 as AutoCAD (check first)
+- [ ] Dimensions follow-ups: words sized by the font, not estimated; DIMJOGGED (prompts recorded, the jog picture not yet
+      derived: one chord at -23.6 deg unexplained); DIM offering Jogged and Arc length (2016+ DIM prompts not recordable
+      headless); DIM edits Mtext in the editor; parked: angles whose arc runs through their points (56 pictures, float
+      side choice), radius 3 circles under DIMTMOVE 1/2 with the point inside (28 pictures); DIMTEDIT Left/Right and
+      DIMTOH on slanted lines unprobed (M)
+- [x] MTEXT: word wrap at the width, stacked fractions, columns; line spacing 5/3 as AutoCAD (check first)
+- [ ] MTEXT follow-ups: the in-place editor wraps and spaces lines as the drawn MTEXT (it keeps one line per paragraph,
+      pitch 1.25); paragraph, column and tab dialogs and ribbon controls (need design); triangle width/height grips;
+      parked: `\pxsm2` with tall runs (0.048 h), flow direction 3, `\pxsa` first line, `\M+` codes, mask with a taller
+      defined height, manual columns at bottom or middle attachment, column grips; EXPLODE keeping run fonts and colours;
+      TEXT draws %%U/%%O/%%K lines; warm display cost of 10 000 MTEXTs 290 -> 430 ms (a per-entity cache?) (M)
 - [x] Clipboard: preview of the objects while PASTECLIP asks for the point
 - [ ] PLOT: print to Windows printers; add named page setups; embed only the glyphs used (smaller PDFs)
 - [ ] Xrefs: XOPEN, a balloon when a file changes, editable xref layers (`NAME|LAYER`), nested xrefs in the palette

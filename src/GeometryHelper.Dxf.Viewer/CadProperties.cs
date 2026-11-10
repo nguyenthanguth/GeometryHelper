@@ -380,8 +380,8 @@ namespace GeometryHelper.Dxf.Viewer
                         Row("Major radius", () => Length(ellipse.MajorRadius)),
                         Row("Minor radius", () => Length(ellipse.MinorRadius)),
                         Row("Radius ratio", () => Length(ellipse.RadiusRatio)),
-                        Row("Start angle", () => f.Angle(ellipse.StartAngle)),
-                        Row("End angle", () => f.Angle(ellipse.EndAngle)),
+                        Row("Start angle", () => f.Plain(ellipse.StartAngle)),
+                        Row("End angle", () => f.Plain(ellipse.EndAngle)),
                         Row("Area", () => Length(ellipse.Area), true));
                     break;
                 case DxfPolyline polyline:
@@ -871,8 +871,14 @@ namespace GeometryHelper.Dxf.Viewer
             /// <summary>The vertex of a polyline shown, from 1, as <see cref="CadSelection.CurrentVertex"/>.</summary>
             public int Vertex { get; set; } = 1;
 
+            /// <summary>
+            /// A direction in radians from the X axis written in degrees from 0 up to 360, counted as the drawing counts
+            /// angles: from ANGBASE, and clockwise with ANGDIR 1.
+            /// </summary>
+            public string Angle(double radians) => Plain(CadUnits.FromDirection(radians, Read(() => Database.Angbase, 0.0), Read(() => Database.Angdir, false)));
+
             /// <summary>An angle in radians written in degrees from 0 up to 360.</summary>
-            public string Angle(double radians)
+            public string Plain(double radians)
             {
                 double degrees = radians * 180.0 / Math.PI;
                 degrees -= Math.Floor(degrees / 360.0) * 360.0;

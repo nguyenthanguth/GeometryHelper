@@ -253,6 +253,9 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Gets the paragraph codes other than the alignment, as written; null for none.</summary>
         public string Codes { get; }
 
+        /// <summary>Whether the paragraph was begun by a column break (<c>N</c>), its first line then set at the top of the next column.</summary>
+        internal bool StartsColumn { get; set; }
+
         /// <summary>Gets the letters of the paragraph as shown.</summary>
         public string Text
         {
@@ -369,7 +372,20 @@ namespace GeometryHelper.Dxf.Viewer
         /// <returns>The content.</returns>
         public static CadMTextContent Parse(string contents, double height)
         {
-            return new Reader(contents ?? string.Empty, height).Read();
+            return Parse(contents, height, 1.0);
+        }
+
+        /// <summary>
+        /// Reads the words as <see cref="Parse(string, double)"/> does, for laying them out: a width factor in times
+        /// (<c>W1.2x;</c>) before any other is times the style's, 0.9 in a style of 0.75.
+        /// </summary>
+        /// <param name="contents">The words with their codes; null is none.</param>
+        /// <param name="height">The MTEXT's height, which <c>H2x;</c> doubles.</param>
+        /// <param name="styleWidth">The width factor of the MTEXT's style.</param>
+        /// <returns>The content.</returns>
+        public static CadMTextContent Parse(string contents, double height, double styleWidth)
+        {
+            return new Reader(contents ?? string.Empty, height, styleWidth > 0.0 ? styleWidth : 1.0).Read();
         }
 
         /// <summary>Writes the content in AutoCAD's codes, as the class says.</summary>
@@ -546,6 +562,7 @@ namespace GeometryHelper.Dxf.Viewer
         {
             private readonly string _text;
             private readonly double _height;
+            private readonly double _styleWidth;
             private readonly Stack<CadMTextLook> _saved = new Stack<CadMTextLook>();
             private readonly List<CadMTextParagraph> _paragraphs = new List<CadMTextParagraph>();
             private List<CadMTextRun> _runs = new List<CadMTextRun>();
@@ -554,12 +571,14 @@ namespace GeometryHelper.Dxf.Viewer
             private CadMTextLook _lettersLook = CadMTextLook.Plain;
             private char _alignment;
             private string _paragraphCodes;
+            private bool _startsColumn;
             private int _at;
 
-            public Reader(string text, double height)
+            public Reader(string text, double height, double styleWidth)
             {
                 _text = text;
                 _height = height;
+                _styleWidth = styleWidth;
             }
 
             public CadMTextContent Read()
@@ -617,6 +636,7 @@ namespace GeometryHelper.Dxf.Viewer
                     case 'N':
                     case 'X':
                         EndParagraph();
+                        _startsColumn = code == 'N';
                         _at += 2;
                         return;
                     case 'L':
@@ -678,7 +698,7 @@ namespace GeometryHelper.Dxf.Viewer
                     case 'W':
                         if (TryNumber(value, out double width, out bool widthTimes) && width > 0.0)
                         {
-                            _look = _look.WithWidthFactor(widthTimes ? (_look.WidthFactor ?? 1.0) * width : width);
+                            _look = _look.WithWidthFactor(widthTimes ? (_look.WidthFactor ?? _styleWidth) * width : width);
                         }
 
                         break;
@@ -784,6 +804,12 @@ namespace GeometryHelper.Dxf.Viewer
                     kept.Add(part);
                 }
 
+                // The x before the first item says every value is in text heights: it stays with the items kept when its own is taken out.
+                if (kept.Count > 0 && kept.Count < parts.Length && parts[0].TrimStart().StartsWith("x", StringComparison.Ordinal) && !kept[0].StartsWith("x", StringComparison.Ordinal))
+                {
+                    kept[0] = "x" + kept[0];
+                }
+
                 if (kept.Count > 0 && !(kept.Count == 1 && kept[0] == "x"))
                 {
                     _paragraphCodes = (_paragraphCodes ?? string.Empty) + (kept.Count == parts.Length ? written : "\\p" + string.Join(",", kept) + ";");
@@ -850,7 +876,8 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 Flush();
                 // An alignment holds from the paragraph it is set in on, as AutoCAD keeps it.
-                _paragraphs.Add(new CadMTextParagraph(_runs, _alignment, _paragraphCodes));
+                _paragraphs.Add(new CadMTextParagraph(_runs, _alignment, _paragraphCodes) { StartsColumn = _startsColumn });
+                _startsColumn = false;
                 _runs = new List<CadMTextRun>();
                 _paragraphCodes = null;
             }

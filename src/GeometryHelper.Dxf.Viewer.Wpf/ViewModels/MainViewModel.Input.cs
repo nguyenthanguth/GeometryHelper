@@ -160,7 +160,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     return string.Empty;
                 }
 
-                // In the current UCS: its coordinates, and the angle from its X axis.
+                // In the current UCS: its coordinates, and the angle counted from its X axis turned by ANGBASE, by ANGDIR.
                 if (!prompt.BasePoint.HasValue)
                 {
                     GeoPoint2 shown = Ucs.ToUcs(_cursorAt);
@@ -170,8 +170,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 GeoVector2 way = Ucs.ToUcs(_cursorAt - prompt.BasePoint.Value);
                 double dx = way.X;
                 double dy = way.Y;
-                double degrees = Math.Atan2(dy, dx) * 180.0 / Math.PI;
-                degrees = degrees < 0.0 ? degrees + 360.0 : degrees;
+                double degrees = Session.CountAngle(Math.Atan2(dy, dx)) * 180.0 / Math.PI;
                 return _settings.FormatNumber(Math.Sqrt(dx * dx + dy * dy), _settings.CoordinateDecimals) + " < " + _settings.FormatNumber(degrees, _settings.AngleDecimals) + "°";
             }
         }
@@ -189,15 +188,15 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>
         /// Gets whether the two fields are dimensional input, the length and the angle from the base point rather than X and Y:
         /// as AutoCAD's while a second point is asked: at a point with a base point of LINE, PLINE, ARC, CIRCLE, ELLIPSE,
-        /// POLYGON, XLINE, RAY, MOVE, COPY, STRETCH and OFFSET, and of a grip edit, where the canvas draws the length on a
-        /// dimension line along the rubber band and the angle on an arc from the X axis. RECTANG's other corner keeps X and Y,
-        /// its two sizes.
+        /// POLYGON, XLINE, RAY, MOVE, COPY, STRETCH and OFFSET, and of a grip edit, where the canvas shows the length in a
+        /// field beside the middle of the rubber band and the angle in one near the base point, with no dimension line or arc
+        /// drawn. RECTANG's other corner keeps X and Y, its two sizes.
         /// </summary>
         public bool IsDynamicInputPolar => IsDynamicInputFields && Session.Prompt.BasePoint.HasValue
             && (Session.IsGripEditing || Array.IndexOf(DimensionalCommands, Session.Current?.Name) >= 0);
 
         /// <summary>
-        /// Gets whether the canvas shows the length in a field on a dimension line along the rubber band: with the angle
+        /// Gets whether the canvas shows the length in a field beside the middle of the rubber band: with the angle
         /// (<see cref="IsDynamicInputPolar"/>), or alone while a distance is asked from a base point, as CIRCLE's radius 250
         /// from its centre, POLYGON's radius and ELLIPSE's other axis. A number typed goes into the field, and Enter takes it
         /// as the command line does. A scale factor has no field, as in AutoCAD: it is no length of the drawing.
@@ -205,7 +204,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public bool IsDynamicInputLength => IsDynamicInputPolar || Alone(CadPromptKind.Distance);
 
         /// <summary>
-        /// Gets whether the canvas shows the angle in a field on an arc from the X axis: with the length
+        /// Gets whether the canvas shows the angle in a field near the base point: with the length
         /// (<see cref="IsDynamicInputPolar"/>), or alone while an angle is asked from a base point, as ROTATE's 30° about its
         /// base point.
         /// </summary>
@@ -641,7 +640,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     return far > 0.0 ? from + new GeoVector2(towards.X * length / far, towards.Y * length / far) : from;
                 }
 
-                double angle = Number(second) * Math.PI / 180.0;
+                // The angle box counts as the drawing does: from ANGBASE, clockwise with ANGDIR 1.
+                double angle = CadUnits.ToDirection(Number(second) * Math.PI / 180.0, Session.Document.Database.Angbase, Session.Document.Database.Angdir);
                 return from + ucs.ToWorld(new GeoVector2(length * Math.Cos(angle), length * Math.Sin(angle)));
             }
 
@@ -750,8 +750,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return _settings.FormatNumber(Math.Sqrt(dx * dx + dy * dy), _settings.CoordinateDecimals);
             }
 
-            double degrees = Math.Atan2(dy, dx) * 180.0 / Math.PI;
-            return _settings.FormatNumber(degrees < 0.0 ? degrees + 360.0 : degrees, _settings.AngleDecimals);
+            return _settings.FormatNumber(Session.CountAngle(Math.Atan2(dy, dx)) * 180.0 / Math.PI, _settings.AngleDecimals);
         }
 
         private bool FieldLocked(bool second)

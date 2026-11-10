@@ -1,5 +1,8 @@
 using System;
+using System.IO.Packaging;
 using System.Linq;
+using System.Threading;
+using System.Windows;
 using GeometryHelper.Dxf;
 using GeometryHelper.Geometry;
 using Xunit;
@@ -217,6 +220,162 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 Assert.True(model.IsDynamicInputFields);
                 Assert.False(model.IsDynamicInputPolar);
                 Assert.False(model.IsDynamicInputDimensional);
+            }
+        }
+
+        [Fact]
+        public void LinesNextPoint_DrawsNoDimensionLineOrArc_TheLengthBesideTheMiddleOfTheBandAndTheAngleNearTheBasePoint()
+        {
+            using (var folder = new TestFolder())
+            {
+                string room = folder.Write("room.dxf", TestFiles.Room(out _, out _));
+
+                OnSta(() =>
+                {
+                    _ = PackUriHelper.UriSchemePack;
+                    var model = new MainViewModel();
+                    Assert.True(model.Open(room));
+                    var workspace = new CadWorkspace { DataContext = model };
+                    Lay(workspace);
+                    model.Execute("LINE");
+                    model.Execute("1000,1000");
+
+                    // Laid out again before the cursor moves: the prompt changes the command line's height, and the canvas's with it.
+                    Lay(workspace);
+                    workspace.DrawingCanvas.MoveCursorTo(1300, 1400);
+                    Lay(workspace);
+
+                    Assert.True(model.IsDynamicInputPolar);
+                    Assert.Equal("500.00", model.DynamicInputFirst);
+                    Assert.Equal("53.1", model.DynamicInputSecond);
+
+                    // The two fields alone: no dimension line, extension lines, arc or dashed axis.
+                    Assert.Equal(new UIElement[] { workspace.LengthField, workspace.AngleField }, workspace.DimensionalInput.Children.Cast<UIElement>());
+                    Assert.Equal(Visibility.Visible, workspace.LengthField.Visibility);
+                    Assert.Equal(Visibility.Visible, workspace.AngleField.Visibility);
+
+                    // The band on the canvas, from (1 000, 1 000) to (1 300, 1 400), in the canvas's own units.
+                    CadCanvas canvas = workspace.DrawingCanvas;
+                    double scale = canvas.PixelWidth / canvas.ActualWidth;
+                    canvas.View.DrawingToPixel(1000, 1000, out double bx, out double by);
+                    canvas.View.DrawingToPixel(1300, 1400, out double cx, out double cy);
+                    var from = new Point(bx / scale, by / scale);
+                    var to = new Point(cx / scale, cy / scale);
+                    Rect length = Box(workspace.LengthField, canvas);
+                    Rect angle = Box(workspace.AngleField, canvas);
+
+                    // Each field wholly on one side of the band, at least 7 units off it, the two on either side.
+                    double lengthSide = Side(length, from, to);
+                    double angleSide = Side(angle, from, to);
+                    Assert.True(Math.Abs(lengthSide) >= 7.0, "length " + lengthSide);
+                    Assert.True(Math.Abs(angleSide) >= 7.0, "angle " + angleSide);
+                    Assert.True(lengthSide * angleSide < 0.0, lengthSide + " " + angleSide);
+
+                    // The length by the middle of the band, the angle by the base point.
+                    Point middle = from + (to - from) / 2.0;
+                    Point lengthCentre = length.TopLeft + (length.BottomRight - length.TopLeft) / 2.0;
+                    Point angleCentre = angle.TopLeft + (angle.BottomRight - angle.TopLeft) / 2.0;
+                    Assert.True((lengthCentre - middle).Length < 60.0, "length " + (lengthCentre - middle).Length);
+                    Assert.True((angleCentre - from).Length < 90.0, "angle " + (angleCentre - from).Length);
+                    Assert.True((angleCentre - from).Length < (angleCentre - to).Length);
+
+                    canvas.Dispose();
+                });
+            }
+        }
+
+        [Fact]
+        public void ANearlyFlatBandEndingByTheRightEdge_TheBoxFlippedLeftOfTheCursor_HidesNeitherField()
+        {
+            using (var folder = new TestFolder())
+            {
+                string room = folder.Write("room.dxf", TestFiles.Room(out _, out _));
+
+                OnSta(() =>
+                {
+                    _ = PackUriHelper.UriSchemePack;
+                    var model = new MainViewModel();
+                    Assert.True(model.Open(room));
+                    var workspace = new CadWorkspace { DataContext = model };
+                    model.Execute("LINE");
+                    Lay(workspace);
+                    CadCanvas canvas = workspace.DrawingCanvas;
+                    double scale = canvas.PixelWidth / canvas.ActualWidth;
+
+                    // The cursor 30 units in from the right edge, the base point 300 to its left and 60 lower: a band rising 11 degrees,
+                    // its middle 30 below the cursor, where the length stands and the box flipped left of the cursor would cover it.
+                    var cursorAt = new Point(canvas.ActualWidth - 30.0, canvas.ActualHeight / 2.0);
+                    var baseAt = new Point(cursorAt.X - 300.0, cursorAt.Y + 60.0);
+                    canvas.View.ScreenToDrawing(baseAt.X * scale, baseAt.Y * scale, out double bx, out double by);
+                    canvas.View.ScreenToDrawing(cursorAt.X * scale, cursorAt.Y * scale, out double cx, out double cy);
+                    model.Execute(string.Format(System.Globalization.CultureInfo.InvariantCulture, "{0:0.###},{1:0.###}", bx, by));
+                    Lay(workspace);
+                    canvas.MoveCursorTo(cx, cy);
+                    Lay(workspace);
+
+                    Assert.True(model.IsDynamicInputPolar);
+                    Rect prompt = Box(workspace.DynamicInputBox, canvas);
+                    Rect length = Box(workspace.LengthField, canvas);
+                    Rect angle = Box(workspace.AngleField, canvas);
+
+                    // The box no longer fits right of the cursor: it stands left of it, over the band's right half.
+                    Assert.True(prompt.Right < cursorAt.X, prompt + " " + cursorAt);
+                    Assert.False(prompt.IntersectsWith(length), prompt + " " + length);
+                    Assert.False(prompt.IntersectsWith(angle), prompt + " " + angle);
+                    Assert.False(length.IntersectsWith(angle), length + " " + angle);
+
+                    canvas.Dispose();
+                });
+            }
+        }
+
+        private static void Lay(CadWorkspace workspace)
+        {
+            for (int pass = 0; pass < 2; pass++)
+            {
+                workspace.Measure(new Size(1600, 960));
+                workspace.Arrange(new Rect(0, 0, 1600, 960));
+                workspace.UpdateLayout();
+                workspace.DrawingCanvas.RenderNow();
+            }
+        }
+
+        private static Rect Box(FrameworkElement field, UIElement canvas)
+        {
+            Point corner = field.TranslatePoint(new Point(0, 0), canvas);
+            return new Rect(corner, new Size(field.ActualWidth, field.ActualHeight));
+        }
+
+        /// <summary>The signed distance of a box's nearest corner from the line of the band, zero where the line crosses it.</summary>
+        private static double Side(Rect box, Point from, Point to)
+        {
+            Vector along = to - from;
+            along.Normalize();
+            double[] signed = new[] { box.TopLeft, box.TopRight, box.BottomLeft, box.BottomRight }.Select(p => Vector.CrossProduct(along, p - from)).ToArray();
+            return signed.Min() > 0.0 ? signed.Min() : signed.Max() < 0.0 ? signed.Max() : 0.0;
+        }
+
+        private static void OnSta(Action action)
+        {
+            Exception failure = null;
+            var thread = new Thread(() =>
+            {
+                try
+                {
+                    action();
+                }
+                catch (Exception ex)
+                {
+                    failure = ex;
+                }
+            });
+            thread.SetApartmentState(ApartmentState.STA);
+            thread.Start();
+            thread.Join();
+
+            if (failure != null)
+            {
+                throw new InvalidOperationException("The STA thread failed.", failure);
             }
         }
 

@@ -72,7 +72,7 @@ namespace GeometryHelper.Dxf.Viewer
             }
             else if (c.Input.Is("Z"))
             {
-                yield return CadPrompt.ForAngle("Specify rotation angle about Z axis", Origin2(c.Session.Ucs), null, "90");
+                yield return CadPrompt.ForAngle("Specify rotation angle about Z axis", Origin2(c.Session.Ucs), null, "90").Turning();
 
                 if (c.Input.IsNone || c.Input.Kind == CadInputKind.Number)
                 {
