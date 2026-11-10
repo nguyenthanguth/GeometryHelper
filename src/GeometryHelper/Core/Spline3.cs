@@ -415,6 +415,17 @@ namespace GeometryHelper.Core
                 frame.ToPlane(major.X, major.Y, major.Z, out double mx, out double my);
                 double length = Math.Sqrt(mx * mx + my * my);
 
+                // An ellipse in the plane only within the planar tolerance, being no wider than it, may stand with its major axis square to
+                // the plane: its axis is then read as its minor axis turned a right angle in the plane, which throws nothing, as a circle of
+                // radius 1E-12 standing upright in the plane of a spline did.
+                if (!(length > 0.0))
+                {
+                    frame.ToPlane(minor.X, minor.Y, minor.Z, out double nx, out double ny);
+                    mx = ny;
+                    my = -nx;
+                    length = Math.Sqrt(mx * mx + my * my);
+                }
+
                 return Spline2.Of(null, new GeoEllipse2(Flat(frame, center), new GeoVector2(mx / length, my / length), a, b)).Parts;
             };
 

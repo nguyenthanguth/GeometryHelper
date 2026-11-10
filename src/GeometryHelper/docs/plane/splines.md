@@ -208,6 +208,9 @@ copy cross nowhere and are nought apart. Against an ellipse or another spline th
 tolerance of the other, and the first keeps its distance level, changing by no more than half of it, for a quarter of the size of the
 smaller of the two, the size being how far its control points reach from the first, which is the same however the pair is turned (the
 span along the axes was, and 14 of 60 copies of a spline moved a few ten-thousandths gave a place more or fewer turned by 0.7 of a radian).
+A curve no larger than the point tolerance lies along nothing, since all of it is within the tolerance of a curve that comes near it:
+the polyline (0, 0), (100, 0), (0, 100) meets the spline of a circle of radius 1E-4, or of 1E-12, about (100, 0) once, at the circle,
+as it meets the circle itself.
 Past an end of the other, within the tolerance of it, the first is along it as far as the tolerance reaches, as an arc is along an arc of
 its circle, so a copy that overhangs the other's end and the other's end itself answer alike whichever is asked first, which turning the
 pair can change; a point square from the other's end is a least of the distance only where the distance falls on neither way, the other's
