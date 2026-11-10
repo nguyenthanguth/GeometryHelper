@@ -231,7 +231,10 @@ in the sector the arc does not sweep dimensions the rest of its circle. DIMORDIN
 (300, 40) with its leader ending at (310, 80) is an X datum of 300, the leader jogged two arrowheads before its end.
 DIMCONTINUE, DIMBASELINE and QDIM's Ordinate go on from an ordinate dimension, each leader ending level with the last.
 DIMJOGLINE (DJL) puts a jog in the line of a linear dimension, kept as AutoCAD keeps it (ACAD_DSTYLE_DIMJAG_POSITION) and
-drawn 1.5 times the height of the words; Remove takes it out. DIMJOGGED (DJO, JOG) draws a jogged radius of an arc or a
+drawn 1.5 times the height of the words; Remove takes it out. DIMEDIT Oblique slants the extension lines of a linear or
+an aligned dimension to the angle typed, from the x axis, and keeps it as AutoCAD 2021 keeps it, from the dimension line
+(group 52, Oblique): 60 typed for a dimension rotated 30 is kept as 30, for an aligned one from (0, 100) to (100, 150) as
+33.435, and -30 for a level one as 330. DIMJOGGED (DJO, JOG) draws a jogged radius of an arc or a
 circle, its line from a centre put in place of one off the drawing: along the radius's parallel, across at DIMJOGANG and
 on to the rim, the jog half way between the two lines. A circle of 50 about the origin, its centre drawn at (0, -100),
 its words put at (30, 0) and its jog at (15, -50) has its lines from (0, -100) to (65, -100), on to (-35, 0) and on to the

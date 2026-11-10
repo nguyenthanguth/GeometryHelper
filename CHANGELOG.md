@@ -6,6 +6,15 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** DIMEDIT Oblique in the presenter keeps the angle as AutoCAD 2021 keeps it, from the dimension line. It kept the
+angle typed, from the x axis, in group 52, where AutoCAD's Oblique is that angle less the line's: AutoCAD 2021, slanting
+three dimensions to 60, gives 60 to a level DIMLINEAR, 30 to one rotated 30 and 33.435 to a DIMALIGNED from (0, 100) to
+(100, 150), and draws the extension lines of all three at 60. The presenter now writes the same, so a dimension slanted
+in it reads the same in other programs, and one slanted elsewhere draws at its angle. The documentation of
+[`DxfRotatedDimension.Oblique`](xref:GeometryHelper.Dxf.DxfRotatedDimension.Oblique) and
+[`DxfAlignedDimension.Oblique`](xref:GeometryHelper.Dxf.DxfAlignedDimension.Oblique) said the angle ran from the square
+of the dimension line; it runs from the line, nought standing for none.
+
 **FIXED.** The plane the DXF editing model finds for a 3D polyline or a spline no longer throws on points it cannot
 place. Points a nanometre off one line, as (0, 0, 0), (1 000, 0, 0) and (2 000, 1E-9, 0), or a normal given of length
 1E-7, threw "Cannot normalize a zero-length vector" out of `DxfPolyline3d.GetOffsetCurves`, the offsets of

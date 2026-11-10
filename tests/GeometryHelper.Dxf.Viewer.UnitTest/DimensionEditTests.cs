@@ -233,6 +233,48 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         [Fact]
+        public void DimEdit_Oblique_KeepsTheAngleFromTheDimensionLine_AsAutoCad()
+        {
+            // AutoCAD 2021, DIMEDIT Oblique 60 on two dimensions, read back by .NET: the extension lines of each run at 60
+            // degrees from the x axis, and Oblique is that angle less the dimension line's: 30 on a DIMLINEAR rotated 30, 33.435
+            // on a DIMALIGNED from (0, 100) to (100, 150); -30 on a level one gives 330.
+            CadDocument document = Blank();
+            CadCommandSession session = Session(document);
+            Run(session, "DIMLINEAR", P(0, -100), P(100, -50), P(50, -20));
+            Run(session, "DIMALIGNED", P(0, 100), P(100, 150), P(40, 170));
+            Run(session, "DIMLINEAR", P(0, -300), P(100, -300), P(50, -280));
+            List<DxfRotatedDimension> linear = All<DxfRotatedDimension>(document.ModelSpace);
+            DxfRotatedDimension turned = linear[0];
+            DxfAlignedDimension aligned = Assert.Single(All<DxfAlignedDimension>(document.ModelSpace));
+            DxfRotatedDimension level = linear[1];
+
+            // DIMLINEAR here has no Rotated option: the first is turned to 30 by hand, and DIMEDIT draws it anew.
+            turned.Rotation = Math.PI / 6.0;
+            turned.DimLinePoint = new GeoPoint3(74.509619, -5.849365, 0);
+
+            Run(session, "DIMEDIT", "O", new[] { turned.Handle, aligned.Handle }, Enter, "60");
+            Run(session, "DIMEDIT", "O", new[] { level.Handle }, Enter, "-30");
+            turned = Entity<DxfRotatedDimension>(document, turned.Handle);
+            aligned = Entity<DxfAlignedDimension>(document, aligned.Handle);
+            level = Entity<DxfRotatedDimension>(document, level.Handle);
+
+            Assert.Equal(Math.PI / 6.0, turned.Oblique, 9);
+            Assert.Equal(Math.PI / 3.0 - Math.Atan2(50, 100), aligned.Oblique, 9);
+            Assert.Equal(11.0 * Math.PI / 6.0, level.Oblique, 9);
+
+            foreach (DxfDimension dimension in new DxfDimension[] { turned, aligned })
+            {
+                // Both extension lines run at 60 degrees from the x axis, as AutoCAD draws them.
+                Assert.Equal(2, PictureLines(dimension).Count(l => Along(l, Math.PI / 3.0)));
+            }
+
+            Assert.Equal(2, PictureLines(level).Count(l => Along(l, -Math.PI / 6.0)));
+        }
+
+        private static bool Along(DxfLine line, double angle)
+            => Math.Abs(Math.Sin(Math.Atan2(line.EndPoint.Y - line.StartPoint.Y, line.EndPoint.X - line.StartPoint.X) - angle)) < 1E-9;
+
+        [Fact]
         public void DimTedit_MovesTheWordsAndTheLineWithThem_LeftAndAngleAndHome()
         {
             CadDocument document = WithDimension(out CadCommandSession session);

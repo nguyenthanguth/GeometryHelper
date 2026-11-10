@@ -1618,7 +1618,7 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
-        /// The angle of the extension lines from the square of the dimension line (52, in degrees), in radians: of AcDbDimension,
+        /// The angle of the extension lines from the dimension line (52, in degrees), in radians: of AcDbDimension,
         /// where ezdxf writes it, else of the kind's part, where the DXF reference puts it; nought where the record gives none.
         /// </summary>
         private protected double ObliqueAngle()

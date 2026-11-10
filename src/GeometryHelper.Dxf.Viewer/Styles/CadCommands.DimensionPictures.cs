@@ -156,17 +156,29 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>
-        /// The oblique angle of a linear dimension's extension lines (group 52), as DIMEDIT Oblique sets it: the direction they
-        /// run in, in radians from the x axis; nought for none, where they stand square to the dimension line.
+        /// The direction a linear dimension's extension lines run in, in radians from the x axis, as DIMEDIT Oblique slants them;
+        /// nought for none, where they stand square to the dimension line. The dimension keeps the angle from its line (group
+        /// 52, AutoCAD's Oblique), so this is the line's angle and that one together: AutoCAD 2021 gives an Oblique of 30 to a
+        /// DIMLINEAR rotated 30 that DIMEDIT slants to 60, and draws its extension lines at 60.
         /// </summary>
         internal static double ObliqueOf(DxfDimension dimension)
+        {
+            double oblique = dimension is DxfRotatedDimension rotated ? rotated.Oblique : dimension is DxfAlignedDimension aligned ? aligned.Oblique : 0.0;
+            return oblique == 0.0 ? 0.0 : LineAngleOf(dimension) + oblique;
+        }
+
+        /// <summary>
+        /// The angle of a linear dimension's line in radians from the x axis, which its oblique angle is measured from: a
+        /// rotated one's rotation, an aligned one's direction from its first extension line's origin to its second's.
+        /// </summary>
+        internal static double LineAngleOf(DxfDimension dimension)
         {
             switch (dimension)
             {
                 case DxfRotatedDimension rotated:
-                    return rotated.Oblique;
+                    return rotated.Rotation;
                 case DxfAlignedDimension aligned:
-                    return aligned.Oblique;
+                    return Math.Atan2(aligned.XLine2Point.Y - aligned.XLine1Point.Y, aligned.XLine2Point.X - aligned.XLine1Point.X);
                 default:
                     return 0.0;
             }

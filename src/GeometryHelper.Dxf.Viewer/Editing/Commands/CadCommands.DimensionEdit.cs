@@ -20,7 +20,8 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>
         /// DIMEDIT: Home puts the words of the dimensions selected back where their style puts them, level with the line; New
         /// gives them a text (&lt;&gt; for the measurement); Rotate turns their words to an angle (0 for the style's); Oblique
-        /// slants the extension lines of the linear ones to an angle from the x axis, as for an isometric view.
+        /// slants the extension lines of the linear ones to an angle from the x axis, as for an isometric view, and keeps it as
+        /// AutoCAD keeps it, from the dimension line: 30 for a dimension rotated 30 slanted to 60.
         /// </summary>
         private static IEnumerable<CadPrompt> DimEdit(CadCommandContext c)
         {
@@ -34,6 +35,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             string text = null;
             double angle = 0.0;
+            bool slanted = false;
 
             if (kind == "New")
             {
@@ -64,6 +66,7 @@ namespace GeometryHelper.Dxf.Viewer
                 if (c.Input.Kind == CadInputKind.Number)
                 {
                     angle = Turned(c.Session.Ucs.AngleToWorld(c.Input.Number));
+                    slanted = true;
                 }
                 else if (!c.Input.IsNone)
                 {
@@ -90,13 +93,15 @@ namespace GeometryHelper.Dxf.Viewer
                         d.TextRotation = angle;
                         break;
                     default:
+                        double oblique = slanted ? Turned(angle - LineAngleOf(d)) : 0.0;
+
                         if (d is DxfRotatedDimension rotated)
                         {
-                            rotated.Oblique = angle;
+                            rotated.Oblique = oblique;
                         }
                         else
                         {
-                            ((DxfAlignedDimension)d).Oblique = angle;
+                            ((DxfAlignedDimension)d).Oblique = oblique;
                         }
 
                         break;
@@ -542,12 +547,12 @@ namespace GeometryHelper.Dxf.Viewer
             switch (dimension)
             {
                 case DxfRotatedDimension rotated when withLine:
-                    rotated.DimLinePoint = P3(LineUnder(P2(rotated.XLine2Point), rotated.Rotation, rotated.Oblique, at));
+                    rotated.DimLinePoint = P3(LineUnder(P2(rotated.XLine2Point), rotated.Rotation, ObliqueOf(rotated), at));
                     break;
                 case DxfAlignedDimension aligned when withLine:
                     GeoPoint2 a = P2(aligned.XLine1Point);
                     GeoPoint2 b = P2(aligned.XLine2Point);
-                    aligned.DimLinePoint = P3(LineUnder(b, Math.Atan2(b.Y - a.Y, b.X - a.X), aligned.Oblique, at));
+                    aligned.DimLinePoint = P3(LineUnder(b, Math.Atan2(b.Y - a.Y, b.X - a.X), ObliqueOf(aligned), at));
                     break;
                 case DxfPoint3AngularDimension three when withLine:
                     at = OnArcUnder(dimension, data, P2(three.CenterPoint), at);
