@@ -92,6 +92,12 @@ namespace GeometryHelper.Dxf.Viewer
     {
         private static readonly string[] ColorNames = { null, "Red", "Yellow", "Green", "Cyan", "Blue", "Magenta", "White" };
 
+        /// <summary>
+        /// The title of the group of a dynamic block's properties, as AutoCAD's palette names it: its rows are set through
+        /// <see cref="CadDynamicBlocks.SetProperty"/>, by the name of the property, not through <see cref="CadPropertyEditor"/>.
+        /// </summary>
+        public const string CustomGroup = "Custom";
+
         internal static readonly string[] YesNoChoices = { "Yes", "No" };
         internal static readonly string[] EnabledChoices = { "Enabled", "Disabled" };
         internal static readonly string[] JustifyChoices = { "Top left", "Top center", "Top right", "Middle left", "Middle center", "Middle right", "Bottom left", "Bottom center", "Bottom right" };
@@ -440,9 +446,18 @@ namespace GeometryHelper.Dxf.Viewer
                         Row("Scale X", () => Length(insert.ScaleFactors.X)),
                         Row("Scale Y", () => Length(insert.ScaleFactors.Y)),
                         Row("Scale Z", () => Length(insert.ScaleFactors.Z)));
+
+                    // A dynamic block's properties, as AutoCAD's Custom group lists them; its anonymous copy named by the block.
+                    List<CadPropertyRow> custom = Read(() => CadDynamicBlocks.CustomRows(insert, f.Angle), new List<CadPropertyRow>());
+
+                    if (custom.Count > 0)
+                    {
+                        groups.Add(new CadPropertyGroup(CustomGroup, custom));
+                    }
+
                     Group(
                         "Misc",
-                        Row("Name", () => insert.Name, true),
+                        Row("Name", () => CadDynamicBlocks.NameOf(insert), true),
                         Row("Rotation", () => f.Angle(insert.Rotation)));
                     AttributesOf(insert, groups);
                     break;
@@ -740,7 +755,7 @@ namespace GeometryHelper.Dxf.Viewer
             return false;
         }
 
-        /// <summary>The Attributes group of a block reference, a row of each attribute by its tag, and its Dynamic Block rows, read-only.</summary>
+        /// <summary>The Attributes group of a block reference, a row of each attribute by its tag.</summary>
         private static void AttributesOf(DxfBlockReference insert, List<CadPropertyGroup> groups)
         {
             var attributes = new List<CadPropertyRow>();
@@ -756,36 +771,6 @@ namespace GeometryHelper.Dxf.Viewer
             if (attributes.Count > 0)
             {
                 groups.Add(new CadPropertyGroup("Attributes", attributes));
-            }
-
-            var dynamic = new List<CadPropertyRow>();
-
-            foreach (DxfDynamicBlockReferenceProperty property in Read(() => insert.IsDynamicBlock ? insert.DynamicBlockReferencePropertyCollection : null, null) ?? Array.Empty<DxfDynamicBlockReferenceProperty>())
-            {
-                if (!string.IsNullOrEmpty(property.PropertyName) && dynamic.TrueForAll(r => r.Label != property.PropertyName))
-                {
-                    dynamic.Add(new CadPropertyRow(property.PropertyName, Read(() => DynamicText(property.Value), string.Empty), true));
-                }
-            }
-
-            if (dynamic.Count > 0)
-            {
-                groups.Add(new CadPropertyGroup("Dynamic Block", dynamic));
-            }
-        }
-
-        private static string DynamicText(object value)
-        {
-            switch (value)
-            {
-                case null:
-                    return string.Empty;
-                case double number:
-                    return Length(number);
-                case IFormattable formattable:
-                    return formattable.ToString(null, CultureInfo.InvariantCulture);
-                default:
-                    return value.ToString();
             }
         }
 

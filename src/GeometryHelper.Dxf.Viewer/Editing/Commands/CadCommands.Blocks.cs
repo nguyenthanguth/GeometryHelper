@@ -51,6 +51,30 @@ namespace GeometryHelper.Dxf.Viewer
             registry.Add(new CadCommand("-ATTEDIT", AttributeEditTyped));
             registry.Add(new CadCommand("ATTSYNC", AttributeSync));
             registry.Add(new CadCommand("BASE", Base));
+            registry.Add(new CadCommand("RESETBLOCK", ResetBlock, true));
+        }
+
+        /// <summary>
+        /// RESETBLOCK: "Select objects:", then every dynamic block reference among them put back to its block's own values, as
+        /// AutoCAD's (<see cref="CadDynamicBlocks.ResetBlock"/>), one undo step, and how many were reset said.
+        /// </summary>
+        private static IEnumerable<CadPrompt> ResetBlock(CadCommandContext c)
+        {
+            foreach (CadPrompt prompt in c.SelectObjects())
+            {
+                yield return prompt;
+            }
+
+            CadEditResult result = CadDynamicBlocks.ResetBlock(c.Document, c.Selected);
+
+            if (!result.Succeeded)
+            {
+                c.Write(result.Message);
+                yield break;
+            }
+
+            int reset = result.Records.Count;
+            c.Write(reset.ToString(CultureInfo.InvariantCulture) + (reset == 1 ? " block reset." : " blocks reset."));
         }
 
         /// <summary>The justifications of a text by AutoCAD's keyword, Left to BR, as -ATTDEF's Justify offers them; Align and Fit are not among them.</summary>
