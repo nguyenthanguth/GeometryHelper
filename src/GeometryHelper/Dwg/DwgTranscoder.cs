@@ -71,9 +71,9 @@ namespace GeometryHelper.Dwg
         private readonly bool _doubleByte;
         private readonly int _version;
 
-        private DwgTranscoder(byte[] file)
+        private DwgTranscoder(DwgContainer container)
         {
-            _container = DwgContainer.Read(file);
+            _container = container;
             _version = DwgContainer.NumberOf(_container.Version);
             _header = DwgHeaderVariables.Read(_container);
             _classes = DwgClass.ReadAll(_container.Classes, _container.Version);
@@ -116,9 +116,12 @@ namespace GeometryHelper.Dwg
         /// <see cref="FormatException"/> for a file that is not a DWG or is broken where nothing can be read past it, and
         /// <see cref="NotSupportedException"/> for a DWG of a version that is not read.
         /// </summary>
-        public static byte[] ToDxf(byte[] file)
+        public static byte[] ToDxf(byte[] file) => ToDxf(DwgContainer.Read(file));
+
+        /// <summary>The DXF of the DWG whose parts <paramref name="container"/> holds, as <see cref="ToDxf(byte[])"/>.</summary>
+        public static byte[] ToDxf(DwgContainer container)
         {
-            var transcoder = new DwgTranscoder(file);
+            var transcoder = new DwgTranscoder(container);
             transcoder.WriteHeader();
             transcoder.WriteClasses();
             transcoder.WriteTables();

@@ -7,8 +7,9 @@ using Xunit;
 namespace GeometryHelper.UnitTest.Dwg
 {
     /// <summary>
-    /// The check sum of a DWG file and the container of R2000: the version at the start, the section locator, and the
-    /// sections with their sentinels and check sums.
+    /// The check sums of a DWG file and its containers: of R2000 the version at the start, the section locator, and the
+    /// sections with their sentinels and check sums; of R2004 and later the masked file header, the pages with their sums
+    /// and their compression.
     /// </summary>
     public class DwgContainerTests
     {
@@ -119,8 +120,8 @@ namespace GeometryHelper.UnitTest.Dwg
 
         [Theory]
         [InlineData("AC1014", "AutoCAD R14")]
-        [InlineData("AC1018", "AutoCAD 2004")]
-        [InlineData("AC1032", "AutoCAD 2018")]
+        [InlineData("AC1021", "AutoCAD 2007")]
+        [InlineData("AC1036", "a release not known")]
         public void AnotherVersion_IsNotSupported_AndTheMessageNamesIt(string version, string release)
         {
             byte[] file = DwgAnswerKey.Dwg("empty");
@@ -129,6 +130,169 @@ namespace GeometryHelper.UnitTest.Dwg
             NotSupportedException fault = Assert.Throws<NotSupportedException>(() => DwgContainer.Read(file));
             Assert.Contains(version, fault.Message);
             Assert.Contains(release, fault.Message);
+        }
+
+        [Fact]
+        public void TheCheckSumOf32Bits_OfTheDigitsOneToNine_IsThatOfZip()
+        {
+            byte[] digits = Encoding.ASCII.GetBytes("123456789");
+
+            Assert.Equal(0xCBF43926u, DwgCrc.Of32(digits, 0, digits.Length, 0));
+        }
+
+        [Fact]
+        public void TheCheckSumOfAPage_FromOne_IsAdler32()
+        {
+            // Begun from 1 the sums of a page are Adler-32, whose value for "Wikipedia" is well known.
+            byte[] word = Encoding.ASCII.GetBytes("Wikipedia");
+
+            Assert.Equal(0x11E60398u, DwgCrc.OfPage(word, 0, word.Length, 1));
+        }
+
+        [Fact]
+        public void TheCheckSumOfAPage_TakesItsSumsModuloEveryChunk_SoALongRunMatchesTheSpecification()
+        {
+            // 0x15B0 bytes of 0xFF and one more: the sums are reduced after the first chunk and again after the second.
+            var data = Enumerable.Repeat((byte)0xFF, 0x15B1).ToArray();
+            long sum1 = 0;
+            long sum2 = 0;
+
+            for (int i = 0; i < data.Length; i++)
+            {
+                sum1 += 0xFF;
+                sum2 += sum1;
+
+                if (i == 0x15AF || i == 0x15B0)
+                {
+                    sum1 %= 0xFFF1;
+                    sum2 %= 0xFFF1;
+                }
+            }
+
+            Assert.Equal((uint)((sum2 << 16) | sum1), DwgCrc.OfPage(data, 0, data.Length, 0));
+        }
+
+        [Fact]
+        public void ACompressedPage_OfLiteralsAlone_GivesThem()
+        {
+            // A literal length of 2 means five bytes; 0x11 ends the page.
+            byte[] page = { 0x02, (byte)'a', (byte)'b', (byte)'c', (byte)'d', (byte)'e', 0x11 };
+            var output = new byte[16];
+
+            Assert.Equal(5, DwgLz77.Decompress(page, 0, page.Length, output));
+            Assert.Equal("abcde", Encoding.ASCII.GetString(output, 0, 5));
+        }
+
+        [Theory]
+        [InlineData(0x5C, "abcdabcd")]
+        [InlineData(0x50, "abcddddd")]
+        public void ACompressedPage_CopiesFromEarlierInTheOutput_AlsoOverlappingWhatItWrites(int code, string expected)
+        {
+            // Four literals, then four bytes copied from four (0x5C) or one (0x50) back.
+            byte[] page = { 0x01, (byte)'a', (byte)'b', (byte)'c', (byte)'d', (byte)code, 0x00, 0x11 };
+            var output = new byte[16];
+
+            Assert.Equal(8, DwgLz77.Decompress(page, 0, page.Length, output));
+            Assert.Equal(expected, Encoding.ASCII.GetString(output, 0, 8));
+        }
+
+        [Fact]
+        public void ACompressedPage_ThatWouldRunPastItsSize_ReachBeforeItsStart_OrHasNoEnd_IsRefused()
+        {
+            byte[] tooLong = { 0x02, 1, 2, 3, 4, 5, 0x11 };
+            byte[] tooFar = { 0x01, 1, 2, 3, 4, 0x5C, 0x40, 0x11 };
+            byte[] noEnd = { 0x02, 1, 2, 3, 4, 5 };
+            byte[] endlessLength = Enumerable.Repeat((byte)0, 100000).ToArray();
+
+            Assert.Throws<FormatException>(() => DwgLz77.Decompress(tooLong, 0, tooLong.Length, new byte[4]));
+            Assert.Throws<FormatException>(() => DwgLz77.Decompress(tooFar, 0, tooFar.Length, new byte[64]));
+            Assert.Throws<FormatException>(() => DwgLz77.Decompress(noEnd, 0, noEnd.Length, new byte[64]));
+            Assert.Throws<FormatException>(() => DwgLz77.Decompress(endlessLength, 0, endlessLength.Length, new byte[64]));
+        }
+
+        [Fact]
+        public void CompressedPagesOfNoise_AreRefusedOrDecompressedWithinTheirSize_NeverAnythingElse()
+        {
+            var random = new Random(31);
+
+            for (int round = 0; round < 3000; round++)
+            {
+                var page = new byte[1 + random.Next(300)];
+                random.NextBytes(page);
+                var output = new byte[random.Next(2) == 0 ? 0x7400 : random.Next(64)];
+
+                try
+                {
+                    int written = DwgLz77.Decompress(page, 0, page.Length, output);
+                    Assert.InRange(written, 0, output.Length);
+                }
+                catch (FormatException)
+                {
+                }
+            }
+        }
+
+        [Theory]
+        [InlineData("curves_AC1018", "AC1018")]
+        [InlineData("curves_AC1024", "AC1024")]
+        [InlineData("curves_AC1027", "AC1027")]
+        [InlineData("curves_AC1032", "AC1032")]
+        public void ADrawingOfR2004AndLater_GivesItsVersion_ItsCodePage_AndItsObjectsByRisingHandle(string drawing, string version)
+        {
+            byte[] file = DwgAnswerKey.Dwg(drawing);
+            DwgContainer container = DwgContainer.Read(file);
+
+            Assert.Equal(version, container.Version);
+            Assert.Equal("ANSI_1252", container.CodePage);
+            Assert.Equal(0, container.Measurement);
+            Assert.NotEmpty(container.Header);
+            Assert.NotEmpty(container.Classes);
+            Assert.True(container.ObjectMap.Count > 100);
+            Assert.Equal(container.ObjectMap.Select(pair => pair.Key).OrderBy(handle => handle), container.ObjectMap.Select(pair => pair.Key));
+            Assert.All(container.ObjectMap, pair => Assert.InRange(pair.Value, 1, container.Objects.LongLength - 1));
+
+            // The pages decompress to a few times the file, well inside what the reader allows.
+            Assert.InRange(container.Objects.LongLength, file.Length, file.Length * 64L);
+        }
+
+        [Theory]
+        [InlineData(0x80)]
+        [InlineData(0x80 + 0x54)]
+        [InlineData(0x80 + 0x68)]
+        public void AByteChangedInTheMaskedFileHeaderOfR2004_IsAWrongCheckSum(int at)
+        {
+            byte[] file = DwgAnswerKey.Dwg("blocks_AC1018");
+            file[at] ^= 0x01;
+
+            FormatException fault = Assert.Throws<FormatException>(() => DwgContainer.Read(file));
+            Assert.Contains("file header", fault.Message);
+        }
+
+        [Fact]
+        public void AByteChangedInAPageOfR2010_IsCaughtByACheckSum_OrLiesWhereNothingIsRead()
+        {
+            // Every page the reader takes carries the sums of its head and of its data; a byte changed in one is refused
+            // as a wrong check sum. Bytes of pages the reader does not take, and of the gaps between pages, change nothing.
+            byte[] file = DwgAnswerKey.Dwg("props_AC1024");
+            int caught = 0;
+
+            for (int at = 0x100; at < file.Length; at += 211)
+            {
+                byte[] changed = (byte[])file.Clone();
+                changed[at] ^= 0x08;
+
+                try
+                {
+                    DwgContainer.Read(changed);
+                }
+                catch (FormatException fault)
+                {
+                    Assert.True(fault.Message.Contains("check sum") || fault.Message.Contains("broken"), fault.Message);
+                    caught++;
+                }
+            }
+
+            Assert.True(caught > 30, "Only " + caught + " changed bytes were caught.");
         }
 
         /// <summary>Where a section starts: record <paramref name="section"/> of the locator, nine bytes each from 0x19, its seeker after its number.</summary>

@@ -130,11 +130,8 @@ namespace GeometryHelper.UnitTest.Dwg
 
         [Theory]
         [InlineData("AC1012", "AutoCAD R13")]
-        [InlineData("AC1018", "AutoCAD 2004")]
+        [InlineData("AC1014", "AutoCAD R14")]
         [InlineData("AC1021", "AutoCAD 2007")]
-        [InlineData("AC1024", "AutoCAD 2010")]
-        [InlineData("AC1027", "AutoCAD 2013")]
-        [InlineData("AC1032", "AutoCAD 2018")]
         public void ADwgOfAnotherVersion_IsNotSupported_AndTheMessageNamesIt(string version, string release)
         {
             byte[] file = DwgAnswerKey.Dwg("empty");
@@ -195,7 +192,7 @@ namespace GeometryHelper.UnitTest.Dwg
         private static long OffsetOf(byte[] file, string name)
         {
             DwgContainer container = DwgContainer.Read(file);
-            var reader = new DwgObjectReader(file, DwgClass.ReadAll(container.Classes));
+            var reader = new DwgObjectReader(container.Objects, DwgClass.ReadAll(container.Classes, container.Version), container.Version);
 
             foreach (KeyValuePair<ulong, long> entry in container.ObjectMap)
             {
@@ -268,6 +265,108 @@ namespace GeometryHelper.UnitTest.Dwg
                 }
 
                 ReadsOrRefuses(changed, name + " with a byte changed at " + string.Join(", ", places));
+            }
+        }
+
+        [Theory]
+        [InlineData("curves_AC1018", 21)]
+        [InlineData("props_AC1024", 22)]
+        [InlineData("blocks_AC1027", 23)]
+        [InlineData("props_AC1032", 24)]
+        public void BytesChangedAnywhereInALaterVersion_AreRefusedOrRead_NeverAnythingElse(string name, int seed)
+        {
+            byte[] file = DwgAnswerKey.Dwg(name);
+            var random = new Random(seed);
+
+            for (int round = 0; round < 40; round++)
+            {
+                byte[] changed = (byte[])file.Clone();
+                var places = new List<int>();
+
+                for (int i = 1 + random.Next(4); i > 0; i--)
+                {
+                    int at = random.Next(changed.Length);
+                    changed[at] = random.Next(3) == 0 ? (byte)random.Next(256) : (byte)(changed[at] ^ (1 << random.Next(8)));
+                    places.Add(at);
+                }
+
+                ReadsOrRefuses(changed, name + " with a byte changed at " + string.Join(", ", places));
+            }
+        }
+
+        /// <summary>
+        /// The start of the data of an object of a file of <paramref name="version"/> in the decompressed objects and their
+        /// size: after its size, a modular short, and from R2010 the size of its handles, a modular char.
+        /// </summary>
+        private static long[] DataOf(byte[] objects, long offset, string version)
+        {
+            var head = new DwgBitReader(objects, offset * 8, objects.LongLength * 8);
+            long size = head.ModularShort();
+
+            if (DwgContainer.NumberOf(version) >= 1024)
+            {
+                head.ModularChar(false);
+            }
+
+            return new[] { head.Position / 8, size };
+        }
+
+        [Theory]
+        [InlineData("curves_AC1018", 31)]
+        [InlineData("blocks_AC1018", 32)]
+        [InlineData("props_AC1024", 33)]
+        [InlineData("curves_AC1024", 34)]
+        [InlineData("blocks_AC1027", 35)]
+        [InlineData("props_AC1027", 36)]
+        [InlineData("curves_AC1032", 37)]
+        [InlineData("blocks_AC1032", 38)]
+        public void BytesChangedInsideTheObjectsOfALaterVersion_UnderARightCheckSum_AreLeftOutOrRead_NeverAnythingElse(string name, int seed)
+        {
+            // The pages carry their own sums, so the changes are made in the decompressed objects, each object's own check
+            // sum repaired; every decoder of the later versions then sees bytes it has to stand. Only a FormatException may
+            // come out of the transcoder, and the DXF it writes has to read.
+            byte[] file = DwgAnswerKey.Dwg(name);
+            var random = new Random(seed);
+            List<KeyValuePair<ulong, long>> map = DwgContainer.Read(file).ObjectMap;
+
+            for (int round = 0; round < 60; round++)
+            {
+                DwgContainer container = DwgContainer.Read(file);
+                byte[] objects = container.Objects;
+                var places = new List<long>();
+
+                for (int i = 1 + random.Next(3); i > 0; i--)
+                {
+                    long offset = map[random.Next(map.Count)].Value;
+                    long[] data = DataOf(objects, offset, container.Version);
+                    long at = data[0] + random.Next((int)data[1]);
+                    objects[at] = random.Next(3) == 0 ? (byte)random.Next(256) : (byte)(objects[at] ^ (1 << random.Next(8)));
+                    places.Add(at);
+                    int crc = DwgCrc.Of(objects, offset, data[0] - offset + data[1], DwgCrc.Seed);
+                    objects[data[0] + data[1]] = (byte)crc;
+                    objects[data[0] + data[1] + 1] = (byte)(crc >> 8);
+                }
+
+                string what = name + " with an object byte changed at " + string.Join(", ", places);
+                Task read = Task.Run(() =>
+                {
+                    try
+                    {
+                        DxfReader.Read(new MemoryStream(DwgTranscoder.ToDxf(container), false));
+                    }
+                    catch (FormatException)
+                    {
+                    }
+                });
+
+                try
+                {
+                    Assert.True(read.Wait(TimeSpan.FromSeconds(60)), what + " was still being read after 60 seconds.");
+                }
+                catch (AggregateException fault)
+                {
+                    throw new Xunit.Sdk.XunitException(what + " threw " + fault.InnerException);
+                }
             }
         }
     }
