@@ -785,13 +785,14 @@ namespace GeometryHelper.Core
         /// <param name="tolerance">The tolerance.</param>
         /// <returns>
         /// The points where the rim meets one of the six faces, face by face, each corner or edge counted once: the ellipse
-        /// 300 by 100 lying in the plan about the centre of a box 200 by 300 by 200 meets it at (±100, ±94.281, 0).
+        /// 300 by 100 lying in the plan about the centre of a box 200 by 300 by 200 meets it at (±100, ±94.281, 0). A box flat
+        /// on one axis is the rectangle across it; one flat on two axes or three has no face and is met nowhere.
         /// </returns>
         public static GeoPoint3[] GetIntersections(GeoEllipse3 ellipse, GeoObb3 box, Tolerance tolerance)
         {
             var found = new List<GeoPoint3>();
 
-            foreach (GeoPolygon3 face in box.GetFaces())
+            foreach (GeoPolygon3 face in box.GetFacesWithArea())
             {
                 foreach (GeoPoint3 candidate in GetIntersections(ellipse, face, tolerance))
                 {
@@ -1844,13 +1845,20 @@ namespace GeometryHelper.Core
 
         /// <summary>
         /// Lays another ellipse of the ellipse's plane out in the ellipse's own frame, its radii kept and its axis read in
-        /// the plane.
+        /// the plane. An ellipse in the plane only within the planar tolerance, being no wider than it, may stand with its
+        /// major axis square to the plane: its axis is then read as its minor axis turned a right angle in the plane, which
+        /// throws nothing, as a circle of radius 0.0001 standing upright in the plane of one of radius 100 did.
         /// </summary>
         private static GeoEllipse2 LayOut(GeoEllipse3 ellipse, GeoEllipse3 other)
         {
             Frame(ellipse, other.Center, out double along, out double across, out _);
 
             var axis = new GeoVector2(other.MajorAxis.DotProduct(ellipse.MajorAxis), other.MajorAxis.DotProduct(ellipse.MinorAxis));
+
+            if (!(axis.Length > 0.0))
+            {
+                axis = new GeoVector2(other.MinorAxis.DotProduct(ellipse.MinorAxis), -other.MinorAxis.DotProduct(ellipse.MajorAxis));
+            }
 
             return new GeoEllipse2(new GeoPoint2(along, across), axis, other.MajorRadius, other.MinorRadius);
         }

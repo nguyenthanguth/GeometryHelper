@@ -184,7 +184,14 @@ namespace GeometryHelper.Core
                 }
             }
 
-            result = PolygonWithin(vertices, tolerance);
+            // A cut that runs to the next corners on both sides leaves no polygon: a triangle cut 100 back each way from a corner
+            // of its two sides of 100.
+            if (!TryPolygonWithin(vertices, tolerance, out GeoPolygon2 cut))
+            {
+                return false;
+            }
+
+            result = cut;
             return true;
         }
 
@@ -560,6 +567,20 @@ namespace GeometryHelper.Core
         /// <exception cref="ArgumentException">Thrown when fewer than three vertices stand apart within the tolerance.</exception>
         private static GeoPolygon2 PolygonWithin(List<GeoPoint2> vertices, Tolerance tolerance)
         {
+            if (!TryPolygonWithin(vertices, tolerance, out GeoPolygon2 polygon))
+            {
+                throw new ArgumentException("A polygon must have at least 3 distinct vertices.", nameof(vertices));
+            }
+
+            return polygon;
+        }
+
+        /// <summary>
+        /// The polygon <see cref="PolygonWithin"/> builds, or false, with none, where fewer than three vertices stand apart
+        /// within the tolerance.
+        /// </summary>
+        private static bool TryPolygonWithin(List<GeoPoint2> vertices, Tolerance tolerance, out GeoPolygon2 polygon)
+        {
             int count = KeepApart(vertices, tolerance, out GeoPoint2[] kept);
 
             while (count > 1 && kept[count - 1].IsEqualTo(kept[0], tolerance))
@@ -567,12 +588,8 @@ namespace GeometryHelper.Core
                 count--;
             }
 
-            if (count < 3)
-            {
-                throw new ArgumentException("A polygon must have at least 3 distinct vertices.", nameof(vertices));
-            }
-
-            return new GeoPolygon2(kept, count);
+            polygon = count < 3 ? null : new GeoPolygon2(kept, count);
+            return polygon != null;
         }
 
         /// <summary>

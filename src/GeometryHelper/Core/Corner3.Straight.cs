@@ -197,7 +197,7 @@ namespace GeometryHelper.Core
         /// <param name="distance2">How far along the leg leaving it to finish.</param>
         /// <param name="result">The cut loop, or the loop unchanged where the corner would not take it.</param>
         /// <param name="tolerance">The tolerance.</param>
-        /// <returns>true when the corner was cut; otherwise, false.</returns>
+        /// <returns>true when the corner was cut; otherwise, false, a cut that would leave no loop included.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the loop is null.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the index is outside the loop, or either distance is not positive.</exception>
         public static bool TryChamferAt(GeoPolygon3 polygon, int index, double distance1, double distance2, out GeoPolygon3 result, Tolerance tolerance)
@@ -222,7 +222,18 @@ namespace GeometryHelper.Core
                 return false;
             }
 
-            result = new GeoPolygon3(Spliced(polygon.Vertices, index, from, to), tolerance);
+            try
+            {
+                result = new GeoPolygon3(Spliced(polygon.Vertices, index, from, to), tolerance);
+            }
+            catch (ArgumentException)
+            {
+                // A cut that runs to the next corners on both sides leaves no loop: a triangle cut 100 back each way from a
+                // corner of its two sides of 100.
+                result = polygon;
+                return false;
+            }
+
             return true;
         }
 

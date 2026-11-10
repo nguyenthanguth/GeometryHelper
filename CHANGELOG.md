@@ -15,6 +15,25 @@ so far apart that the distance between them is past the largest double) give non
 that lies in no plane, and the DWG reader still leaves out a spline of points 1E+233 apart as a broken object, now by
 its own check rather than by the throw.
 
+**FIXED.** `Try` methods that threw on shapes the library accepts now answer. A reflection fuzz of every public `Try`
+method, 500 000 calls with ordinary and degenerate shapes, found these:
+
+- A box with a side of nought, as the bounding box of anything flat, threw "A box with a zero size on some axis has no
+  faces to build" out of `TryIntersectWith` of an arc, a circle, an ellipse, a triangle, a polygon, a face and a plane,
+  out of `TrySplitBy` of a curved chain or loop, and out of the booleans of a box, `GeoObb3.TryUnion`, `TryIntersect`
+  and `TrySubtract`, and of a body with a box; an empty `GeoAabb3` threw too. An arc, a circle or an ellipse now meets a
+  box flat on one axis where it passes the rectangle across it, the arc upright through (50, 0, 0) and (50, 100, 0) the
+  box 100 by 100 by 0 at those two points, and a box flat on two axes or three nowhere; a triangle, a polygon, a face or
+  a plane against a box flat or empty answers false, and so does a boolean with a flat box, with no result.
+- Two ellipses, one a circle of radius 0.0001 standing upright in the plane of the other within the planar tolerance,
+  threw "The major axis needs a direction"; the small one is now laid out by its minor axis.
+- `GeoFace2.TrySplitBy` of a face whose boundary or a hole encloses no area at the global tolerance threw; it is not cut,
+  and comes back whole on the left.
+- `TryChamferAt` of a polygon, 2D or 3D, threw where the cut left fewer than three corners, the triangle (0, 0), (100, 0),
+  (0, 100) cut 100 back each way from the origin; it is false, and the polygon stays.
+
+Everything a `Try` method answered before it answers bit for bit the same.
+
 **FIXED.** The presenter's typed lengths and angles: a number past the largest double, as 400 nines in `999…9'`,
 `1-999…9/2` or `999…9d`, threw an `OverflowException` out of the prompt in .NET Framework, and `NaNg`, `NaNr` and
 `Infinityr` were read as angles of NaN and infinity. Each is now not read.

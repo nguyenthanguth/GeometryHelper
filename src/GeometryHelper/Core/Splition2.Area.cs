@@ -113,7 +113,9 @@ namespace GeometryHelper.Core
         /// </returns>
         /// <remarks>
         /// A hole the line misses stays a hole in whichever piece keeps it; a hole the line crosses opens into
-        /// the outline of both pieces, which is why a face can come back with fewer holes than it went in with.
+        /// the outline of both pieces, which is why a face can come back with fewer holes than it went in with. A face whose
+        /// boundary or a hole encloses no area at the global tolerance, as the points (0, 0), (100, 0) and (50, 0), is not
+        /// cut: false, and the face comes back whole on the left.
         /// </remarks>
         /// <exception cref="ArgumentNullException">Thrown when the face is null.</exception>
         public static bool TrySplitBy(GeoFace2 face, GeoLine2 cutter, out GeoFace2[] left, out GeoFace2[] right, Tolerance tolerance)
@@ -131,9 +133,22 @@ namespace GeometryHelper.Core
             }
 
             GeoCoordinateSystem3 frame = GeoCoordinateSystem3.Global;
+            GeoFace3 lifted;
 
-            bool split = Splition3.TrySplitBy(
-                PlanarMap.ToFace3(frame, face), plane, out GeoFace3[] above, out GeoFace3[] below, tolerance);
+            try
+            {
+                lifted = PlanarMap.ToFace3(frame, face);
+            }
+            catch (ArgumentException)
+            {
+                // A boundary or a hole that encloses no area within the global tolerance, which a polygon of the plane may
+                // and one of space may not: the face is not cut, and comes back whole, as for a cutter of no length.
+                left = new[] { face };
+                right = new GeoFace2[0];
+                return false;
+            }
+
+            bool split = Splition3.TrySplitBy(lifted, plane, out GeoFace3[] above, out GeoFace3[] below, tolerance);
 
             left = FlattenFaces(frame, above);
             right = FlattenFaces(frame, below);
