@@ -256,12 +256,6 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 // Cells of a table selected: the arrows move them, Delete empties them, F2 opens one for typing, Esc lets them go.
                 e.Handled = true;
             }
-            else if (key == Key.Escape && _model.IsSuggestionListOpen)
-            {
-                // Esc closes the AutoComplete list first, keeping what is typed.
-                _model.CloseSuggestions();
-                e.Handled = true;
-            }
             else if (key == Key.Escape && !inEditor)
             {
                 if (!CanvasView.CancelGesture())

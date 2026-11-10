@@ -125,7 +125,7 @@ locked rows set a viewport's scale: 1:50 in a viewport 100 high shows 5 000 of m
 list opens above the command line 300 ms after the last key: LA typed lists LAYER first with "alias LA", then the commands
 that begin with LA, the most used first (each command run is counted, `GlobalSettings.CommandUses`, kept in the settings
 file), then the system variables marked {x}, then, below a rule, the names with LA inside (CLAYER, PLAN, POLAR). Enter or
-Space runs the row chosen, the arrows move it, Esc closes the list. Ten synonyms are built in (ROUND for FILLET, BEVEL for
+Space runs the row chosen, the arrows move it, Esc closes the list and clears what is typed. Ten synonyms are built in (ROUND for FILLET, BEVEL for
 CHAMFER, DELETE and REMOVE for ERASE, DUPLICATE for COPY, FLIP for MIRROR, TURN for ROTATE, RESIZE for SCALE, SYMBOL for
 INSERT, PRINT for PLOT), shown as `ROUND (FILLET)`. AutoCorrect: LIEN followed by LINE three times has LINE offered first
 for LIEN (`GlobalSettings.NoteCorrection`, `CorrectionOf`). The command line's right-click menu has Recent Commands (the

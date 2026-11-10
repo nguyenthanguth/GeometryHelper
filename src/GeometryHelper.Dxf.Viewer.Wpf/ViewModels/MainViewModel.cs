@@ -803,6 +803,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Esc: ends the command running, saying *Cancel*; with none running, clears the selection.</summary>
         public void Escape()
         {
+            // Esc throws away what is typed on the command line, the AutoComplete list with it, as AutoCAD's does.
+            CommandText = string.Empty;
+            CloseSuggestions();
+
             if (_current == null)
             {
                 return;
