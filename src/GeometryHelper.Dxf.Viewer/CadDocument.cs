@@ -183,12 +183,30 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>The width the display gives the words of a text, as MIRROR measures one it keeps readable.</summary>
         internal double TextWidth(DxfDBText text) => _builder.WidthOf(text);
 
+        // The document that shows each drawing, which the grips and the pieces of an MTEXT ask its layout of: looked up only,
+        // and weak, so that a drawing let go lets its document go.
+        private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<DxfDatabase, CadDocument> ShownBy
+            = new System.Runtime.CompilerServices.ConditionalWeakTable<DxfDatabase, CadDocument>();
+
+        /// <summary>The document last made of a drawing; null for a drawing no document shows.</summary>
+        internal static CadDocument Showing(DxfDatabase database) => ShownBy.TryGetValue(database, out CadDocument document) ? document : null;
+
+        /// <summary>The layout of an MTEXT's words as the display draws them, in the document's fonts.</summary>
+        internal CadMTextLayout LayoutOf(DxfMText text) => _builder.LayoutOf(text);
+
+        private void ShowDatabase(DxfDatabase database)
+        {
+            ShownBy.Remove(database);
+            ShownBy.Add(database, this);
+        }
+
         private CadDocument(DxfDatabase database, string fileName)
         {
             Database = database;
             FileName = fileName;
             Selection = new CadSelection();
             _builder = new DisplayBuilder(database, this);
+            ShowDatabase(database);
             var model = new CadSpace(this, "Model", true, database.ModelSpace, null);
             _spaces.Add(model);
 

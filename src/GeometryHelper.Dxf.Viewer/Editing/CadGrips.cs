@@ -29,7 +29,11 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>The insertion point of a text, an MTEXT or a block reference: moves it.</summary>
         Insertion,
 
-        /// <summary>A corner of a viewport's frame: resizes the frame, the corner across from it kept, the scale and the centre of the view kept.</summary>
+        /// <summary>
+        /// A corner of a viewport's frame: resizes the frame, the corner across from it kept, the scale and the centre of the view
+        /// kept. A corner of an MTEXT's box: takes its two edges of the box to the point, the width and the height of the MTEXT
+        /// those of the box then.
+        /// </summary>
         Corner,
 
         /// <summary>A point a dimension measures from (an extension line's origin, a chord point, a line point or the vertex of an angle, an ordinate's feature or leader end): moves that point.</summary>
@@ -102,8 +106,9 @@ namespace GeometryHelper.Dxf.Viewer
     /// <summary>
     /// The grips of each kind of entity and what dragging each does, as AutoCAD's: a line's two ends and middle, a circle's
     /// centre and four quadrants, an arc's ends, middle and centre, a polyline's vertices and the middles of its segments, a
-    /// text's, an MTEXT's and a block reference's insertion point, a viewport's four corners and middle, and a dimension's as
-    /// AutoCAD 2021 gives them (see <see cref="Of"/>), its picture drawn anew after each drag. Entities of other kinds have none.
+    /// text's and a block reference's insertion point, an MTEXT's location and the corners of its box, a viewport's four corners
+    /// and middle, and a dimension's as AutoCAD 2021 gives them (see <see cref="Of"/>), its picture drawn anew after each drag.
+    /// Entities of other kinds have none.
     /// </summary>
     public static partial class CadGrips
     {
@@ -112,7 +117,11 @@ namespace GeometryHelper.Dxf.Viewer
         /// the two ends of its dimension line, then its words; a radius's chord point and its words, a diameter's two chord
         /// points and its words; a three-point angle's vertex, its two line points, its arc and its words, an angle between two
         /// lines the two ends of each line, its arc and its words; an ordinate's feature and its leader's end. A dimension
-        /// drawn in no plan, or with no picture of its own, has none.
+        /// drawn in no plan, or with no picture of its own, has none. An MTEXT's, as AutoCAD 2021's: the four corners of its box
+        /// (its defined width by its defined height, or with none the height of its lines) from the top left, the top right, the
+        /// bottom left to the bottom right, the corner its location is at the grip of its insertion; its location first, a fifth
+        /// grip, where it is at no corner (held at a middle); its location alone for an MTEXT of no width, in columns or out of
+        /// the plan.
         /// </summary>
         /// <param name="entity">The entity.</param>
         /// <returns>The grips in the order of their indices; empty for an entity with none.</returns>
@@ -186,7 +195,7 @@ namespace GeometryHelper.Dxf.Viewer
                     }
 
                 case DxfMText mtext:
-                    Add(CadGripKind.Insertion, mtext.Location.X, mtext.Location.Y);
+                    MTextGrips(mtext, (kind, at) => Add(kind, at.X, at.Y));
                     break;
                 case DxfBlockReference insert:
                     Add(CadGripKind.Insertion, insert.Position.X, insert.Position.Y);
@@ -226,7 +235,11 @@ namespace GeometryHelper.Dxf.Viewer
         /// dimension line where it is (an aligned one's at the same distance from what it measures); an end of the dimension
         /// line moves the line through the point, words the user placed going with it; the words go where DIMTEDIT puts them,
         /// the dimension line with them where DIMTMOVE is 0; a radius's or a diameter's chord point goes round its circle
-        /// towards the point, words the user placed turning with it.
+        /// towards the point, words the user placed turning with it. A corner of an MTEXT's box takes its two edges to the point,
+        /// as AutoCAD 2021's does: the width of the MTEXT is the box's then and its words wrap anew, its defined height the box's
+        /// (at least its text height; left as it is in a file before R2007, which holds none), and its location stays at the
+        /// point of the box its attachment names: the top right corner of a box 60 wide dragged 5 right and 3 down makes it 65
+        /// wide and moves a location at the top left 3 down.
         /// </summary>
         /// <param name="document">The document.</param>
         /// <param name="handle">The handle of the entity.</param>
@@ -294,6 +307,8 @@ namespace GeometryHelper.Dxf.Viewer
                         v.CenterPoint = new GeoPoint3(to.X, to.Y, v.CenterPoint.Z);
                         return true;
                     });
+                case CadGripKind.Corner when entity is DxfMText:
+                    return ResizeMText(document, (DxfMText)entity, handle, property, was, went, gripIndex - (grips.Count - 4), to);
                 case CadGripKind.Corner:
                     return Resize(document, (DxfViewport)entity, handle, property, was, went, grips[(gripIndex + 2) % 4].Point, to);
                 case CadGripKind.Center:

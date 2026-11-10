@@ -707,8 +707,8 @@ namespace GeometryHelper.Dxf.Viewer
     public sealed class DisplayText2 : DisplayItem2
     {
         private DisplayBox _bounds;
-        private readonly double _width = double.NaN;
-        private readonly double _descent;
+        private double _width = double.NaN;
+        private double _descent;
 
         /// <summary>Makes a piece of text.</summary>
         /// <param name="text">The text, one or more lines separated by line feeds, with the format codes of an MTEXT already taken out.</param>
@@ -821,11 +821,13 @@ namespace GeometryHelper.Dxf.Viewer
         public double Oblique { get; }
 
         /// <summary>
-        /// Gets what an MTEXT whose words are in more than one look is drawn as, in place of <see cref="Text"/> drawn whole: a
-        /// text for each run, in its own font, face, height, width, slant and colour, after the run before, and a line under,
-        /// over or through a run its codes line; null for a text of one look, drawn whole. The text keeps its words, height and
-        /// width as one text has them, for what reads it; its box takes in the parts. "AB{\C1;CD}" 2.5 high is drawn as AB in
-        /// the MTEXT's colour and CD in red after it.
+        /// Gets what an MTEXT is drawn as, in place of <see cref="Text"/> drawn whole: its mask (a <see cref="DisplayFill2"/>)
+        /// and its frame first, then a text for each run of each line where AutoCAD sets it, in its own font, face, height,
+        /// width, slant and colour, the parts of a stacked fraction among them, and a line under, over or through a run its
+        /// codes line and for the bar of a fraction; null for a TEXT, drawn whole. The text keeps its words, height and
+        /// attachment as one text has them, for what reads it; its box is that of the parts. "AB{\C1;CD}" 2.5 high is drawn
+        /// as AB in the MTEXT's colour and CD in red after it; "II II II" 20 wide in letters 10 high as "II II" and, 16.67
+        /// below it, "II".
         /// </summary>
         public IReadOnlyList<DisplayItem2> Parts { get; private set; }
 
@@ -890,10 +892,12 @@ namespace GeometryHelper.Dxf.Viewer
         /// <inheritdoc/>
         public override DisplayBox Bounds => _bounds;
 
-        /// <summary>Gives the text the parts it is drawn as (<see cref="Parts"/>), its box grown to take them in.</summary>
+        /// <summary>Gives the text the parts it is drawn as (<see cref="Parts"/>), its box that of the parts; its own where none has a box.</summary>
         internal void SetParts(IReadOnlyList<DisplayItem2> parts)
         {
             Parts = parts;
+            DisplayBox all = DisplayBox.Empty;
+            bool any = false;
 
             foreach (DisplayItem2 part in parts)
             {
@@ -901,9 +905,23 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (box.Width >= 0.0 && box.Height >= 0.0)
                 {
-                    _bounds = _bounds.Add(box.MinX, box.MinY).Add(box.MaxX, box.MaxY);
+                    all = all.Add(box.MinX, box.MinY).Add(box.MaxX, box.MaxY);
+                    any = true;
                 }
             }
+
+            if (any)
+            {
+                _bounds = all;
+            }
+        }
+
+        /// <summary>Gives a text the canvas draws its measured width and its depth below the baseline, for picking and extents, where the letters of its font's file were measured.</summary>
+        internal void SetMeasure(double width, double descent)
+        {
+            _width = width;
+            _descent = descent;
+            _bounds = ComputeBounds();
         }
 
         /// <inheritdoc/>

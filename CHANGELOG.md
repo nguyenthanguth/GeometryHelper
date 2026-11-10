@@ -78,6 +78,34 @@ with a `NotSupportedException` that names it. Every check sum is checked: a wron
 object map refuses the file with a `FormatException`, and one broken object is left out with a Warn line while the
 others are read. See the guide page "Reading DWG files".
 
+**CHANGED.** The presenter lays the words of an MTEXT out as AutoCAD 2021 does, where it drew one line a paragraph 1.25
+heights apart. The words wrap at the MTEXT's width (group 41) at their spaces alone, never after a hyphen, a word too
+long standing whole past the width and `\~` holding two words together; a width of 0 wraps nothing. Lines stand 5/3 of
+the height apart times the factor (44): exactly so under `Exactly`, and under `AtLeast` further where a taller run or a
+stacked fraction needs the room. `\S` stacks its parts with a bar (`/`), with none (`^`) or along a diagonal (`#`), each
+part as high as its ink, and `\A` sets the words beside it at its bottom, middle or top. The paragraph codes `\p` set
+indents and margins, the alignment (left, centre, right, justified, distributed), tab stops (left, centre, right,
+decimal; every 4 heights where none is set), the space before and after and a line spacing of the paragraph's own.
+Static and dynamic columns take the lines that fit their heights, `\N` starting the next. The background mask and the
+frame are drawn around the lines, the scale factor less 1 of a height out (1.5 for a frame alone). "II II II" 20 wide in
+letters 10 high whose I is inked 1 in and moves the pen 4 is set as "II II" and, 16.67 below it, "II". Held against
+AutoCAD's own fragments of 155 MTEXTs (536 lines), in an SHX font and in Arial: 150 have the same breaks with every line
+within 0.2 % of the height of where AutoCAD puts it. `DisplayText2.Parts` is now set for every MTEXT: a text for each
+run of each line, the mask (`DisplayFill2`) and the frame first; the box of the MTEXT's item is that of its parts.
+
+**CHANGED.** The presenter's grips and EXPLODE of an MTEXT follow its new layout, as AutoCAD 2021's do. An MTEXT with a
+width has a grip at each corner of its box besides its location (`CadGripKind.Corner`; the location alone for no width
+or for columns), and a corner dragged takes its two sides of the box to the point: "II" over "II" 240 wide at the
+origin, its top right corner dragged to (260, -12), is 260 wide with a defined height of 14.67 and located at (0, -12).
+`CadGrips.Of` therefore gives four or five grips where it gave one, the location no longer always the first. EXPLODE
+makes a TEXT of each run of each line where the picture draws it, and a LINE of the bar of each stack, where it made the
+TEXTs of the library's own simpler layout.
+
+**FIXED.** `DxfMText.ShowBorders` set in a drawing of R2018 with no background writes the colour and the scale of a
+background (63 256, 45 1.5, 441 0) after its group 90 of 16: AutoCAD 2021 discarded the whole drawing without them
+("Missing DXF group code: 90"). In a drawing of R2004 to R2013 it writes none, as before: there AutoCAD discards the
+drawing that has them.
+
 **NEW.** DIMARC (DAR), the presenter's arc length dimension, as AutoCAD 2021 makes it and stored as the library's
 `DxfArcDimension`: Mtext and Text for its words, Angle for theirs, Partial for the length between two points of the arc,
 and Leader, offered past 90 degrees of sweep, for a leader from the words' arc to the arc measured. Below 90 degrees the

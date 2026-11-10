@@ -869,6 +869,7 @@ namespace GeometryHelper.Dxf.Viewer
             DisplayBuilder older = _builder;
             Database = database;
             _builder = new DisplayBuilder(database, this);
+            ShowDatabase(database);
             _byHandle = null;
             _entityCount = null;
             ModelSpace.Rebind(database.ModelSpace, null);

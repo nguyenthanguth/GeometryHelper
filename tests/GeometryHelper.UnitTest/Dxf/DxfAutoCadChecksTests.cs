@@ -88,14 +88,29 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         [Fact]
-        public void AnMTextGivenAFrameAlone_WritesNoBackgroundColour_AsAutoCADReadsOneWithout()
+        public void AnMTextGivenAFrameAlone_WritesNoBackgroundColourBeforeR2018_AndTheColourAndScaleInR2018_AsAutoCADReadsEach()
         {
+            // AutoCAD 2021 discards a drawing of R2018 whose MTEXT has 90 of 16 and no 63 and 45 after it ("Missing DXF group
+            // code: 90"), and a drawing of R2004 to R2013 whose MTEXT has 90 of 16 with them, by the same words.
             DxfDatabase db = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2018);
             DxfMText mtext = ByHandle<DxfMText>(db, "73");
 
             mtext.ShowBorders = true;
 
-            Assert.DoesNotContain(Groups(RecordOf(db, "73")), g => g.Key == 63 || g.Key == 45);
+            Assert.Equal(new[] { 90, 63, 45, 441 }, CodesAfter(RecordOf(db, "73"), 90, 4));
+            Assert.Equal("16", Groups(RecordOf(db, "73")).First(g => g.Key == 90).Value.Trim());
+            Assert.Equal("256", Groups(RecordOf(db, "73")).First(g => g.Key == 63).Value.Trim());
+            DxfMText again = ByHandle<DxfMText>(DxfDatabase.Parse(db.ToText()), "73");
+            Assert.True(again.ShowBorders);
+            Assert.False(again.BackgroundFill);
+
+            foreach (string version in new[] { "AC1018", "AC1021", "AC1027" })
+            {
+                DxfDatabase older = DxfDatabase.Parse(DxfFileEzdxfDrawings.R2018.Replace("AC1032", version));
+                ByHandle<DxfMText>(older, "73").ShowBorders = true;
+
+                Assert.DoesNotContain(Groups(RecordOf(older, "73")), g => g.Key == 63 || g.Key == 45);
+            }
         }
 
         #endregion

@@ -402,7 +402,8 @@ namespace GeometryHelper.Dxf.Viewer
 
                 try
                 {
-                    pieces = entity.Explode();
+                    // An MTEXT breaks into its TEXTs where the picture draws them; one in no drawing as the library breaks it.
+                    pieces = (entity is DxfMText words ? CadMTextEdit.Explode(words) : null) ?? entity.Explode();
                 }
                 catch (NotSupportedException)
                 {

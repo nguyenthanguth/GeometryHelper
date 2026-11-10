@@ -543,7 +543,8 @@ and its place; `document.GripDrag(handle, index, point)` drags one, as one undo 
 | CIRCLE | the centre, four quadrants | the centre moves it; a quadrant changes the radius |
 | ARC | two ends, the middle, the centre | the middle bends the arc through the point |
 | polylines | each vertex, the middle of each segment | a vertex moves; the middle of a straight segment moves it, of an arc segment bends it |
-| TEXT, MTEXT, INSERT | the insertion point | moves it |
+| TEXT, INSERT | the insertion point | moves it |
+| MTEXT | the location and the corners of its box (top left, top right, bottom left, bottom right; the location first where it is at none of them); the location alone for an MTEXT of no width or in columns | the location moves it; a corner takes its two sides of the box to the point, which sets the defined width and height, the location staying at the point of the new box the attachment names |
 | VIEWPORT | four corners, the middle | a corner resizes the frame, the opposite corner, the scale and the centre of the view kept |
 | linear and aligned DIMENSION | the two extension line origins, the two ends of the dimension line, the words | an origin measures anew, the dimension line kept where it is; an end of the line moves the line through the point; the words move as DIMTEDIT moves them |
 | radius and diameter DIMENSION | the chord point (a diameter's two), the words | a chord point goes round the circle towards the point |
@@ -559,6 +560,19 @@ to (150, 10) measures 150 with its line still 30 below; dragged by an end of its
 and words placed by DIMTEDIT go down with it. Its words dragged to (60, -50) stand there, the line moved to run under them
 where DIMTMOVE is 0 and a leader drawn to them where it is 1. A drag that would measure nothing, an origin onto the other,
 is refused.
+
+An MTEXT's grips are AutoCAD 2021's too. Its box is its defined width across and its defined height down, or with no
+defined height the height of its lines. "II" over "II" in letters 10 high, 240 wide and attached top left at the origin,
+has its grips at (0, 0), (240, 0), (0, -26.67) and (240, -26.67). The top right one dragged to (260, -12) leaves the
+MTEXT 260 wide with a defined height of 14.67, located at (0, -12); the bottom left one dragged by the same leaves it 220
+wide and 38.67 high at (20, 0). The words wrap anew at the new width. The box is never lower than one text height, the
+side dragged staying at the point, and a box dragged to no width is refused. In a drawing before R2007, whose MTEXT
+holds no defined height, a corner changes the width alone.
+
+EXPLODE breaks an MTEXT into a TEXT for each run of each line, where the picture draws it and of its height, width
+factor and slant, with `%%U`, `%%O` or `%%K` before the words of a run lined under, over or through, and a LINE for
+the bar of each stack, all in the MTEXT's text style, layer and colour. A run in a font or colour of its own (`\f`,
+`\C`) becomes a TEXT in the MTEXT's style and colour, as in AutoCAD.
 
 A dynamic block's custom grips are those AutoCAD 2021 shows, where the INSERT's values put them
 ([`DxfBlockReference.GetDynamicGrips`](xref:GeometryHelper.Dxf.DxfBlockReference.GetDynamicGrips)), each a `CadGrip` of a

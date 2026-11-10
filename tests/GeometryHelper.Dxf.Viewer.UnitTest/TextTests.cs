@@ -31,18 +31,19 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         [Theory]
-        [InlineData(@"\W0.8000;PLATE", 0.8)]
-        [InlineData(@"{\H1.2x;\W0.75;PLATE}", 0.75)]
-        [InlineData(@"\W2;\W0.4x;PLATE", 0.8)]
-        [InlineData(@"PLATE", 1.0)]
-        public void AnMTextIsDrawnAtTheWidthItsCodesSetBeforeItsWordsAndMeasuredAtIt(string contents, double factor)
+        [InlineData(@"\W0.8000;PLATE", 0.8, 0.8)]
+        [InlineData(@"{\H1.2x;\W0.75;PLATE}", 0.75, 0.9)]
+        [InlineData(@"\W2;\W0.4x;PLATE", 0.8, 0.8)]
+        [InlineData(@"PLATE", 1.0, 1.0)]
+        public void AnMTextIsDrawnAtTheWidthItsCodesSetBeforeItsWordsAndMeasuredAtIt(string contents, double factor, double wide)
         {
             DisplayText2 shown = MText(contents);
 
-            // PLATE 2.5 high, five letters each 0.6 of the height wide at a width factor of 1: 7.5 wide, 6 at 0.8.
+            // The ink of PLATE is 0.8 as wide at a width factor of 0.8, and 0.9 as wide at 0.75 in letters 1.2 times as high.
             Assert.Equal("PLATE", shown.Text);
             Assert.Equal(factor, shown.WidthFactor, 9);
-            Assert.Equal(5 * 2.5 * 0.6 * factor, shown.EstimatedWidth, 9);
+            Assert.Equal(wide * MText("PLATE").EstimatedWidth, shown.EstimatedWidth, 9);
+            Assert.Equal(factor, Assert.IsType<DisplayText2>(Assert.Single(shown.Parts)).WidthFactor, 9);
         }
 
         [Fact]

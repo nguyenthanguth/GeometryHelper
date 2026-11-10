@@ -25,3 +25,7 @@ using System.Runtime.InteropServices;
 // The AutoCAD sample is the visual half of the same testing: it draws what the headless tests measure,
 // including Merge2.JoinBackup, the plain reading of joining that the fast one is held against.
 [assembly: InternalsVisibleTo("GeometryHelper.ArrangeAlgorithms.CadTest")]
+
+// The presenter lays the words of an MTEXT out with the fonts the library measures them by (DxfTrueTypeFont, the rule a
+// line breaks by), so that what it draws and what the library measures are one reading of AutoCAD.
+[assembly: InternalsVisibleTo("GeometryHelper.Dxf.Viewer")]
