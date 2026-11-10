@@ -217,6 +217,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             model.CommandText = "REC";
             model.Escape();
             Assert.Equal(string.Empty, model.CommandText);
+
+            // At the Command prompt Esc writes *Cancel*; in a command, the prompt and *Cancel*.
+            Assert.Equal("*Cancel*", model.History.Last());
+            model.Execute("LINE");
+            model.Escape();
+            Assert.Equal("Specify first point: *Cancel*", model.History.Last());
         }
 
         [Fact]

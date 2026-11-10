@@ -819,6 +819,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
             else
             {
+                // At the Command prompt Esc says so, as AutoCAD's does.
+                _current.Session.Write("*Cancel*");
+                SyncHistory();
                 ClearSelection();
             }
         }
