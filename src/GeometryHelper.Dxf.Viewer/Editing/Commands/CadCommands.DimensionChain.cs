@@ -125,7 +125,9 @@ namespace GeometryHelper.Dxf.Viewer
 
                     // AutoCAD 2021 ties the new dimension's second point to what it was snapped to, and its first to what the
                     // origin it starts from was tied to: DIMCONTINUE the last one's second, DIMBASELINE the base's first.
-                    DxfOsnapPointRef snapped = CadDimAssociation.FromSnap(c.Document, 1, c.Input.Snap);
+                    DxfOsnapPointRef snapped = chain.Ordinate || chain.Angular
+                        ? CadDimAssociation.FromSnap(c.Document, 1, c.Input.Snap)
+                        : CadDimAssociation.FromSnap(c.Document, 1, c.Input.Snap, chain.Origin, chain.OriginTie);
 
                     if (chain.Ordinate)
                     {

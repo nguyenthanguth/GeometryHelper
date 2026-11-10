@@ -163,7 +163,10 @@ differ, as AutoCAD does: DIMSCALE 10 typed with ISO-25 current draws the words o
 A dimension made with DIMASSOC 2 (the default) whose points were picked with an object snap is associative, as in AutoCAD
 2021: DIMLINEAR, DIMALIGNED and DIM tie each origin snapped with ENDpoint, MIDpoint, CENter, QUAdrant, NODe or NEArest to
 its line, arc, circle, polyline segment or point (both ends where a line is selected), and one snapped with INTersection to
-the two lines, arcs or circles that cross there; DIMRADIUS and DIMDIAMETER tie the center of the circle or arc, DIMANGULAR
+the two lines, arcs or circles that cross there; the second origin snapped with PERpendicular (to a line, an arc or a
+circle) or TANgent (to an arc or a circle) is tied with the point it was drawn from, as AutoCAD writes it, and drawn
+again from that point when the object moves: DIMALIGNED from (0, 0) perpendicular to (100, -20)-(100, 60) measures 100,
+and 120 once that line is moved 20 to the right. DIMRADIUS and DIMDIAMETER tie the center of the circle or arc, DIMANGULAR
 of an arc its two ends and center, of two lines the four ends, of three points those snapped, DIMORDINATE its feature;
 DIMCONTINUE and DIMBASELINE tie their first point to what the last dimension's second (or the base's first) was tied to,
 and QDIM the ends of lines, the vertices of polylines and the centers of circles, all kept in a DIMASSOC as AutoCAD keeps

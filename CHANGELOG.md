@@ -32,6 +32,17 @@ PLOT ask -PLOT's prompts. Global settings › Canvas and cursor has a Polar angl
 **CHANGED.** Object snap tracking with POLAR on runs level and upright alone unless POLARMODE 2 is set, as AutoCAD's
 default POLARMODE 0 does; before, it ran on every polar angle whenever POLAR was on.
 
+**NEW.** `DxfOsnapPointRef.LastPointReference` and `WithLastPoint`: the reference of the point a PERpendicular or TANgent
+snap was drawn from, which AutoCAD writes after a reference whose group 75 is 1. **FIXED.** Such a DIMASSOC was read
+wrong: the last point's reference was taken for the next point, so a DIMLINEAR whose first point was perpendicular lost
+its second point's tie; and a reference was always written with 75 = 0.
+
+**NEW.** The presenter ties a dimension's second origin snapped PERpendicular (to a line, an arc or a circle) or TANgent
+(to an arc or a circle), with the point it was drawn from, and draws it again from that point when the object changes, as
+AutoCAD 2021 does: DIMALIGNED from (0, 0) perpendicular to (100, -20)-(100, 60) measures 100, and 120 once that line is
+moved 20 to the right; a tangent from (300, 100) to a circle of 25 about (200, 0) goes from (185.726, 20.524) to
+(184.593, 9.688) when the circle moves 10 down.
+
 **FIXED.** INSERT with Basepoint of a block in other units than the drawing landed off: a block in centimetres in a
 millimetre drawing, its base point 30 above its origin, came 270 too high. The shift is now scaled by the units too, in
 the drag and in the INSERT placed.

@@ -58,7 +58,7 @@ namespace GeometryHelper.Dxf.Viewer
                 }
 
                 p2 = c.Input.Point;
-                tied[1] = CadDimAssociation.FromSnap(c.Document, 1, c.Input.Snap);
+                tied[1] = CadDimAssociation.FromSnap(c.Document, 1, c.Input.Snap, p1, tied[0]);
             }
             else
             {
@@ -1248,7 +1248,7 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// The DIMSCALE of a dimension to be made: the drawing's current one, its header's <c>$DIMSCALE</c>, as AutoCAD's new
-        /// dimension takes the current value and not its style's; <see cref="Place"/> writes it as an override where they differ.
+        /// dimension takes the current value and not its style's; <c>Place</c> writes it as an override where they differ.
         /// DIMSCALE 100 typed with the style's 1 draws arrowheads of 2.5 as 250.
         /// </summary>
         private static double Dimscale(CadCommandContext c) => c.Database.Dimscale;

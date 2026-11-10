@@ -270,5 +270,80 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Equal(120, Entity<DxfRotatedDimension>(document, dimension).Measurement, 9);
             Near(new GeoPoint3(120, 0, 0), Entity<DxfRotatedDimension>(document, dimension).XLine2Point);
         }
+
+        /// <summary>Feeds the point one snap mode gives from the prompt's base point, as a click with it would.</summary>
+        private static void SnapFrom(CadCommandSession session, CadSnapModes mode, GeoPoint2 cursor)
+        {
+            var snaps = new ObjectSnap(Tight) { Modes = mode };
+            CadSnapResult result = snaps.Snap(session.Document.GetPickIndex(session.Document.ModelSpace), cursor, 2.0, session.Prompt.BasePoint);
+            Assert.NotEqual(CadSnapKind.None, result.Kind);
+            Assert.True(session.Feed(result, false));
+        }
+
+        [Fact]
+        public void APerpendicularSnap_IsTiedWithThePointItWasDrawnFrom_AndFollowsTheLineMoved_AsAutoCad()
+        {
+            // AutoCAD 2021: DIMALIGNED _end at (0, 0) of (0, 0)-(60, 0), _per to (100, -20)-(100, 60): the foot (100, 0) tied as
+            // Perpendicular of parameter 0.25 with the start of the first line as its last point; the upright line moved 20 to
+            // the right, the foot went to (120, 0).
+            CadDocument document = Blank();
+            CadCommandSession session = Session(document);
+            Run(session, "LINE", P(0, 0), P(60, 0), Enter, "LINE", P(100, -20), P(100, 60), Enter);
+            string level = LineAt(document, 0, 0);
+            string upright = LineAt(document, 100, -20);
+            Run(session, "DIMALIGNED");
+            SnapFrom(session, CadSnapModes.Endpoint, P(0.3, 0.2));
+            SnapFrom(session, CadSnapModes.Perpendicular, P(100.3, 0.4));
+            Run(session, P(50, -30));
+            var dimension = Assert.Single(All<DxfAlignedDimension>(document.ModelSpace));
+            Near(new GeoPoint3(100, 0, 0), dimension.XLine2Point);
+
+            DxfOsnapPointRef foot = dimension.DimAssoc.PointReferences[1];
+            Assert.Equal(DxfOsnapType.Perpendicular, foot.OsnapType);
+            Assert.Equal(upright, foot.ObjectHandle);
+            Assert.Equal(0.25, foot.NearParameter, 9);
+            Assert.Equal(DxfOsnapType.StartPoint, foot.LastPointReference.OsnapType);
+            Assert.Equal(level, foot.LastPointReference.ObjectHandle);
+            AssertReopens(document);
+
+            document.Selection.Set(new[] { upright });
+            Run(session, "MOVE", P(0, 0), P(20, 0));
+
+            dimension = Entity<DxfAlignedDimension>(document, dimension.Handle);
+            Near(new GeoPoint3(0, 0, 0), dimension.XLine1Point);
+            Near(new GeoPoint3(120, 0, 0), dimension.XLine2Point);
+            Assert.Equal(120, dimension.Measurement, 9);
+            Assert.NotNull(dimension.DimAssoc);
+        }
+
+        [Fact]
+        public void ATangentSnap_IsTiedToTheCircle_AndFollowsItMoved_ToThePointOfTangencyOnTheSameSide_AsAutoCad()
+        {
+            // AutoCAD 2021: DIMALIGNED _end at (300, 100), _tan to the circle of 25 about (200, 0): the point (185.726, 20.524)
+            // tied as Tangent of parameter 2.17848; the circle moved 10 down, the point went to (184.593, 9.688).
+            CadDocument document = Blank();
+            CadCommandSession session = Session(document);
+            Run(session, "CIRCLE", P(200, 0), "25", "LINE", P(300, 100), P(320, 120), Enter);
+            string circle = Assert.Single(All<DxfCircle>(document.ModelSpace)).Handle;
+            Run(session, "DIMALIGNED");
+            SnapFrom(session, CadSnapModes.Endpoint, P(300.2, 100.3));
+            SnapFrom(session, CadSnapModes.Tangent, P(185.9, 20.8));
+            Run(session, P(280, 160));
+            var dimension = Assert.Single(All<DxfAlignedDimension>(document.ModelSpace));
+            Near(new GeoPoint3(185.726, 20.524, 0), dimension.XLine2Point, 1E-3);
+
+            DxfOsnapPointRef point = dimension.DimAssoc.PointReferences[1];
+            Assert.Equal(DxfOsnapType.Tangent, point.OsnapType);
+            Assert.Equal(circle, point.ObjectHandle);
+            Assert.Equal(2.17848, point.NearParameter, 5);
+            Assert.Equal(DxfOsnapType.StartPoint, point.LastPointReference.OsnapType);
+
+            document.Selection.Set(new[] { circle });
+            Run(session, "MOVE", P(0, 0), P(0, -10));
+
+            dimension = Entity<DxfAlignedDimension>(document, dimension.Handle);
+            Near(new GeoPoint3(300, 100, 0), dimension.XLine1Point);
+            Near(new GeoPoint3(184.593, 9.688, 0), dimension.XLine2Point, 1E-3);
+        }
     }
 }
