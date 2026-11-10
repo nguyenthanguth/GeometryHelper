@@ -15,7 +15,7 @@ namespace GeometryHelper.Dxf.Viewer
     {
         /// <summary>
         /// Draws a dimension's block anew from its points and the variables it reads now (its overrides, else its style's): a
-        /// linear, aligned, ordinate, radius, diameter or angular dimension whose block is its own anonymous one, a linear one's
+        /// linear, aligned, ordinate, radius, diameter, angular or arc length dimension whose block is its own anonymous one, a linear one's
         /// jog of DIMJOGLINE with it. The entities of the block
         /// are erased and the new picture appended. False, and nothing changed, for another kind or a block not its own.
         /// </summary>
@@ -67,10 +67,12 @@ namespace GeometryHelper.Dxf.Viewer
                 return null;
             }
 
-            // Words moved by DIMTEDIT stand where they were put, and words turned by DIMEDIT or DIMTEDIT read at their angle.
+            // Words moved by DIMTEDIT stand where they were put, and words turned by DIMEDIT or DIMTEDIT read at their angle. Those
+            // of a radius, a diameter or an angle are put by their picture about the point, which may be one of its line or arc.
             DxfMText words = picture.OfType<DxfMText>().FirstOrDefault();
+            bool round = dimension is DxfRadialDimension || dimension is DxfDiametricDimension || dimension is DxfPoint3AngularDimension || dimension is DxfLineAngularDimension2 || dimension is DxfArcDimension;
 
-            if (words != null && !dimension.UsingDefaultTextPosition)
+            if (words != null && !dimension.UsingDefaultTextPosition && !round)
             {
                 words.Location = dimension.TextPosition;
             }
@@ -86,7 +88,8 @@ namespace GeometryHelper.Dxf.Viewer
             if (style.Dimgap < 0.0 && index >= 0 && index + 4 < picture.Count && picture.Skip(index + 1).Take(4).All(e => e is DxfLine))
             {
                 double scale = style.Dimscale > 0.0 ? style.Dimscale : 1.0;
-                List<DxfLine> sides = Frame(P2(words.Location), words.Rotation, WordsWidth(picture, words.Contents, words.TextHeight), words.TextHeight, Math.Abs(style.Dimgap) * scale);
+                double width = WordsWidth(style, words.Contents, words.TextHeight, out double tall);
+                List<DxfLine> sides = Frame(P2(words.Location), words.Rotation, width, tall, Math.Abs(style.Dimgap) * scale);
 
                 for (int i = 0; i < 4; i++)
                 {
@@ -117,6 +120,8 @@ namespace GeometryHelper.Dxf.Viewer
                     return RadialPicture(dimension, style, textHeight, new GeoPoint2((chord.X + far.X) / 2.0, (chord.Y + far.Y) / 2.0), chord, true);
                 case DxfPoint3AngularDimension three:
                     return AngularPicture(dimension, style, textHeight, null, null, P2(three.CenterPoint), new[] { P2(three.XLine1Point), P2(three.XLine2Point) }, P2(three.ArcPoint));
+                case DxfArcDimension arcLength:
+                    return ArcLengthPicture(arcLength, style, textHeight);
                 case DxfLineAngularDimension2 two:
                     var first = new DxfLine(two.XLine1Start, two.XLine1End);
                     var second = new DxfLine(two.XLine2Start, two.XLine2End);
@@ -159,7 +164,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (move == 0)
             {
-                double half = WordsWidth(picture, words, height) / 2.0;
+                double half = WordsWidth(style, words, height, out _) / 2.0;
                 double t = (at - q1).X * along.X + (at - q1).Y * along.Y;
                 double length = (q2 - q1).Length;
                 double sign = (q2 - q1).X * along.X + (q2 - q1).Y * along.Y >= 0.0 ? 1.0 : -1.0;
@@ -223,28 +228,31 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>
-        /// How wide the words of a picture are: as its MTEXT measures them, else 0.7 of the height a letter, the codes %%c, %%d
-        /// and %%p a letter each, as the diameter sign, the degree sign and plus-minus they stand for.
+        /// How wide and how high the words of a picture are, as AutoCAD 2021 measures them to lay the picture out: in the font of
+        /// the style's text style (DIMTXSTY), as <see cref="CadDimensionWords"/> measures them; "R20" of arial.ttf 2.5 high is
+        /// 5.965 wide and 2.553 high. Where the font is not measured, <paramref name="tall"/> is the height and the width 0.7
+        /// of the height a letter, the codes %%c, %%d and %%p a letter each, as the diameter sign, the degree sign and
+        /// plus-minus they stand for.
         /// </summary>
-        internal static double WordsWidth(List<DxfEntity> picture, string words, double height)
+        internal static double WordsWidth(DxfDimStyleTableRecord style, string words, double height, out double tall)
         {
-            DxfMText text = picture.OfType<DxfMText>().FirstOrDefault();
-            double width = 0.0;
+            DxfTextStyleTableRecord textStyle;
 
             try
             {
-                width = text?.ActualWidth ?? 0.0;
+                textStyle = style?.Dimtxsty;
             }
-            catch (Exception)
+            catch (Exception exception) when (exception is InvalidOperationException || exception is ArgumentException)
             {
-                width = 0.0;
+                textStyle = null;
             }
 
-            if (width > 0.0 && !double.IsInfinity(width))
+            if (CadDimensionWords.TryMeasure(textStyle, words, height, out double width, out tall))
             {
                 return width;
             }
 
+            tall = height;
             string letters = words ?? string.Empty;
 
             foreach (string code in new[] { "%%c", "%%d", "%%p" })
@@ -258,7 +266,7 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>
         /// The picture of a radius or a diameter. Where the words stand along the line is read from the block as it was (its
         /// MTEXT's place along the chord), as the record keeps no point of them, or from the text's place where it was moved
-        /// (flag 128); on the rim where the block has none.
+        /// (flag 128); on the rim where the block has none. Words moved under DIMTMOVE 2 stand at the text's place itself.
         /// </summary>
         private static List<DxfEntity> RadialPicture(DxfDimension dimension, DxfDimStyleTableRecord style, double textHeight, GeoPoint2 center, GeoPoint2 chord, bool diameter)
         {
@@ -273,9 +281,11 @@ namespace GeometryHelper.Dxf.Viewer
             DxfMText words = dimension.DimBlock.OfType<DxfMText>().FirstOrDefault();
             GeoPoint2? placed = !dimension.UsingDefaultTextPosition ? P2(dimension.TextPosition) : words == null ? (GeoPoint2?)null : P2(words.Location);
             double reach = placed == null ? radius : (placed.Value - center).X * outward.X + (placed.Value - center).Y * outward.Y;
-            GeoPoint2 location = center + outward * reach;
+            // Words put off the line under DIMTMOVE 2 stand where they were put.
+            bool free = !dimension.UsingDefaultTextPosition && dimension.Dimtmove == 2;
+            GeoPoint2 location = free ? placed.Value : center + outward * reach;
             GeoPoint2 far = center - outward * radius;
-            return Radial(style, style.Dimscale, textHeight, center, radius, chord, far, location, diameter, Formatted(dimension, diameter ? 2.0 * radius : radius, diameter ? "%%c" : "R"), !dimension.UsingDefaultTextPosition);
+            return Radial(style, style.Dimscale, textHeight, center, radius, chord, far, location, diameter, Formatted(dimension, diameter ? 2.0 * radius : radius, diameter ? "%%c" : "R"), !dimension.UsingDefaultTextPosition, free);
         }
 
         private static List<DxfEntity> AngularPicture(DxfDimension dimension, DxfDimStyleTableRecord style, double textHeight, DxfLine first, DxfLine second, GeoPoint2 vertex, GeoPoint2[] points, GeoPoint2 location)

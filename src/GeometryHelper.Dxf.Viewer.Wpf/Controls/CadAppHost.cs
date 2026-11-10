@@ -31,6 +31,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// with the drawing open, 1 600 by 960 unless <c>--size</c> says otherwise, and exits: 0 when written, 2 for arguments or a
     /// file it cannot read. <c>--run</c> types lines on the command line, parted by semicolons, an empty part being Enter;
     /// <c>--cursor</c> puts the cursor on a point of the drawing, showing the snap and the rubber band of the prompt waiting;
+    /// <c>--type REC</c> types text and leaves it unsent, the AutoComplete list shown for it, and <c>--type {Down}</c> opens
+    /// the options menu of dynamic input; <c>--dialog plot:png</c>, <c>plot:jpg</c> and <c>plot-custom</c> draw PLOT's
+    /// dialog on a raster device and its Custom Image Size;
     /// <c>--toggle</c> switches status toggles, as GRID or DYN; <c>--tab</c> shows a ribbon tab (Insert, Annotate, View,
     /// Plugins, Settings or the header of a tab a host adds); <c>--plugin</c> loads a command plugin, every file trusted.
     /// <c>--layers</c> draws the Layer manager instead, and <c>--dialog</c> one of the presenter's dialogs or menus:
@@ -82,7 +85,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// Gets the line written to the error output when the arguments of <c>--screenshot</c> do not read: the options the
         /// presenter knows, after the name of the program.
         /// </summary>
-        protected virtual string Usage => "Usage: " + (Assembly.GetEntryAssembly()?.GetName().Name ?? "app") + " --screenshot out.png [file.dxf] [--size 1600 960] [--space \"Layout1\"] [--select H1,H2] [--run \"MOVE;0,0\"] [--cursor x,y] [--toggle GRID,SNAP] [--layers] [--tab Insert|Annotate|View|Plugins|Settings] [--dialog save-changes|options|settings:Category|plugins|plugin-settings|plugin-untrusted|color|truecolor|truecolor-rgb|dsettings[:Tab]|osnap-menu|snap-menu|drawings-menu|scale-menu|missing-shx|missing-shx-replace|ptype|linetype|linetype-load|select-linetype|hatch|hatch-gradient|hatch-user|hatch-solid|hatch-file|block|insert|wblock|attdef|eattedit[:Tab]|battman|battman-edit[:Tab]|battman-settings|attdia|purge|purge-nonpurgeable|classicgroup|group-order|style|style-new|dimstyle|dimstyle-new|dimstyle-modify[:Tab]|dimstyle-override[:Tab]|dimstyle-compare[:Other]|mleaderstyle|mleaderstyle-modify[:Tab]|matchprop|pastespec|app-menu[:Item]|cmdline-menu|input-settings-menu|recent-commands-menu|autocomplete:Text] [--recent \"a.dxf|*b.dxf\"] [--plugin path.dll]";
+        protected virtual string Usage => "Usage: " + (Assembly.GetEntryAssembly()?.GetName().Name ?? "app") + " --screenshot out.png [file.dxf] [--size 1600 960] [--space \"Layout1\"] [--select H1,H2] [--run \"MOVE;0,0\"] [--cursor x,y] [--type REC|{Down}] [--toggle GRID,SNAP] [--layers] [--tab Insert|Annotate|View|Plugins|Settings] [--dialog save-changes|options|settings:Category|plugins|plugin-settings|plugin-untrusted|color|truecolor|truecolor-rgb|dsettings[:Tab]|osnap-menu|snap-menu|drawings-menu|scale-menu|missing-shx|missing-shx-replace|ptype|linetype|linetype-load|select-linetype|hatch|hatch-gradient|hatch-user|hatch-solid|hatch-file|block|insert|wblock|attdef|eattedit[:Tab]|battman|battman-edit[:Tab]|battman-settings|attdia|purge|purge-nonpurgeable|classicgroup|group-order|layerstate|view|newview|units|units-direction|plot:png|plot:jpg|plot-custom|style|style-new|dimstyle|dimstyle-new|dimstyle-modify[:Tab]|dimstyle-override[:Tab]|dimstyle-compare[:Other]|mleaderstyle|mleaderstyle-modify[:Tab]|matchprop|pastespec|app-menu[:Item]|cmdline-menu|input-settings-menu|recent-commands-menu|autocomplete:Text] [--recent \"a.dxf|*b.dxf\"] [--plugin path.dll]";
 
         /// <summary>
         /// Runs the app on the STA thread of its entry point: the window until it is closed, or the screenshot where the first
@@ -263,6 +266,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             string spaceName = null;
             string run = null;
             double[] cursor = null;
+            string typed = null;
             bool layers = false;
             string tab = null;
             string dialogName = null;
@@ -297,6 +301,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 else if (string.Equals(arg, "--cursor", StringComparison.OrdinalIgnoreCase) && i + 1 < args.Length)
                 {
                     cursor = args[++i].Split(',').Select(v => double.Parse(v, CultureInfo.InvariantCulture)).ToArray();
+                }
+                else if (string.Equals(arg, "--type", StringComparison.OrdinalIgnoreCase) && i + 1 < args.Length)
+                {
+                    typed = args[++i];
                 }
                 else if (string.Equals(arg, "--toggle", StringComparison.OrdinalIgnoreCase) && i + 1 < args.Length)
                 {
@@ -452,6 +460,28 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 window = dialog;
                 width = (int)dialog.Width;
                 height = (int)dialog.Height;
+            }
+            else if (dialogName != null && model.Document != null && (dialogName.StartsWith("plot:", StringComparison.OrdinalIgnoreCase) || string.Equals(dialogName, "plot-custom", StringComparison.OrdinalIgnoreCase)))
+            {
+                // PLOT's dialog on a raster device, --dialog plot:png or plot:jpg, and its Custom Image Size, --dialog plot-custom.
+                var job = new CadPlotJob(model.Space, CadPlotSettings.Read(model.Document, model.Space), DisplayBox.Empty, null);
+                job.Settings.UseDevice(dialogName.EndsWith("jpg", StringComparison.OrdinalIgnoreCase) ? CadPlotSettings.JpgDevice : CadPlotSettings.PngDevice);
+                job.Settings.Area = CadPlotArea.Extents;
+                var plot = new PlotDialogViewModel(model.Document, job, false, null, model.Settings.CustomPixelSizes);
+
+                if (string.Equals(dialogName, "plot-custom", StringComparison.OrdinalIgnoreCase))
+                {
+                    var custom = new CustomImageSizeWindow(new CustomImageSizeViewModel(CadPaper.Pixels(2480, 1754)));
+                    (window, root) = (custom, custom.Body);
+                }
+                else
+                {
+                    var dialog = new PlotWindow(plot);
+                    (window, root) = (dialog, dialog.Body);
+                }
+
+                width = (int)window.Width;
+                height = (int)window.Height;
             }
             else if (dialogName != null && dialogName.EndsWith("-menu", StringComparison.OrdinalIgnoreCase) && !dialogName.StartsWith("app-menu", StringComparison.OrdinalIgnoreCase))
             {
@@ -738,6 +768,22 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 Layout(root, width, height);
             }
 
+            if (typed != null && root is CadWorkspace)
+            {
+                // What is typed and not yet sent, the AutoComplete list shown for it; {Down} opens the options menu of the prompt.
+                if (typed == "{Down}")
+                {
+                    model.OpenDynamicInputMenu();
+                }
+                else
+                {
+                    model.CommandText = typed;
+                    model.ShowSuggestions();
+                }
+
+                Layout(root, width, height);
+            }
+
             var bitmap = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32);
             bitmap.Render(root);
             var encoder = new PngBitmapEncoder();
@@ -988,7 +1034,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// Block Attribute Manager on the first block with attributes), <c>battman-edit[:Tab]</c> (its Edit Attribute on the
         /// first row, on a tab), <c>battman-settings</c>; <c>attdia</c> (Edit Attributes of an INSERT of that block, ATTDIA
         /// set to 1); <c>purge</c> and <c>purge-nonpurgeable</c> (Purge in each mode, the current layer chosen in the second);
-        /// <c>classicgroup</c> (Object Grouping, the first group chosen) and <c>group-order</c> (its Order Group).
+        /// <c>classicgroup</c> (Object Grouping, the first group chosen) and <c>group-order</c> (its Order Group); <c>layerstate</c>
+        /// (the Layer States Manager, the first state chosen); <c>view</c> (the View Manager, the first named view chosen) and
+        /// <c>newview</c> (its New View); <c>units</c> (Drawing Units) and <c>units-direction</c> (its Direction Control).
         /// </summary>
         private static bool ManagerDialog(MainViewModel model, string dialogName, ref string run, out Window window, out FrameworkElement root)
         {
@@ -998,7 +1046,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             string kind = parts[0].ToLowerInvariant();
 
             if (kind != "battman" && kind != "battman-edit" && kind != "battman-settings" && kind != "attdia" && kind != "purge" && kind != "purge-nonpurgeable"
-                && kind != "classicgroup" && kind != "group-order")
+                && kind != "classicgroup" && kind != "group-order" && kind != "layerstate" && kind != "view" && kind != "newview" && kind != "units" && kind != "units-direction")
             {
                 return false;
             }
@@ -1086,6 +1134,54 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
                     var dialogWindow = new PurgeWindow(purge);
                     (window, root) = (dialogWindow, dialogWindow.Body);
+                    return true;
+                case "layerstate":
+                    model.ShowLayerStates = dialog => { shown = dialog; return true; };
+                    model.Execute("LAYERSTATE");
+                    model.ShowLayerStates = null;
+                    var states = (LayerStatesViewModel)shown;
+                    states.Selected = states.States.FirstOrDefault();
+                    var statesWindow = new LayerStatesWindow(states);
+                    (window, root) = (statesWindow, statesWindow.Body);
+                    return true;
+                case "view":
+                case "newview":
+                    model.ShowViewManager = dialog => { shown = dialog; return true; };
+                    model.Execute("VIEW");
+                    model.ShowViewManager = null;
+                    var views = (ViewManagerViewModel)shown;
+                    views.Selected = views.Nodes.FirstOrDefault(n => n.IsNamed) ?? views.Selected;
+
+                    if (kind == "view")
+                    {
+                        var viewsWindow = new ViewManagerWindow(views);
+                        (window, root) = (viewsWindow, viewsWindow.Body);
+                    }
+                    else
+                    {
+                        var newView = new NewViewWindow(new NewViewViewModel(views.Request) { ViewName = "Stair core" });
+                        (window, root) = (newView, newView.Body);
+                    }
+
+                    return true;
+                case "units":
+                case "units-direction":
+                    model.ShowDrawingUnits = dialog => { shown = dialog; return true; };
+                    model.Execute("UNITS");
+                    model.ShowDrawingUnits = null;
+                    var units = (DrawingUnitsViewModel)shown;
+
+                    if (kind == "units")
+                    {
+                        var unitsWindow = new DrawingUnitsWindow(units);
+                        (window, root) = (unitsWindow, unitsWindow.Body);
+                    }
+                    else
+                    {
+                        var direction = new DirectionControlWindow(new DirectionControlViewModel(units.Request));
+                        (window, root) = (direction, direction.Body);
+                    }
+
                     return true;
                 default:
                     model.ShowGroupManager = dialog => { shown = dialog; return true; };

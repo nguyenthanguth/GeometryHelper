@@ -29,12 +29,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
 
             Assert.Equal("Plot - Model", dialog.Title);
             Assert.Equal("plan-level2.dxf · Model", dialog.Footer);
-            Assert.Equal(new[] { "None", "GeometryHelper PDF", "Microsoft Print to PDF", @"\\print\HP LaserJet M507" }, dialog.Devices.Select(d => d.Name).ToArray());
-            Assert.Equal(new[] { false, true, false, false }, dialog.Devices.Select(d => d.IsEnabled).ToArray());
-            Assert.Equal(new[] { string.Empty, "built in", "Windows", "Windows · network" }, dialog.Devices.Select(d => d.Kind).ToArray());
-            Assert.True(dialog.Devices[2].StartsGroup);
+            // The raster devices of design PlotRaster follow the PDF one: GeometryHelper PNG and JPG.
+            Assert.Equal(new[] { "None", "GeometryHelper PDF", "GeometryHelper PNG", "GeometryHelper JPG", "Microsoft Print to PDF", @"\\print\HP LaserJet M507" }, dialog.Devices.Select(d => d.Name).ToArray());
+            Assert.Equal(new[] { false, true, true, true, false, false }, dialog.Devices.Select(d => d.IsEnabled).ToArray());
+            Assert.Equal(new[] { string.Empty, "built in, vector", "built in, raster", "built in, raster", "Windows", "Windows · network" }, dialog.Devices.Select(d => d.Kind).ToArray());
+            Assert.True(dialog.Devices[4].StartsGroup);
             Assert.Same(dialog.Devices[1], dialog.Device);
-            dialog.Device = dialog.Devices[3];
+            dialog.Device = dialog.Devices[5];
             Assert.Same(dialog.Devices[1], dialog.Device);
             Assert.Equal("GeometryHelper PDF · vector, built in", dialog.PlotterText);
             Assert.Equal("<None>", dialog.PageSetup);

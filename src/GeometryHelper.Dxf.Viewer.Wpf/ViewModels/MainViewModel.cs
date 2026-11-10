@@ -800,9 +800,18 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Selects nothing.</summary>
         public void ClearSelection() => _current?.Document.Selection.Clear();
 
-        /// <summary>Esc: ends the command running, saying *Cancel*; with none running, clears the selection.</summary>
+        /// <summary>
+        /// Esc: ends the command running, saying *Cancel*; with none running, clears the selection. With the options menu of
+        /// dynamic input open it closes the menu alone, and the command goes on.
+        /// </summary>
         public void Escape()
         {
+            if (IsDynamicInputMenuOpen)
+            {
+                CloseDynamicInputMenu();
+                return;
+            }
+
             // Esc throws away what is typed on the command line, the AutoComplete list with it, as AutoCAD's does.
             CommandText = string.Empty;
             CloseSuggestions();
@@ -1182,7 +1191,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             _cursorAt = new GeoPoint2(x, y);
             GeoPoint2 shown = Ucs.ToUcs(_cursorAt);
-            CursorText = "X " + _settings.FormatNumber(shown.X, _settings.CoordinateDecimals) + "   Y " + _settings.FormatNumber(shown.Y, _settings.CoordinateDecimals);
+            DxfDatabase database = _current?.Document.Database;
+
+            // A drawing in units other than decimal (LUNITS 2) shows them as AutoCAD does, 1'-3 1/2"; decimal keeps the settings' style.
+            CursorText = database != null && database.Lunits != 2
+                ? "X " + CadUnits.Length(shown.X, database.Lunits, database.Luprec) + "   Y " + CadUnits.Length(shown.Y, database.Lunits, database.Luprec)
+                : "X " + _settings.FormatNumber(shown.X, _settings.CoordinateDecimals) + "   Y " + _settings.FormatNumber(shown.Y, _settings.CoordinateDecimals);
         }
 
         /// <summary>Formats a whole number as the design writes it, thousands set apart by a space: 2 418.</summary>
@@ -1464,7 +1478,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 case "PURGE":
                 case "PURGEITEM":
                 case "CLASSICGROUP":
+                case "LAYERSTATE":
                     OnManagerRequested(e);
+                    break;
+                case "VIEW":
+                case "UNITS":
+                    OnViewsRequested(e);
                     break;
                 case "PASTESPEC":
                     OnPasteSpecialRequested(e);
@@ -1730,6 +1749,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         private void RaiseSpace()
         {
+            ShowPendingView();
             _current.Session.View = View;
             Raise(nameof(Space));
             Raise(nameof(View));

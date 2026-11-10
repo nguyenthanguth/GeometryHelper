@@ -210,6 +210,40 @@ namespace GeometryHelper.Dxf.Viewer
                     yield return CadPrompt.ForString("Press ENTER to continue");
                     c.Document.Selection.Set(Array.Empty<string>());
                     break;
+                case "Order Highlight":
+                    if (group == null)
+                    {
+                        request.Message = "Choose a group in the list first.";
+                        break;
+                    }
+
+                    // Highlight of Order Group: the members one at a time in their order, "Object 0 of 11" for a group of
+                    // twelve; Next and Previous go round, eXit or Enter brings the dialog back.
+                    List<string> order = group.GetAllEntityIds().Where(e => e.Handle != null && c.Document.FindEntity(e.Handle) != null).Select(e => e.Handle).ToList();
+                    int at = 0;
+
+                    while (order.Count > 0)
+                    {
+                        c.Document.Selection.Set(new[] { order[at] });
+                        string last = (order.Count - 1).ToString(CultureInfo.InvariantCulture);
+                        yield return CadPrompt.ForKeyword("Object " + at.ToString(CultureInfo.InvariantCulture) + " of " + last, new[] { "Next", "Previous", "eXit" });
+
+                        if (c.Input.Is("Next"))
+                        {
+                            at = (at + 1) % order.Count;
+                        }
+                        else if (c.Input.Is("Previous"))
+                        {
+                            at = (at + order.Count - 1) % order.Count;
+                        }
+                        else
+                        {
+                            break;
+                        }
+                    }
+
+                    c.Document.Selection.Set(Array.Empty<string>());
+                    break;
                 case "New":
                     string name = request.NewUnnamed ? null : (request.GroupName ?? string.Empty).Trim();
 

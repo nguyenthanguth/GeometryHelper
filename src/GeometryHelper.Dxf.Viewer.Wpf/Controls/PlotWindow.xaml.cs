@@ -19,6 +19,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             Model = model ?? throw new ArgumentNullException(nameof(model));
             InitializeComponent();
             DataContext = model;
+
+            // Custom… of a raster device's Paper size list: Custom Image Size over this dialog.
+            model.ShowCustomSize = size => new CustomImageSizeWindow(size) { Owner = this }.ShowDialog() == true;
         }
 
         /// <summary>Gets the view model.</summary>

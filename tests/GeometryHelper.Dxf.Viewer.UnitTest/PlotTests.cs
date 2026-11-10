@@ -328,6 +328,65 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         [Fact]
+        public void DashPlotToGeometryHelperPng_AsksAnImageSizeInPixels_AndHandsAPngFileToTheWindow_ThePageSetupKeepingThePixels()
+        {
+            CadDocument document = Plan();
+            CadCommandSession session = Session(document);
+            CadPlotJob job = null;
+            session.UiRequested += (sender, e) =>
+            {
+                if (e.Name == "-PLOT")
+                {
+                    job = e.Plot;
+                    e.Handled = true;
+                }
+            };
+            string file = Path.Combine(Path.GetTempPath(), "plan-level2-Model");
+
+            Run(session, "-PLOT", "Y", Enter);
+            Run(session, "?");
+            Assert.Contains("GeometryHelper PNG", session.History);
+            Assert.Contains("GeometryHelper JPG", session.History);
+            Run(session, "geometryhelper png");
+            Assert.Equal("Enter paper size or [?] <1920 x 1080 Pixels (Full HD)>:", session.PromptText);
+            Run(session, "9000 x 10");
+            Assert.Contains("not found", session.History.Last());
+            Run(session, "2480 x 1754");
+            Assert.Equal("Enter paper units [Pixels] <Pixels>:", session.PromptText);
+            Run(session, Enter, Enter, Enter, "E");
+            Assert.StartsWith("Enter plot scale (Plotted Pixels=Drawing Units) or [Fit] <Fit>:", session.PromptText);
+            Run(session, Enter, Enter, Enter, Enter, Enter, Enter);
+            Assert.StartsWith("Enter file name <", session.PromptText);
+            Assert.EndsWith("plan-level2-Model.png>:", session.PromptText);
+            Run(session, file, "Y", Enter);
+
+            Assert.False(session.IsRunning);
+            Assert.Equal(file + ".png", job.FileName);
+            Assert.Equal(CadPlotSettings.PngDevice, job.Settings.DeviceName);
+            Assert.Equal("2480 x 1754 Pixels (Custom)", job.Settings.Paper.Label);
+            Assert.Equal(CadPlotStyleTable.None, job.Settings.StyleTable);
+
+            // The page setup saved keeps the device and the pixels (group 72 = 2).
+            CadPlotSettings saved = CadPlotSettings.Read(document, document.ModelSpace);
+            Assert.Equal(CadPlotSettings.PngDevice, saved.DeviceName);
+            Assert.True(saved.Paper.IsPixels);
+            Assert.Equal(2480.0, saved.Paper.Width);
+            Assert.Equal(1754.0, saved.Paper.Height);
+        }
+
+        [Fact]
+        public void AnImageSizeIs16To8000PixelsASide_AndTheListedOnesAreFound()
+        {
+            Assert.Throws<ArgumentOutOfRangeException>(() => CadPaper.Pixels(15, 100));
+            Assert.Throws<ArgumentOutOfRangeException>(() => CadPaper.Pixels(100, 8001));
+            Assert.Same(CadPaper.DefaultPixels, CadPaper.Pixels(1920, 1080));
+            Assert.Equal("16 x 8000 Pixels (Custom)", CadPaper.Pixels(16, 8000).Label);
+            Assert.Equal(0.0, CadPaper.DefaultPixels.MarginLeft);
+            Assert.False(CadPaper.Pixels(800, 600).IsSameAs(new CadPaper("800 x 600 Pixels", 800, 600, 0, 0, 0, 0)));
+            Assert.Equal("Custom…", CadPaper.CustomPixelsChoice.Label);
+        }
+
+        [Fact]
         public void PlotWithNoWindow_RunsDashPlotsPrompts_AndPreviewAndPageSetupSayTheWindowShowsThem()
         {
             CadDocument document = Plan();

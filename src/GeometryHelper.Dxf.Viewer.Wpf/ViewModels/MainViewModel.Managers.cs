@@ -28,6 +28,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Gets or sets how the workspace shows Object Grouping; the action it closed with is in its request.</summary>
         public Func<GroupManagerViewModel, bool> ShowGroupManager { get; set; }
 
+        /// <summary>Gets or sets how the workspace shows the Layer States Manager; the action it closed with is in its request.</summary>
+        public Func<LayerStatesViewModel, bool> ShowLayerStates { get; set; }
+
         /// <summary>A request of a manager: its dialog shown where the workspace shows it, the request answered.</summary>
         private void OnManagerRequested(CadUiRequestEventArgs e)
         {
@@ -49,6 +52,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     break;
                 case CadGroupManagerRequest groups when ShowGroupManager != null:
                     e.Handled = ShowGroupManager(new GroupManagerViewModel(groups));
+                    break;
+                case CadLayerStatesRequest states when ShowLayerStates != null:
+                    e.Handled = ShowLayerStates(new LayerStatesViewModel(states));
                     break;
             }
         }

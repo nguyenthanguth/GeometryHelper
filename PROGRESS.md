@@ -110,7 +110,7 @@ the ones wanted.
       with PER/TAN ties (S)
 - [x] Dimension pictures: radius, diameter and angular laid out by DIMTAD, DIMJUST and the fit rules; every line from the
       back of its arrowhead; DIMTVP; the box of DIMGAP below zero (526 AutoCAD pictures compared, 511 match)
-- [ ] Dimensions: words measured by the drawing's fonts in the pictures (the main gap left); DIMTEDIT on angular and
+- [x] Dimensions: words measured by the drawing's fonts in the pictures (the main gap left); DIMTEDIT on angular and
       radius with DIMTMOVE 0 as AutoCAD; DIMARC; radial dimensions made under DIMTMOVE 1/2 (S)
 - [x] Previews as AutoCAD draws them: RECTANG the rectangle, CIRCLE, ARC, ELLIPSE, POLYGON, DONUT, XLINE/RAY, PLINE with
       widths and arcs, REVCLOUD, ROTATE/SCALE/MIRROR (Reference too), ARRAY, OFFSET, STRETCH, every dimension, the MTEXT
@@ -129,7 +129,7 @@ the ones wanted.
       documentation only, never its code). The reader turns a DWG into the library's DXF records, so everything built
       works on DWG; the writer goes back. Checked against DWGs and DXFs AutoCAD 2021 writes through a probe plugin, AUDIT
       of what we write, ACadSharp as a side check in scratch only.
-  - [ ] W1 Bits and R2000 (AC1015): bit codes, CRC, header, section locator, header variables, classes, tables, blocks,
+  - [ ] W1 (running) Bits and R2000 (AC1015): bit codes, CRC, header, section locator, header variables, classes, tables, blocks,
         the common entities and objects, the handle map (L)
   - [ ] W2 R2004, R2010, R2013, R2018 (AC1018-AC1032): pages, LZ77 compression, the encrypted header, the object stream
         of 2010 on (L)
@@ -138,9 +138,9 @@ the ones wanted.
         layouts; proxies kept as they are (L)
   - [ ] W5 Writing R2018 (AutoCAD 2021's own), then R2000-R2013 if wanted (L)
   - [ ] W6 GeometryHelper DXF: Open and Save As DWG, drag and drop, DWG xrefs (M)
-- [ ] Dynamic input at the cursor as AutoCAD's with DYN on: what is typed at the Command prompt shows in a box at the
+- [x] Dynamic input at the cursor as AutoCAD's with DYN on: what is typed at the Command prompt shows in a box at the
       cursor with the AutoComplete list under it, the prompt and its options (the ▼ menu) at the cursor in a command,
-      the command line keeping its own copy; with DYN off only the command line (M) (running; designed in v111)
+      the command line keeping its own copy; with DYN off only the command line (M) (designed in v111)
 - [ ] Previews left (running): FILLET and CHAMFER hovering the second object, TRIM and EXTEND Quick mode, LENGTHEN Dynamic,
       HATCH pick points, TEXT, TABLE, MLEADER, QDIM, BREAK, ALIGN, the Points of ROTATE/SCALE Reference, -ARRAY (M)
 - [ ] Tests: the Wpf suite and a parallel run share the global settings file and fail together; give tests their own
@@ -148,9 +148,10 @@ the ones wanted.
 - [ ] Layer States Manager, View Manager with New View, Drawing Units with Direction Control (designed in v110) (M)
 - [ ] Command line and Recent: AutoComplete inside a running command; Search Content; an EXPORT command (S)
 - [ ] Dxf.App: an app icon, file association for .dxf (installer or registry), `--tab Home` in screenshot mode
-- [ ] Images of an area: PNG and JPG devices in PLOT and -PLOT ("GeometryHelper PNG", "GeometryHelper JPG", as AutoCAD's
+- [x] Images of an area: PNG and JPG devices in PLOT and -PLOT ("GeometryHelper PNG", "GeometryHelper JPG", as AutoCAD's
       PublishToWeb PNG/JPG), plot area Window, Extents, Display or Layout, size in pixels (1920 x 1080, 3840 x 2160 or
-      typed) in place of a paper (running; designed in v111)
+      typed) in place of a paper (designed in v111)
+- [ ] Dynamic input: dimensional input (length and angle boxes) beyond LINE and PLINE (M)
 - [ ] COPYVIEW (not in AutoCAD): the view as an image on the clipboard, also on the canvas right-click menu (optional)
 - [ ] Tables: the cell right-click menu, column letters and row numbers, autofill and width grips, drag-select a range
 - [ ] Tables: rows grow for wrapped text; Tab in the last cell adds a row; first/second/other row cell styles
@@ -172,7 +173,7 @@ the ones wanted.
 - [ ] PLOT: print to Windows printers; add named page setups; embed only the glyphs used (smaller PDFs)
 - [ ] Xrefs: XOPEN, a balloon when a file changes, editable xref layers (`NAME|LAYER`), nested xrefs in the palette
 - [ ] Images: IMAGEFRAME in a drawing with no image yet (needs RASTERVARIABLES made in core)
-- [ ] Managers: a design board for Order Group; previews of table and multileader styles and a Groups kind in PURGE; check BATTMAN's block change, ATTDIA Cancel and Object Grouping Cancel against AutoCAD (S)
+- [ ] Managers: previews of table and multileader styles and a Groups kind in PURGE; check BATTMAN's block change, ATTDIA Cancel and Object Grouping Cancel against AutoCAD (S)
 - [ ] Selection: QSELECT's "select objects" button
 
 ### Decisions for the maintainer

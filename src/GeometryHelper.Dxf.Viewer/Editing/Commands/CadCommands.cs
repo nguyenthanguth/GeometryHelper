@@ -32,6 +32,10 @@ namespace GeometryHelper.Dxf.Viewer
             registry.Add(new CadCommand("EXPLODE", Explode, true));
             registry.Add(new CadCommand("MATCHPROP", MatchProperties));
             registry.Add(new CadCommand("LAYER", Layer));
+            registry.Add(new CadCommand("-LAYER", LayerTyped));
+            registry.Add(new CadCommand("LAYERSTATE", LayerStateManager));
+            registry.Add(new CadCommand("VIEW", ViewManager));
+            registry.Add(new CadCommand("-VIEW", ViewTyped));
             registry.Add(new CadCommand("UNDO", Undo));
             registry.Add(new CadCommand("U", UndoOne));
             registry.Add(new CadCommand("REDO", Redo));
@@ -54,6 +58,7 @@ namespace GeometryHelper.Dxf.Viewer
             registry.Add(new CadCommand("DIMRADIUS", c => DimRadial(c, false)));
             registry.Add(new CadCommand("DIMDIAMETER", c => DimRadial(c, true)));
             registry.Add(new CadCommand("DIMANGULAR", DimAngular));
+            registry.Add(new CadCommand("DIMARC", DimArc));
             registry.Add(new CadCommand("DIMCONTINUE", DimContinue));
             registry.Add(new CadCommand("DIMBASELINE", DimBaseline));
             registry.Add(new CadCommand("QDIM", QuickDimension));

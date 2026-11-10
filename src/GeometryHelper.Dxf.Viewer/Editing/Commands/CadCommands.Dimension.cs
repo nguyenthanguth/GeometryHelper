@@ -247,6 +247,7 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             DxfEntity picked = c.Document.FindEntity(c.Input.Handles[0]);
+            GeoPoint2? pickedAt = c.Input.IsPickedAt ? c.Input.Point : (GeoPoint2?)null;
             GeoPoint2 center;
             double radius;
 
@@ -277,7 +278,7 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 string words = text;
                 yield return CadPrompt.ForPoint("Specify dimension line location", center, new[] { "Text" })
-                    .Previewing(DimPreview(c, input => RadialMade(c, style, center, radius, diameter, input.Point, words, null, out _)));
+                    .Previewing(DimPreview(c, input => RadialMade(c, style, center, radius, diameter, input.Point, words, null, pickedAt, out _)));
 
                 if (c.Input.Is("Text"))
                 {
@@ -299,28 +300,37 @@ namespace GeometryHelper.Dxf.Viewer
                 yield break;
             }
 
-            CadDimAssociation.Tie(c, MakeRadial(c, style, center, radius, diameter, c.Input.Point, text, null), CadDimAssociation.CenterOf(picked));
+            CadDimAssociation.Tie(c, MakeRadial(c, style, center, radius, diameter, c.Input.Point, text, null, pickedAt), CadDimAssociation.CenterOf(picked));
         }
 
         /// <summary>
         /// Makes a radius (or a diameter) dimension of a circle, its line toward a point, as DIMRADIUS and DIMDIAMETER make it;
         /// its words given or the measurement, turned where <paramref name="textAngle"/> says. The handle of the dimension.
         /// </summary>
-        private static string MakeRadial(CadCommandContext c, DxfDimStyleTableRecord style, GeoPoint2 center, double radius, bool diameter, GeoPoint2 location, string text, double? textAngle)
+        /// <remarks>
+        /// As AutoCAD 2021 makes it under the style's DIMTMOVE: 0 turns the line toward the point; 1 and 2 keep it through the
+        /// point the circle was picked at (<paramref name="pickedAt"/>, toward the point where it was given by its handle), the
+        /// words for 1 slid along the line to where the point falls on it, for 2 standing at the point itself. A circle of 20
+        /// picked at 30 degrees, the point 45 out at 70, has its line at 70 degrees for 0; at 30 for 1, the words 34.47 out
+        /// along it; at 30 for 2, the words at the point, the line from the centre to the back of the arrowhead inside.
+        /// </remarks>
+        private static string MakeRadial(CadCommandContext c, DxfDimStyleTableRecord style, GeoPoint2 center, double radius, bool diameter, GeoPoint2 location, string text, double? textAngle, GeoPoint2? pickedAt = null)
         {
-            List<DxfEntity> picture = RadialMade(c, style, center, radius, diameter, location, text, textAngle, out DxfDimension made);
+            List<DxfEntity> picture = RadialMade(c, style, center, radius, diameter, location, text, textAngle, pickedAt, out DxfDimension made);
             return AddedHandle(Place(c, style, TextHeight(c, style), made, picture));
         }
 
         /// <summary>
-        /// The picture of a radius (or a diameter) dimension of a circle, its line toward a point, and the dimension it is the
-        /// picture of, as <see cref="MakeRadial"/> adds them and the prompt of the line's place previews them.
+        /// The picture of a radius (or a diameter) dimension of a circle, its line toward a point (or through the point the
+        /// circle was picked at, under DIMTMOVE 1 and 2), and the dimension it is the picture of, as <see cref="MakeRadial"/>
+        /// adds them and the prompt of the line's place previews them.
         /// </summary>
-        private static List<DxfEntity> RadialMade(CadCommandContext c, DxfDimStyleTableRecord style, GeoPoint2 center, double radius, bool diameter, GeoPoint2 location, string text, double? textAngle, out DxfDimension made)
+        private static List<DxfEntity> RadialMade(CadCommandContext c, DxfDimStyleTableRecord style, GeoPoint2 center, double radius, bool diameter, GeoPoint2 location, string text, double? textAngle, GeoPoint2? pickedAt, out DxfDimension made)
         {
             double measured = diameter ? 2.0 * radius : radius;
             string prefix = diameter ? "%%c" : "R";
-            GeoVector2 toward = location - center;
+            int move = style.Dimtmove;
+            GeoVector2 toward = move != 0 && pickedAt.HasValue && (pickedAt.Value - center).Length > c.Session.Tolerance.EqualPoint ? pickedAt.Value - center : location - center;
 
             if (toward.Length <= c.Session.Tolerance.EqualPoint)
             {
@@ -336,7 +346,20 @@ namespace GeometryHelper.Dxf.Viewer
                 : new DxfRadialDimension(P3(center), P3(chord), leader, text ?? string.Empty, null);
             string words = Words(style, made, measured, text, prefix);
             double textHeight = TextHeight(c, style);
-            return WithTextAngle(made, Radial(style, Dimscale(c), textHeight, center, radius, chord, far, location, diameter, words), textAngle);
+
+            // Words of DIMTMOVE 2 stand where put; of 1 where the point falls on a line kept apart from it.
+            GeoPoint2 along = center + unit * ((location - center).X * unit.X + (location - center).Y * unit.Y);
+            bool free = move == 2;
+            bool slid = move == 1 && (along - location).Length > c.Session.Tolerance.EqualPoint;
+            GeoPoint2 wordsAt = slid ? along : location;
+
+            if (free || slid)
+            {
+                made.TextPosition = P3(wordsAt);
+                made.UsingDefaultTextPosition = false;
+            }
+
+            return WithTextAngle(made, Radial(style, Dimscale(c), textHeight, center, radius, chord, far, wordsAt, diameter, words, slid, free), textAngle);
         }
 
         private static IEnumerable<CadPrompt> DimAngular(CadCommandContext c) => DimAngularFrom(c, null, null);
@@ -731,19 +754,25 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             DxfEntity text = Words(style, default, angle, height, words, scale);
-            double width = WordsWidth(new List<DxfEntity> { text }, words, height);
+            // The words laid out as high as the font measures them, past the height their text is written with.
+            double width = WordsWidth(style, words, height, out height);
             LinearLayout layout = LayOut(style, p1, p2, q1, q2, along, angle, width, height, gap, arrow, beyond, placed);
             bool[] suppressed = { style.Dimse1, style.Dimse2 };
             int side = 0;
+
+            // A point on the dimension line has its extension line too, from DIMEXO to DIMEXE past it, the way the other one runs
+            // (square to the line where neither runs any way), as AutoCAD 2021 draws it.
+            GeoVector2 normal = new GeoVector2(-along.Y, along.X);
+            GeoVector2 other = (q1 - p1).Length > 1E-12 ? (q1 - p1) / (q1 - p1).Length : (q2 - p2).Length > 1E-12 ? (q2 - p2) / (q2 - p2).Length : normal;
 
             foreach (KeyValuePair<GeoPoint2, GeoPoint2> pair in new[] { new KeyValuePair<GeoPoint2, GeoPoint2>(p1, q1), new KeyValuePair<GeoPoint2, GeoPoint2>(p2, q2) })
             {
                 GeoVector2 up = pair.Value - pair.Key;
                 double length = up.Length;
 
-                if (length > offset && !suppressed[side])
+                if (length + beyond > offset && !suppressed[side])
                 {
-                    GeoVector2 unit = up / length;
+                    GeoVector2 unit = length > 1E-12 ? up / length : other;
                     double longer = layout.OverExtension == side + 1 ? layout.Longer : 0.0;
                     picture.Add(Lined(new DxfLine(P3(pair.Key + unit * offset), P3(pair.Value + unit * (beyond + longer))), style.Dimclre, style.Dimlwe));
                 }

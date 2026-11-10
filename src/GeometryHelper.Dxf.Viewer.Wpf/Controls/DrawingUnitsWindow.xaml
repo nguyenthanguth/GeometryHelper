@@ -1,0 +1,90 @@
+<Window x:Class="GeometryHelper.Dxf.Viewer.Wpf.DrawingUnitsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Drawing Units" Width="480" Height="540" WindowStyle="None" ResizeMode="NoResize" ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner" Background="#262B33">
+
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/GeometryHelper.Dxf.Viewer.Wpf;component/Themes/BlockDialogs.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <Border x:Name="Root" Background="{StaticResource GhPanel}" BorderBrush="{StaticResource GhBorder}" BorderThickness="1"
+            TextElement.FontFamily="{StaticResource GhFont}" TextElement.FontSize="12" TextElement.Foreground="{StaticResource GhText}"
+            UseLayoutRounding="True" SnapsToDevicePixels="True" TextOptions.TextFormattingMode="Display">
+        <DockPanel>
+            <Border DockPanel.Dock="Top" Background="{StaticResource GhHeader}" Padding="16,10" MouseLeftButtonDown="OnHeaderDown">
+                <DockPanel>
+                    <Button DockPanel.Dock="Right" Style="{StaticResource GhTitleCloseButton}" Click="OnCancel" ToolTip="Close" />
+                    <TextBlock Text="Drawing Units" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" />
+                </DockPanel>
+            </Border>
+
+            <Border DockPanel.Dock="Bottom" Background="{StaticResource GhHeader}" Padding="16,10">
+                <DockPanel>
+                    <Button DockPanel.Dock="Left" Style="{StaticResource GhDialogButton}" Content="Direction…" Padding="14,5" Click="OnDirection" />
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button Style="{StaticResource GhDialogButton}" Content="Cancel" Padding="14,5" Margin="0,0,8,0" Click="OnCancel" IsCancel="True" />
+                        <Button Style="{StaticResource StylePrimaryButton}" Content="OK" Padding="14,5" Click="OnOk" IsDefault="True" />
+                    </StackPanel>
+                </DockPanel>
+            </Border>
+
+            <StackPanel Margin="16,12">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="10" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <HeaderedContentControl Style="{StaticResource BlockGroup}" Header="Length" Margin="0">
+                        <StackPanel>
+                            <TextBlock Text="Type:" Foreground="{StaticResource GhTextMuted}" Margin="0,0,0,4" />
+                            <ComboBox Style="{StaticResource GhComboBox}" ItemsSource="{Binding LengthTypes}" SelectedItem="{Binding LengthType, Mode=TwoWay}" AutomationProperties.Name="Length type" />
+                            <TextBlock Text="Precision:" Foreground="{StaticResource GhTextMuted}" Margin="0,8,0,4" />
+                            <ComboBox Style="{StaticResource GhComboBox}" FontFamily="{StaticResource GhMonoFont}" ItemsSource="{Binding LengthPrecisions}" SelectedItem="{Binding LengthPrecision, Mode=TwoWay}" AutomationProperties.Name="Length precision" />
+                        </StackPanel>
+                    </HeaderedContentControl>
+                    <HeaderedContentControl Grid.Column="2" Style="{StaticResource BlockGroup}" Header="Angle" Margin="0">
+                        <StackPanel>
+                            <TextBlock Text="Type:" Foreground="{StaticResource GhTextMuted}" Margin="0,0,0,4" />
+                            <ComboBox Style="{StaticResource GhComboBox}" ItemsSource="{Binding AngleTypes}" SelectedItem="{Binding AngleType, Mode=TwoWay}" AutomationProperties.Name="Angle type" />
+                            <TextBlock Text="Precision:" Foreground="{StaticResource GhTextMuted}" Margin="0,8,0,4" />
+                            <ComboBox Style="{StaticResource GhComboBox}" FontFamily="{StaticResource GhMonoFont}" ItemsSource="{Binding AnglePrecisions}" SelectedItem="{Binding AnglePrecision, Mode=TwoWay}" AutomationProperties.Name="Angle precision" />
+                            <CheckBox Style="{StaticResource StyleCheck}" Content="Clockwise" IsChecked="{Binding Clockwise, Mode=TwoWay}" Margin="0,8,0,0" />
+                        </StackPanel>
+                    </HeaderedContentControl>
+                </Grid>
+
+                <HeaderedContentControl Style="{StaticResource BlockGroup}" Header="Insertion scale" Margin="0,10,0,0">
+                    <StackPanel>
+                        <TextBlock Text="Units to scale inserted content:" Foreground="{StaticResource GhTextMuted}" Margin="0,0,0,4" />
+                        <ComboBox Style="{StaticResource GhComboBox}" ItemsSource="{Binding InsertionUnitsList}" SelectedItem="{Binding InsertionUnits, Mode=TwoWay}" AutomationProperties.Name="Insertion scale units" />
+                    </StackPanel>
+                </HeaderedContentControl>
+
+                <HeaderedContentControl Style="{StaticResource BlockGroup}" Header="Sample Output" Margin="0,10,0,0">
+                    <StackPanel>
+                        <TextBlock Text="{Binding SampleLength}" FontFamily="{StaticResource GhMonoFont}" />
+                        <TextBlock Text="{Binding SampleAngle}" FontFamily="{StaticResource GhMonoFont}" Margin="0,2,0,0" />
+                    </StackPanel>
+                </HeaderedContentControl>
+
+                <HeaderedContentControl Style="{StaticResource BlockGroup}" Header="Lighting" Margin="0,10,0,0">
+                    <StackPanel>
+                        <TextBlock Text="Units for specifying the intensity of lighting:" Foreground="{StaticResource GhTextMuted}" Margin="0,0,0,4" />
+                        <ComboBox Style="{StaticResource GhComboBox}" IsEnabled="False" SelectedIndex="0" AutomationProperties.Name="Lighting units">
+                            <ComboBoxItem Content="International" />
+                        </ComboBox>
+                    </StackPanel>
+                </HeaderedContentControl>
+
+                <TextBlock Margin="0,10,0,0" Foreground="{StaticResource GhTextMuted}" TextWrapping="Wrap"
+                           Text="Sample Output follows every change at once (LUNITS, LUPREC, AUNITS, AUPREC, ANGDIR, INSUNITS). Lighting is 3D and stays greyed." />
+            </StackPanel>
+        </DockPanel>
+    </Border>
+</Window>

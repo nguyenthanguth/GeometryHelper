@@ -6,6 +6,76 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** DIMARC (DAR), the presenter's arc length dimension, as AutoCAD 2021 makes it and stored as the library's
+`DxfArcDimension`: Mtext and Text for its words, Angle for theirs, Partial for the length between two points of the arc,
+and Leader, offered past 90 degrees of sweep, for a leader from the words' arc to the arc measured. Below 90 degrees the
+extension lines run along the middle of the arc, from 90 up from the centre; the arc symbol stands before the words
+(DIMARCSYM 0), over them (1) or nowhere (2); a point in the sector the arc does not sweep dimensions the rest of the
+circle. An arc of 30 from 20 to 60 degrees dimensioned 40 out reads "21" 41.88 out at 40 degrees. Its pictures match the
+69 AutoCAD drew to 0.01, and AutoCAD draws the dimensions stored the same.
+
+**CHANGED.** The words of the presenter's dimension pictures are measured in the font of their text style as AutoCAD
+measures them, not taken as 0.7 of their height a letter: "R20" of arial.ttf 2.5 high is 5.965 wide and 2.553 high. A
+TrueType font is read from the Fonts folders of Windows, an SHX font where the fonts set on a document find it. The
+526 pictures of linear, radius, diameter and angular dimensions AutoCAD drew now all match to 0.01 (35 before); a radius
+of 6 takes "R6" inside, a point on the dimension line has its extension line, and an angle's ticks turn along the arc.
+
+**CHANGED.** DIMTEDIT of an angle under DIMTMOVE 0 runs the arc through the point given and stands the words on it
+there, above it as they read; a radius's or a diameter's words slide along its line, which stays, under DIMTMOVE 0 and
+1, and stand at the point under 2. A radius or a diameter made under DIMTMOVE 1 or 2 keeps its line through the point
+the circle was picked at, as AutoCAD 2021 does. The grips drag the words as before.
+
+**NEW.** PLOT and -PLOT plot to images: GeometryHelper PNG (lossless) and GeometryHelper JPG (quality 90) beside
+GeometryHelper PDF. Their sizes are in pixels, 1280 x 720 to 3840 x 2160, and Custom… makes one of 16 to 8 000 pixels a
+side, kept between sessions; a raster device starts fitted and centred on white, with no plot style table and colour 7
+black, and always plots to a file, asked on OK or with FILEDIA 0 on the command line. Model space fitted to 1920 x 1080 is
+a PNG of exactly 1920 by 1080 pixels. New API: `CadPaper.PixelSizes`, `CadPaper.Pixels`, `CadPlotSettings.PngDevice`,
+`JpgDevice`, `UseDevice`, `GlobalSettings.CustomPixelSizes` and `CadRasterWriter.WritePlot`.
+
+**CHANGED.** Dynamic input in the presenter works at the cursor as AutoCAD 2021's. At the Command prompt the text typed
+shows in a box 18 pixels right of the crosshair and 14 below it, with the AutoComplete list under it; the command line's
+own list stays closed while DYN is on. In a command the box shows the prompt as AutoCAD words it, "Specify next point or",
+with a ↓ that opens the prompt's options one per row, Esc closing the menu alone. The X and Y fields are relative to the
+base point, as DYNPIFORMAT 0, # making them absolute: RECTANG's other corner shows 1 200.00 and 800.00 for a corner
+1 200 by 800 from the first, and "500,300" typed there is a corner 500 by 300 from it. LINE's and PLINE's next point
+show the length on a dimension line beside the rubber band and the angle on an arc from the X axis.
+`MainViewModel.DynamicInputPrompt` no longer carries the options and the colon: "Specify next point or".
+
+**CHANGED.** The presenter's Order Group dialog follows its board: the groups in a Group Name list, and the three boxes
+labelled with the ranges the group allows, a group of twelve moved from 3 to 0 reading (0-11), (0-11) and (1-9).
+Highlight < now steps through the members on the canvas one at a time, `Object 0 of 11 [Next/Previous/eXit]:`, Enter
+bringing Object Grouping back; Object Grouping's own Highlight still shows the whole group at once.
+
+**NEW.** `DxfDatabase.ViewTable`, the named views of a drawing as AutoCAD's `ViewTable`: `DxfViewTableRecord` has its
+`CenterPoint`, `Height`, `Width`, `IsPaperspaceView`, `Target`, `ViewDirection`, `ViewTwist` and `LayerState`, the
+layer state its layer snapshot is kept in, and is added, renamed and erased as AutoCAD 2021 writes a view: a view of the
+window (10, 20) to (110, 80) is written with its centre (60, 50), 100 wide and 60 high, looking down Z with a lens of 50,
+pointing at the visual style 2D Wireframe. Its extension dictionary is erased with it.
+
+**NEW.** Layer states in the presenter, as AutoCAD 2021 keeps them: LAYERSTATE (LAS) opens the Layer States Manager (New,
+Update, Edit, Rename, Delete, Import, Export, the properties to restore, Turn off layers not found in layer state,
+Restore), and -LAYER (-LA), now a command of its own, has stAte with ?, Save, Restore, Edit, Name, Delete, Import and
+EXport in AutoCAD's words. A state is an XRECORD of ACAD_LAYERSTATES under the layer table's extension dictionary, its
+groups those AutoCAD 2021 wrote of the same drawing; a .las file Export writes of a drawing of the layers 0, A red, B off
+and C frozen is AutoCAD 2021's to the byte, and Import reads it. Each run is one undo step; AutoCAD 2021 audits a drawing
+with two states with no error and lists them.
+
+**NEW.** Named views in the presenter: VIEW (V) opens the View Manager (Current, Model Views, Layout Views, Preset Views
+greyed; Set Current, New, Update Layers, Edit Boundaries, Delete; the name, height and width) and its New View, and -VIEW
+(-V) asks ?, Delete, Orthographic, Restore, Save, sEttings (Layer snapshot) and Window as AutoCAD 2021 does, ? listing
+`"Stair core"` with M or P. A layer snapshot is the hidden layer state ACAD_VIEWS_ and the view's name, restored with the
+view. AutoCAD 2021 audits a drawing with three views, one of a layout, with no error and restores them.
+
+**NEW.** UNITS opens the presenter's Drawing Units, its Sample Output following each change, and Direction Control, whose
+pick asks two points; OK writes LUNITS, LUPREC, AUNITS, AUPREC, ANGDIR, INSUNITS and ANGBASE as one undo step. -UNITS
+stays typed. `CadUnits` writes 15.5 as 1.55E+01, 15.50, 1'-3.50", 1'-3 1/2" or 15 1/2 and 45 degrees as 45.0000,
+45d0'0", 50.0000g, 0.7854r or N 45d0'0" E, and typed lengths and angles are read in the drawing's units: `1'3-1/2"<100`
+in architectural units and grads is 15.5 straight up. The status bar shows coordinates in LUNITS where they are not
+decimal.
+
+**CHANGED.** The presenter's LAYER on the command line offers stAte after Unlock, as AutoCAD's -LAYER does; the registry
+holds 173 commands.
+
 **NEW.** The presenter previews the object a prompt is about to make, as AutoCAD 2021 drags it: `CadPrompt.Preview`
 (`CadPreview`) gives the display items of what a point picked at the cursor would make, made by the command's own code,
 and the canvas draws them in the current layer's colour. RECTANG asking its other corner draws the rectangle, not a dashed

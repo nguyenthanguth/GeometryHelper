@@ -6,6 +6,8 @@ using System.Windows.Automation;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
+using System.Windows.Media;
+using GeometryHelper.Geometry;
 using Microsoft.Win32;
 
 namespace GeometryHelper.Dxf.Viewer.Wpf
@@ -31,8 +33,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// and Groups are each one button that drops the panel below it.
     /// Letters typed with the focus on the canvas go to the command line, where Enter or Space runs the line (Space types a
     /// space at a prompt for text) and Up and Down recall what was typed before. Once no key has come for the delay of Input
-    /// Settings, the AutoComplete list opens above the command line; while it is open the arrows move its row chosen and
-    /// Enter or Space runs that row. A right click on the command line gives its menu, and the G button the application
+    /// Settings, the AutoComplete list opens above the command line, or with DYN on under the box of dynamic input at the
+    /// cursor; while it is open the arrows move its row chosen and Enter or Space runs that row. With DYN on, ↓ at a prompt
+    /// with options opens their menu at the cursor, where the arrows move, Enter picks and Esc closes it alone. A right click on the command line gives its menu, and the G button the application
     /// menu. A value of Properties is committed by Enter
     /// or by leaving it, and Esc puts the old one back. DXF files dropped on it are opened.
     /// </remarks>
@@ -50,6 +53,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private readonly System.Windows.Threading.DispatcherTimer _suggest = new System.Windows.Threading.DispatcherTimer();
         private AppMenuViewModel _appMenu;
         private MainViewModel _model;
+        private Point _dynamicAt;
         private DateTime _lastAutosave = DateTime.UtcNow;
 
         /// <summary>Makes the workspace.</summary>
@@ -250,7 +254,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             ModifierKeys modifiers = Keyboard.Modifiers;
             bool inEditor = (Keyboard.FocusedElement is TextBox box && box != CommandBox) || Keyboard.FocusedElement is CadMTextEditBox;
 
-            if (modifiers == ModifierKeys.None && FileList.IsKeyboardFocusWithin && (key == Key.Enter || key == Key.Delete))
+            if (!inEditor && DynamicInputKey(key))
+            {
+                e.Handled = true;
+            }
+            else if (modifiers == ModifierKeys.None && FileList.IsKeyboardFocusWithin && (key == Key.Enter || key == Key.Delete))
             {
                 // In the DRAWINGS list Enter opens the row clicked, and Delete does nothing: it neither erases objects nor removes a file.
                 e.Handled = _model.FileListKey(key == Key.Enter ? "Enter" : "Delete");
@@ -513,6 +521,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 _model.ShowPurge = dialog => PurgeWindow.Show(Window.GetWindow(this), dialog);
                 _model.ConfirmPurgeItem = question => CadQuestionWindow.ConfirmPurgeItem(Window.GetWindow(this), question);
                 _model.ShowGroupManager = dialog => GroupManagerWindow.Show(Window.GetWindow(this), dialog);
+                _model.ShowLayerStates = dialog => LayerStatesWindow.Show(Window.GetWindow(this), dialog);
+                _model.ShowViewManager = dialog => ViewManagerWindow.Show(Window.GetWindow(this), dialog);
+                _model.ShowDrawingUnits = dialog => DrawingUnitsWindow.Show(Window.GetWindow(this), dialog);
                 _model.AskRedefineBlock = name => CadQuestionWindow.AskRedefineBlock(Window.GetWindow(this), name);
                 _model.ShowBlockEdit = dialog => BlockEditWindow.Show(Window.GetWindow(this), dialog);
                 _model.AskSaveBlockChanges = name => BlockCloseWindow.Ask(Window.GetWindow(this), name);
@@ -544,7 +555,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Browse for Plot File: where a plot is written, a PDF, the folder and name offered; null where it is cancelled.</summary>
         private string AskPlotFile(string folder, string name)
         {
-            var dialog = new SaveFileDialog { Filter = "PDF files (*.pdf)|*.pdf", Title = "Browse for Plot File", FileName = name, DefaultExt = ".pdf" };
+            // Of the type of the name offered: a PDF, or for GeometryHelper PNG and JPG an image.
+            string extension = Path.GetExtension(name).ToLowerInvariant();
+            string filter = extension == ".png" ? "PNG files (*.png)|*.png" : extension == ".jpg" ? "JPEG files (*.jpg)|*.jpg" : "PDF files (*.pdf)|*.pdf";
+            var dialog = new SaveFileDialog { Filter = filter, Title = "Browse for Plot File", FileName = name, DefaultExt = extension.Length > 0 ? extension : ".pdf" };
 
             if (folder != null && Directory.Exists(folder))
             {
@@ -775,36 +789,189 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>
-        /// Puts the box of dynamic input below and to the right of the cursor, as AutoCAD's tooltip, or on the other side of it
-        /// where it would leave the canvas.
+        /// Puts the box of dynamic input 18 px right of the cursor and 14 px below it, as AutoCAD's tooltip, or on the other side
+        /// of it where it would leave the canvas, and draws the dimensional input of LINE and PLINE. While the AutoComplete list
+        /// or the options menu is open under the box, the box stays where it is, so that the pointer can reach a row.
         /// </summary>
         private void PlaceDynamicInput(double x, double y)
         {
+            _dynamicAt = new Point(x, y);
             CadView view = CanvasView.View;
 
-            if (view == null || CanvasView.ActualWidth <= 0.0 || CanvasView.PixelWidth <= 0)
+            if (view == null || _model == null || CanvasView.ActualWidth <= 0.0 || CanvasView.PixelWidth <= 0)
             {
                 return;
             }
 
-            const double Offset = 18.0;
             double scale = CanvasView.PixelWidth / CanvasView.ActualWidth;
             view.DrawingToPixel(x, y, out double px, out double py);
-            double left = px / scale + Offset;
-            double top = py / scale + Offset;
+            px /= scale;
+            py /= scale;
+            PlaceDimensionalInput(view, scale, new Point(px, py));
+
+            if (_model.IsSuggestionListAtCursor || _model.IsDynamicInputMenuOpen)
+            {
+                return;
+            }
+
+            const double Right = 18.0;
+            const double Below = 14.0;
+            double left = px + Right;
+            double top = py + Below;
 
             if (left + DynamicInputBox.ActualWidth > CanvasView.ActualWidth)
             {
-                left = Math.Max(0.0, px / scale - Offset - DynamicInputBox.ActualWidth);
+                left = Math.Max(0.0, px - Right - DynamicInputBox.ActualWidth);
             }
 
             if (top + DynamicInputBox.ActualHeight > CanvasView.ActualHeight)
             {
-                top = Math.Max(0.0, py / scale - Offset - DynamicInputBox.ActualHeight);
+                top = Math.Max(0.0, py - Below - DynamicInputBox.ActualHeight);
             }
 
             Canvas.SetLeft(DynamicInputBox, left);
             Canvas.SetTop(DynamicInputBox, top);
+        }
+
+        /// <summary>
+        /// The dimensional input of LINE's and PLINE's next point, as AutoCAD draws it: a dimension line 18 px off the rubber
+        /// band with its extension lines and the length in a field at its middle; the X axis of the UCS dashed from the base
+        /// point, the arc of the angle 70 px round it and the angle in a field beyond the arc's middle.
+        /// </summary>
+        private void PlaceDimensionalInput(CadView view, double scale, Point cursor)
+        {
+            CadPrompt prompt = _model.Session?.Prompt;
+
+            if (!_model.IsDynamicInputPolar || prompt?.BasePoint == null)
+            {
+                return;
+            }
+
+            GeoPoint2 from = prompt.BasePoint.Value;
+            GeoVector2 axisWorld = _model.Session.Ucs.ToWorld(new GeoVector2(1.0, 0.0));
+            view.DrawingToPixel(from.X, from.Y, out double bx, out double by);
+            view.DrawingToPixel(from.X + axisWorld.X * 1000.0, from.Y + axisWorld.Y * 1000.0, out double ax, out double ay);
+            var origin = new Point(bx / scale, by / scale);
+            Vector axis = new Point(ax / scale, ay / scale) - origin;
+            Vector band = cursor - origin;
+
+            if (band.Length < 1.0 || axis.Length <= 0.0)
+            {
+                DimensionalInput.Visibility = Visibility.Hidden;
+                return;
+            }
+
+            DimensionalInput.ClearValue(VisibilityProperty);
+            axis.Normalize();
+            Vector along = band / band.Length;
+            var normal = new Vector(along.Y, -along.X);
+            const double Gap = 18.0;
+            const double Overshoot = 8.0;
+            const double Radius = 70.0;
+
+            var lines = new StreamGeometry();
+
+            using (StreamGeometryContext context = lines.Open())
+            {
+                context.BeginFigure(origin + normal * Gap, false, false);
+                context.LineTo(cursor + normal * Gap, true, false);
+                context.BeginFigure(origin, false, false);
+                context.LineTo(origin + normal * (Gap + Overshoot), true, false);
+                context.BeginFigure(cursor, false, false);
+                context.LineTo(cursor + normal * (Gap + Overshoot), true, false);
+            }
+
+            DimensionalLines.Data = lines;
+            DimensionalAxis.Data = new LineGeometry(origin, origin + axis * (Radius + 10.0));
+
+            // The angle counterclockwise on the screen from the X axis to the band, 0 to 360 degrees, as the field gives it.
+            double start = Math.Atan2(-axis.Y, axis.X);
+            double sweep = Math.Atan2(-along.Y, along.X) - start;
+            sweep = sweep < 0.0 ? sweep + 2.0 * Math.PI : sweep;
+            Point On(double angle, double radius) => origin + new Vector(Math.Cos(angle), -Math.Sin(angle)) * radius;
+            var arc = new StreamGeometry();
+
+            using (StreamGeometryContext context = arc.Open())
+            {
+                context.BeginFigure(On(start, Radius), false, false);
+                context.ArcTo(On(start + sweep, Radius), new Size(Radius, Radius), 0.0, sweep > Math.PI, SweepDirection.Counterclockwise, true, false);
+            }
+
+            DimensionalArc.Data = arc;
+            Centre(LengthField, origin + band / 2.0 + normal * Gap);
+            Centre(AngleField, On(start + sweep / 2.0, Radius + 25.0));
+        }
+
+        /// <summary>The box held still with its list or menu open: moved back inside the canvas where the list or the menu would leave it.</summary>
+        private void KeepOnCanvas()
+        {
+            double left = Canvas.GetLeft(DynamicInputBox);
+            double top = Canvas.GetTop(DynamicInputBox);
+            Canvas.SetLeft(DynamicInputBox, Math.Max(0.0, Math.Min(left, CanvasView.ActualWidth - DynamicInputBox.ActualWidth)));
+            Canvas.SetTop(DynamicInputBox, Math.Max(0.0, Math.Min(top, CanvasView.ActualHeight - DynamicInputBox.ActualHeight)));
+        }
+
+        private static void Centre(FrameworkElement field, Point at)
+        {
+            field.UpdateLayout();
+            Canvas.SetLeft(field, at.X - field.ActualWidth / 2.0);
+            Canvas.SetTop(field, at.Y - field.ActualHeight / 2.0);
+        }
+
+        /// <summary>A row of the options menu of dynamic input clicked: the prompt takes its keyword.</summary>
+        private void OnDynamicOptionClick(object sender, MouseButtonEventArgs e)
+        {
+            if (_model != null && ((FrameworkElement)sender).DataContext is DynamicInputOptionViewModel row)
+            {
+                _model.PickDynamicInputOption(row);
+                e.Handled = true;
+            }
+        }
+
+        /// <summary>
+        /// The keys of dynamic input before the window's: with the options menu open the arrows move its row and Enter or Space
+        /// picks it; ↓ opens the menu of a prompt with options; with the AutoComplete list at the cursor and the canvas holding
+        /// the keyboard, the arrows move its row.
+        /// </summary>
+        /// <returns>Whether dynamic input took the key.</returns>
+        private bool DynamicInputKey(Key key)
+        {
+            if (Keyboard.Modifiers != ModifierKeys.None || !(Keyboard.FocusedElement == CommandBox || Keyboard.FocusedElement == CanvasView))
+            {
+                return false;
+            }
+
+            if (_model.IsDynamicInputMenuOpen)
+            {
+                switch (key)
+                {
+                    case Key.Up:
+                    case Key.Down:
+                        _model.MoveDynamicInputOption(key == Key.Down ? 1 : -1);
+                        return true;
+                    case Key.Enter:
+                    case Key.Space:
+                        _model.PickDynamicInputOption();
+                        return true;
+                    case Key.Tab:
+                        return true;
+                }
+
+                return false;
+            }
+
+            if (key == Key.Down && !_model.IsSuggestionListOpen && _model.OpenDynamicInputMenu())
+            {
+                return true;
+            }
+
+            if ((key == Key.Up || key == Key.Down) && _model.IsSuggestionListAtCursor && Keyboard.FocusedElement == CanvasView)
+            {
+                _model.MoveSuggestion(key == Key.Down ? 1 : -1);
+                return true;
+            }
+
+            return false;
         }
 
         /// <summary>The key pressed as the shortcuts write it: Ctrl+1, Ctrl+Shift+P, F3.</summary>
@@ -871,7 +1038,36 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>What is typed changed: the AutoComplete list is asked for once the delay of Input Settings has gone by with no other key.</summary>
         private void OnModelPropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
-            if (e.PropertyName != nameof(MainViewModel.CommandText) || _model == null)
+            if (_model == null)
+            {
+                return;
+            }
+
+            switch (e.PropertyName)
+            {
+                case nameof(MainViewModel.IsDynamicInputShown):
+                case nameof(MainViewModel.IsDynamicInputPolar):
+                case nameof(MainViewModel.IsSuggestionListAtCursor):
+                case nameof(MainViewModel.IsDynamicInputMenuOpen):
+                    // The box opened, or the list or the menu under it: placed again once laid out, so that it stays on the canvas.
+                    Dispatcher.BeginInvoke(new Action(() =>
+                    {
+                        DynamicInputLayer.UpdateLayout();
+                        bool frozen = _model != null && (_model.IsSuggestionListAtCursor || _model.IsDynamicInputMenuOpen);
+
+                        if (frozen && Canvas.GetLeft(DynamicInputBox) is double left && !double.IsNaN(left))
+                        {
+                            KeepOnCanvas();
+                        }
+                        else
+                        {
+                            PlaceDynamicInput(_dynamicAt.X, _dynamicAt.Y);
+                        }
+                    }), System.Windows.Threading.DispatcherPriority.Loaded);
+                    return;
+            }
+
+            if (e.PropertyName != nameof(MainViewModel.CommandText))
             {
                 return;
             }
@@ -1031,6 +1227,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 return;
             }
+
+            // A click on the canvas closes the AutoComplete list and the options menu at the cursor, and goes on as a click.
+            if (_model.IsSuggestionListAtCursor)
+            {
+                _model.CloseSuggestions();
+            }
+
+            _model.CloseDynamicInputMenu();
 
             if (_model.IsTextEditShown)
             {

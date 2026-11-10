@@ -10,8 +10,35 @@ using GeometryHelper.Geometry;
 namespace GeometryHelper.Dxf.Viewer.Wpf
 {
     /// <summary>
-    /// Dynamic input (DYN, F12) with its two fields at a point prompt, the command line shown or hidden (Ctrl+9), and AutoCAD's
-    /// Select Color dialog for the Color row of Properties and for the colour of new objects in the ribbon's colour box.
+    /// A keyword of the options menu of dynamic input, the menu the ↓ of the box at the cursor opens: "Close", "Undo".
+    /// </summary>
+    public sealed class DynamicInputOptionViewModel : ObservableObject
+    {
+        private bool _isSelected;
+
+        internal DynamicInputOptionViewModel(string keyword) => Keyword = keyword;
+
+        /// <summary>Gets the keyword as the prompt writes it, the capital letters being what is typed: "Close", "mOde".</summary>
+        public string Keyword { get; }
+
+        /// <summary>Gets or sets whether the row is the one Enter or Space picks, highlighted; the first when the menu opens.</summary>
+        public bool IsSelected
+        {
+            get => _isSelected;
+            set => Set(ref _isSelected, value);
+        }
+
+        /// <inheritdoc/>
+        public override string ToString() => Keyword;
+    }
+
+    /// <summary>
+    /// Dynamic input (DYN, F12) at the cursor, as AutoCAD 2021's: at the Command prompt what is typed with the AutoComplete
+    /// list under it; in a command the prompt with the ↓ of its options menu, the pointer input fields X and Y (relative to the
+    /// base point, as DYNPIFORMAT 0; # typed first for absolute, @ for relative) and the dimensional input of LINE and PLINE,
+    /// the length on a dimension line along the rubber band and the angle on an arc. Then the command line shown or hidden
+    /// (Ctrl+9), and AutoCAD's Select Color dialog for the Color row of Properties and for the colour of new objects in the
+    /// ribbon's colour box.
     /// </summary>
     public sealed partial class MainViewModel
     {
@@ -27,7 +54,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private static readonly string[] CurrentColorNames = { "ByLayer", "ByBlock", "Red", "Yellow", "Green", "Cyan", "Blue", "Magenta", "White" };
 
         private bool _commandLineShown = true;
+        private IReadOnlyList<DynamicInputOptionViewModel> _dynamicOptions = Array.Empty<DynamicInputOptionViewModel>();
         private GeoPoint2 _cursorAt;
+        private bool _absolute;
         private string _lockedFirst;
         private string _lockedSecond;
         private bool _secondActive;
@@ -51,11 +80,56 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             set => Set(ref _commandLineShown, value);
         }
 
-        /// <summary>Gets whether the box of dynamic input is shown: DYN on and a command running, not while it edits a text in place; with none, nothing is shown.</summary>
-        public bool IsDynamicInputShown => DynamicInput.IsOn && IsCommandRunning && Prompt.Length > 0 && Session?.Prompt?.InPlace == null;
+        /// <summary>
+        /// Gets whether the box of dynamic input is shown at the cursor: DYN on and a command running, not while it edits a text
+        /// in place, or DYN on at the Command prompt once something is typed ("REC"); with nothing typed and no command, nothing
+        /// is shown.
+        /// </summary>
+        public bool IsDynamicInputShown => DynamicInput.IsOn && _current != null
+            && (IsCommandRunning ? Prompt.Length > 0 && Session.Prompt?.InPlace == null : CommandText.Length > 0);
 
-        /// <summary>Gets the prompt the box of dynamic input shows, as the command line's: "Specify next point or [Undo]:"; empty while it is hidden.</summary>
-        public string DynamicInputPrompt => IsDynamicInputShown ? Prompt : string.Empty;
+        /// <summary>
+        /// Gets the prompt the box of dynamic input shows, as AutoCAD's tooltip words it: the message, "Specify first point:", or
+        /// for a prompt with options the message and its "or", "Specify next point or", the options left to the ↓ menu; empty at
+        /// the Command prompt and while the box is hidden.
+        /// </summary>
+        public string DynamicInputPrompt
+        {
+            get
+            {
+                if (!IsDynamicInputShown || !IsCommandRunning)
+                {
+                    return string.Empty;
+                }
+
+                CadPrompt prompt = Session.Prompt;
+
+                if (prompt == null || prompt.Keywords.Count == 0)
+                {
+                    return Prompt;
+                }
+
+                return prompt.Kind == CadPromptKind.Keyword ? prompt.Message : prompt.Message + " or";
+            }
+        }
+
+        /// <summary>Gets whether the prompt in the box has options, drawn as the ↓ that opens their menu (<see cref="OpenDynamicInputMenu"/>).</summary>
+        public bool HasDynamicInputOptions => IsDynamicInputShown && IsCommandRunning && Session.Prompt != null && Session.Prompt.Keywords.Count > 0;
+
+        /// <summary>Gets whether the options menu of dynamic input is open under the box: the keywords of the prompt, one per row.</summary>
+        public bool IsDynamicInputMenuOpen => _dynamicOptions.Count > 0;
+
+        /// <summary>Gets the rows of the options menu, empty while it is closed: for LINE's third point Close and Undo, the first highlighted.</summary>
+        public IReadOnlyList<DynamicInputOptionViewModel> DynamicInputOptions => _dynamicOptions;
+
+        /// <summary>
+        /// Gets whether the AutoComplete list shows under the box of dynamic input at the cursor rather than above the command
+        /// line: DYN on and no command running. The command line keeps its own list closed meanwhile.
+        /// </summary>
+        public bool IsSuggestionListAtCursor => IsSuggestionListOpen && DynamicInput.IsOn && !IsCommandRunning;
+
+        /// <summary>Gets whether the AutoComplete list shows above the command line: open, with DYN off.</summary>
+        public bool IsSuggestionListAtCommandLine => IsSuggestionListOpen && !IsSuggestionListAtCursor;
 
         /// <summary>
         /// Gets the value the box of dynamic input shows: what is typed, once something is; else, while a point, a distance or
@@ -100,15 +174,22 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>
-        /// Gets whether the box of dynamic input shows two fields, as AutoCAD's while a point is asked: the distance and the
-        /// angle from the prompt's base point, or with none the X and the Y of the cursor. Tab moves from one to the other
-        /// (<see cref="TabDynamicInput"/>), a number typed locks its field, and Enter takes the point from both.
+        /// Gets whether dynamic input shows two fields, as AutoCAD's while a point is asked: at LINE's and PLINE's next point the
+        /// length and the angle from the base point (<see cref="IsDynamicInputPolar"/>); at another point with a base point the X
+        /// and the Y from it, RECTANG's other corner 1 200 by 800 from the first; with none the X and the Y of the cursor. Tab
+        /// moves from one to the other (<see cref="TabDynamicInput"/>), a number typed locks its field, and Enter takes the
+        /// point from both.
         /// </summary>
         /// <remarks>A point prompt that also takes text, as ZOOM's takes a scale 2X, keeps the one box: a number typed there is not an X.</remarks>
         public bool IsDynamicInputFields => IsDynamicInputShown && Session?.Prompt?.Kind == CadPromptKind.Point && !Session.Prompt.AcceptsText;
 
-        /// <summary>Gets whether the two fields are the distance and the angle from the base point rather than X and Y.</summary>
-        public bool IsDynamicInputPolar => IsDynamicInputFields && Session.Prompt.BasePoint.HasValue;
+        /// <summary>
+        /// Gets whether the two fields are dimensional input, the length and the angle from the base point rather than X and Y:
+        /// at the next point of LINE and PLINE, where the canvas draws the length on a dimension line along the rubber band and
+        /// the angle on an arc from the X axis.
+        /// </summary>
+        public bool IsDynamicInputPolar => IsDynamicInputFields && Session.Prompt.BasePoint.HasValue && Session.Prompt.Message == "Specify next point"
+            && (Session.Current?.Name == "LINE" || Session.Current?.Name == "PLINE");
 
         /// <summary>
         /// Gets what the first field shows, the distance or the X: what is typed into it, else the value locked by Tab, else the
@@ -118,6 +199,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public string DynamicInputFirst => FieldText(false);
 
         /// <summary>Gets what the second field shows, the angle in degrees or the Y, as <see cref="DynamicInputFirst"/> does: "53.1".</summary>
+        /// <remarks>With a base point and no dimensional input the X and the Y are the cursor's from the base point, relative as AutoCAD's DYNPIFORMAT 0.</remarks>
         public string DynamicInputSecond => FieldText(true);
 
         /// <summary>Gets whether the first field is locked, drawn with a lock: a value typed into it or locked by Tab, which Enter takes in place of the cursor's.</summary>
@@ -207,9 +289,65 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }));
 
         /// <summary>
+        /// ↓ with the box of dynamic input shown: opens the menu of the prompt's options, the first highlighted.
+        /// </summary>
+        /// <returns>Whether the menu opened; false where the prompt has no options, when ↓ is the command line's.</returns>
+        public bool OpenDynamicInputMenu()
+        {
+            if (!HasDynamicInputOptions)
+            {
+                return false;
+            }
+
+            var rows = Session.Prompt.Keywords.Select(k => new DynamicInputOptionViewModel(k)).ToList();
+            rows[0].IsSelected = true;
+            SetDynamicOptions(rows);
+            return true;
+        }
+
+        /// <summary>Moves the highlighted row of the options menu down or up, as the arrows do, stopping at either end.</summary>
+        /// <param name="step">1 for down, -1 for up.</param>
+        public void MoveDynamicInputOption(int step)
+        {
+            if (_dynamicOptions.Count == 0)
+            {
+                return;
+            }
+
+            int index = Math.Max(0, Math.Min(_dynamicOptions.Count - 1, _dynamicOptions.ToList().FindIndex(o => o.IsSelected) + step));
+
+            for (int i = 0; i < _dynamicOptions.Count; i++)
+            {
+                _dynamicOptions[i].IsSelected = i == index;
+            }
+        }
+
+        /// <summary>Picks a row of the options menu, or the highlighted one where none is given, as Enter, Space or a click does: the menu closes and the prompt takes the keyword.</summary>
+        /// <param name="row">The row; null for the one highlighted.</param>
+        /// <returns>False where the menu is closed.</returns>
+        public bool PickDynamicInputOption(DynamicInputOptionViewModel row = null)
+        {
+            row = row ?? _dynamicOptions.FirstOrDefault(o => o.IsSelected);
+            CloseDynamicInputMenu();
+
+            if (row == null)
+            {
+                return false;
+            }
+
+            CommandText = string.Empty;
+            Execute(row.Keyword);
+            return true;
+        }
+
+        /// <summary>Closes the options menu, as Esc, a key typed or a click elsewhere does; the command goes on.</summary>
+        public void CloseDynamicInputMenu() => SetDynamicOptions(Array.Empty<DynamicInputOptionViewModel>());
+
+        /// <summary>
         /// Tab while the fields of dynamic input are shown, as AutoCAD's: a number typed locks the field it was typed into, and
         /// the other field takes what is typed next. Locked distance 300 and Enter take the point 300 from the base point in
-        /// the cursor's direction; locked angle 45 takes the cursor's distance at 45°.
+        /// the cursor's direction; locked angle 45 takes the cursor's distance at 45°. A # typed before the first number makes
+        /// the point absolute.
         /// </summary>
         /// <returns>Whether the fields took the Tab; false while they are not shown, when Tab is the window's.</returns>
         public bool TabDynamicInput()
@@ -219,7 +357,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return false;
             }
 
-            string typed = CommandText.Trim();
+            string whole = CommandText.Trim();
+            string typed = Bare(whole);
 
             if (typed.Length > 0 && !IsNumber(typed))
             {
@@ -229,6 +368,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             if (typed.Length > 0)
             {
+                _absolute |= whole[0] == '#';
+
                 if (_secondActive)
                 {
                     _lockedSecond = typed;
@@ -257,11 +398,31 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private StatusToggleViewModel FindToggle(string name)
             => string.Equals(name, DynamicInput.Name, StringComparison.OrdinalIgnoreCase) ? DynamicInput : Toggles.FirstOrDefault(t => string.Equals(t.Name, name, StringComparison.OrdinalIgnoreCase));
 
-        /// <summary>DYN switched: the settings in use follow it, and the box is shown or hidden.</summary>
+        /// <summary>DYN switched: the settings in use follow it, and the box is shown or hidden; the AutoComplete list moves between the cursor and the command line.</summary>
         private void OnDynamicInputChanged(object sender, PropertyChangedEventArgs e)
         {
             _settings.DynamicInput = DynamicInput.IsOn;
+            CloseDynamicInputMenu();
             RaiseDynamicInput();
+            RaiseSuggestionPlace();
+        }
+
+        private void SetDynamicOptions(IReadOnlyList<DynamicInputOptionViewModel> rows)
+        {
+            if (_dynamicOptions.Count == 0 && rows.Count == 0)
+            {
+                return;
+            }
+
+            _dynamicOptions = rows;
+            Raise(nameof(DynamicInputOptions));
+            Raise(nameof(IsDynamicInputMenuOpen));
+        }
+
+        private void RaiseSuggestionPlace()
+        {
+            Raise(nameof(IsSuggestionListAtCursor));
+            Raise(nameof(IsSuggestionListAtCommandLine));
         }
 
         /// <summary>What the box of dynamic input shows follows the prompt, the cursor and what is typed; a new prompt unlocks its fields.</summary>
@@ -275,11 +436,25 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     _lockedFirst = null;
                     _lockedSecond = null;
                     _secondActive = false;
+                    _absolute = false;
+                    CloseDynamicInputMenu();
                     RaiseDynamicInput();
+                    RaiseSuggestionPlace();
                     break;
                 case nameof(CommandText):
+                    // A key typed with the options menu open closes it and goes into the field.
+                    if (CommandText.Length > 0)
+                    {
+                        CloseDynamicInputMenu();
+                    }
+
+                    RaiseDynamicInput();
+                    break;
                 case nameof(CursorText):
                     RaiseDynamicInput();
+                    break;
+                case nameof(IsSuggestionListOpen):
+                    RaiseSuggestionPlace();
                     break;
             }
         }
@@ -288,6 +463,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             Raise(nameof(IsDynamicInputShown));
             Raise(nameof(DynamicInputPrompt));
+            Raise(nameof(HasDynamicInputOptions));
             Raise(nameof(DynamicInputValue));
             Raise(nameof(IsDynamicInputFields));
             Raise(nameof(IsDynamicInputPolar));
@@ -308,9 +484,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>
         /// Enter with the fields of dynamic input shown: the point from a field locked or a number typed into one, the other
-        /// field the cursor's, fed to the prompt as a click is. A coordinate typed whole, a keyword, or Enter with nothing
-        /// typed or locked is left for the command line, as is a distance alone, which the command line takes along the
-        /// rubber band towards the cursor.
+        /// field the cursor's, fed to the prompt as a click is; with a base point the X and the Y are from it unless # was typed
+        /// first. A coordinate typed whole goes to the command line, made relative where a base point is ("1200,800" as
+        /// "@1200,800", "#1200,800" as "1200,800"). A keyword, or Enter with nothing typed or locked, is left for the command
+        /// line, as is a length alone, which the command line takes along the rubber band towards the cursor.
         /// </summary>
         /// <param name="typed">What was typed.</param>
         /// <returns>Whether the fields gave the answer.</returns>
@@ -321,14 +498,38 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             string first = _lockedFirst;
             string second = _lockedSecond;
             bool secondActive = _secondActive;
+            bool absolute = _absolute;
             _lockedFirst = null;
             _lockedSecond = null;
             _secondActive = false;
+            _absolute = false;
+            CloseDynamicInputMenu();
             string text = typed.Trim();
 
-            if (!fields || (text.Length > 0 && !IsNumber(text)))
+            if (!fields)
             {
                 return false;
+            }
+
+            GeoPoint2? basePoint = Session.Prompt.BasePoint;
+
+            if (text.Length > 0 && !IsNumber(Bare(text)))
+            {
+                string whole = WholeCoordinate(text, basePoint.HasValue);
+
+                if (whole == null)
+                {
+                    return false;
+                }
+
+                Execute(whole);
+                return true;
+            }
+
+            if (text.Length > 0)
+            {
+                absolute |= text[0] == '#';
+                text = Bare(text);
             }
 
             if (text.Length > 0)
@@ -348,7 +549,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return false;
             }
 
-            if (polar && second == null)
+            if (polar && second == null && !absolute)
             {
                 Execute(first);
                 return true;
@@ -358,12 +559,18 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             GeoPoint2 point;
             CadUcs ucs = Ucs;
 
-            if (polar)
+            if (polar && !absolute)
             {
-                GeoPoint2 from = Session.Prompt.BasePoint.Value;
+                GeoPoint2 from = basePoint.Value;
                 double length = first != null ? Number(first) : (_cursorAt - from).Length;
                 double angle = Number(second) * Math.PI / 180.0;
                 point = from + ucs.ToWorld(new GeoVector2(length * Math.Cos(angle), length * Math.Sin(angle)));
+            }
+            else if (basePoint.HasValue && !absolute)
+            {
+                // Relative, as DYNPIFORMAT 0: the X and the Y from the base point, the one not typed the cursor's.
+                GeoVector2 way = ucs.ToUcs(_cursorAt - basePoint.Value);
+                point = basePoint.Value + ucs.ToWorld(new GeoVector2(first != null ? Number(first) : way.X, second != null ? Number(second) : way.Y));
             }
             else
             {
@@ -427,7 +634,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             if (CommandText.Length > 0 && second == _secondActive)
             {
-                return CommandText;
+                return Bare(CommandText);
             }
 
             string locked = second ? _lockedSecond : _lockedFirst;
@@ -448,6 +655,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             GeoVector2 way = Ucs.ToUcs(_cursorAt - from.Value);
             double dx = way.X;
             double dy = way.Y;
+
+            if (!IsDynamicInputPolar)
+            {
+                return _settings.FormatNumber(second ? dy : dx, _settings.CoordinateDecimals);
+            }
 
             if (!second)
             {
@@ -488,9 +700,30 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return false;
             }
 
-            before = typed.Substring(0, at).Trim().TrimStart('@');
+            before = Bare(typed.Substring(0, at).Trim());
             after = typed.Substring(at + 1).Trim();
             return true;
+        }
+
+        /// <summary>A field's text without the # or @ typed first, which say absolute or relative.</summary>
+        private static string Bare(string text) => text.Length > 0 && (text[0] == '#' || text[0] == '@') ? text.Substring(1).Trim() : text;
+
+        /// <summary>
+        /// A coordinate typed whole into the fields as the command line reads it: "#x,y" absolute as "x,y", "@x,y" as typed, and
+        /// with a base point "x,y" or "d&lt;a" made relative, "@x,y"; null where the text is not two numbers parted by a comma
+        /// or a &lt;, as a keyword is not.
+        /// </summary>
+        private static string WholeCoordinate(string text, bool based)
+        {
+            int at = text.IndexOf('<');
+            at = at < 0 ? text.IndexOf(',') : at;
+
+            if (at < 0 || !IsNumber(Bare(text.Substring(0, at).Trim())) || !IsNumber(text.Substring(at + 1).Trim()))
+            {
+                return null;
+            }
+
+            return text[0] == '#' ? text.Substring(1).Trim() : text[0] == '@' || !based ? text : "@" + text;
         }
 
         private static bool IsNumber(string text) => double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double value) && !double.IsNaN(value) && !double.IsInfinity(value);
