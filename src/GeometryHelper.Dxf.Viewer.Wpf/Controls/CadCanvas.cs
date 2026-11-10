@@ -603,7 +603,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             string numbers = string.Join("|", new object[]
             {
                 view.CenterX, view.CenterY, view.PixelsPerUnit, view.Width, view.Height, info.Width, info.Height, scale,
-                o.Background, o.Paper, o.ShowLineWeights, o.FontName, o.VisibleLineColor, o.HiddenLineColor, o.HiddenLayerName,
+                o.Background, o.Paper, o.BlockEditorBackground, o.ShowLineWeights, o.FontName, o.VisibleLineColor, o.HiddenLineColor, o.HiddenLayerName,
                 ShowGrid, GridSpacing, paper.MinX, paper.MinY, paper.MaxX, paper.MaxY, ucs.Origin.X, ucs.Origin.Y, ucs.Angle,
                 CadImageCache.Version,
             }.Select(v => Convert.ToString(v, CultureInfo.InvariantCulture)));
@@ -805,7 +805,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         protected override void OnRender(DrawingContext drawingContext)
         {
             var whole = new Rect(0, 0, ActualWidth, ActualHeight);
-            int rgb = Options.Background;
+            int rgb = Space != null && Space.IsBlockEditor ? Options.BlockEditorBackground : Options.Background;
             drawingContext.DrawRectangle(new SolidColorBrush(Color.FromRgb((byte)(rgb >> 16), (byte)(rgb >> 8), (byte)rgb)), null, whole);
             double scale = PixelScale;
 
@@ -1327,7 +1327,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             int width = picture.Width;
             int height = picture.Height;
             int stride = picture.RowBytes / 4;
-            int rgb = Options.Background & 0xFFFFFF;
+            int rgb = (Space != null && Space.IsBlockEditor ? Options.BlockEditorBackground : Options.Background) & 0xFFFFFF;
             int background = unchecked((int)0xFF000000) | rgb;
             int Lighter(double share) => unchecked((int)0xFF000000) | (Lift((rgb >> 16) & 0xFF, share) << 16) | (Lift((rgb >> 8) & 0xFF, share) << 8) | Lift(rgb & 0xFF, share);
             int minor = Lighter(0.08);
@@ -2317,7 +2317,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return;
             }
 
-            int rgb = Space != null && !Space.IsModel ? Options.Paper : Options.Background;
+            int rgb = Space != null ? Options.BackgroundOf(Space) : Options.Background;
             double luminance = (0.2126 * ((rgb >> 16) & 0xFF) + 0.7152 * ((rgb >> 8) & 0xFF) + 0.0722 * (rgb & 0xFF)) / 255.0;
             Pen pen = luminance < 0.5 ? CrossPenLight : CrossPenDark;
             Point at = _mouse.Value;
@@ -2375,9 +2375,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             double maxY = reach.Max(v => v.Y) + UcsIconLetter / 2.0;
             CadUcs ucs = document.Ucs.WorkingOf(WorkSpace);
 
-            if (document.Ucs.IconAtOrigin)
+            // In the Block Editor the icon stands at the block's base point, as AutoCAD's.
+            CadBlockEditor editor = WorkSpace.IsBlockEditor ? document.BlockEditor : null;
+
+            if (document.Ucs.IconAtOrigin || editor != null)
             {
-                Point origin = ToScreen(view, new GeoPoint2(ucs.Origin.X, ucs.Origin.Y), PixelScale);
+                GeoPoint2 at = editor != null ? new GeoPoint2(editor.BasePoint.X, editor.BasePoint.Y) : new GeoPoint2(ucs.Origin.X, ucs.Origin.Y);
+                Point origin = ToScreen(view, at, PixelScale);
 
                 if (origin.X + minX >= UcsIconMargin && origin.X + maxX <= ActualWidth - UcsIconMargin && origin.Y + minY >= UcsIconMargin && origin.Y + maxY <= ActualHeight - UcsIconMargin)
                 {
@@ -2403,7 +2407,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return;
             }
 
-            int rgb = Space.IsModel ? Options.Background : Options.Paper;
+            int rgb = Options.BackgroundOf(Space);
             double luminance = (0.2126 * ((rgb >> 16) & 0xFF) + 0.7152 * ((rgb >> 8) & 0xFF) + 0.0722 * (rgb & 0xFF)) / 255.0;
             Brush ink = luminance < 0.5 ? Brushes.White : Brushes.Black;
             var pen = new Pen(ink, 1.5);

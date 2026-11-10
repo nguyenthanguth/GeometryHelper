@@ -1,0 +1,105 @@
+<UserControl x:Class="GeometryHelper.Dxf.Viewer.Wpf.BlockEditorRibbon"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!--
+    The contextual Block Editor tab, as the design draws it: Open/Save, Geometric, Dimensional, Manage, Action Parameters,
+    Visibility and Close. Its logic is BlockEditorRibbonViewModel. Test Block, the constraints, the parameters, the actions and
+    the authoring of visibility states are greyed, as BigButton and SmallButton grey a button by default.
+    -->
+    <UserControl.Resources>
+        <Geometry x:Key="IconEditBlock">M4 4h10v10H4zM14 14l6 6M16 4l4 4-9 9H7v-4z</Geometry>
+        <Geometry x:Key="IconSaveBlock">M5 3h11l3 3v15H5zM8 3v5h7V3M8 21v-7h8v7</Geometry>
+        <Geometry x:Key="IconSaveAs">M5 3h11l3 3v15H5zM8 3v5h7V3M14 14l4 4M18 14v4h-4</Geometry>
+        <Geometry x:Key="IconTest">M7 4v16l13-8z</Geometry>
+        <Geometry x:Key="IconAutoConstrain">M4 20 20 4M4 4h6M14 20h6M7 4v.01M17 20v.01</Geometry>
+        <Geometry x:Key="IconLinear">M4 8v8M20 8v8M4 12h16M4 12l3-2v4zM20 12l-3-2v4z</Geometry>
+        <Geometry x:Key="IconAttribute">M4 6h16v12H4zM8 10h4M8 14h8M15 9l2 2-2 2</Geometry>
+        <Geometry x:Key="IconProperties">M4 4h16v16H4zM8 9h8M8 13h8M8 17h5</Geometry>
+        <Geometry x:Key="IconPoint">M4 18h16M4 14v8M20 14v8M8 10l4-6 4 6z</Geometry>
+        <Geometry x:Key="IconMove">M13 3 5 14h6l-1 7 8-11h-6z</Geometry>
+        <Geometry x:Key="IconVisibility">M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12zM12 9a3 3 0 1 0 .01 0</Geometry>
+        <Geometry x:Key="IconClose">M6 6l12 12M18 6 6 18</Geometry>
+    </UserControl.Resources>
+
+    <StackPanel Orientation="Horizontal">
+        <Border Style="{DynamicResource GroupBorder}">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Bottom" Style="{DynamicResource GroupTitle}" Text="Open/Save" />
+                <StackPanel Orientation="Horizontal">
+                    <Button Style="{DynamicResource BigButton}" Tag="{StaticResource IconEditBlock}" Content="Edit Block" IsEnabled="True" Command="{Binding EditBlockCommand}" ToolTip="BEDIT: close this block, then choose another" />
+                    <Button Style="{DynamicResource BigButton}" Tag="{StaticResource IconSaveBlock}" Content="Save Block" IsEnabled="True" Command="{Binding SaveBlockCommand}" ToolTip="BSAVE" />
+                    <WrapPanel Style="{DynamicResource SmallColumn}">
+                        <Button Style="{DynamicResource SmallButton}" Tag="{StaticResource IconSaveAs}" Content="Save As" IsEnabled="True" Command="{Binding SaveAsCommand}" ToolTip="BSAVEAS" />
+                        <Button Style="{DynamicResource SmallButton}" Tag="{StaticResource IconTest}" Content="Test Block" ToolTip="BTESTBLOCK: not in this version" />
+                    </WrapPanel>
+                </StackPanel>
+            </DockPanel>
+        </Border>
+        <Border Style="{DynamicResource GroupBorder}">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Bottom" Style="{DynamicResource GroupTitle}" Text="Geometric" Opacity="0.6" />
+                <StackPanel Orientation="Horizontal">
+                    <Button Style="{DynamicResource BigButton}" Tag="{StaticResource IconAutoConstrain}" Content="Auto Constrain" ToolTip="Geometric constraints: not in this version" Margin="0" />
+                </StackPanel>
+            </DockPanel>
+        </Border>
+        <Border Style="{DynamicResource GroupBorder}">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Bottom" Style="{DynamicResource GroupTitle}" Text="Dimensional" Opacity="0.6" />
+                <StackPanel Orientation="Horizontal">
+                    <Button Style="{DynamicResource BigButton}" Tag="{StaticResource IconLinear}" Content="Linear ▾" ToolTip="Dimensional constraints: not in this version" />
+                    <WrapPanel Style="{DynamicResource SmallColumn}">
+                        <Button Style="{DynamicResource SmallButton}" Content="Block Table" ToolTip="Not in this version" />
+                        <Button Style="{DynamicResource SmallButton}" Content="Delete" ToolTip="Not in this version" />
+                    </WrapPanel>
+                </StackPanel>
+            </DockPanel>
+        </Border>
+        <Border Style="{DynamicResource GroupBorder}">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Bottom" Style="{DynamicResource GroupTitle}" Text="Manage" />
+                <StackPanel Orientation="Horizontal">
+                    <Button Style="{DynamicResource BigButton}" Tag="{StaticResource IconAttribute}" Content="Attribute Definition" IsEnabled="True" Command="{Binding AttributeDefinitionCommand}" ToolTip="ATTDEF: the definition goes into the block" />
+                    <Button Style="{DynamicResource BigButton}" Tag="{StaticResource IconProperties}" Content="Block Properties" IsEnabled="True" Command="{Binding BlockPropertiesCommand}" ToolTip="Properties shows the Block group: description, units and flags" />
+                    <WrapPanel Style="{DynamicResource SmallColumn}">
+                        <Button Style="{DynamicResource SmallButton}" Content="Authoring Palettes" ToolTip="BAUTHORPALETTE: not in this version" />
+                        <Button Style="{DynamicResource SmallButton}" Content="Parameter Manager" ToolTip="Not in this version" />
+                        <Button Style="{DynamicResource SmallButton}" Content="Construction" ToolTip="Not in this version" />
+                    </WrapPanel>
+                </StackPanel>
+            </DockPanel>
+        </Border>
+        <Border Style="{DynamicResource GroupBorder}">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Bottom" Style="{DynamicResource GroupTitle}" Text="Action Parameters" Opacity="0.6" />
+                <StackPanel Orientation="Horizontal">
+                    <Button Style="{DynamicResource BigButton}" Tag="{StaticResource IconPoint}" Content="Point ▾" ToolTip="Parameters: not in this version" />
+                    <Button Style="{DynamicResource BigButton}" Tag="{StaticResource IconMove}" Content="Move ▾" ToolTip="Actions: not in this version" Margin="0" />
+                </StackPanel>
+            </DockPanel>
+        </Border>
+        <Border Style="{DynamicResource GroupBorder}">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Bottom" Style="{DynamicResource GroupTitle}" Text="Visibility" />
+                <StackPanel Orientation="Horizontal">
+                    <Button Style="{DynamicResource BigButton}" Tag="{StaticResource IconVisibility}" Content="Visibility States" ToolTip="Authoring visibility states: not in this version" />
+                    <StackPanel Width="150" Margin="0,2,0,0">
+                        <ComboBox Style="{DynamicResource GhComboBox}" IsEnabled="{Binding HasVisibilityStates}" ToolTip="Current visibility state: live only for a block with visibility states"
+                                  AutomationProperties.Name="Current visibility state" Margin="0,0,0,4">
+                            <ComboBoxItem Content="{Binding VisibilityState}" IsSelected="True" />
+                        </ComboBox>
+                        <Button Style="{DynamicResource SmallButton}" Content="Make Visible" ToolTip="Not in this version" />
+                        <Button Style="{DynamicResource SmallButton}" Content="Make Invisible" ToolTip="Not in this version" />
+                    </StackPanel>
+                </StackPanel>
+            </DockPanel>
+        </Border>
+        <Border Style="{DynamicResource GroupBorder}">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Bottom" Style="{DynamicResource GroupTitle}" Text="Close" />
+                <Button Style="{DynamicResource BigButton}" Tag="{StaticResource IconClose}" Content="Close Block Editor" IsEnabled="True" Command="{Binding CloseCommand}" ToolTip="BCLOSE" Foreground="#F26B3A" Margin="0" />
+            </DockPanel>
+        </Border>
+    </StackPanel>
+</UserControl>
