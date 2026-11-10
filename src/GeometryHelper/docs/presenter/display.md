@@ -113,6 +113,19 @@ selection and the highlight follow the lines as they are drawn. Not as AutoCAD: 
 is set left to right, `\pxsm` with a factor is 0.05 of a height off on one line in 536, and `\M+` codes are shown as
 written.
 
+The MTEXT editor (TEXTEDIT, MTEXT) sets the words being typed by this same layout, as AutoCAD's in-place editor shows
+them as they will look:
+[`CadMTextEditorLayout`](xref:GeometryHelper.Dxf.Viewer.CadMTextEditorLayout) lays out the editor's words with the
+MTEXT's width, attachment, spacing, columns, mask and frame, and gives the parts the canvas would draw and where each
+place of the editor stands. The editor's frame draws those parts at the canvas's zoom, so a line breaks, a baseline lies
+and a stack stands in the editor where it will be drawn. In "II II II" 20 wide the caret after the last letter is on the
+second line, 7 along it, and the space the first line breaks at stays at that line's end, at 20. A word typed past the
+width takes the caret down with it; Home, End and the arrows up and down follow the lines as they wrap; an Enter at the
+end makes an empty line for the caret, which the drawn MTEXT does not have. Typing in an MTEXT of 2 000 letters lays it
+out again in about 0.5 ms a key and draws it in about 1 ms. The editor still lacks AutoCAD's own aids: its ruler shows no
+indents or tab stops of the paragraph, the columns cannot be dragged, and a width code in times of a style whose width
+is not 1 is set as if the style's width were 1.
+
 ### Viewports
 
 A layout shows model space through its viewports. A `DisplayViewport2` has the frame in paper units (`CenterX`, `CenterY`,
