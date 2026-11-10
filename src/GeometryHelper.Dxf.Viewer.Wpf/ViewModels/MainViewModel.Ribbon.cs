@@ -400,14 +400,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Shows the tabs of the spaces again where the document's spaces changed, as LAYOUT New or its undo changes them.</summary>
         private void SyncSpaceTabs()
         {
-            if (_current == null || SpaceTabs.Select(t => t.Space).SequenceEqual(_current.Document.Spaces))
+            if (_current == null || SpaceTabs.Select(t => t.Space).SequenceEqual(TabSpaces(_current.Document)))
             {
                 return;
             }
 
             SpaceTabs.Clear();
 
-            foreach (CadSpace space in _current.Document.Spaces)
+            foreach (CadSpace space in TabSpaces(_current.Document))
             {
                 SpaceTabs.Add(new SpaceTabViewModel(space) { IsActive = space == _current.Document.CurrentSpace });
             }

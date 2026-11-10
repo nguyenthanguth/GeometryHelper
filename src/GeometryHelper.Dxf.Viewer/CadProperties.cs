@@ -254,13 +254,32 @@ namespace GeometryHelper.Dxf.Viewer
                 new CadPropertyRow("Visual style", "2D Wireframe", true),
             };
 
-            return new[]
+            var groups = new List<CadPropertyGroup>
             {
                 new CadPropertyGroup("General", general),
                 new CadPropertyGroup("Plot style", plot),
                 new CadPropertyGroup("View", view),
                 new CadPropertyGroup("Misc", misc),
             };
+
+            // In the Block Editor the definition opened comes first, as AutoCAD's Block group: its name to be read, the rest set here.
+            CadBlockEditor editor = document.BlockEditor;
+
+            if (editor != null && !editor.IsCurrentDrawing && ReferenceEquals(space, editor.Space))
+            {
+                DxfBlockTableRecord block = editor.Space.Block;
+                groups.Insert(0, new CadPropertyGroup("Block", new List<CadPropertyRow>
+                {
+                    new CadPropertyRow("Name", block.Name, true),
+                    new CadPropertyRow("Description", Read(() => block.Comments, string.Empty) ?? string.Empty, false),
+                    new CadPropertyRow("Units", CadCommands.UnitName(Read(() => block.Units, DxfUnits.Undefined)), false, CadBlockUnits.Names),
+                    new CadPropertyRow("Allow exploding", YesNo(Read(() => block.Explodable, true)), false, YesNoChoices),
+                    new CadPropertyRow("Scale uniformly", YesNo(Read(() => block.BlockScaling == DxfBlockScaling.Uniform, false)), false, YesNoChoices),
+                    new CadPropertyRow("Annotative", "No", true),
+                }));
+            }
+
+            return groups;
         }
 
         /// <summary>

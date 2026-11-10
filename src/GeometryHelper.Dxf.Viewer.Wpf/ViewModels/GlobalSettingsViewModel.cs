@@ -816,6 +816,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     Info("Mode", "Dark (Light comes later)"),
                     Colour("Canvas background", () => s.CanvasBackground, v => s.CanvasBackground = v),
                     Colour("Paper", () => s.Paper, v => s.Paper = v),
+                    Colour("Block Editor background", () => s.BlockEditorBackground, v => s.BlockEditorBackground = v),
                     Colour("Visible lines on dark", () => s.VisibleLines, v => s.VisibleLines = v),
                     Colour("Hidden lines", () => s.HiddenLines, v => s.HiddenLines = v),
                     Colour("Selected objects", () => s.Selection, v => s.Selection = v),

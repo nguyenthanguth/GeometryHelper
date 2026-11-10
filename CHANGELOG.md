@@ -39,6 +39,19 @@ objects). A line and its dimension copied together leave the copy tied to the co
 its leader end moved along the axis measured alone; an angle of two lines keeps its arc's share of the angle. AutoCAD
 2021 audits a drawing with every case with no error and moves each such dimension with its objects.
 
+**NEW.** The presenter has AutoCAD 2021's Block Editor. BEDIT (BE) shows the Edit Block Definition dialog, &lt;Current
+Drawing&gt; first and then the drawing's named blocks with a preview and description, a new name making a new, empty
+block; -BEDIT asks `Enter block name or [?]:`. The block opens alone on a background of its own (Global settings,
+Block Editor background, #3B4049), the UCS icon at its base point, the Model tab only and the green Block Editor tab;
+every drawing and modify command, and ATTDEF, works on the block's own entities, each an undo step that stops where the
+block was opened or last saved. BSAVE (BS) redefines the block and draws every INSERT anew, the session one undo step
+"BEDIT"; BSAVEAS copies the content to a new block, the one opened left unchanged; BCLOSE (BC) asks Save, Discard or
+Cancel, and Discard reads the drawing back as it was. A door of one line given a second and saved shows both in each
+of its INSERTs, and one undo takes them back. With nothing selected Properties shows the Block group (description,
+units, Allow exploding, Scale uniformly). BEDIT, XREF, LAYOUT, PLOT, MSPACE, QSAVE and the other commands that leave the
+block say "Not allowed in the Block Editor.". `CadDocument.OpenBlockEditor`, `SaveBlock`, `SaveBlockAs` and
+`CloseBlockEditor`, with `CadBlockEditor`, do the same from code.
+
 **NEW.** The presenter's Layer manager has AutoCAD 2021's VP columns while a layout is current: VP Freeze, New VP Freeze,
 VP Color, VP Linetype, VP Lineweight, VP Transparency and VP Plot Style, acting on the viewport worked through or the one
 selected on the paper, an override marked blue; its right-click menu freezes and thaws a layer in all viewports, adds a

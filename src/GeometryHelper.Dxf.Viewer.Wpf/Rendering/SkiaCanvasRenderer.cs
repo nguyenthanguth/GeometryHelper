@@ -15,6 +15,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Gets or sets the colour of the paper of a layout as 0xRRGGBB; white by default.</summary>
         public int Paper { get; set; } = 0xFFFFFF;
 
+        /// <summary>Gets or sets the colour of the canvas behind a block open in the Block Editor as 0xRRGGBB; #3B4049 by default, so that the editor is never taken for model space.</summary>
+        public int BlockEditorBackground { get; set; } = 0x3B4049;
+
+        /// <summary>The colour behind a space: the Block Editor's, the canvas's of model space, or the paper of a layout.</summary>
+        internal int BackgroundOf(CadSpace space) => space.IsModel ? (space.IsBlockEditor ? BlockEditorBackground : Background) : Paper;
+
         /// <summary>Gets or sets the colour of selected entities and their grips as 0xRRGGBB.</summary>
         public int SelectionColor { get; set; } = 0x3D9BFF;
 
@@ -209,7 +215,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             Affine2 m = view.DrawingToScreen;
             double zoom = m.Scale;
             DisplayBox visible = view.VisibleBox;
-            int background = space.IsModel ? options.Background : options.Paper;
+            int background = options.BackgroundOf(space);
 
             if (zoom <= 0.0)
             {
@@ -259,7 +265,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 throw new ArgumentNullException(nameof(document));
             }
 
-            canvas.Clear(Color(options.Background, 255));
+            canvas.Clear(Color(space.IsBlockEditor ? options.BlockEditorBackground : options.Background, 255));
             DisplayList2 list = document.GetDisplay(space);
             Affine2 m = view.DrawingToScreen;
 
@@ -269,7 +275,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             var selected = selection == null ? null : new HashSet<string>(selection, StringComparer.OrdinalIgnoreCase);
-            DrawList(canvas, document, space, list, m, view.VisibleBox, options, selected, hover, only, null, space.IsModel ? options.Background : options.Paper);
+            DrawList(canvas, document, space, list, m, view.VisibleBox, options, selected, hover, only, null, options.BackgroundOf(space));
         }
 
         /// <summary>The ring of a box, its four corners.</summary>

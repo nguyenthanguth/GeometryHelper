@@ -510,6 +510,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 _model.ShowAttributeDefinition = dialog => AttributeDefinitionWindow.Show(Window.GetWindow(this), dialog);
                 _model.ShowAttributeEditor = dialog => AttributeEditorWindow.Show(Window.GetWindow(this), dialog);
                 _model.AskRedefineBlock = name => CadQuestionWindow.AskRedefineBlock(Window.GetWindow(this), name);
+                _model.ShowBlockEdit = dialog => BlockEditWindow.Show(Window.GetWindow(this), dialog);
+                _model.AskSaveBlockChanges = name => BlockCloseWindow.Ask(Window.GetWindow(this), name);
                 _model.ShowPasteSpecial = dialog => PasteSpecialWindow.Show(Window.GetWindow(this), dialog);
                 _model.ShowMatchPropSettings = dialog => MatchPropSettingsWindow.Show(Window.GetWindow(this), dialog);
                 _model.AskKeepMTextChanges = () => CadQuestionWindow.AskKeepMTextChanges(Window.GetWindow(this));
@@ -747,6 +749,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             GlobalSettings settings = _model.Settings;
             CanvasView.Options.Background = settings.CanvasBackground;
             CanvasView.Options.Paper = settings.Paper;
+            CanvasView.Options.BlockEditorBackground = settings.BlockEditorBackground;
             CanvasView.Options.SelectionColor = settings.Selection;
             CanvasView.Options.ShowLineWeights = settings.ShowLineWeights;
             CanvasView.Options.FontName = settings.DrawingFont;

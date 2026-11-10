@@ -97,7 +97,7 @@ namespace GeometryHelper.Dxf.Viewer
         public bool IsModified => _position != _savedPosition || (_groupRecords != null && _groupRecords.Count > 0) || (_ucs != null && _ucs.IsModified);
 
         /// <summary>Gets whether there is a step to undo; false while a command's group of edits is open.</summary>
-        public bool CanUndo => _position > 0 && _groupDepth == 0;
+        public bool CanUndo => _position > UndoFloor && _groupDepth == 0;
 
         /// <summary>Gets whether there is a step to redo; false while a command's group of edits is open.</summary>
         public bool CanRedo => _position < _steps.Count && _groupDepth == 0;
@@ -294,7 +294,7 @@ namespace GeometryHelper.Dxf.Viewer
                         continue;
                     case CadEditRecordKind.Added:
                         DxfEntity entity = scope.AddedEntityOf(record);
-                        CadSpace space = record.Space == null ? null : _spaces.Find(s => string.Equals(s.Name, record.Space, StringComparison.OrdinalIgnoreCase));
+                        CadSpace space = SpaceNamed(record.Space);
 
                         if (entity != null && space != null && !string.IsNullOrEmpty(record.Handle) && string.Equals(entity.Handle, record.Handle, StringComparison.OrdinalIgnoreCase))
                         {
@@ -435,7 +435,7 @@ namespace GeometryHelper.Dxf.Viewer
                 _groupRecords.RemoveRange(kept, _groupRecords.Count - kept);
             }
 
-            Changed?.Invoke(this, new CadDocumentChangedEventArgs(CadChangeKind.Rollback, _groupName, Array.Empty<string>(), _spaces.ToArray(), true));
+            Changed?.Invoke(this, new CadDocumentChangedEventArgs(CadChangeKind.Rollback, _groupName, Array.Empty<string>(), AllSpaces.ToArray(), true));
         }
 
         /// <summary>
@@ -570,7 +570,7 @@ namespace GeometryHelper.Dxf.Viewer
             if (made)
             {
                 Reload(_states[_position].Bytes, null);
-                Changed?.Invoke(this, new CadDocumentChangedEventArgs(CadChangeKind.Rollback, name, Array.Empty<string>(), _spaces.ToArray(), true));
+                Changed?.Invoke(this, new CadDocumentChangedEventArgs(CadChangeKind.Rollback, name, Array.Empty<string>(), AllSpaces.ToArray(), true));
             }
         }
 
@@ -692,7 +692,7 @@ namespace GeometryHelper.Dxf.Viewer
             _stale.Clear();
             _byHandle = null;
             _entityCount = null;
-            Changed?.Invoke(this, new CadDocumentChangedEventArgs(CadChangeKind.Regen, null, Array.Empty<string>(), _spaces.ToArray(), true));
+            Changed?.Invoke(this, new CadDocumentChangedEventArgs(CadChangeKind.Regen, null, Array.Empty<string>(), AllSpaces.ToArray(), true));
         }
 
         /// <summary>The name of an entity's kind for a message: LINE, CIRCLE.</summary>
@@ -742,7 +742,7 @@ namespace GeometryHelper.Dxf.Viewer
                 _groupRecords.Clear();
             }
 
-            Changed?.Invoke(this, new CadDocumentChangedEventArgs(CadChangeKind.Rollback, _groupName, Array.Empty<string>(), _spaces.ToArray(), true));
+            Changed?.Invoke(this, new CadDocumentChangedEventArgs(CadChangeKind.Rollback, _groupName, Array.Empty<string>(), AllSpaces.ToArray(), true));
         }
 
         private byte[] Snapshot()
@@ -865,7 +865,7 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Points the document and its spaces at a drawing read anew; see <see cref="Reload"/>.</summary>
         private void Rebind(DxfDatabase database, IReadOnlyList<CadEditRecord> records)
         {
-            var drop = new HashSet<CadSpace>(records == null ? _spaces : new List<CadSpace>());
+            var drop = new HashSet<CadSpace>(records == null ? AllSpaces : new List<CadSpace>());
             DisplayBuilder older = _builder;
             Database = database;
             _builder = new DisplayBuilder(database, this);
@@ -900,8 +900,9 @@ namespace GeometryHelper.Dxf.Viewer
 
             _spaces.Clear();
             _spaces.AddRange(spaces);
+            RebindBlockEditor(database);
 
-            if (!_spaces.Contains(CurrentSpace))
+            if (!_spaces.Contains(CurrentSpace) && !(CurrentSpace != null && CurrentSpace.IsBlockEditor))
             {
                 CurrentSpace = ModelSpace;
             }
@@ -988,7 +989,7 @@ namespace GeometryHelper.Dxf.Viewer
                     continue;
                 }
 
-                CadSpace space = record.Space == null ? null : _spaces.Find(s => string.Equals(s.Name, record.Space, StringComparison.OrdinalIgnoreCase));
+                CadSpace space = SpaceNamed(record.Space);
 
                 if (space == null)
                 {
@@ -1002,7 +1003,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (all || touched.Contains(ModelSpace))
             {
-                touched.UnionWith(all ? _spaces : _spaces.FindAll(s => !s.IsModel));
+                touched.UnionWith(all ? AllSpaces : _spaces.FindAll(s => !s.IsModel));
             }
 
             return touched;
@@ -1035,7 +1036,7 @@ namespace GeometryHelper.Dxf.Viewer
                 }
                 else
                 {
-                    CadSpace space = record.Space == null || record.Handle == null ? null : _spaces.Find(s => string.Equals(s.Name, record.Space, StringComparison.OrdinalIgnoreCase));
+                    CadSpace space = record.Handle == null ? null : SpaceNamed(record.Space);
 
                     if (space == null)
                     {
@@ -1124,7 +1125,7 @@ namespace GeometryHelper.Dxf.Viewer
                 }
             }
 
-            var spaces = _spaces.FindAll(touched.Contains);
+            var spaces = AllSpaces.FindAll(touched.Contains);
             Changed?.Invoke(this, new CadDocumentChangedEventArgs(kind, name, new List<string>(handles), spaces, tables));
         }
     }

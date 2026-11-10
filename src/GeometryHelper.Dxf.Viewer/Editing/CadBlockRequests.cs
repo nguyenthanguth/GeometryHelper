@@ -304,6 +304,40 @@ namespace GeometryHelper.Dxf.Viewer
         public CadDialogAction Action { get; set; }
     }
 
+    /// <summary>
+    /// The Edit Block Definition dialog of BEDIT, and the same window titled Save Block As for BSAVEAS, as data the command
+    /// and the window share: the block chosen or typed, and what the dialog was closed with.
+    /// </summary>
+    public sealed class CadBlockEditRequest
+    {
+        /// <summary>Makes the request of a document.</summary>
+        /// <param name="document">The document.</param>
+        /// <param name="title">The title of the dialog: Edit Block Definition, or Save Block As.</param>
+        /// <param name="name">The name offered: the block of an INSERT selected, the block open, or &lt;Current Drawing&gt;.</param>
+        /// <exception cref="ArgumentNullException">Thrown when the document or the title is null.</exception>
+        public CadBlockEditRequest(CadDocument document, string title, string name)
+        {
+            Document = document ?? throw new ArgumentNullException(nameof(document));
+            Title = title ?? throw new ArgumentNullException(nameof(title));
+            Name = name ?? string.Empty;
+        }
+
+        /// <summary>Gets the document.</summary>
+        public CadDocument Document { get; }
+
+        /// <summary>Gets the title of the dialog: Edit Block Definition for BEDIT, Save Block As for BSAVEAS.</summary>
+        public string Title { get; }
+
+        /// <summary>Gets whether the dialog names a new block for BSAVEAS, so that &lt;Current Drawing&gt; is not listed.</summary>
+        public bool IsSaveAs => string.Equals(Title, "Save Block As", StringComparison.Ordinal);
+
+        /// <summary>Gets or sets the name chosen or typed: a block of the drawing, a new name, or &lt;Current Drawing&gt;.</summary>
+        public string Name { get; set; }
+
+        /// <summary>Gets or sets what the window's dialog was closed with; Cancel until set.</summary>
+        public CadDialogAction Action { get; set; }
+    }
+
     /// <summary>One attribute of an INSERT as the Enhanced Attribute Editor shows it: its value, text options and properties.</summary>
     public sealed class CadAttributeRow
     {

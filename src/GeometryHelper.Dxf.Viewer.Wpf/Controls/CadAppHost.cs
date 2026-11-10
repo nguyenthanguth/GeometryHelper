@@ -347,6 +347,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             // A host's parts, its dialogs not hooked: a dialog asked for is drawn below, not shown.
             Attach(model, null);
+            model.StubDialogs();
 
             // Command plugins, kept in a folder of this run under the temporary folder, every file trusted.
             if (pluginPath != null || (dialogName ?? string.Empty).StartsWith("plugin", StringComparison.OrdinalIgnoreCase))
@@ -667,6 +668,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             else
             {
                 window = new CadAppWindow(model, AppName);
+
+                // The window hooks its dialogs; none may open here, so a command asking for a file or a dialog asks on the command line.
+                model.StubDialogs();
                 model.ApplySettings(new GlobalSettings());
                 FillRecent(model, recent);
                 root = (FrameworkElement)window.Content;
@@ -882,8 +886,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>
         /// The block dialogs (C13), after the lines of --run: <c>block</c> (Block Definition, the objects selected given and the
         /// name GRID_BUBBLE), <c>insert</c> (the Blocks palette), <c>wblock</c> (Write Block), <c>attdef</c> (Attribute
-        /// Definition, the attribute GRID) and <c>eattedit[:Tab]</c> (the Enhanced Attribute Editor of the first INSERT with
-        /// attributes, on a tab).
+        /// Definition, the attribute GRID), <c>eattedit[:Tab]</c> (the Enhanced Attribute Editor of the first INSERT with
+        /// attributes, on a tab), <c>bedit[:Name]</c> (Edit Block Definition on a block, the first by default),
+        /// <c>bsaveas[:Name]</c> (the same window titled Save Block As) and <c>bclose[:Name]</c> (BCLOSE's question about the
+        /// block open, else the name given).
         /// </summary>
         private static bool BlockDialog(MainViewModel model, string dialogName, ref string run, out Window window, out FrameworkElement root)
         {
@@ -892,7 +898,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             string[] parts = (dialogName ?? string.Empty).Split(':');
             string kind = parts[0].ToLowerInvariant();
 
-            if (kind != "block" && kind != "insert" && kind != "wblock" && kind != "attdef" && kind != "eattedit")
+            if (kind != "block" && kind != "insert" && kind != "wblock" && kind != "attdef" && kind != "eattedit" && kind != "bedit" && kind != "bsaveas" && kind != "bclose")
             {
                 return false;
             }
@@ -940,6 +946,19 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                         Justification = DxfAttachmentPoint.MiddleCenter,
                     }));
                     (window, root) = (attdef, attdef.Body);
+                    return true;
+                case "bedit":
+                case "bsaveas":
+                    // Edit Block Definition on the block named after the colon, else the first of the drawing's; Save Block As empty.
+                    string offered = parts.Length > 1 ? parts[1] : CadBlocks.Named(document.Database).Select(b => b.Name).FirstOrDefault() ?? CadBlockEditor.CurrentDrawing;
+                    var edit = new BlockEditWindow(new BlockEditViewModel(kind == "bedit"
+                        ? new CadBlockEditRequest(document, "Edit Block Definition", offered)
+                        : new CadBlockEditRequest(document, "Save Block As", parts.Length > 1 ? parts[1] : string.Empty)));
+                    (window, root) = (edit, edit.Body);
+                    return true;
+                case "bclose":
+                    var close = new BlockCloseWindow(document.BlockEditor?.Name ?? (parts.Length > 1 ? parts[1] : "DOOR_900"));
+                    (window, root) = (close, close.Body);
                     return true;
                 default:
                     string insert = document.ModelSpace.Block.OfType<DxfBlockReference>().Where(r => r.AttributeCollection.Count > 0).Select(r => r.Handle).FirstOrDefault();

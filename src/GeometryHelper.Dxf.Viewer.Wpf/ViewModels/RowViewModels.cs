@@ -108,8 +108,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Gets the space.</summary>
         public CadSpace Space { get; }
 
-        /// <summary>Gets the name on the tab.</summary>
-        public string Name => Space.Name;
+        /// <summary>Gets the name on the tab: Model for the Block Editor's space, as AutoCAD shows the one tab there.</summary>
+        public string Name => Space.IsBlockEditor ? "Model" : Space.Name;
 
         /// <summary>Gets whether the canvas shows this space.</summary>
         public bool IsActive

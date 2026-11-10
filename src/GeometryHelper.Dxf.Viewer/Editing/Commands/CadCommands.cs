@@ -128,6 +128,7 @@ namespace GeometryHelper.Dxf.Viewer
             registry.Add(new CadCommand("PEDIT", Pedit));
             registry.Add(new CadCommand("REVCLOUD", RevCloud));
             AddBlocksTo(registry);
+            AddBlockEditorTo(registry);
             registry.Add(new CadCommand("COPYCLIP", CopyClip, true));
             registry.Add(new CadCommand("CUTCLIP", CutClip, true));
             registry.Add(new CadCommand("COPYBASE", CopyBase, true));

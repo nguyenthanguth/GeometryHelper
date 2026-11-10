@@ -399,6 +399,12 @@ namespace GeometryHelper.Dxf.Viewer
             Action<DxfDatabase> write;
             string error;
 
+            if (document.BlockEditor is CadBlockEditor editor && !editor.IsCurrentDrawing
+                && (label == "Description" || label == "Units" || label == "Allow exploding" || label == "Scale uniformly"))
+            {
+                return SetBlock(document, editor, label, text);
+            }
+
             switch (label)
             {
                 case "Color":
@@ -434,6 +440,48 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             return document.ApplyEdit("Properties", new[] { new CadEditRecord(CadEditRecordKind.SettingChanged, null, label, null, text) }, s => write(s.Database));
+        }
+
+        /// <summary>
+        /// Sets a row of the Block group the Block Editor shows with nothing selected: the description, unit or flags of the
+        /// block opened, one undo step of the editor's session. A drawing older than R2007, which holds no unit or flag of a
+        /// block, refuses those.
+        /// </summary>
+        private static CadEditResult SetBlock(CadDocument document, CadBlockEditor editor, string label, string text)
+        {
+            string name = editor.Name;
+            Action<DxfBlockTableRecord> write;
+
+            switch (label)
+            {
+                case "Description":
+                    write = b => b.Comments = text;
+                    break;
+                case "Units":
+                    int at = CadBlockUnits.IndexOf(text);
+
+                    if (at < 0)
+                    {
+                        return CadEditResult.Refuse("No unit is named " + text + ".");
+                    }
+
+                    DxfUnits units = CadBlockUnits.Values[at];
+                    write = b => b.Units = units;
+                    break;
+                default:
+                    bool yes = string.Equals(text, "Yes", StringComparison.OrdinalIgnoreCase);
+
+                    if (!yes && !string.Equals(text, "No", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return CadEditResult.Refuse(label + " is Yes or No.");
+                    }
+
+                    write = label == "Allow exploding" ? (Action<DxfBlockTableRecord>)(b => b.Explodable = yes) : b => b.BlockScaling = yes ? DxfBlockScaling.Uniform : DxfBlockScaling.Any;
+                    break;
+            }
+
+            // A value the drawing's version cannot hold throws, and the edit fails with its message, nothing written.
+            return document.ApplyEdit("Properties", new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "Block " + label, null, text) }, s => write(s.Database.BlockTable[name]));
         }
 
         /// <summary>
