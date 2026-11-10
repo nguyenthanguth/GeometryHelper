@@ -145,7 +145,10 @@ GetAttributes, EffectiveName, SelectionSets); 2 files with DCL dialogs (E1, FDVA
 - [ ] L6 Trust and safety: a trusted folders list (as AutoCAD's TRUSTEDPATHS and SECURELOAD), a warning before loading
       a routine from elsewhere, no COM to other programs (vlax-get-or-create-object "Excel.Application" refused with a
       message) (S)
-### To do- [ ] Layer States Manager, View Manager with New View, Drawing Units with Direction Control (designed in v110) (M)
+
+### To do
+
+- [ ] Layer States Manager, View Manager with New View, Drawing Units with Direction Control (designed in v110) (M)
 - [ ] Command line and Recent: AutoComplete inside a running command; Search Content; an EXPORT command (S)
 - [ ] Dxf.App: an app icon, file association for .dxf (installer or registry), `--tab Home` in screenshot mode
 - [ ] Images of an area: PNG and JPG devices in PLOT and -PLOT ("GeometryHelper PNG", "GeometryHelper JPG", as AutoCAD's
