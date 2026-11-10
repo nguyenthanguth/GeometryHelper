@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Linq;
@@ -147,7 +148,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             if (highlight)
             {
-                Pick("Highlight");
+                Pick("Order Highlight");
             }
 
             return highlight;
@@ -186,9 +187,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     }
 
     /// <summary>
-    /// AutoCAD's Order Group dialog of Object Grouping, over the group chosen: its name and description, Remove from position,
-    /// Enter new position and Number of objects; Re-Order, Highlight and Reverse Order. The group of four objects A, B, C, D
-    /// with 1 to 3 and 1 object reads A, C, D, B.
+    /// AutoCAD's Order Group dialog of Object Grouping, over the group chosen in its Group Name list: its description, Remove
+    /// from position, Enter new position and Number of objects, each label giving the range the group's size allows; Re-Order,
+    /// Highlight and Reverse Order. The group of four objects A, B, C, D with 1 to 3 and 1 object reads A, C, D, B. For a
+    /// group of twelve with 3 to 0 the labels read (0-11), (0-11) and (1-9).
     /// </summary>
     public sealed class OrderGroupViewModel : ObservableObject
     {
@@ -217,11 +219,84 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Gets "Positions 0 to 3": the positions of its objects.</summary>
         public string Positions => Row == null || Row.Count == 0 ? "No objects" : "Positions 0 to " + (Row.Count - 1).ToString(CultureInfo.InvariantCulture);
 
+        /// <summary>Gets the groups of the Group Name list, as Object Grouping lists them: the named ones, and the unnamed with Include Unnamed.</summary>
+        public IReadOnlyList<string> Groups => Request.Groups.Where(g => Request.IncludeUnnamed || !g.IsUnnamed || string.Equals(g.Name, Request.Selected, StringComparison.OrdinalIgnoreCase)).Select(g => g.Name).ToList();
+
+        /// <summary>Gets or sets the group chosen in the Group Name list, which the boxes and the buttons work on; Object Grouping shows it chosen after.</summary>
+        public string SelectedGroup
+        {
+            get => Request.Selected;
+            set
+            {
+                if (value == null || string.Equals(value, Request.Selected, StringComparison.OrdinalIgnoreCase))
+                {
+                    return;
+                }
+
+                Request.Selected = value;
+                Raise(nameof(SelectedGroup));
+                Raise(nameof(Group));
+                Raise(nameof(Description));
+                Raise(nameof(Positions));
+                RaiseRanges();
+            }
+        }
+
+        /// <summary>Gets the last position of the group, 11 for twelve objects; -1 for a group with none.</summary>
+        public int LastPosition => (Row?.Count ?? 0) - 1;
+
+        /// <summary>
+        /// Gets the most objects Re-Order can move from the positions typed: the group's size less the larger of the two, 9 for
+        /// twelve objects moved from 3 to 0; a position that does not read counts as 0.
+        /// </summary>
+        public int MostObjects => Math.Max(0, (Row?.Count ?? 0) - Math.Max(Position(_from), Position(_to)));
+
+        /// <summary>Gets the label of Remove from position with its range: "Remove from position (0-11):".</summary>
+        public string RemoveFromLabel => "Remove from position (" + Range(0, LastPosition) + "):";
+
+        /// <summary>Gets the label of Enter new position with its range: "Enter new position number for the object (0-11):".</summary>
+        public string NewPositionLabel => "Enter new position number for the object (" + Range(0, LastPosition) + "):";
+
+        /// <summary>Gets the label of Number of objects with its range: "Number of objects (1-9):".</summary>
+        public string CountLabel => "Number of objects (" + Range(1, MostObjects) + "):";
+
+        /// <summary>Gets the note under the buttons: "STAIR_CORE has 12 objects, numbered 0 to 11 in the order they were added." and what Highlight does.</summary>
+        public string Summary
+        {
+            get
+            {
+                int size = Row?.Count ?? 0;
+                return Group + " has " + size.ToString(CultureInfo.InvariantCulture) + (size == 1 ? " object" : " objects")
+                    + (size == 0 ? "." : ", numbered 0 to " + (size - 1).ToString(CultureInfo.InvariantCulture) + " in the order they were added.")
+                    + " Highlight hides the dialog and steps through them on the canvas (Next, Previous, eXit); Enter brings it back.";
+            }
+        }
+
         /// <summary>Gets or sets Remove from position, as typed.</summary>
-        public string RemoveFrom { get => _from; set => Set(ref _from, value ?? string.Empty); }
+        public string RemoveFrom
+        {
+            get => _from;
+            set
+            {
+                if (Set(ref _from, value ?? string.Empty))
+                {
+                    RaiseRanges();
+                }
+            }
+        }
 
         /// <summary>Gets or sets Enter new position, as typed.</summary>
-        public string NewPosition { get => _to; set => Set(ref _to, value ?? string.Empty); }
+        public string NewPosition
+        {
+            get => _to;
+            set
+            {
+                if (Set(ref _to, value ?? string.Empty))
+                {
+                    RaiseRanges();
+                }
+            }
+        }
 
         /// <summary>Gets or sets Number of objects, as typed.</summary>
         public string Count { get => _count; set => Set(ref _count, value ?? string.Empty); }
@@ -254,18 +329,35 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             return done;
         }
 
-        /// <summary>Highlight: the objects from Remove from position on, Number of objects of them, to be shown on the canvas.</summary>
-        /// <returns>Whether the boxes read, so that the dialogs close for the command line to show them.</returns>
+        /// <summary>
+        /// Highlight: the dialogs close and the command line steps through the members of the group on the canvas one at a
+        /// time, "Object 0 of 11 [Next/Previous/eXit]:"; eXit or Enter brings Object Grouping back.
+        /// </summary>
+        /// <returns>Whether the group has members to step through, so that the dialogs close.</returns>
         public bool Highlight()
         {
-            if (!Numbers(out int from, out int to, out int count))
+            if (LastPosition < 0)
             {
+                Message = "The group has no objects.";
                 return false;
             }
 
-            Request.HighlightFrom = from;
-            Request.HighlightCount = count;
             return true;
+        }
+
+        /// <summary>A position as typed, 0 where it does not read or is below 0.</summary>
+        private static int Position(string text) => int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out int value) ? Math.Max(0, value) : 0;
+
+        private static string Range(int low, int high) => low.ToString(CultureInfo.InvariantCulture) + "-" + Math.Max(low, high).ToString(CultureInfo.InvariantCulture);
+
+        private void RaiseRanges()
+        {
+            Raise(nameof(LastPosition));
+            Raise(nameof(MostObjects));
+            Raise(nameof(RemoveFromLabel));
+            Raise(nameof(NewPositionLabel));
+            Raise(nameof(CountLabel));
+            Raise(nameof(Summary));
         }
 
         private bool Numbers(out int from, out int to, out int count)

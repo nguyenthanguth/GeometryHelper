@@ -584,6 +584,45 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         [Fact]
+        public void OrderGroupsHighlight_StepsThroughTheMembersOneAtATime_NextAndPreviousGoRound_AndEnterBringsTheDialogBack()
+        {
+            CadDocument document = Four(out string[] h);
+            Run(Session(document), "-GROUP", Enter, "ROW", "Row", new[] { h[0], h[1], h[2] }, Enter);
+            int shown = 0;
+            CadCommandSession session = Answering(document, "CLASSICGROUP", e =>
+            {
+                var request = (CadGroupManagerRequest)e.Payload;
+                shown++;
+                request.Selected = "ROW";
+                request.Pick = "Order Highlight";
+                request.Action = shown == 1 ? CadDialogAction.SelectObjects : CadDialogAction.Ok;
+                return true;
+            });
+
+            Run(session, "CLASSICGROUP");
+
+            Assert.Equal("Object 0 of 2 [Next/Previous/eXit]:", session.PromptText);
+            Assert.Equal(new[] { h[0] }, document.Selection.Handles);
+
+            Run(session, "N");
+
+            Assert.Equal("Object 1 of 2 [Next/Previous/eXit]:", session.PromptText);
+            Assert.Equal(new[] { h[1] }, document.Selection.Handles);
+
+            // Previous from the first goes round to the last.
+            Run(session, "P", "P");
+
+            Assert.Equal("Object 2 of 2 [Next/Previous/eXit]:", session.PromptText);
+            Assert.Equal(new[] { h[2] }, document.Selection.Handles);
+
+            Run(session, Enter);
+
+            Assert.Equal(2, shown);
+            Assert.False(session.IsRunning);
+            Assert.Empty(document.Selection.Handles);
+        }
+
+        [Fact]
         public void ClassicGroupWithNoWindow_AsksAsMinusGroup()
         {
             CadCommandSession session = Run(Session(Blank()), "CLASSICGROUP");

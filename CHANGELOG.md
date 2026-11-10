@@ -15,6 +15,11 @@ base point, as DYNPIFORMAT 0, # making them absolute: RECTANG's other corner sho
 show the length on a dimension line beside the rubber band and the angle on an arc from the X axis.
 `MainViewModel.DynamicInputPrompt` no longer carries the options and the colon: "Specify next point or".
 
+**CHANGED.** The presenter's Order Group dialog follows its board: the groups in a Group Name list, and the three boxes
+labelled with the ranges the group allows, a group of twelve moved from 3 to 0 reading (0-11), (0-11) and (1-9).
+Highlight < now steps through the members on the canvas one at a time, `Object 0 of 11 [Next/Previous/eXit]:`, Enter
+bringing Object Grouping back; Object Grouping's own Highlight still shows the whole group at once.
+
 **NEW.** BATTMAN, the presenter's Block Attribute Manager: the attribute definitions of a block in its order, with the
 INSERTs of it counted in the drawing and in model space, the modes as AutoCAD's letters I C V P L M and a tag given twice
 in red; Move Up, Move Down, Edit Attribute (Attribute, Text Options and Properties) and Remove, written into the block by
