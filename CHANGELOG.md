@@ -6,6 +6,26 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** The presenter's -GROUP on a DXF of R2000 written without its OBJECTS section said "Object reference not set to
+an instance of an object."; the drawing is now given the named object dictionary AutoCAD makes on opening it, and the
+group goes in, one undo taking both back.
+
+**FIXED.** INSERT with Basepoint of a block in other units than the drawing landed off: a block in centimetres in a
+millimetre drawing, its base point 30 above its origin, came 270 too high. The shift is now scaled by the units too, in
+the drag and in the INSERT placed.
+
+**FIXED.** -ATTEDIT took every attribute of an INSERT a crossing box touched; it now takes those the box touches, or a
+window encloses, as AutoCAD's, typed (C, W, BOX) or dragged on the canvas
+(`CadCommandSession.FeedSelection(handles, window, crossing, remove)`).
+
+**NEW.** The presenter's variables PICKADD (0 makes what is picked last the selection, Shift adding) and ATTREQ (0
+inserts with the attributes' defaults, unasked). DYNMODE keeps -3 to 3, negative while DYN is off; ORTHO switched is
+written to the drawing's `$ORTHOMODE`, as AutoCAD saves it.
+
+**NEW.** Recent Commands are kept in the settings file from one session to the next (`GlobalSettings.RecentCommands`);
+a recent file no longer on the disk is taken off the list when chosen (`GlobalSettings.RemoveRecentFile`); the version
+and preview of a recent file are read on a worker thread.
+
 **NEW.** The presenter's Layer manager has AutoCAD 2021's VP columns while a layout is current: VP Freeze, New VP Freeze,
 VP Color, VP Linetype, VP Lineweight, VP Transparency and VP Plot Style, acting on the viewport worked through or the one
 selected on the paper, an override marked blue; its right-click menu freezes and thaws a layer in all viewports, adds a

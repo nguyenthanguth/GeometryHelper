@@ -152,7 +152,8 @@ list open updates it at once.
 - **AutoCorrect.** A name no command has, followed by a command, is noted: LIEN typed three times, each followed by LINE,
   has LINE offered first, marked AutoCorrect, the next time LIEN is typed. The corrections are kept in the settings file.
 
-A right click on the command line gives its menu: **Recent Commands** (the last 20 run, the newest first, each runs again),
+A right click on the command line gives its menu: **Recent Commands** (the last 20 run, the newest first, each runs again,
+kept in the settings file from one session to the next),
 **Input Settings** (AutoComplete, AutoCorrect, Search System Variables and Mid-string Search, ticked when on and kept in the
 settings file; Search Content greyed; Delay Time…, which asks `Enter the delay time in milliseconds <300>:`, 100 to
 10 000), **Copy** (the text selected in the command line), **Copy History** (every line written), **Paste** (the first
@@ -179,7 +180,9 @@ were pinned, a rule, then the others by the date they were opened, newest first,
 opened by any way (the Open dialog, a file dropped on the window, the app's command line, the lists themselves) goes to
 the top. The pin at the right of a row pins or unpins it. Resting the pointer on a name shows its preview picture, path,
 version, date and size: only the top of the file (for `$ACADVER`) and its end (for the THUMBNAILIMAGE section) are read,
-and only then, so a list of large files shows at once. The list and its pins are kept in the settings file.
+and only then, on a worker thread, so a list of large files, or of files on a slow share, shows at once and the picture
+comes when read. A file chosen that is no longer on the disk is taken off the list, the command line saying `Cannot find
+D:\plans\gone.dxf: it is taken off the recent files.` The list and its pins are kept in the settings file.
 
 ### The start screen
 
