@@ -1,7 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Text;
 using GeometryHelper.Dwg;
+using GeometryHelper.Dxf;
 using GeometryHelper.Enums;
 using Xunit;
 
@@ -50,6 +53,86 @@ namespace GeometryHelper.UnitTest.Dwg
             Assert.Empty(result.Missing.Keys.Except(NotReadYet));
             Assert.True(result.Paired >= atLeast, "Only " + result.Paired + " records were paired.");
             Assert.DoesNotContain(_written, line => line.Level == GeometryHelperLogLevel.Warn);
+        }
+
+        [Theory]
+        [InlineData("curves", "AC1018")]
+        [InlineData("blocks", "AC1018")]
+        [InlineData("props", "AC1018")]
+        [InlineData("curves", "AC1024")]
+        [InlineData("blocks", "AC1024")]
+        [InlineData("props", "AC1024")]
+        [InlineData("curves", "AC1027")]
+        [InlineData("blocks", "AC1027")]
+        [InlineData("props", "AC1027")]
+        [InlineData("curves", "AC1032")]
+        [InlineData("blocks", "AC1032")]
+        [InlineData("props", "AC1032")]
+        public void ADrawingOfALaterVersion_ReadFromItsDwg_IsTheDxfAutoCadWroteOfIt(string name, string version)
+        {
+            string drawing = name + "_" + version;
+            DwgAnswerKey.Result result = DwgAnswerKey.Compare(DwgAnswerKey.Key(drawing), DwgReader.ToDxf(DwgAnswerKey.Dwg(drawing)));
+
+            Assert.Empty(result.Differences);
+            Assert.Empty(result.Missing.Keys.Except(NotReadYet).Except(NotReadYet.Select(type => "CLASS " + type)));
+            Assert.True(result.Paired >= 300, "Only " + result.Paired + " records were paired.");
+            Assert.DoesNotContain(_written, line => line.Level == GeometryHelperLogLevel.Warn);
+        }
+
+        [Fact]
+        public void EveryDrawingOfEveryVersion_InTheFolderOfTheAnswerKeys_IsTheDxfAutoCadWroteOfIt()
+        {
+            // The full set, eight drawings in five versions with their keys, is too large for the repository; it runs where
+            // DWG_ANSWER_KEYS names a folder that holds it (name_AC10xx.dwg and .dxf), and passes empty elsewhere.
+            string folder = Environment.GetEnvironmentVariable("DWG_ANSWER_KEYS");
+
+            if (string.IsNullOrEmpty(folder) || !Directory.Exists(folder))
+            {
+                return;
+            }
+
+            var faults = new List<string>();
+
+            foreach (string dwg in Directory.GetFiles(folder, "*_AC10??.dwg").OrderBy(path => path, StringComparer.Ordinal))
+            {
+                string dxf = Path.ChangeExtension(dwg, ".dxf");
+                byte[] file = File.ReadAllBytes(dwg);
+
+                if (!File.Exists(dxf) || DwgContainer.VersionOf(file) == "AC1021")
+                {
+                    continue;
+                }
+
+                string[] ignored = Path.GetFileName(dwg).StartsWith("tables_", StringComparison.Ordinal) ? new[] { "$TEXTSIZE" } : new string[0];
+                DwgAnswerKey.Result result = DwgAnswerKey.Compare(File.ReadAllBytes(dxf), DwgReader.ToDxf(file), ignored);
+                IEnumerable<string> missing = result.Missing.Keys.Except(NotReadYet).Except(NotReadYet.Select(type => "CLASS " + type));
+                faults.AddRange(result.Differences.Concat(missing).Select(fault => Path.GetFileName(dwg) + ": " + fault));
+            }
+
+            Assert.Empty(faults);
+        }
+
+        [Fact]
+        public void ADwgOfR2007_IsRefusedByName_TillItsOwnContainerIsRead()
+        {
+            byte[] file = DwgAnswerKey.Dwg("curves_AC1018");
+            Encoding.ASCII.GetBytes("AC1021").CopyTo(file, 0);
+
+            NotSupportedException fault = Assert.Throws<NotSupportedException>(() => DwgReader.ToDxf(file));
+            Assert.Contains("AC1021", fault.Message);
+            Assert.Contains("AutoCAD 2007", fault.Message);
+        }
+
+        [Theory]
+        [InlineData("AC1018")]
+        [InlineData("AC1024")]
+        [InlineData("AC1032")]
+        public void ALayerNamedInVietnamese_ComesOutWithItsLetters(string version)
+        {
+            // Before R2007 the name is in the code page of the drawing, from R2007 UTF-16 in the string stream of the layer.
+            DxfDatabase database = DwgReader.Open(new MemoryStream(DwgAnswerKey.Dwg("props_" + version), false));
+
+            Assert.Contains(database.LayerTable, layer => layer.Name == "Lớp ẩn");
         }
 
         [Fact]

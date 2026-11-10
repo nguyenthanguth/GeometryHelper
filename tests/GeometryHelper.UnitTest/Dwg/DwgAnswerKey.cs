@@ -27,7 +27,8 @@ namespace GeometryHelper.UnitTest.Dwg
     /// </para>
     /// <para>
     /// <c>$ACADMAINTVER</c>, <c>$HANDSEED</c> and the times (<c>$TDCREATE</c>, <c>$TDUPDATE</c>, <c>$TDINDWG</c>,
-    /// <c>$TDUSRTIMER</c>) are those of the later save; <c>$CMLSTYLE</c> differs in case.
+    /// <c>$TDUSRTIMER</c>) are those of the later save; <c>$CMLSTYLE</c> differs in case. From R2004 a class counts its
+    /// objects (group 91), and AutoCAD makes a few objects as it reads a drawing, so the counts of the key may be higher.
     /// </para>
     /// <para>
     /// A true colour does not exist in R2000: AutoCAD keeps it as round-trip data, extended data that starts with
@@ -37,13 +38,24 @@ namespace GeometryHelper.UnitTest.Dwg
     /// <para>
     /// A letter beyond the code page is <c>\U+00B0</c> in one file and the letter in the other. The order of the
     /// OBJECTS section is not compared. A record of a type the reader does not read is missing, and so is what such a
-    /// record owns; both sides must agree on the count of each type left under one.
+    /// record owns; both sides must agree on the count of each type left under one. A class the key has and the reader
+    /// has not is counted as missing under <c>CLASS</c> and its name.
+    /// </para>
+    /// <para>
+    /// AutoCAD adds to a drawing as it reads it or writes its DXF, and the comparison does not count these, on either side:
+    /// the extended data <c>DbSaveVer</c> on the head of a table, the entry <c>ACDB_RECOMPOSE_DATA</c> of the root
+    /// dictionary with the record it leads to, the dictionary <c>ACAD_ROUNDTRIP_2008_TABLESTYLE_CELLSTYLEMAP</c> with what
+    /// it holds, and the visual styles <c>$INTERFEREOBJVS</c> and <c>$INTERFEREVPVS</c>, which a file of R2010 and later
+    /// holds as no handle.
     /// </para>
     /// </remarks>
     internal static class DwgAnswerKey
     {
-        /// <summary>The header variables that are those of the moment of saving.</summary>
-        private static readonly string[] OfTheSave = { "$ACADMAINTVER", "$TDCREATE", "$TDUPDATE", "$HANDSEED", "$TDINDWG", "$TDUSRTIMER" };
+        /// <summary>The header variables that are those of the moment of saving, or that AutoCAD sets as it reads the file.</summary>
+        private static readonly string[] OfTheSave =
+        {
+            "$ACADMAINTVER", "$TDCREATE", "$TDUPDATE", "$HANDSEED", "$TDINDWG", "$TDUSRTIMER", "$INTERFEREOBJVS", "$INTERFEREVPVS",
+        };
 
         private static readonly Regex Escape = new Regex(@"\\U\+([0-9A-Fa-f]{4})", RegexOptions.CultureInvariant);
 
@@ -212,8 +224,8 @@ namespace GeometryHelper.UnitTest.Dwg
         /// </summary>
         public static Result Compare(byte[] keyDxf, byte[] gotDxf, params string[] alsoIgnored)
         {
-            List<Record> keyList = Parse(keyDxf);
-            List<Record> gotList = Parse(gotDxf);
+            List<Record> keyList = WithoutWhatAutoCadAdds(Parse(keyDxf));
+            List<Record> gotList = WithoutWhatAutoCadAdds(Parse(gotDxf));
             Dictionary<string, Record> key = keyList.ToDictionary(r => r.Key, StringComparer.Ordinal);
             Dictionary<string, Record> got = gotList.ToDictionary(r => r.Key, StringComparer.Ordinal);
             var ignored = new HashSet<string>(OfTheSave.Concat(alsoIgnored).Select(n => "H:" + n), StringComparer.Ordinal);
@@ -327,6 +339,7 @@ namespace GeometryHelper.UnitTest.Dwg
                     else if (same && v1 != v2)
                     {
                         same = (k == "H:$CMLSTYLE" && string.Equals(v1, v2, StringComparison.OrdinalIgnoreCase))
+                            || (a.Type == "CLASS" && code == 91)
                             || Letters(v1) == Letters(v2)
                             || (long.TryParse(v1, NumberStyles.Integer, CultureInfo.InvariantCulture, out long m)
                                 && long.TryParse(v2, NumberStyles.Integer, CultureInfo.InvariantCulture, out long n) && m == n);
@@ -350,7 +363,8 @@ namespace GeometryHelper.UnitTest.Dwg
 
             foreach (Record one in keyList.Where(r => !keyToGot.ContainsKey(r.Key) && !ignored.Contains(r.Key)))
             {
-                Count(gotTypes.Contains(one.Type) && UnderUnread(key, one.Key, gotTypes) ? keyUnder : result.Missing, one.Type);
+                Count(gotTypes.Contains(one.Type) && UnderUnread(key, one.Key, gotTypes) ? keyUnder : result.Missing,
+                    one.Type == "CLASS" ? "CLASS " + one.Key.Substring(2) : one.Type);
             }
 
             foreach (Record one in gotList.Where(r => !gotToKey.ContainsKey(r.Key) && !ignored.Contains(r.Key) && !roundTrip.Contains(r.Key)))
@@ -380,6 +394,42 @@ namespace GeometryHelper.UnitTest.Dwg
             }
 
             return result;
+        }
+
+        /// <summary>
+        /// The key without what AutoCAD adds to a drawing as it reads it or writes its DXF: the extended data
+        /// <c>DbSaveVer</c> on the head of a table, the entry <c>ACDB_RECOMPOSE_DATA</c> of the root dictionary with the
+        /// record it leads to, and the dictionary <c>ACAD_ROUNDTRIP_2008_TABLESTYLE_CELLSTYLEMAP</c> with what it holds.
+        /// </summary>
+        private static List<Record> WithoutWhatAutoCadAdds(List<Record> records)
+        {
+            var dropped = new HashSet<string>(StringComparer.Ordinal);
+
+            foreach (Record one in records)
+            {
+                int saveVersion = one.Groups.FindIndex(g => g.Key == 1000 && g.Value == "DbSaveVer");
+
+                if (one.Type == "TABLE" && saveVersion > 0 && one.Groups[saveVersion - 1].Key == 1001)
+                {
+                    one.Groups.RemoveRange(saveVersion - 1, Math.Min(3, one.Groups.Count - saveVersion + 1));
+                }
+
+                int recompose = one.Groups.FindIndex(g => g.Key == 3 && g.Value == "ACDB_RECOMPOSE_DATA");
+
+                if (one.Type == "DICTIONARY" && recompose >= 0 && recompose + 1 < one.Groups.Count)
+                {
+                    dropped.Add("X:" + one.Groups[recompose + 1].Value.ToUpperInvariant());
+                    one.Groups.RemoveRange(recompose, 2);
+                }
+
+                if (one.Type == "DICTIONARY" && one.Groups.Any(g => g.Key == 3 && g.Value == "ACAD_ROUNDTRIP_2008_TABLESTYLE_CELLSTYLEMAP"))
+                {
+                    dropped.Add(one.Key);
+                    dropped.UnionWith(one.Groups.Where(g => g.Key == 360 || g.Key == 350).Select(g => "X:" + g.Value.ToUpperInvariant()));
+                }
+            }
+
+            return records.Where(r => !dropped.Contains(r.Key)).ToList();
         }
 
         private static void Count(SortedDictionary<string, int> counts, string type)

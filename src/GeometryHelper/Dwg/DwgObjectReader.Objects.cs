@@ -22,7 +22,7 @@ namespace GeometryHelper.Dwg
 
             for (int i = 0; i < count; i++)
             {
-                _object.Add(3, _data.Text());
+                _object.Add(3, T());
                 _object.Add(hardOwner ? 360 : 350, H());
             }
 
@@ -38,14 +38,14 @@ namespace GeometryHelper.Dwg
             int schema = _data.RawChar();
             _object.Add(100, "DictionaryVariables");
             _object.Add(280, schema);
-            _object.Add(1, _data.Text());
+            _object.Add(1, T());
         }
 
         private void ReadScale()
         {
             _object.Add(100, "AcDbScale");
             _object.Add(70, _data.BitShort());
-            _object.Add(300, _data.Text());
+            _object.Add(300, T());
             _object.Add(140, _data.BitDouble());
             _object.Add(141, _data.BitDouble());
             _object.Add(290, _data.Bit() ? 1 : 0);
@@ -54,7 +54,7 @@ namespace GeometryHelper.Dwg
         private void ReadGroup()
         {
             _object.Add(100, "AcDbGroup");
-            _object.Add(300, _data.Text());
+            _object.Add(300, T());
             _object.Add(70, _data.BitShort());
             _object.Add(71, _data.BitShort());
             int count = Count(_data.BitLong());
@@ -67,10 +67,10 @@ namespace GeometryHelper.Dwg
 
         private void ReadMLineStyle()
         {
-            _object.RecordName = _data.Text();
-            byte[] description = _data.Text();
+            _object.RecordName = T();
+            byte[] description = T();
             int flags = _data.BitShort();
-            int colour = _data.BitShort();
+            DwgColour colour = ReadColour();
             double start = _data.BitDouble();
             double end = _data.BitDouble();
             int lines = _data.RawChar();
@@ -80,7 +80,7 @@ namespace GeometryHelper.Dwg
             _object.Add(2, _object.RecordName);
             _object.Add(70, dxf);
             _object.Add(3, description);
-            _object.Add(62, colour);
+            AddColour(_object.Body, colour, false);
             _object.Add(51, Degrees(start));
             _object.Add(52, Degrees(end));
             _object.Add(71, lines);
@@ -88,9 +88,18 @@ namespace GeometryHelper.Dwg
             for (int i = 0; i < lines; i++)
             {
                 _object.Add(49, _data.BitDouble());
-                _object.Add(62, _data.BitShort());
-                int linetype = _data.BitShort();
-                _object.Add(6, linetype == 32766 ? "BYBLOCK" : "BYLAYER");
+                AddColour(_object.Body, ReadColour(), false);
+
+                if (R2018Plus)
+                {
+                    // From R2018 an element names its linetype by handle; DXF writes ByLayer and ByBlock in capitals here.
+                    _object.Add(6, new DwgName(H(), "BYLAYER") { Capitals = true });
+                }
+                else
+                {
+                    int linetype = _data.BitShort();
+                    _object.Add(6, linetype == 32766 ? "BYBLOCK" : "BYLAYER");
+                }
             }
         }
 
@@ -125,6 +134,12 @@ namespace GeometryHelper.Dwg
                 else if ((code >= 0 && code <= 9) || (code >= 100 && code <= 105) || (code >= 300 && code <= 309) || (code >= 410 && code <= 419)
                     || (code >= 430 && code <= 439) || (code >= 470 && code <= 479) || (code >= 1000 && code <= 1003))
                 {
+                    if (R2007Plus)
+                    {
+                        _object.Add(code, values.TextUnicodeRaw());
+                        continue;
+                    }
+
                     int length = (ushort)values.RawShort();
                     values.RawChar();
                     _object.Add(code, values.Bytes(length));
@@ -168,8 +183,8 @@ namespace GeometryHelper.Dwg
 
         private void ReadLayout()
         {
-            byte[] pageSetup = _data.Text();
-            byte[] printer = _data.Text();
+            byte[] pageSetup = T();
+            byte[] printer = T();
             int plotFlags = _data.BitShort();
             var margins = new double[4];
 
@@ -180,7 +195,7 @@ namespace GeometryHelper.Dwg
 
             double paperWidth = _data.BitDouble();
             double paperHeight = _data.BitDouble();
-            byte[] paperSize = _data.Text();
+            byte[] paperSize = T();
             double originX = _data.BitDouble();
             double originY = _data.BitDouble();
             int paperUnits = _data.BitShort();
@@ -193,15 +208,33 @@ namespace GeometryHelper.Dwg
                 window[i] = _data.BitDouble();
             }
 
-            byte[] plotView = _data.Text();
+            // Before R2004 the view to plot is named here; from R2004 its handle leads to it.
+            object plotView = R2004Plus ? null : T();
             double numerator = _data.BitDouble();
             double denominator = _data.BitDouble();
-            byte[] styleSheet = _data.Text();
+            byte[] styleSheet = T();
             int scaleType = _data.BitShort();
             double scaleFactor = _data.BitDouble();
             double imageX = _data.BitDouble();
             double imageY = _data.BitDouble();
-            _object.RecordName = _data.Text();
+            int shadeMode = 0;
+            int shadeResolution = 0;
+            int shadeDpi = 0;
+
+            if (R2004Plus)
+            {
+                shadeMode = _data.BitShort();
+                shadeResolution = _data.BitShort();
+                shadeDpi = _data.BitShort();
+                plotView = new DwgName(H());
+            }
+
+            if (R2007Plus)
+            {
+                H();
+            }
+
+            _object.RecordName = T();
             int tabOrder = _data.BitLong();
             int flags = _data.BitShort();
             double[] ucsOrigin = _data.Point3();
@@ -244,6 +277,14 @@ namespace GeometryHelper.Dwg
             _object.Add(7, styleSheet);
             _object.Add(75, scaleType);
             _object.Add(147, scaleFactor);
+
+            if (R2004Plus)
+            {
+                _object.Add(76, shadeMode);
+                _object.Add(77, shadeResolution);
+                _object.Add(78, shadeDpi);
+            }
+
             _object.Add(148, imageX);
             _object.Add(149, imageY);
             _object.Add(100, "AcDbLayout");

@@ -38,6 +38,9 @@ namespace GeometryHelper.Dwg
         /// <summary>The name DXF leaves out, such as the text style <c>Standard</c>: the group is not written where the record has it. Null to write every name.</summary>
         public readonly string OmitWhen;
 
+        /// <summary>Whether the linetypes ByLayer and ByBlock are written in capitals, as an MLINESTYLE writes them.</summary>
+        public bool Capitals;
+
         /// <summary>The name of the record at <paramref name="handle"/>, or <paramref name="fallback"/>; not written where it is <paramref name="omitWhen"/>.</summary>
         public DwgName(ulong handle, string fallback = "", string omitWhen = null)
         {
@@ -45,6 +48,34 @@ namespace GeometryHelper.Dwg
             Fallback = fallback;
             OmitWhen = omitWhen;
         }
+    }
+
+    /// <summary>
+    /// A colour as a DWG keeps it: the colour index (256 by layer, 0 by block), and from R2004 a true colour, the name of a
+    /// colour of a book and a transparency.
+    /// </summary>
+    internal sealed class DwgColour
+    {
+        /// <summary>The colour index, group 62.</summary>
+        public int Index;
+
+        /// <summary>The true colour as 0xRRGGBB, group 420; -1 for none.</summary>
+        public int Rgb = -1;
+
+        /// <summary>The name of the colour in its book; null for none.</summary>
+        public byte[] Name;
+
+        /// <summary>The name of the book of the colour; null for none.</summary>
+        public byte[] BookName;
+
+        /// <summary>The transparency as group 440 carries it; -1 for none, which is by layer.</summary>
+        public int Transparency = -1;
+
+        /// <summary>Whether the colour is one of a book, whose DBCOLOR object the handles name.</summary>
+        public bool HasBook;
+
+        /// <summary>The handle of the DBCOLOR object of a colour of a book.</summary>
+        public ulong Book;
     }
 
     /// <summary>
@@ -113,6 +144,13 @@ namespace GeometryHelper.Dwg
 
         /// <summary>The last owned entity, as <see cref="First"/>.</summary>
         public ulong Last;
+
+        /// <summary>
+        /// From R2004, where no entity names the next: the owned entities in their order (of a block its entities, of a
+        /// polyline its vertices, of an insert its attributes); null before R2004, where <see cref="First"/> and
+        /// <see cref="Last"/> give them.
+        /// </summary>
+        public List<ulong> Owned;
 
         /// <summary>Of a polyline or an insert with attributes: the handle of the SEQEND that closes it.</summary>
         public ulong SeqEnd;

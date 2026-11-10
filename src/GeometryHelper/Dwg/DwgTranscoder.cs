@@ -12,31 +12,46 @@ namespace GeometryHelper.Dwg
     /// </summary>
     internal sealed class DwgTranscoder
     {
-        /// <summary>The header variables in the order DXF writes them, each with its first group code.</summary>
+        /// <summary>
+        /// The header variables in the order DXF writes them, each with its first group code and, where it came later
+        /// than R2000, the first version whose DXF has it. <c>$TDCREATE</c> and <c>$TDUPDATE</c> are not in a DWG and are
+        /// not written; <c>$ACADMAINTVER</c> is group 90 from R2018.
+        /// </summary>
         private const string HeaderOrder =
-            "ACADVER 1;ACADMAINTVER 70;DWGCODEPAGE 3;INSBASE 10;EXTMIN 10;EXTMAX 10;LIMMIN 10;LIMMAX 10;ORTHOMODE 70;" +
-            "REGENMODE 70;FILLMODE 70;QTEXTMODE 70;MIRRTEXT 70;LTSCALE 40;ATTMODE 70;TEXTSIZE 40;TRACEWID 40;" +
-            "TEXTSTYLE 7;CLAYER 8;CELTYPE 6;CECOLOR 62;CELTSCALE 40;DISPSILH 70;DIMSCALE 40;DIMASZ 40;DIMEXO 40;" +
-            "DIMDLI 40;DIMRND 40;DIMDLE 40;DIMEXE 40;DIMTP 40;DIMTM 40;DIMTXT 40;DIMCEN 40;DIMTSZ 40;DIMTOL 70;" +
-            "DIMLIM 70;DIMTIH 70;DIMTOH 70;DIMSE1 70;DIMSE2 70;DIMTAD 70;DIMZIN 70;DIMBLK 1;DIMASO 70;DIMSHO 70;" +
-            "DIMPOST 1;DIMAPOST 1;DIMALT 70;DIMALTD 70;DIMALTF 40;DIMLFAC 40;DIMTOFL 70;DIMTVP 40;DIMTIX 70;DIMSOXD 70;" +
-            "DIMSAH 70;DIMBLK1 1;DIMBLK2 1;DIMSTYLE 2;DIMCLRD 70;DIMCLRE 70;DIMCLRT 70;DIMTFAC 40;DIMGAP 40;DIMJUST 70;" +
-            "DIMSD1 70;DIMSD2 70;DIMTOLJ 70;DIMTZIN 70;DIMALTZ 70;DIMALTTZ 70;DIMUPT 70;DIMDEC 70;DIMTDEC 70;" +
-            "DIMALTU 70;DIMALTTD 70;DIMTXSTY 7;DIMAUNIT 70;DIMADEC 70;DIMALTRND 40;DIMAZIN 70;DIMDSEP 70;DIMATFIT 70;" +
-            "DIMFRAC 70;DIMLDRBLK 1;DIMLUNIT 70;DIMLWD 70;DIMLWE 70;DIMTMOVE 70;LUNITS 70;LUPREC 70;SKETCHINC 40;" +
-            "FILLETRAD 40;AUNITS 70;AUPREC 70;MENU 1;ELEVATION 40;PELEVATION 40;THICKNESS 40;LIMCHECK 70;CHAMFERA 40;" +
-            "CHAMFERB 40;CHAMFERC 40;CHAMFERD 40;SKPOLY 70;TDUCREATE 40;TDUUPDATE 40;" +
-            "TDINDWG 40;TDUSRTIMER 40;USRTIMER 70;ANGBASE 50;ANGDIR 70;PDMODE 70;PDSIZE 40;PLINEWID 40;SPLFRAME 70;" +
-            "SPLINETYPE 70;SPLINESEGS 70;HANDSEED 5;SURFTAB1 70;SURFTAB2 70;SURFTYPE 70;SURFU 70;SURFV 70;UCSBASE 2;" +
-            "UCSNAME 2;UCSORG 10;UCSXDIR 10;UCSYDIR 10;UCSORTHOREF 2;UCSORTHOVIEW 70;UCSORGTOP 10;UCSORGBOTTOM 10;" +
-            "UCSORGLEFT 10;UCSORGRIGHT 10;UCSORGFRONT 10;UCSORGBACK 10;PUCSBASE 2;PUCSNAME 2;PUCSORG 10;PUCSXDIR 10;" +
-            "PUCSYDIR 10;PUCSORTHOREF 2;PUCSORTHOVIEW 70;PUCSORGTOP 10;PUCSORGBOTTOM 10;PUCSORGLEFT 10;PUCSORGRIGHT 10;" +
-            "PUCSORGFRONT 10;PUCSORGBACK 10;USERI1 70;USERI2 70;USERI3 70;USERI4 70;USERI5 70;USERR1 40;USERR2 40;" +
-            "USERR3 40;USERR4 40;USERR5 40;WORLDVIEW 70;SHADEDGE 70;SHADEDIF 70;TILEMODE 70;MAXACTVP 70;PINSBASE 10;" +
-            "PLIMCHECK 70;PEXTMIN 10;PEXTMAX 10;PLIMMIN 10;PLIMMAX 10;UNITMODE 70;VISRETAIN 70;PLINEGEN 70;" +
-            "PSLTSCALE 70;TREEDEPTH 70;CMLSTYLE 2;CMLJUST 70;CMLSCALE 40;PROXYGRAPHICS 70;MEASUREMENT 70;CELWEIGHT 370;" +
-            "ENDCAPS 280;JOINSTYLE 280;LWDISPLAY 290;INSUNITS 70;HYPERLINKBASE 1;STYLESHEET 1;XEDIT 290;CEPSNTYPE 380;" +
-            "PSTYLEMODE 290;FINGERPRINTGUID 2;VERSIONGUID 2;EXTNAMES 290;PSVPSCALE 40;OLESTARTUP 290";
+            "ACADVER 1;ACADMAINTVER 70;DWGCODEPAGE 3;REQUIREDVERSIONS 160 1027;INSBASE 10;EXTMIN 10;EXTMAX 10;" +
+            "LIMMIN 10;LIMMAX 10;ORTHOMODE 70;REGENMODE 70;FILLMODE 70;QTEXTMODE 70;MIRRTEXT 70;LTSCALE 40;ATTMODE 70;" +
+            "TEXTSIZE 40;TRACEWID 40;TEXTSTYLE 7;CLAYER 8;CELTYPE 6;CECOLOR 62;CELTSCALE 40;DISPSILH 70;DIMSCALE 40;" +
+            "DIMASZ 40;DIMEXO 40;DIMDLI 40;DIMRND 40;DIMDLE 40;DIMEXE 40;DIMTP 40;DIMTM 40;DIMTXT 40;DIMCEN 40;" +
+            "DIMTSZ 40;DIMTOL 70;DIMLIM 70;DIMTIH 70;DIMTOH 70;DIMSE1 70;DIMSE2 70;DIMTAD 70;DIMZIN 70;DIMBLK 1;" +
+            "DIMASO 70;DIMSHO 70;DIMPOST 1;DIMAPOST 1;DIMALT 70;DIMALTD 70;DIMALTF 40;DIMLFAC 40;DIMTOFL 70;DIMTVP 40;" +
+            "DIMTIX 70;DIMSOXD 70;DIMSAH 70;DIMBLK1 1;DIMBLK2 1;DIMSTYLE 2;DIMCLRD 70;DIMCLRE 70;DIMCLRT 70;DIMTFAC 40;" +
+            "DIMGAP 40;DIMJUST 70;DIMSD1 70;DIMSD2 70;DIMTOLJ 70;DIMTZIN 70;DIMALTZ 70;DIMALTTZ 70;DIMUPT 70;DIMDEC 70;" +
+            "DIMTDEC 70;DIMALTU 70;DIMALTTD 70;DIMTXSTY 7;DIMAUNIT 70;DIMADEC 70;DIMALTRND 40;DIMAZIN 70;DIMDSEP 70;" +
+            "DIMATFIT 70;DIMFRAC 70;DIMLDRBLK 1;DIMLUNIT 70;DIMLWD 70;DIMLWE 70;DIMTMOVE 70;DIMFXL 40 1021;" +
+            "DIMFXLON 70 1021;DIMJOGANG 40 1021;DIMTFILL 70 1021;DIMTFILLCLR 70 1021;DIMARCSYM 70 1021;DIMLTYPE 6 1021;" +
+            "DIMLTEX1 6 1021;DIMLTEX2 6 1021;DIMTXTDIRECTION 70 1024;LUNITS 70;LUPREC 70;SKETCHINC 40;FILLETRAD 40;" +
+            "AUNITS 70;AUPREC 70;MENU 1;ELEVATION 40;PELEVATION 40;THICKNESS 40;LIMCHECK 70;CHAMFERA 40;CHAMFERB 40;" +
+            "CHAMFERC 40;CHAMFERD 40;SKPOLY 70;TDUCREATE 40;TDUUPDATE 40;TDINDWG 40;TDUSRTIMER 40;USRTIMER 70;" +
+            "ANGBASE 50;ANGDIR 70;PDMODE 70;PDSIZE 40;PLINEWID 40;SPLFRAME 70;SPLINETYPE 70;SPLINESEGS 70;HANDSEED 5;" +
+            "SURFTAB1 70;SURFTAB2 70;SURFTYPE 70;SURFU 70;SURFV 70;UCSBASE 2;UCSNAME 2;UCSORG 10;UCSXDIR 10;UCSYDIR 10;" +
+            "UCSORTHOREF 2;UCSORTHOVIEW 70;UCSORGTOP 10;UCSORGBOTTOM 10;UCSORGLEFT 10;UCSORGRIGHT 10;UCSORGFRONT 10;" +
+            "UCSORGBACK 10;PUCSBASE 2;PUCSNAME 2;PUCSORG 10;PUCSXDIR 10;PUCSYDIR 10;PUCSORTHOREF 2;PUCSORTHOVIEW 70;" +
+            "PUCSORGTOP 10;PUCSORGBOTTOM 10;PUCSORGLEFT 10;PUCSORGRIGHT 10;PUCSORGFRONT 10;PUCSORGBACK 10;USERI1 70;" +
+            "USERI2 70;USERI3 70;USERI4 70;USERI5 70;USERR1 40;USERR2 40;USERR3 40;USERR4 40;USERR5 40;WORLDVIEW 70;" +
+            "SHADEDGE 70;SHADEDIF 70;TILEMODE 70;MAXACTVP 70;PINSBASE 10;PLIMCHECK 70;PEXTMIN 10;PEXTMAX 10;PLIMMIN 10;" +
+            "PLIMMAX 10;UNITMODE 70;VISRETAIN 70;PLINEGEN 70;PSLTSCALE 70;TREEDEPTH 70;CMLSTYLE 2;CMLJUST 70;" +
+            "CMLSCALE 40;PROXYGRAPHICS 70;MEASUREMENT 70;CELWEIGHT 370;ENDCAPS 280;JOINSTYLE 280;LWDISPLAY 290;" +
+            "INSUNITS 70;HYPERLINKBASE 1;STYLESHEET 1;XEDIT 290;CEPSNTYPE 380;PSTYLEMODE 290;FINGERPRINTGUID 2;" +
+            "VERSIONGUID 2;EXTNAMES 290;PSVPSCALE 40;OLESTARTUP 290;SORTENTS 280 1018;INDEXCTL 280 1018;" +
+            "HIDETEXT 280 1018;XCLIPFRAME 280 1018;HALOGAP 280 1018;OBSCOLOR 70 1018;OBSLTYPE 280 1018;" +
+            "INTERSECTIONDISPLAY 280 1018;INTERSECTIONCOLOR 70 1018;DIMASSOC 280 1018;PROJECTNAME 1 1018;" +
+            "CAMERADISPLAY 290 1021;LENSLENGTH 40 1021;CAMERAHEIGHT 40 1021;STEPSPERSEC 40 1021;STEPSIZE 40 1021;" +
+            "3DDWFPREC 40 1021;PSOLWIDTH 40 1021;PSOLHEIGHT 40 1021;LOFTANG1 40 1021;LOFTANG2 40 1021;LOFTMAG1 40 1021;" +
+            "LOFTMAG2 40 1021;LOFTPARAM 70 1021;LOFTNORMALS 280 1021;LATITUDE 40 1021;LONGITUDE 40 1021;" +
+            "NORTHDIRECTION 40 1021;TIMEZONE 70 1021;LIGHTGLYPHDISPLAY 280 1021;TILEMODELIGHTSYNCH 280 1021;" +
+            "CMATERIAL 347 1021;SOLIDHIST 280 1021;SHOWHIST 280 1021;DWFFRAME 280 1021;DGNFRAME 280 1021;" +
+            "REALWORLDSCALE 290 1021;INTERFERECOLOR 62 1021;INTERFEREOBJVS 345 1021;INTERFEREVPVS 346 1021;" +
+            "CSHADOW 280 1021;SHADOWPLANELOCATION 40 1021";
 
         /// <summary>The tables in the order DXF writes them, each with the header's name for the handle of its control object.</summary>
         private static readonly string[][] Tables =
@@ -54,15 +69,18 @@ namespace GeometryHelper.Dwg
         private readonly HashSet<ulong> _written = new HashSet<ulong>();
         private readonly DwgDxfWriter _dxf = new DwgDxfWriter();
         private readonly bool _doubleByte;
+        private readonly int _version;
 
-        private DwgTranscoder(byte[] file)
+        private DwgTranscoder(DwgContainer container)
         {
-            _container = DwgContainer.Read(file);
+            _container = container;
+            _version = DwgContainer.NumberOf(_container.Version);
             _header = DwgHeaderVariables.Read(_container);
-            _classes = DwgClass.ReadAll(_container.Classes);
+            _classes = DwgClass.ReadAll(_container.Classes, _container.Version);
             string page = _container.CodePage;
+
             _doubleByte = page == "ANSI_932" || page == "ANSI_936" || page == "ANSI_949" || page == "ANSI_950";
-            var reader = new DwgObjectReader(file, _classes);
+            var reader = new DwgObjectReader(_container.Objects, _classes, _container.Version);
             int broken = 0;
             string firstFault = null;
 
@@ -98,9 +116,12 @@ namespace GeometryHelper.Dwg
         /// <see cref="FormatException"/> for a file that is not a DWG or is broken where nothing can be read past it, and
         /// <see cref="NotSupportedException"/> for a DWG of a version that is not read.
         /// </summary>
-        public static byte[] ToDxf(byte[] file)
+        public static byte[] ToDxf(byte[] file) => ToDxf(DwgContainer.Read(file));
+
+        /// <summary>The DXF of the DWG whose parts <paramref name="container"/> holds, as <see cref="ToDxf(byte[])"/>.</summary>
+        public static byte[] ToDxf(DwgContainer container)
         {
-            var transcoder = new DwgTranscoder(file);
+            var transcoder = new DwgTranscoder(container);
             transcoder.WriteHeader();
             transcoder.WriteClasses();
             transcoder.WriteTables();
@@ -208,6 +229,11 @@ namespace GeometryHelper.Dwg
             {
                 byte[] found = NameOf(name.Handle) ?? Encoding.ASCII.GetBytes(name.Fallback);
 
+                if (name.Capitals && (Same(found, "ByLayer") || Same(found, "ByBlock")))
+                {
+                    found = Encoding.ASCII.GetBytes(Same(found, "ByLayer") ? "BYLAYER" : "BYBLOCK");
+                }
+
                 if (name.OmitWhen == null || !Same(found, name.OmitWhen))
                 {
                     _dxf.Write(group.Code, found);
@@ -215,7 +241,8 @@ namespace GeometryHelper.Dwg
             }
             else if (group.Code == DwgObjectReader.LongText)
             {
-                _dxf.WriteChunks(3, 1, (byte[])group.Value, 250, _doubleByte);
+                // From R2007 the texts are UTF-8, whose characters of several bytes are kept whole.
+                _dxf.WriteChunks(3, 1, (byte[])group.Value, 250, _doubleByte, _version >= 1021);
             }
             else
             {
@@ -243,6 +270,25 @@ namespace GeometryHelper.Dwg
                 int code = int.Parse(parts[1], CultureInfo.InvariantCulture);
                 object value;
 
+                if (parts.Length > 2 && _version < int.Parse(parts[2], CultureInfo.InvariantCulture))
+                {
+                    continue;
+                }
+
+                if (name == "ACADMAINTVER" && _version >= 1032)
+                {
+                    code = 90;
+                }
+
+                if (name == "XCLIPFRAME" && _version < 1024)
+                {
+                    // Before R2010 the frame of a clipped xref is on or off, a flag of group 290; the value 2 of later
+                    // releases (shown, not plotted) is written off, as AutoCAD writes it.
+                    _dxf.Write(9, "$XCLIPFRAME");
+                    _dxf.Write(290, _header.Int("XCLIPFRAME") == 1 ? 1 : 0);
+                    continue;
+                }
+
                 switch (name)
                 {
                     case "ACADVER": value = _container.Version; break;
@@ -259,7 +305,7 @@ namespace GeometryHelper.Dwg
 
                 _dxf.Write(9, "$" + name);
 
-                if (value is ulong handle && name != "HANDSEED")
+                if (value is ulong handle && name != "HANDSEED" && (code < 330 || code > 369))
                 {
                     _dxf.Write(code, NameOf(handle) ?? new byte[0]);
                 }
@@ -288,6 +334,12 @@ namespace GeometryHelper.Dwg
                 _dxf.Write(2, one.CppName);
                 _dxf.Write(3, one.Application);
                 _dxf.Write(90, one.ProxyFlags);
+
+                if (one.Count >= 0)
+                {
+                    _dxf.Write(91, one.Count);
+                }
+
                 _dxf.Write(280, one.WasZombie ? 1 : 0);
                 _dxf.Write(281, one.IsEntity ? 1 : 0);
             }
@@ -365,6 +417,7 @@ namespace GeometryHelper.Dwg
                 _dxf.Write(70, control.BlockFlags);
 
                 Write(control.Body);
+                Write(control.XData);
 
                 foreach (DwgObject record in records)
                 {
@@ -426,12 +479,12 @@ namespace GeometryHelper.Dwg
 
             Write(entity.XData);
 
-            if (nested || entity.First == 0)
+            if (nested || (entity.Owned != null ? entity.Owned.Count == 0 : entity.First == 0))
             {
                 return;
             }
 
-            WriteChain(entity.First, entity.Last, entity.Handle, paper, true);
+            WriteOwned(entity, entity.Handle, paper, true);
             DwgObject end = Find(entity.SeqEnd);
 
             if (end != null && end.IsEntity)
@@ -467,6 +520,29 @@ namespace GeometryHelper.Dwg
             }
 
             return 0.0;
+        }
+
+        /// <summary>
+        /// The entities <paramref name="holder"/> owns, under <paramref name="owner"/>: from R2004 the list it holds, in its
+        /// order; before R2004 the chain from its first entity to its last.
+        /// </summary>
+        private void WriteOwned(DwgObject holder, ulong owner, bool paper, bool nested)
+        {
+            if (holder.Owned == null)
+            {
+                WriteChain(holder.First, holder.Last, owner, paper, nested);
+                return;
+            }
+
+            foreach (ulong handle in holder.Owned)
+            {
+                DwgObject entity = Find(handle);
+
+                if (entity != null && entity.IsEntity)
+                {
+                    WriteEntity(entity, owner, paper, nested);
+                }
+            }
         }
 
         /// <summary>The entities from <paramref name="first"/> to <paramref name="last"/>, each leading to the next.</summary>
@@ -561,7 +637,7 @@ namespace GeometryHelper.Dwg
 
                 if (block.Handle != model && block.Handle != activePaper)
                 {
-                    WriteChain(block.First, block.Last, block.Handle, paper, false);
+                    WriteOwned(block, block.Handle, paper, false);
                 }
 
                 WriteEntity(end, block.Handle, paper, true);
@@ -575,7 +651,7 @@ namespace GeometryHelper.Dwg
             {
                 if (block.Handle == model || block.Handle == activePaper)
                 {
-                    WriteChain(block.First, block.Last, block.Handle, block.Handle == activePaper, false);
+                    WriteOwned(block, block.Handle, block.Handle == activePaper, false);
                 }
             }
 
