@@ -108,6 +108,7 @@ namespace GeometryHelper.Dxf.Viewer
 
                     if (!_removing)
                     {
+                        ReplaceWithPickAdd0();
                         _whole.UnionWith(all);
                         _unwindowed.UnionWith(all);
                     }
@@ -118,6 +119,7 @@ namespace GeometryHelper.Dxf.Viewer
 
                     if (!_removing && last != null)
                     {
+                        ReplaceWithPickAdd0();
                         _unwindowed.Add(last);
                     }
 
@@ -135,6 +137,7 @@ namespace GeometryHelper.Dxf.Viewer
 
                     if (!_removing)
                     {
+                        ReplaceWithPickAdd0();
                         _whole.UnionWith(previous);
                         _unwindowed.UnionWith(previous);
                     }
@@ -353,11 +356,21 @@ namespace GeometryHelper.Dxf.Viewer
             GatherWhole(found);
         }
 
+        /// <summary>With PICKADD 0, forgets the objects gathered so far, so that those an option takes next replace them.</summary>
+        private void ReplaceWithPickAdd0()
+        {
+            if (Document.PickAdd == 0)
+            {
+                ClearGathering();
+            }
+        }
+
         /// <summary>Gathers objects an option took whole, or takes them out while removing; a window's box kept with what it took.</summary>
         private bool GatherWhole(List<string> found, DisplayBox? window = null, bool crossing = false)
         {
             if (!_removing)
             {
+                ReplaceWithPickAdd0();
                 List<string> grouped = new List<string>(Document.WithGroups(found));
                 _whole.UnionWith(grouped);
 

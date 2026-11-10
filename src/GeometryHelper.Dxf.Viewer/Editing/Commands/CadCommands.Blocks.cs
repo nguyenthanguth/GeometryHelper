@@ -739,7 +739,8 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// Places one INSERT: the point, scale and rotation asked where they are to be specified on screen, as AutoCAD's INSERT
-        /// asks them, then the values of its attributes (ATTREQ 1), then the INSERT made, exploded where asked.
+        /// asks them, then the values of its attributes (ATTREQ 1; with ATTREQ 0 their defaults), then the INSERT made, exploded
+        /// where asked.
         /// </summary>
         private static IEnumerable<CadPrompt> Place(CadCommandContext c, string name, Placing placing, bool askPoint, bool askScale, bool askRotation, bool explode)
         {
@@ -895,7 +896,12 @@ namespace GeometryHelper.Dxf.Viewer
 
             var values = new List<string>();
 
-            if (!explode)
+            // ATTREQ 0 gives each attribute its default without asking, as AutoCAD's.
+            if (!explode && c.Remembered("attreq", 1.0) < 0.5)
+            {
+                values.AddRange(Definitions(record).Select(d => d.TextString));
+            }
+            else if (!explode)
             {
                 foreach (CadPrompt prompt in AttributeValues(c, record, values))
                 {

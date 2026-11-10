@@ -202,6 +202,19 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         [Fact]
+        public void InsertWithAttreqZero_GivesEachAttributeItsDefault_WithoutAsking()
+        {
+            CadDocument document = WithGridBubble();
+
+            CadCommandSession session = Start(document, "ATTREQ", "0", "-INSERT", "GB", P(500, 500), Enter, Enter, Enter);
+
+            Assert.False(session.IsRunning);
+            Assert.DoesNotContain("Enter attribute values", session.History);
+            DxfBlockReference insert = Assert.Single(All<DxfBlockReference>(document.ModelSpace));
+            Assert.Equal("A", Assert.Single(insert.AttributeCollection).TextString);
+        }
+
+        [Fact]
         public void InsertWithABasePointPicked_OfABlockInCentimetres_BringsThatPointToTheInsertionPoint()
         {
             CadDocument document = WithGridBubble();

@@ -53,6 +53,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
             else
             {
+                if (document.PickAdd == 0 && !shift)
+                {
+                    document.Selection.Clear();
+                }
+
                 document.Selection.Add(group);
             }
 
@@ -202,12 +207,18 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 session.FeedSelection(found, shift);
             }
-            else if (shift)
+            else if (shift && document.PickAdd != 0)
             {
                 document.Selection.Remove(found);
             }
             else
             {
+                // With PICKADD 0 the lasso makes the selection, Shift adding to it.
+                if (document.PickAdd == 0 && !shift)
+                {
+                    document.Selection.Clear();
+                }
+
                 document.Selection.Add(found);
             }
 
@@ -257,6 +268,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
             else
             {
+                // With PICKADD 0 what is picked last is the selection.
+                if (document.PickAdd == 0)
+                {
+                    document.Selection.Clear();
+                }
+
                 document.Selection.Add(document.WithGroups(new[] { found[0] }));
             }
 
@@ -276,7 +293,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             PickIndex index = document.GetPickIndex(space);
             IReadOnlyList<string> found = document.WithGroups(crossing ? index.Crossing(box) : index.Window(box));
 
-            if (remove)
+            // With PICKADD 0 the box makes the selection, Shift adding to it.
+            if (document.PickAdd == 0 && !remove)
+            {
+                document.Selection.Clear();
+            }
+
+            if (remove && document.PickAdd != 0)
             {
                 document.Selection.Remove(found);
             }

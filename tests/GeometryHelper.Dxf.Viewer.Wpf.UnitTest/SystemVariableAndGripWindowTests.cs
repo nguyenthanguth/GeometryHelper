@@ -81,8 +81,49 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             Assert.False(model.DynamicInput.IsOn);
             Assert.False(model.Document.CanUndo);
 
-            // The drawing's $ORTHOMODE is left as it was: the window's ORTHO answers ORTHOMODE.
-            Assert.False(model.Document.Database.Orthomode);
+            // The window's ORTHO answers ORTHOMODE, and is written to the drawing's $ORTHOMODE too, as AutoCAD saves it there.
+            Assert.True(model.Document.Database.Orthomode);
+        }
+
+        [Fact]
+        public void Dynmode_KeepsWhichInputIsOn_ANegativeValueWhileDynIsOff_AndF12BringsItBack()
+        {
+            MainViewModel model = Room();
+
+            model.Execute("DYNMODE");
+            model.Execute("-2");
+            Assert.False(model.DynamicInput.IsOn);
+            model.Execute("DYNMODE");
+            Assert.Equal("Enter new value for DYNMODE <-2>:", model.Prompt);
+            model.Execute("-2");
+
+            model.DynamicInput.IsOn = true;
+            model.Execute("DYNMODE");
+            Assert.Equal("Enter new value for DYNMODE <2>:", model.Prompt);
+            model.Execute("0");
+            Assert.False(model.DynamicInput.IsOn);
+
+            model.DynamicInput.IsOn = true;
+            model.Execute("DYNMODE");
+            Assert.Equal("Enter new value for DYNMODE <3>:", model.Prompt);
+        }
+
+        [Fact]
+        public void PickaddZero_MakesTheObjectClickedTheSelection_AndShiftAddsToIt()
+        {
+            MainViewModel model = Room();
+            CadDocument document = model.Document;
+            model.Execute("PICKADD");
+            model.Execute("0");
+            Assert.Equal(0, document.PickAdd);
+
+            // The bottom wall runs along y 0, the top one along y 3000, both from x 0 to 4000.
+            string bottom = CadPicking.Pick(document, document.ModelSpace, 2000, 0, 1.0, false);
+            string top = CadPicking.Pick(document, document.ModelSpace, 2000, 3000, 1.0, false);
+            Assert.Equal(new[] { top }, document.Selection.Handles);
+
+            CadPicking.Pick(document, document.ModelSpace, 2000, 0, 1.0, true);
+            Assert.Equal(new[] { bottom, top }.OrderBy(h => h, StringComparer.OrdinalIgnoreCase), document.Selection.Handles.OrderBy(h => h, StringComparer.OrdinalIgnoreCase));
         }
 
         [Fact]

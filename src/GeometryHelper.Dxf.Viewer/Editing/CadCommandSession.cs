@@ -623,6 +623,17 @@ namespace GeometryHelper.Dxf.Viewer
             Write(Prompt.Text);
             var gathered = new List<string>(Document.WithGroups(found));
 
+            // With PICKADD 0 what is picked last replaces those gathered, and Shift adds to them, as AutoCAD's.
+            if (Document.PickAdd == 0 && !_removing)
+            {
+                if (!remove)
+                {
+                    ClearGathering();
+                }
+
+                remove = false;
+            }
+
             if (remove || _removing)
             {
                 return Gather(gathered, true);

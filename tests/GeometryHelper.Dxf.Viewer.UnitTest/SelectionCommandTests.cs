@@ -192,6 +192,21 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         [Fact]
+        public void PickaddZero_MakesWhatIsPickedLastTheObjectsSelected_AndShiftAddsToThem()
+        {
+            CadDocument document = Three(out string a, out string b, out string c);
+            CadCommandSession session = Run(Session(document), "PICKADD", "0");
+            Assert.Equal(0, document.PickAdd);
+
+            Run(session, "ERASE", new[] { a }, new[] { b });
+            Assert.True(session.FeedSelection(new[] { c }, true));
+            Run(session, Enter);
+
+            Assert.DoesNotContain(document.Database.ModelSpace, e => e.Handle == b || e.Handle == c);
+            Assert.Contains(document.Database.ModelSpace, e => e.Handle == a);
+        }
+
+        [Fact]
         public void GroupTyped_OnADrawingOfR2000WithNoObjectsSection_MakesTheNamedObjectDictionary_AsAutoCadOpensOne()
         {
             // The plan is a DXF of R2000 written without its OBJECTS section, so without the dictionary that holds ACAD_GROUP.
