@@ -60,6 +60,67 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         [Fact]
+        public void Tracking_RunsOrthogonallyFromPointToPoint_AndEnterGivesThePointTracked_WithAutoCADsPrompts()
+        {
+            CadDocument document = Blank();
+            CadCommandSession session = Session(document);
+
+            // The centre of a plate 200 by 100 whose corner is at (0, 0): along X from the middle of its bottom edge, then up.
+            Run(session, "CIRCLE", "TK");
+            Assert.Equal("First tracking point:", session.PromptText);
+            Run(session, "100,0");
+            Assert.Equal("Next point (Press ENTER to end tracking):", session.PromptText);
+            Assert.Equal(P(100, 0), session.Prompt.BasePoint);
+
+            // A point picked off the axes keeps the coordinate of the way it lies farther: (130, 50) is up, so x stays 100.
+            Run(session, P(130, 50));
+            Assert.Equal(P(100, 50), session.Prompt.BasePoint);
+            Assert.Equal("Next point (Press ENTER to end tracking):", session.PromptText);
+            Run(session, Enter);
+
+            Assert.StartsWith("Specify radius of circle or [Diameter]", session.PromptText);
+            Run(session, "10");
+            DxfCircle circle = All<DxfCircle>(document.ModelSpace).Single();
+            Near(new GeoPoint3(100, 50, 0), circle.Center);
+            Assert.Equal(new[] { "Specify center point for circle or [3P/2P/Ttr (tan tan radius)]: TK", "First tracking point: 100,0", "Next point (Press ENTER to end tracking):" },
+                session.History.SkipWhile(l => !l.EndsWith(": TK", System.StringComparison.Ordinal)).Take(3));
+        }
+
+        [Fact]
+        public void Tracking_TakesADistanceTypedAlongTheAxisTheCursorIsNearest_AndNestsInFrom()
+        {
+            CadDocument document = Blank();
+            CadCommandSession session = Session(document);
+
+            // TRACKING at FROM's base point: from (0, 0), 60 along X towards the cursor up and to the right, then 40 up.
+            Run(session, "POINT", "FROM", "TRACKING", "0,0");
+            session.Cursor = P(80, 10);
+            Run(session, "60");
+            Assert.Equal(P(60, 0), session.Prompt.BasePoint);
+            session.Cursor = P(70, 90);
+            Run(session, "40", Enter);
+            Assert.Equal("<Offset>:", session.PromptText);
+            Run(session, "@5,0");
+
+            DxfDBPoint point = All<DxfDBPoint>(document.ModelSpace).Single();
+            Near(new GeoPoint3(65, 40, 0), point.Position);
+        }
+
+        [Fact]
+        public void Tracking_InAUcsTurnedAQuarter_RunsAlongTheAxesOfTheUcs()
+        {
+            CadDocument document = Blank();
+            CadCommandSession session = Session(document);
+            Run(session, "UCS", "Z", "90");
+
+            // The UCS's X runs up the world's Y: (5, 100) lies farther along the UCS's X from (0, 0), so its world x is dropped.
+            Run(session, "POINT", "TK", P(0, 0), P(5, 100), Enter);
+
+            DxfDBPoint point = All<DxfDBPoint>(document.ModelSpace).Single();
+            Near(new GeoPoint3(0, 100, 0), point.Position);
+        }
+
+        [Fact]
         public void M2PAndMtp_GiveThePointMidwayBetweenTwo()
         {
             CadDocument document = Blank();

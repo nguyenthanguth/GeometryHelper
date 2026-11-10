@@ -396,14 +396,18 @@ Any prompt for a point takes AutoCAD's point modifiers, typed or chosen from the
 | FROM | `Base point:`, then `<Offset>:` | the offset point: `@dx,dy` and `@distance<angle` are measured from the base point |
 | M2P, MTP | `First point of mid:`, `Second point of mid:` | the point midway |
 | TT | `Specify temporary OTRACK point:` | no point: the prompt is asked again, and while OTRACK is on tracking lines run from the point |
+| TK, TRACK, TRACKING | `First tracking point:`, then `Next point (Press ENTER to end tracking):` until Enter | the point tracked: each next point taken square from the one before, along the axis it lies farther along |
 | .X .Y .Z .XY .XZ .YZ | `of`, then `(need YZ):` and so on | the coordinates named from the first point, the rest from the second |
 
 LINE with FROM, the base point 100,50 and the offset `@30,20` starts at (130, 70); M2P between (0, 0) and (100, 40) gives
-(50, 20), and M2P at the radius of a circle centred at (0, 0) between (0, 0) and (60, 80) gives a radius of 50. `.X` of
+(50, 20), and M2P at the radius of a circle centred at (0, 0) between (0, 0) and (60, 80) gives a radius of 50. CIRCLE
+with TK from 100,0 and a click at (130, 50) centres the circle at (100, 50), the middle of a plate 200 by 100; a distance
+typed at `Next point` runs along the axis nearest the cursor, so 60 with the cursor at (80, 10) reaches (60, 0). `.X` of
 (30, 999) with (888, 40) gives (30, 40). At `(need YZ):` the coordinates can be typed alone, in the order X, Y, Z:
 `40,3` gives Y 40. Z, which a plan has none of, is asked as AutoCAD asks it and left out. Coordinates are those of the
 UCS. Each point a modifier asks may be snapped (END typed, or the menu) and may be given by another modifier, as FROM
-with M2P for its base point. Enter at a modifier's prompt is not a point and is asked again; Esc cancels the command.
+with M2P for its base point. Enter at a modifier's prompt is not a point and is asked again, but for TK's `Next point`,
+where it ends tracking; Esc cancels the command.
 
 ## Grips
 

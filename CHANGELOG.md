@@ -16,6 +16,11 @@ with ISO-25 current left the next dimension's words 2.5 high. It now takes the h
 override where it is not the style's, as AutoCAD 2021 does: words 25 high, arrowheads 25 long, and DIMBASELINE and QDIM
 spacing their lines DIMDLI times 10 apart.
 
+**NEW.** The presenter's point modifier TK (TRACK, TRACKING), as AutoCAD's: "First tracking point:", then "Next point
+(Press ENTER to end tracking):" until Enter, each point taken square from the one before along the UCS's axes, a distance
+typed going along the axis nearest the cursor. CIRCLE with TK from 100,0 and a click at (130, 50) is centred at
+(100, 50).
+
 **FIXED.** INSERT with Basepoint of a block in other units than the drawing landed off: a block in centimetres in a
 millimetre drawing, its base point 30 above its origin, came 270 too high. The shift is now scaled by the units too, in
 the drag and in the INSERT placed.
