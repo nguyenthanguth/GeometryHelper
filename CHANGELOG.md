@@ -6,6 +6,12 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** `DxfLayerStateManager.GetLayerStateNames(includeHidden, false)` left out a layer state imported from a .las
+file. AutoCAD 2021 writes such a state with its layers by name (group 8: `XR_DOORS`, `0`), which the library took for
+the mark of an xref's state; `-LAYER` stAte `?` lists it with the drawing's own. A state is now an xref's only where it is
+named `xref__state` and every layer of its record is named as `xref|layer`, as AutoCAD writes
+`70-b-xref-source__GH_XR_STATE` of the layer `70-b-xref-source|XR_WALLS`.
+
 **FIXED.** The presenter's typed and shown angles follow ANGBASE and ANGDIR as AutoCAD 2021's do; they were read from
 the X axis counter-clockwise whatever UNITS had set (only an arc's included angle followed ANGDIR). With ANGBASE 90 and
 ANGDIR 1, `@100<30` now ends at 50, 86.6 and not 86.6, 50; 30 at ROTATE turns 30 degrees clockwise, the base left out
