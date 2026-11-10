@@ -6,6 +6,13 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** The presenter draws a layer switched off or frozen in a third of the time it took. An entity on a layer that
+is not shown is passed over before its own visibility is read from its groups, which cost near a microsecond each, and
+a display list made again after an edit is sized as the one before, not grown by doubling. In a drawing of 100 000
+entities the layer of a third of them switched off is drawn again in 23 ms, not 85, and everything drawn is item for item
+as before. The three tests that time this drawing now run alone: run beside each other, each one's garbage collections
+stopped the others' timers, and the layer switched back on, 110 to 160 ms alone, was timed at 230 to 540 ms.
+
 **CHANGED.** The presenter's MTEXT editor lays out its words as the canvas draws them, as AutoCAD 2021's in-place
 editor does. It used to set each paragraph on one line, 1.25 times its tallest letters below the last, in WPF's own
 measure, with stacks written inline. It now wraps at the width and spaces its lines at least or exactly as the MTEXT says,

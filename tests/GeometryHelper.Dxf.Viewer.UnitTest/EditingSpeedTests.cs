@@ -6,6 +6,7 @@ using Xunit.Abstractions;
 
 namespace GeometryHelper.Dxf.Viewer.UnitTest
 {
+    [Collection(ViewerSpeedCollection.Name)]
     public class EditingSpeedTests
     {
         private readonly ITestOutputHelper _output;
