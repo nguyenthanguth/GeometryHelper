@@ -17,7 +17,8 @@ namespace GeometryHelper.Dxf.Viewer
         /// Draws a dimension's block anew from its points and the variables it reads now (its overrides, else its style's): a
         /// linear, aligned, ordinate, radius, jogged radius, diameter, angular or arc length dimension whose block is its own anonymous one, a linear one's
         /// jog of DIMJOGLINE with it. The entities of the block
-        /// are erased and the new picture appended. False, and nothing changed, for another kind or a block not its own.
+        /// are erased and the new picture appended, broken again where the dimension keeps DIMBREAK's breaks (BREAKDATA). False,
+        /// and nothing changed, for another kind or a block not its own.
         /// </summary>
         internal static bool Redraw(DxfDimension dimension)
         {
@@ -51,6 +52,7 @@ namespace GeometryHelper.Dxf.Viewer
                 block.AppendEntity(entity);
             }
 
+            BreakAgain(dimension);
             return true;
         }
 

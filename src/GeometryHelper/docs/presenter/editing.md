@@ -234,7 +234,13 @@ DIMJOGLINE (DJL) puts a jog in the line of a linear dimension, kept as AutoCAD k
 drawn 1.5 times the height of the words; Remove takes it out. DIMEDIT Oblique slants the extension lines of a linear or
 an aligned dimension to the angle typed, from the x axis, and keeps it as AutoCAD 2021 keeps it, from the dimension line
 (group 52, Oblique): 60 typed for a dimension rotated 30 is kept as 30, for an aligned one from (0, 100) to (100, 150) as
-33.435, and -30 for a level one as 330. DIMJOGGED (DJO, JOG) draws a jogged radius of an arc or a
+33.435, and -30 for a level one as 330. DIMBREAK keeps its breaks as AutoCAD 2021 keeps them, a BREAKDATA under
+ACAD_BREAKDATA in the dimension's extension dictionary: Auto one break for each object that crosses the dimension, naming
+it (the object naming the BREAKDATA among its reactors), Manual the two points picked and the line they break (0 and 1
+the extension lines, 3 the dimension line); Remove takes it out. A dimension drawn anew, by DIMEDIT, a change of its
+style or a grip, is broken again where it keeps breaks, whether DIMBREAK here or AutoCAD broke it, and AutoCAD 2021 opening
+the drawing breaks it again from what the presenter kept: a dimension broken here by hand from (20, -130) to (30, -130),
+given new words in AutoCAD, has its line from 0.18 to 20 and from 30 on. DIMJOGGED (DJO, JOG) draws a jogged radius of an arc or a
 circle, its line from a centre put in place of one off the drawing: along the radius's parallel, across at DIMJOGANG and
 on to the rim, the jog half way between the two lines. A circle of 50 about the origin, its centre drawn at (0, -100),
 its words put at (30, 0) and its jog at (15, -50) has its lines from (0, -100) to (65, -100), on to (-35, 0) and on to the

@@ -6,6 +6,15 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** DIMBREAK in the presenter keeps its breaks as AutoCAD 2021 keeps them, so a dimension drawn anew is broken
+again. It cut the lines of the dimension's picture only, and DIMEDIT, a change of style or a grip drew the dimension
+whole again. AutoCAD, probed in its console, keeps a BREAKDATA under ACAD_BREAKDATA in the dimension's extension
+dictionary: one AcDbBreakPointRef for each object Auto finds crossing (71 0, the object in 331, the object naming the
+BREAKDATA among its reactors), one for each break by hand (71 2, the two points picked, in 91 the line: 0 and 1 the
+extension lines, 3 the dimension line), and Remove takes it out with the extension dictionary. The presenter writes the
+same, and breaks a dimension it draws anew from what it keeps, whether it broke the dimension or AutoCAD did; AutoCAD 2021
+opening the drawing reads it, finds no errors in AUDIT, and breaks the dimensions again when it draws them anew.
+
 **CHANGED.** A click in the presenter picks the object drawn on top among all those within the pickbox, as AutoCAD 2021
 does, not only among those within a tenth of the pickbox of the nearest. AutoCAD's `(ssget pt)` on two level lines, one
 through the point and one drawn later 0.05 to 0.9 of the pickbox above it, picks the later one every time, and 1.1 of
