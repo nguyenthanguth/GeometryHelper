@@ -133,8 +133,11 @@ the ones wanted.
         the common entities and objects, the handle map (L)
   - [ ] W1 follow-ups (into W4): VIEWPORT, HATCH, LEADER, MLINE, IMAGE, WIPEOUT, OLE, proxies, styles objects; polygon
         mesh, polyface and MINSERT checked on AutoCAD drawings; R2000 round-trip colours; the preview image
-  - [ ] W2 (running) R2004, R2010, R2013, R2018 (AC1018-AC1032): pages, LZ77 compression, the encrypted header, the object stream
+  - [x] W2 R2004, R2010, R2013, R2018 (AC1018-AC1032): pages, LZ77 compression, the encrypted header, the object stream
         of 2010 on (L)
+  - [ ] W2 follow-ups: the shared ACI palette (DxfColor) has 250 black where AutoCAD's 250-255 greys are 51, 80, 105,
+        130, 190, 255 (worked round in the DWG reader only); test drawings with a colour-book colour (group 430) and an
+        R2018 multi-line attribute; spline normal sign off XY (8 of 10 match; parked) (S)
   - [ ] W3 R2007 (AC1021): its own layout, Reed-Solomon, Unicode strings (M-L)
   - [ ] W4 Every entity and object: hatch, dimension, MTEXT, multileader, table, dynamic block data, xref, image,
         layouts; proxies kept as they are (L)
