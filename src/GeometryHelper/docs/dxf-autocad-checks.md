@@ -1218,7 +1218,11 @@ and the 3D polyline of point 13 fitted at SPLINETYPE 5 its `Type mismatch`, as A
       xref, named `70-b-xref-source__GH_XR_STATE`, names its layers by name (8) where the others name them by handle (330),
       and is not kept once the drawing is saved and opened again. A record is 91 the mask, 301 the description, 290, 302, then
       for each layer 330 (or 8), 90, 62, 370, 331, 1 and 440.
-    - Now: `GetLayerStateNames(includeHidden, includeXref)` takes the flags so, `GetLayerStateNames()` gives every state; the
+      A state imported from a .las file (`-LAYER` stAte Import) names its layers by name too, plain names as `XR_DOORS`
+      and `0`, and `-LAYER` stAte `?` lists it with the states saved in the drawing; of records put in by hand, `?` leaves
+      out only the hidden one.
+    - Now: `GetLayerStateNames(includeHidden, includeXref)` takes the flags so, a state of an xref being one named
+      `xref__state` whose layers are all named by name as `xref|layer`; `GetLayerStateNames()` gives every state; the
       layers, mask and description are still not read.
 
 71. **A GEODATA with no class.**

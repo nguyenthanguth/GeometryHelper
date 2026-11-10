@@ -20,6 +20,9 @@ namespace GeometryHelper.Dxf.Viewer
         private readonly CadCommandSession _session;
         private readonly Func<CadInput, IEnumerable<DxfEntity>> _make;
         private readonly Func<CadInput, IReadOnlyList<Affine2>> _moves;
+        private Func<CadInput, IReadOnlyList<DisplayItem2>> _drawn;
+        private bool _fades;
+        private bool _swaps;
         private DisplayBuilder _builder;
         private DxfDatabase _database;
 
@@ -41,9 +44,24 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>
         /// Gets whether <see cref="Items"/> are pieces the answer takes out of the drawing rather than objects it makes, drawn
         /// faded as AutoCAD 2021's TRIM draws the piece under the cursor it would cut away: of a line 150 long crossed at 50,
-        /// the 50 on the cursor's side.
+        /// the 50 on the cursor's side. With <see cref="Shift"/> held at TRIM or EXTEND it is the other command's: TRIM then
+        /// previews the object extended, not faded, and EXTEND fades the piece a trim takes out.
         /// </summary>
-        public bool Fades { get; private set; }
+        public bool Fades => _fades != (_swaps && Shift);
+
+        /// <summary>
+        /// Gets or sets whether Shift is held, which a window sets before it asks for the preview: the answer previewed then
+        /// carries it (<see cref="CadInput.Shift"/>), as a pick with Shift held does, so that TRIM previews what EXTEND would
+        /// do to the object under the cursor and EXTEND what TRIM would.
+        /// </summary>
+        public bool Shift { get; set; }
+
+        /// <summary>
+        /// Gets or sets the text typed so far at a prompt for a line of text, which a window sets before it asks for the
+        /// preview: the answer previewed is then that text, so that TEXT at "Enter text" previews the words typed where the
+        /// line will stand. Null or empty previews nothing there.
+        /// </summary>
+        public string Typed { get; set; }
 
         /// <summary>Gets the objects whose copies <see cref="Moves"/> places, in ordinal order; empty where the preview moves none.</summary>
         public IReadOnlyList<string> Handles { get; }
@@ -60,6 +78,18 @@ namespace GeometryHelper.Dxf.Viewer
         /// <returns>The items.</returns>
         public IReadOnlyList<DisplayItem2> Items(GeoPoint2 cursor)
         {
+            if (_drawn != null)
+            {
+                try
+                {
+                    return _drawn(Answer(cursor)) ?? NoItems;
+                }
+                catch (Exception)
+                {
+                    return NoItems;
+                }
+            }
+
             if (_make == null)
             {
                 return NoItems;
@@ -132,6 +162,13 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         private CadInput Answer(GeoPoint2 cursor)
         {
+            CadInput answer = AnswerAt(cursor);
+            answer.Shift = Shift;
+            return answer;
+        }
+
+        private CadInput AnswerAt(GeoPoint2 cursor)
+        {
             CadPrompt prompt = Prompt;
             GeoPoint2? from = prompt?.BasePoint;
 
@@ -146,13 +183,18 @@ namespace GeometryHelper.Dxf.Viewer
                 }
             }
 
+            if (prompt != null && prompt.Kind == CadPromptKind.String)
+            {
+                return new CadInput(CadInputKind.Text, cursor, 0.0, Typed ?? string.Empty, null);
+            }
+
             if (prompt == null || (prompt.Kind != CadPromptKind.Distance && prompt.Kind != CadPromptKind.Angle) || !from.HasValue)
             {
                 return new CadInput(CadInputKind.Point, cursor, 0.0, null, null);
             }
 
             GeoVector2 way = cursor - from.Value;
-            double number = prompt.Kind == CadPromptKind.Distance ? way.Length : _session.Ucs.AngleToUcs(Math.Atan2(way.Y, way.X));
+            double number = prompt.Kind == CadPromptKind.Distance ? way.Length : _session.PickedAngle(prompt, way);
             return new CadInput(CadInputKind.Number, cursor, number, null, null);
         }
 
@@ -162,7 +204,25 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>A preview of the pieces the answer at the cursor takes out of the drawing, drawn faded, as TRIM previews them.</summary>
         internal static CadPreview Fading(CadCommandContext c, Func<CadInput, IEnumerable<DxfEntity>> make)
-            => new CadPreview(c.Session, make, null, null, false) { Fades = true };
+            => new CadPreview(c.Session, make, null, null, false) { _fades = true };
+
+        /// <summary>
+        /// A preview of TRIM or EXTEND, which Shift held turns into the other's: faded for the piece a trim takes out, and not
+        /// for the object an extension runs on.
+        /// </summary>
+        internal static CadPreview Cutting(CadCommandContext c, Func<CadInput, IEnumerable<DxfEntity>> make, bool extend)
+            => new CadPreview(c.Session, make, null, null, false) { _fades = !extend, _swaps = true };
+
+        /// <summary>
+        /// A preview of the objects of another drawing, drawn by its own layers, styles and blocks under the move the answer at
+        /// the cursor gives, as PASTECLIP shows the Clipboard's objects before the drawing has them.
+        /// </summary>
+        internal static CadPreview Bringing(CadCommandContext c, DxfDatabase from, Func<CadInput, Affine2> move)
+        {
+            var builder = new DisplayBuilder(from, c.Document);
+            var entities = new List<DxfEntity>(from.ModelSpace);
+            return new CadPreview(c.Session, null, null, null, false) { _drawn = input => builder.BuildLoose(entities, move(input)) };
+        }
 
         /// <summary>A preview of one entity made from the answer a point picked at the cursor gives; null from the maker previews nothing.</summary>
         internal static CadPreview MakingOne(CadCommandContext c, Func<CadInput, DxfEntity> make, bool band = false)

@@ -409,6 +409,159 @@ namespace GeometryHelper.Dxf.Viewer
             return changed.ToList();
         }
 
+        /// <summary>
+        /// Restores a state into one viewport of a layout, as AutoCAD's Restore with "Apply properties as viewport overrides":
+        /// the layers themselves are left as they are. In the properties of the state's mask, a colour, linetype, lineweight
+        /// or transparency of the state that is not the layer's own becomes the layer's override in the viewport, and one
+        /// that is the layer's own takes the override off; a layer the state has off or frozen is frozen in the viewport, and
+        /// one it has on and thawed is thawed there. Locking, plotting, the freeze in new viewports and the current layer
+        /// have no form of one viewport and are not restored. The layers the state does not name are frozen in the viewport
+        /// where <paramref name="turnOffMissing"/> says so, and the state is marked as the one restored last.
+        /// </summary>
+        /// <returns>The names of the layers changed in the viewport, in ordinal order.</returns>
+        internal static List<string> RestoreAsOverrides(DxfDatabase database, string name, DxfViewport viewport, bool turnOffMissing)
+        {
+            DxfXrecord record = Find(database, name);
+            var changed = new SortedSet<string>(StringComparer.Ordinal);
+
+            if (record == null)
+            {
+                return changed.ToList();
+            }
+
+            IReadOnlyList<DxfTypedValue> data = record.Data;
+            int mask = MaskOf(data);
+            mask = (mask & Hidden) != 0 ? All : mask;
+            bool trueColors = string.CompareOrdinal(database.Version, "AC1018") >= 0;
+            var named = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var freeze = new List<DxfLayerTableRecord>();
+            var thaw = new List<DxfLayerTableRecord>();
+
+            foreach (KeyValuePair<string, List<DxfTypedValue>> pair in Layers(database, data))
+            {
+                if (pair.Key == null || !database.LayerTable.Has(pair.Key))
+                {
+                    continue;
+                }
+
+                DxfLayerTableRecord layer = database.LayerTable[pair.Key];
+                List<DxfTypedValue> groups = pair.Value;
+                named.Add(layer.Name);
+                DxfLayerViewportProperties there = layer.GetViewportOverrides(viewport);
+                bool touched = false;
+
+                if ((mask & Color) != 0)
+                {
+                    DxfColor color = ColorOf(groups);
+
+                    if (color.Equals(layer.Color))
+                    {
+                        touched |= there.IsColorOverridden;
+                        there.RemoveColorOverride();
+                    }
+                    else if ((trueColors || !color.IsByColor) && !(there.IsColorOverridden && color.Equals(there.Color)))
+                    {
+                        there.Color = color;
+                        touched = true;
+                    }
+                }
+
+                string linetype = LinetypeOf(database, groups);
+
+                if ((mask & Linetype) != 0 && linetype != null)
+                {
+                    if (string.Equals(linetype, layer.LinetypeName, StringComparison.OrdinalIgnoreCase))
+                    {
+                        touched |= there.IsLinetypeOverridden;
+                        there.RemoveLinetypeOverride();
+                    }
+                    else if (!(there.IsLinetypeOverridden && string.Equals(linetype, there.Linetype, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        there.Linetype = linetype;
+                        touched = true;
+                    }
+                }
+
+                int weight = Whole(groups, 370);
+
+                if ((mask & LineWeight) != 0 && weight != int.MinValue && Enum.IsDefined(typeof(DxfLineWeight), weight) && weight != (int)DxfLineWeight.ByLayer && weight != (int)DxfLineWeight.ByBlock
+                    && weight != (int)DxfLineWeight.ByDIPs)
+                {
+                    if (weight == (int)layer.LineWeight)
+                    {
+                        touched |= there.IsLineWeightOverridden;
+                        there.RemoveLineWeightOverride();
+                    }
+                    else if (!(there.IsLineWeightOverridden && weight == (int)there.LineWeight))
+                    {
+                        there.LineWeight = (DxfLineWeight)weight;
+                        touched = true;
+                    }
+                }
+
+                int transparency = Whole(groups, 440);
+
+                if ((mask & Transparency) != 0 && transparency != int.MinValue && trueColors)
+                {
+                    var wanted = (transparency & 0x02000000) != 0 ? new DxfTransparency((byte)(transparency & 0xFF)) : new DxfTransparency(255);
+
+                    if (TransparencyValue(wanted) == TransparencyValue(layer.Transparency))
+                    {
+                        touched |= there.IsTransparencyOverridden;
+                        there.RemoveTransparencyOverride();
+                    }
+                    else if (!(there.IsTransparencyOverridden && TransparencyValue(wanted) == TransparencyValue(there.Transparency)))
+                    {
+                        there.Transparency = wanted;
+                        touched = true;
+                    }
+                }
+
+                if ((mask & (On | Frozen)) != 0)
+                {
+                    int flags = Whole(groups, 90);
+                    flags = flags == int.MinValue ? 8 : flags;
+                    bool hidden = ((mask & On) != 0 && (flags & 1) != 0) || ((mask & Frozen) != 0 && (flags & 2) != 0);
+
+                    if (hidden != viewport.IsLayerFrozenInViewport(layer))
+                    {
+                        (hidden ? freeze : thaw).Add(layer);
+                        touched = true;
+                    }
+                }
+
+                if (touched)
+                {
+                    changed.Add(layer.Name);
+                }
+            }
+
+            if (turnOffMissing)
+            {
+                foreach (DxfLayerTableRecord layer in database.LayerTable)
+                {
+                    if (!named.Contains(layer.Name) && !layer.IsDependent && !viewport.IsLayerFrozenInViewport(layer))
+                    {
+                        freeze.Add(layer);
+                        changed.Add(layer.Name);
+                    }
+                }
+            }
+
+            if (freeze.Count > 0)
+            {
+                viewport.FreezeLayersInViewport(freeze);
+            }
+
+            if (thaw.Count > 0)
+            {
+                viewport.ThawLayersInViewport(thaw);
+            }
+
+            MarkRestored(database, record);
+            return changed.ToList();
+        }
+
         private static void Apply(DxfDatabase database, DxfLayerTableRecord layer, List<DxfTypedValue> groups, int mask)
         {
             int flags = Whole(groups, 90);

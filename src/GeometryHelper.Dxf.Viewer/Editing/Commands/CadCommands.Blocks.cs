@@ -816,7 +816,7 @@ namespace GeometryHelper.Dxf.Viewer
 
                     if (c.Input.Is("Rotate"))
                     {
-                        yield return CadPrompt.ForAngle("Specify rotation angle", null, null, Number(0.0));
+                        yield return CadPrompt.ForAngle("Specify rotation angle", null, null, Number(0.0)).Turning();
 
                         if (c.Input.Kind == CadInputKind.Number)
                         {
@@ -916,7 +916,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (askRotation && !rotationGiven)
             {
-                yield return CadPrompt.ForAngle("Specify rotation angle", new GeoPoint2(placing.Point.X, placing.Point.Y), null, Number(0.0)).Dragging(DragOf(CadBlockDragMode.Rotation));
+                yield return CadPrompt.ForAngle("Specify rotation angle", new GeoPoint2(placing.Point.X, placing.Point.Y), null, Number(0.0)).Turning().Dragging(DragOf(CadBlockDragMode.Rotation));
 
                 if (c.Input.Kind == CadInputKind.Number)
                 {
@@ -1356,7 +1356,7 @@ namespace GeometryHelper.Dxf.Viewer
                 }
                 else if (request.Action == CadDialogAction.PickRotation)
                 {
-                    yield return CadPrompt.ForAngle("Specify rotation angle of text", from, null, Number(request.Rotation * 180.0 / Math.PI));
+                    yield return CadPrompt.ForAngle("Specify rotation angle of text", from, null, Counted(c, request.Rotation));
 
                     if (c.Input.Kind == CadInputKind.Number)
                     {
@@ -1530,7 +1530,7 @@ namespace GeometryHelper.Dxf.Viewer
                 request.Height = c.Input.Number;
             }
 
-            yield return CadPrompt.ForAngle("Specify rotation angle of text", at, null, Number(0.0));
+            yield return CadPrompt.ForAngle("Specify rotation angle of text", at, null, Counted(c, 0.0));
 
             if (c.Input.Kind == CadInputKind.Number)
             {

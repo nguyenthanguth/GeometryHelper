@@ -8,7 +8,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 {
     public class AttributeTests
     {
-        private static readonly string Folder = Path.Combine(Path.GetTempPath(), "gk", "drawing", "render2");
+        private static readonly string Folder = TestRun.Folder("render2");
 
         /// <summary>
         /// A title block TB, a frame 100 by 30 with the attribute definitions TITLE at (5, 18) and DRAWN at (5, 6), 5 and 3.5

@@ -102,9 +102,13 @@ rectangle a pick there adds.
 At a prompt for one object, `Items(cursor)` is what picking the object under the cursor would give, as FILLET's second
 object gives both objects trimmed and the arc. The objects a command changes are previewed as they would be, copies of
 them made by the command's own code; nothing is written to the drawing or to the history while a preview is made. Where
-`Fades` is true the items are pieces the pick would take out rather than objects it makes, as TRIM in Quick mode and
+`Fades` is true the items are pieces the pick would take out rather than objects it makes, as TRIM and
 BREAK give them: a line from (-50, 0) to (100, 0) crossed at the origin, hovered at (-25, 0), previews the 50 from
-(-50, 0) to (0, 0), drawn faded.
+(-50, 0) to (0, 0), drawn faded. A window sets `Shift` while Shift is held, and the answer previewed carries it: TRIM then
+previews what EXTEND would do to the object, not faded, and EXTEND the piece TRIM would take out. At a prompt for a line
+of text a window sets `Typed` to the text typed so far, and `Items` is that text as the command would make it, wherever
+the cursor is: TEXT at "Enter text" previews its line. A prompt for a keyword can carry a preview too, of what Enter
+makes, as -ARRAY's "Rotate arrayed objects?" does.
 
 "Select objects:" takes the options of AutoCAD 2021, each by its capital letters:
 
@@ -154,7 +158,7 @@ x = 40, is attached top right at (80, 0). At 1 they are mirrored with the rest.
 | dimension | DIM (Angular, Baseline, Continue, Ordinate, aLign, Distribute, LAyer, Undo), DIMLINEAR, DIMALIGNED, DIMRADIUS, DIMDIAMETER, DIMANGULAR, DIMARC (Mtext, Text, Angle, Partial, Leader), DIMORDINATE (Xdatum, Ydatum, Mtext, Text, Angle), DIMCONTINUE, DIMBASELINE, QDIM, DIMEDIT, DIMTEDIT, DIMSPACE, DIMBREAK, DIMJOGLINE (Remove), DIMREASSOCIATE (Select object), DIMDISASSOCIATE, -DIMDISASSOCIATE |
 | tables | TABLE, -TABLE (Style, Width, Height), TABLESTYLE, TABLEDIT |
 | selection | QSELECT, FIND, DRAWORDER (Above objects, Under objects, Front, Back), TEXTTOFRONT, GROUP, -GROUP (?, Order, Add, Remove, Explode, REName, Selectable, Create), UNGROUP, CLASSICGROUP |
-| housekeeping | PURGE, -PURGE (Blocks, Dimstyles, LAyers, LTypes, MUltileaderstyles, Plotstyles, SHapes, textSTyles, Tablestyles, Visualstyles, Regapps, Zero-length geometry, Empty text objects, All) |
+| housekeeping | PURGE, -PURGE (Blocks, Dimstyles, Groups, LAyers, LTypes, MUltileaderstyles, Plotstyles, SHapes, textSTyles, Tablestyles, Visualstyles, Regapps, Zero-length geometry, Empty text objects, All) |
 | references and images | XATTACH, IMAGEATTACH, XREF, EXTERNALREFERENCES, IMAGE, -XREF (?, Bind, Detach, Path, pathType, Unload, Reload, Overlay, Attach), -IMAGE (?, Detach, Path, Reload, Unload, Attach), IMAGECLIP (ON, OFF, Delete, New boundary), TRANSPARENCY |
 
 A dimension's picture is laid out from its style as AutoCAD 2021 lays it out: DIMTAD puts the words on the line, which
@@ -286,8 +290,9 @@ in its order: a line sent to the back with `DR`, Back is drawn under every other
 ACAD_GROUP dictionary, named with Name, unnamed (`*A1`) without; with PICKSTYLE 1, the default, a pick of one member
 takes the whole of a selectable group, and Ctrl+Shift+A switches that off and on (`<Group off>`). -PURGE never deletes
 what AutoCAD keeps: layer 0 and Defpoints, the linetypes ByLayer, ByBlock and Continuous, the styles Standard and the
-current ones, the blocks of the spaces, the plot style Normal and every visual style; with "Verify each name to be
-purged?" Yes it asks `Purge layer "EMPTY1"? [Yes/No] <No>:` of each. It purges pass after pass until nothing more is
+current ones, the blocks of the spaces, the plot style Normal and every visual style; a group it deletes when the group
+holds nothing, named or unnamed (`Deleting group "*A1".`), whether it was never given a member or its members were all
+erased; with "Verify each name to be purged?" Yes it asks `Purge layer "EMPTY1"? [Yes/No] <No>:` of each. It purges pass after pass until nothing more is
 unused, so that a block OUTER inserted nowhere, holding the only INSERT of INNER, takes INNER with it, and the layer only
 INNER's circle was on; a name answered No is not asked again. PURGE shows the Purge dialog where there is a window (the
 typed form otherwise): the named objects nothing uses by kind, with Confirm each item, Purge nested items, the geometry
@@ -303,11 +308,27 @@ Highlight < hides both dialogs and steps through the members on the canvas one a
 LAYERSTATE shows the Layer States Manager and -LAYER State asks the same on the command line: a state is an XRECORD of
 ACAD_LAYERSTATES, written group for group as AutoCAD 2021 writes it (mask 2047 for every property, the layers last first
 by handle), restored in the properties its mask holds, and exported to a .las file AutoCAD 2021 writes to the byte; each
-run is one undo step. VIEW shows the View Manager and its New View, -VIEW asks on the command line: a view is a record of
+run is one undo step. With "Apply properties as viewport overrides" ticked while a viewport of a layout is worked
+through, or is the one selected on the paper, Restore leaves the layers alone and writes the state into that viewport:
+a colour, linetype, lineweight or transparency of the state that is not the layer's own becomes its override there (one
+that is the layer's own takes the override off), a layer the state has off or frozen is frozen in the viewport and one
+it has on and thawed is thawed there, and with "Turn off layers not found in layer state" the layers the state does not
+name are frozen there too. Locking, plotting, the freeze in new viewports and the current layer have no form of one
+viewport and stay as they are. VIEW shows the View Manager and its New View, -VIEW asks on the command line: a view is a record of
 the VIEW table (`db.ViewTable`), its layer snapshot the hidden state ACAD_VIEWS_ and its name, restored with it; Edit
 Boundaries and Define window ask two corners and bring the dialog back, Cancel takes the run back. UNITS shows Drawing Units
 and its Direction Control, writing LUNITS, LUPREC, AUNITS, AUPREC, ANGDIR, INSUNITS and ANGBASE on OK as one step; typed
 lengths and angles are read in those units, `1'3-1/2"` in architectural units and `100` as grads where AUNITS is 2.
+A typed angle is counted as AutoCAD counts it. A direction (the angle of `@100<30`, a text's rotation, an xline's
+angle, a hatch pattern's, the new angle of ROTATE's Reference) is from ANGBASE and, with ANGDIR 1, clockwise: with
+ANGBASE 90 and ANGDIR 1, `@100<30` ends at 50, 86.6. A turn (ROTATE's angle, an arc's included angle, a block's
+rotation, CHAMFER's and LENGTHEN's angles, the angles of a polar array, UCS Z) follows ANGDIR only, so 30 at ROTATE turns
+30 degrees clockwise; a point picked there turns by its direction less ANGBASE. An obliquing angle follows neither.
+`<<` before the angle reads it in degrees from the X axis counter-clockwise whatever the settings (`@100<<30` ends at
+86.6, 50), and `<<<` the same in the drawing's angle units. The angles DIST, LIST, the Properties palette, the tip by the
+cursor and the coordinate readout write are counted the same way, east as 90 there; what the drawing keeps stays
+counter-clockwise from the X axis. `CadUnits.ToDirection` and `FromDirection` are the two conversions, and
+`session.CountAngle(radians)` the second with the drawing's settings.
 With SELECTIONCYCLING 2, AutoCAD's default, a
 click where two lines cross shows the list of both near the cursor, the one drawn on top first, `Line · 0` and
 `Line · WALLS`, and the row chosen is taken as a click on that line alone; with 1 or 2, Shift+Space arms cycling, and each

@@ -116,7 +116,7 @@ namespace GeometryHelper.Dxf.Viewer
 
         private static IEnumerable<CadPrompt> Rotate(CadCommandContext c)
         {
-            c.Write("Current positive angle in UCS:  ANGDIR=counterclockwise  ANGBASE=0");
+            c.Write("Current positive angle in UCS:  ANGDIR=" + (c.Database.Angdir ? "clockwise" : "counterclockwise") + "  ANGBASE=" + Number(c.Database.Angbase * 180.0 / Math.PI));
 
             foreach (CadPrompt prompt in c.SelectObjects())
             {
@@ -146,7 +146,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             while (true)
             {
-                yield return CadPrompt.ForAngle("Specify rotation angle", center, new[] { "Copy", "Reference" }, Number(last * 180.0 / Math.PI))
+                yield return CadPrompt.ForAngle("Specify rotation angle", center, new[] { "Copy", "Reference" }, Counted(c, last)).Turning()
                     .Previewing(CadPreview.MovingOne(c, c.Selected, input => CadPreview.Flat(Turned(input.Number)), true));
 
                 if (c.Input.Is("Copy"))
@@ -161,7 +161,7 @@ namespace GeometryHelper.Dxf.Viewer
                     // The objects turned from a reference angle to a new one, each typed or given by two points.
                     var reference = new Ref<double?>();
 
-                    foreach (CadPrompt prompt in Measured(c, "Specify the reference angle", Number(0.0), true, reference))
+                    foreach (CadPrompt prompt in Measured(c, "Specify the reference angle", Counted(c, 0.0), true, reference))
                     {
                         yield return prompt;
                     }
@@ -172,7 +172,7 @@ namespace GeometryHelper.Dxf.Viewer
                     }
 
                     double from = reference.Value.Value;
-                    yield return CadPrompt.ForAngle("Specify the new angle", center, new[] { "Points" }, Number(0.0))
+                    yield return CadPrompt.ForAngle("Specify the new angle", center, new[] { "Points" }, Counted(c, 0.0))
                         .Previewing(CadPreview.MovingOne(c, c.Selected, input => CadPreview.Flat(Turned(input.Number - from)), true));
                     var target = new Ref<double?>();
 
@@ -705,7 +705,7 @@ namespace GeometryHelper.Dxf.Viewer
             {
                 if (double.TryParse(c.Input.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out double typed) && !double.IsNaN(typed) && !double.IsInfinity(typed))
                 {
-                    result.Value = angle ? typed * Math.PI / 180.0 : typed;
+                    result.Value = angle ? CadUnits.ToDirection(typed * Math.PI / 180.0, c.Database.Angbase, c.Database.Angdir) : typed;
                 }
                 else
                 {

@@ -1938,7 +1938,7 @@
                     <!--
                     Dynamic input (DYN, F12), design DynInputCursor: at the Command prompt what is typed, with the AutoComplete list
                     under it; in a command the prompt, the ↓ of its options and the X and Y fields in one box 18 px right of the
-                    cursor and 14 px below it, the options menu under it; at LINE's and PLINE's next point the length on a dimension
+                    cursor and 14 px below it, the options menu under it; where a second point, a distance or an angle is asked the length on a dimension
                     line along the rubber band and the angle on an arc from the X axis. Only the list and the menu take clicks.
                     -->
                     <Canvas x:Name="DynamicInputLayer" Visibility="{Binding IsDynamicInputShown, Converter={StaticResource Shown}}"
@@ -1970,18 +1970,18 @@
                         </Canvas.Resources>
 
                         <!-- Dimensional input: the dimension line and its extension lines, the X axis dashed and the arc of the angle. -->
-                        <Canvas x:Name="DimensionalInput" IsHitTestVisible="False" Visibility="{Binding IsDynamicInputPolar, Converter={StaticResource Shown}}">
-                            <Path x:Name="DimensionalLines" Stroke="{StaticResource GhTextMuted}" StrokeThickness="1" />
-                            <Path x:Name="DimensionalAxis" Stroke="{StaticResource GhTextMuted}" StrokeThickness="1" StrokeDashArray="3 3" />
-                            <Path x:Name="DimensionalArc" Stroke="{StaticResource GhTextMuted}" StrokeThickness="1" />
-                            <Border x:Name="LengthField" Style="{StaticResource FirstField}">
+                        <Canvas x:Name="DimensionalInput" IsHitTestVisible="False" Visibility="{Binding IsDynamicInputDimensional, Converter={StaticResource Shown}}">
+                            <Path x:Name="DimensionalLines" Stroke="{StaticResource GhTextMuted}" StrokeThickness="1" Visibility="{Binding IsDynamicInputLength, Converter={StaticResource Shown}}" />
+                            <Path x:Name="DimensionalAxis" Stroke="{StaticResource GhTextMuted}" StrokeThickness="1" StrokeDashArray="3 3" Visibility="{Binding IsDynamicInputAngle, Converter={StaticResource Shown}}" />
+                            <Path x:Name="DimensionalArc" Stroke="{StaticResource GhTextMuted}" StrokeThickness="1" Visibility="{Binding IsDynamicInputAngle, Converter={StaticResource Shown}}" />
+                            <Border x:Name="LengthField" Style="{StaticResource FirstField}" Visibility="{Binding IsDynamicInputLength, Converter={StaticResource Shown}}">
                                 <StackPanel Orientation="Horizontal">
                                     <local:IconView Size="10" StrokeThickness="2.5" Stroke="{StaticResource GhAccent}" Data="{StaticResource GhIconLock}" Margin="0,0,4,0"
                                                     VerticalAlignment="Center" Visibility="{Binding IsDynamicInputFirstLocked, Converter={StaticResource Shown}}" />
                                     <TextBlock Text="{Binding DynamicInputFirst}" Foreground="{StaticResource GhText}" />
                                 </StackPanel>
                             </Border>
-                            <Border x:Name="AngleField" Style="{StaticResource SecondField}">
+                            <Border x:Name="AngleField" Style="{StaticResource SecondField}" Visibility="{Binding IsDynamicInputAngle, Converter={StaticResource Shown}}">
                                 <StackPanel Orientation="Horizontal">
                                     <local:IconView Size="10" StrokeThickness="2.5" Stroke="{StaticResource GhAccent}" Data="{StaticResource GhIconLock}" Margin="0,0,4,0"
                                                     VerticalAlignment="Center" Visibility="{Binding IsDynamicInputSecondLocked, Converter={StaticResource Shown}}" />
@@ -2036,6 +2036,9 @@
                                                         <Setter Property="Visibility" Value="Collapsed" />
                                                     </DataTrigger>
                                                     <DataTrigger Binding="{Binding IsDynamicInputFields}" Value="True">
+                                                        <Setter Property="Visibility" Value="Collapsed" />
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding IsDynamicInputDimensional}" Value="True">
                                                         <Setter Property="Visibility" Value="Collapsed" />
                                                     </DataTrigger>
                                                     <DataTrigger Binding="{Binding DynamicInputValue}" Value="">

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using GeometryHelper.Dxf;
 using GeometryHelper.Dxf.Viewer;
@@ -10,8 +11,52 @@ using Xunit;
 
 [assembly: CollectionBehavior(DisableTestParallelization = true)]
 
+namespace System.Runtime.CompilerServices
+{
+    /// <summary>Marks the method the compiler runs when the assembly is loaded; .NET Framework has no such attribute of its own.</summary>
+    [AttributeUsage(AttributeTargets.Method, Inherited = false)]
+    internal sealed class ModuleInitializerAttribute : Attribute
+    {
+    }
+}
+
 namespace GeometryHelper.Drawing.Wpf.UnitTest
 {
+    /// <summary>
+    /// The settings file of the presenters the tests make: one of this run's own under %TEMP%\gk\drawing\wpf-b-tests, set
+    /// before any test runs and deleted at the end, so that no test reads or writes the user's settings and two runs at once
+    /// share no file.
+    /// </summary>
+    internal static class TestSettings
+    {
+        internal static readonly string Folder = Path.Combine(Path.GetTempPath(), "gk", "drawing", "wpf-b-tests", "settings-" + Guid.NewGuid().ToString("N"));
+
+        [ModuleInitializer]
+        internal static void Use()
+        {
+            MainViewModel.DefaultSettingsPath = Path.Combine(Folder, "settings.json");
+            AppDomain.CurrentDomain.DomainUnload += (s, e) => Delete();
+            AppDomain.CurrentDomain.ProcessExit += (s, e) => Delete();
+        }
+
+        private static void Delete()
+        {
+            try
+            {
+                if (Directory.Exists(Folder))
+                {
+                    Directory.Delete(Folder, true);
+                }
+            }
+            catch (IOException)
+            {
+            }
+            catch (UnauthorizedAccessException)
+            {
+            }
+        }
+    }
+
     /// <summary>
     /// A presenter with the model drawing added, over the test bodies, the changed test bodies and the two sources not
     /// connected, with every dialog it asks for kept to be looked at; and helpers to make a drawing and find its entities.

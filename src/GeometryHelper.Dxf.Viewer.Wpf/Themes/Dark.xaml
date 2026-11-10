@@ -55,7 +55,8 @@
     <sys:Double x:Key="GhFontSize">12</sys:Double>
     <sys:Double x:Key="GhSmallFontSize">11</sys:Double>
 
-    <!-- A button with no chrome: transparent, lighter under the mouse, nothing changed when disabled. -->
+    <!-- A button with no chrome: transparent, lighter under the mouse; disabled, its icon and words are dimmed to 45 per cent
+         and the mouse changes nothing. -->
     <Style x:Key="GhFlatButton" TargetType="ButtonBase">
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="Foreground" Value="{StaticResource GhText}" />
@@ -72,7 +73,7 @@
                 <ControlTemplate TargetType="ButtonBase">
                     <Border x:Name="Chrome" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
                             BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="2" Padding="{TemplateBinding Padding}">
-                        <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                        <ContentPresenter x:Name="Content" HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
                                           VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
                     </Border>
                     <ControlTemplate.Triggers>
@@ -85,6 +86,9 @@
                         </MultiTrigger>
                         <Trigger Property="IsPressed" Value="True">
                             <Setter TargetName="Chrome" Property="Background" Value="{StaticResource GhSelected}" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="Content" Property="Opacity" Value="0.45" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -442,8 +446,16 @@
                         </Popup>
                     </Grid>
                     <ControlTemplate.Triggers>
-                        <Trigger Property="IsMouseOver" Value="True">
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="IsMouseOver" Value="True" />
+                                <Condition Property="IsEnabled" Value="True" />
+                            </MultiTrigger.Conditions>
                             <Setter TargetName="Box" Property="BorderBrush" Value="{StaticResource GhTextMuted}" />
+                        </MultiTrigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Foreground" Value="{StaticResource GhTextMuted}" />
+                            <Setter TargetName="Box" Property="Opacity" Value="0.5" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>

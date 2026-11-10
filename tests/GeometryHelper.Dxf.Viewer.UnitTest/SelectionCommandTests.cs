@@ -238,7 +238,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             CadDocument document = CadDocument.From(db, "purge.dxf");
 
             CadCommandSession session = Run(Session(document), "-PURGE");
-            Assert.StartsWith("Enter type of unused objects to purge [Blocks/Dimstyles/LAyers/LTypes/MUltileaderstyles/Plotstyles/SHapes/textSTyles/Tablestyles/Visualstyles/Regapps/Zero-length geometry/Empty text objects/All]:", session.PromptText);
+            Assert.StartsWith("Enter type of unused objects to purge [Blocks/Dimstyles/Groups/LAyers/LTypes/MUltileaderstyles/Plotstyles/SHapes/textSTyles/Tablestyles/Visualstyles/Regapps/Zero-length geometry/Empty text objects/All]:", session.PromptText);
             Run(session, "LA", Enter);
             Assert.Equal("Verify each name to be purged? [Yes/No] <Yes>:", session.PromptText);
             Run(session, Enter);

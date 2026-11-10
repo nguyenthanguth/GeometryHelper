@@ -365,7 +365,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             double angbase = database.Angbase;
             string shown = (angbase * 180.0 / Math.PI).ToString("F" + auprec.ToString(CultureInfo.InvariantCulture), CultureInfo.InvariantCulture);
-            yield return CadPrompt.ForAngle("Enter direction for angle 0", null, null, shown);
+            yield return CadPrompt.ForAngle("Enter direction for angle 0", null, null, shown).Plain();
 
             if (c.Input.Kind == CadInputKind.Number)
             {

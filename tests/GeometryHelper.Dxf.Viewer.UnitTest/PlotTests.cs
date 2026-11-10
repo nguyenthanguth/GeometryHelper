@@ -272,7 +272,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                     e.Handled = true;
                 }
             };
-            string file = Path.Combine(Path.GetTempPath(), "plan-level2-Model.pdf");
+            string file = Path.Combine(TestRun.Folder("plot"), "plan-level2-Model.pdf");
 
             Run(session, "-PLOT");
             Assert.Equal("Detailed plot configuration? [Yes/No] <No>:", session.PromptText);
@@ -341,7 +341,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                     e.Handled = true;
                 }
             };
-            string file = Path.Combine(Path.GetTempPath(), "plan-level2-Model");
+            string file = Path.Combine(TestRun.Folder("plot"), "plan-level2-Model");
 
             Run(session, "-PLOT", "Y", Enter);
             Run(session, "?");

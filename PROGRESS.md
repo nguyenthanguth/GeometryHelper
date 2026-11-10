@@ -129,9 +129,11 @@ the ones wanted.
       documentation only, never its code). The reader turns a DWG into the library's DXF records, so everything built
       works on DWG; the writer goes back. Checked against DWGs and DXFs AutoCAD 2021 writes through a probe plugin, AUDIT
       of what we write, ACadSharp as a side check in scratch only.
-  - [ ] W1 (running) Bits and R2000 (AC1015): bit codes, CRC, header, section locator, header variables, classes, tables, blocks,
+  - [x] W1 Bits and R2000 (AC1015): bit codes, CRC, header, section locator, header variables, classes, tables, blocks,
         the common entities and objects, the handle map (L)
-  - [ ] W2 R2004, R2010, R2013, R2018 (AC1018-AC1032): pages, LZ77 compression, the encrypted header, the object stream
+  - [ ] W1 follow-ups (into W4): VIEWPORT, HATCH, LEADER, MLINE, IMAGE, WIPEOUT, OLE, proxies, styles objects; polygon
+        mesh, polyface and MINSERT checked on AutoCAD drawings; R2000 round-trip colours; the preview image
+  - [ ] W2 (running) R2004, R2010, R2013, R2018 (AC1018-AC1032): pages, LZ77 compression, the encrypted header, the object stream
         of 2010 on (L)
   - [ ] W3 R2007 (AC1021): its own layout, Reed-Solomon, Unicode strings (M-L)
   - [ ] W4 Every entity and object: hatch, dimension, MTEXT, multileader, table, dynamic block data, xref, image,
@@ -143,39 +145,49 @@ the ones wanted.
       the command line keeping its own copy; with DYN off only the command line (M) (designed in v111)
 - [x] Previews round 2: FILLET and CHAMFER hovering the second object, TRIM and EXTEND Quick mode, LENGTHEN Dynamic,
       HATCH pick points, TEXT, TABLE, MLEADER, QDIM, BREAK, ALIGN, the Points of ROTATE/SCALE Reference, -ARRAY (M)
-- [ ] Tests (running): the Wpf suite and a parallel run share the global settings file and fail together; give tests
-      their own settings path (S)
+- [x] Tests: the Wpf suite's 25 red tests came from its classes loading XAML in parallel (a race inside WPF), so the
+      suite runs one test at a time; its picture goes to its own folder, and a view model made in a test keeps its
+      settings in a file of the tests (S)
+- [x] Tests: other fixed %TEMP% paths two worktrees can collide on (render and plot outputs of Dxf.Viewer.UnitTest,
+      Drawing.UnitTest and Drawing.Wpf.UnitTest) move to a folder per run (S)
 - [x] Layer States Manager, View Manager with New View, Drawing Units with Direction Control (designed in v110) (M)
-- [ ] Previews follow-ups: TRIM in Standard mode and Shift swapping TRIM and EXTEND; -ARRAY distances without a base point
-      and polar -ARRAY; the TEXT box by justification; BREAK and the -ARRAY unit cell checked against what AutoCAD shows;
-      a look by eye in the running app (S)
-- [ ] Managers follow-ups 2: an Edit Layer State dialog and a description in New; viewport overrides on restore; layout
-      views listed per layout; the xref rule of GetLayerStateNames for states AutoCAD's Import writes by name; ANGBASE and
-      ANGDIR on typed polar angles; disabled GhComboBox drawn greyed (M)
-- [ ] Command line and Recent: AutoComplete inside a running command; Search Content; an EXPORT command (S)
+- [x] Previews follow-ups: TRIM in Standard mode and Shift swapping TRIM and EXTEND; -ARRAY distances without a base point
+      and polar -ARRAY; the TEXT box by justification; BREAK and the -ARRAY unit cell checked against what AutoCAD shows
+- [ ] Previews follow-ups 2: a look by eye in the running app (rounds 2 and 3); -ARRAY row distance by two points; TEXT
+      Align box; -ARRAY unit cell as a rectangle only, if AutoCAD shows only that (check); paste preview speed on a large
+      clipboard; `ALL` selecting nothing on a minimal hand-written DXF (cause unknown) (S)
+- [x] Managers follow-ups 2, non-UI parts: viewport overrides on restore; the xref rule of GetLayerStateNames; ANGBASE and
+      ANGDIR on typed and shown angles; disabled GhComboBox and GhFlatButton greyed; Groups in PURGE and -PURGE (M)
+- [ ] Managers follow-ups 3: an Edit Layer State dialog and a description in New (needs design); ANGBASE/ANGDIR still raw
+      in dimension and ellipse Properties rows, DIMEDIT oblique, -STYLE obliquing, MEASUREGEOM angle, the `<45` override;
+      ATTSYNC by Select on a block with no definitions and its extended data (AutoCAD unchecked: no ATTSYNC in
+      accoreconsole); GhDialogButton dimmed twice when disabled (S)
+- [ ] Command line and Recent (running): AutoComplete inside a running command; Search Content; an EXPORT command (S)
 - [ ] Dxf.App: an app icon, file association for .dxf (installer or registry), `--tab Home` in screenshot mode
 - [x] Images of an area: PNG and JPG devices in PLOT and -PLOT ("GeometryHelper PNG", "GeometryHelper JPG", as AutoCAD's
       PublishToWeb PNG/JPG), plot area Window, Extents, Display or Layout, size in pixels (1920 x 1080, 3840 x 2160 or
       typed) in place of a paper (designed in v111)
-- [ ] Dynamic input: dimensional input (length and angle boxes) beyond LINE and PLINE (M)
+- [x] Dynamic input: dimensional input (length and angle boxes) beyond LINE and PLINE (M)
+- [ ] Dynamic input follow-ups: MIRROR and other commands still on X and Y; CIRCLE 3P; angle field from a reference line;
+      grip rotate and scale tested on their own (S)
 - [ ] COPYVIEW (not in AutoCAD): the view as an image on the clipboard, also on the canvas right-click menu (optional)
 - [ ] Tables: the cell right-click menu, column letters and row numbers, autofill and width grips, drag-select a range
 - [ ] Tables: rows grow for wrapped text; Tab in the last cell adds a row; first/second/other row cell styles
 
 - [ ] Ribbon: check drop-downs and the Insert block gallery at 125 % and 150 % display scaling; pin and Esc by hand
-- [ ] Ribbon: disabled buttons barely look greyed (GhFlatButton); Home panels a few pixels wider than their design widths
+- [ ] Ribbon: Home panels a few pixels wider than their design widths
 - [ ] Speed: undo without reloading the whole drawing (2.5 s at 1 000 000 entities): first the cheap wins (pack the undo state in parallel chunks, build the handle index lazily), then a core `DxfDatabase` fork that shares the read bytes (recommended over an in-place journal through the core)
 - [ ] Speed: draw the first display off the UI thread (10–13 s at 1 000 000 entities)
 - [ ] Speed: frame at extents at 1 000 000 entities (0.8–1.1 s, inside Skia); level of detail would change pixels (needs a decision)
 - [ ] Speed: highlight of 100 000 selected objects (1.2–1.6 s)
-- [ ] Dimensions: radius, diameter and angular pictures follow DIMTAD, DIMJUST and the fit rules (linear and ordinate do)
-- [ ] Dimensions: the dimension line starts at the back of a closed arrowhead, as AutoCAD draws it; words sized by the
+- [ ] Dimensions (running): radius, diameter and angular pictures follow DIMTAD, DIMJUST and the fit rules (linear and ordinate do)
+- [ ] Dimensions (running): the dimension line starts at the back of a closed arrowhead, as AutoCAD draws it; words sized by the
       font, not estimated
-- [ ] Dimensions: DIMTVP, DIMTMOVE 1's leader for words moved out by fit, DIMGAP below zero (box round the words);
+- [ ] Dimensions (running): DIMTVP, DIMTMOVE 1's leader for words moved out by fit, DIMGAP below zero (box round the words);
       DIMTEDIT on a DIMTAD 0 dimension puts the line through the words
-- [ ] Dimensions: DIM offers Jogged and Arc length, edits Mtext in the editor
-- [ ] MTEXT: word wrap at the width, stacked fractions, columns; line spacing 5/3 as AutoCAD (check first)
-- [ ] Clipboard: preview of the objects while PASTECLIP asks for the point
+- [ ] Dimensions (running, not Mtext): DIM offers Jogged and Arc length, edits Mtext in the editor
+- [ ] MTEXT (running): word wrap at the width, stacked fractions, columns; line spacing 5/3 as AutoCAD (check first)
+- [x] Clipboard: preview of the objects while PASTECLIP asks for the point
 - [ ] PLOT: print to Windows printers; add named page setups; embed only the glyphs used (smaller PDFs)
 - [ ] Xrefs: XOPEN, a balloon when a file changes, editable xref layers (`NAME|LAYER`), nested xrefs in the palette
 - [ ] Images: IMAGEFRAME in a drawing with no image yet (needs RASTERVARIABLES made in core)

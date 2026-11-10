@@ -131,7 +131,7 @@ namespace GeometryHelper.Dxf.Viewer
                     GeoPoint2 start = at;
                     double turned = twoPoints ? Math.Atan2(second.Y - at.Y, second.X - at.X) : c.Session.Ucs.AngleToWorld(c.Remembered("text.rotation", 0.0));
                     yield return CadPrompt.ForDistance("Specify height", at, null, Length(height))
-                        .Previewing(CadPreview.MakingOne(c, input => TextBox(c, start, input.Number, turned), true));
+                        .Previewing(CadPreview.MakingOne(c, input => TextBox(c, start, input.Number, turned, TextPoints[justify], (second - start).Length), true));
 
                     if (c.Input.Kind == CadInputKind.Number)
                     {
@@ -155,8 +155,8 @@ namespace GeometryHelper.Dxf.Viewer
                 {
                     GeoPoint2 start = at;
                     double tall = height;
-                    yield return CadPrompt.ForAngle("Specify rotation angle of text", at, null, Number(rotation * 180.0 / Math.PI))
-                        .Previewing(CadPreview.MakingOne(c, input => TextBox(c, start, tall, c.Session.Ucs.AngleToWorld(input.Number)), true));
+                    yield return CadPrompt.ForAngle("Specify rotation angle of text", at, null, Counted(c, rotation))
+                        .Previewing(CadPreview.MakingOne(c, input => TextBox(c, start, tall, c.Session.Ucs.AngleToWorld(input.Number), TextPoints[justify]), true));
 
                     if (c.Input.Kind == CadInputKind.Number)
                     {
@@ -185,19 +185,11 @@ namespace GeometryHelper.Dxf.Viewer
             // goes on; the lines of one run are one undo step.
             var down = new GeoVector2(Math.Sin(angle), -Math.Cos(angle)) * (height * 5.0 / 3.0);
 
-            while (true)
+            DxfEntity Line(string words)
             {
-                yield return CadPrompt.ForString("Enter text");
-
-                if (c.Input.Kind != CadInputKind.Text || c.Input.Text.Length == 0)
-                {
-                    yield break;
-                }
-
-                string words = c.Input.Text;
                 GeoPoint2 line = at;
                 GeoPoint2 end = second;
-                c.Apply(null, s =>
+
                 {
                     var text = new DxfDBText { Position = P3(line), Height = height, Rotation = angle, TextString = words, WidthFactor = widthFactor };
 
@@ -228,8 +220,22 @@ namespace GeometryHelper.Dxf.Viewer
                         text.AlignmentPoint = P3(justification == DxfAttachmentPoint.BaseAlign || justification == DxfAttachmentPoint.BaseFit ? end : line);
                     }
 
-                    s.Append(c.Space, Current(c, text));
-                });
+                    return Current(c, text);
+                }
+            }
+
+            while (true)
+            {
+                // The words typed so far are drawn where the line will stand, as AutoCAD writes them in place.
+                yield return CadPrompt.ForString("Enter text").Previewing(CadPreview.MakingOne(c, input => string.IsNullOrEmpty(input.Text) ? null : Line(input.Text)));
+
+                if (c.Input.Kind != CadInputKind.Text || c.Input.Text.Length == 0)
+                {
+                    yield break;
+                }
+
+                DxfEntity made = Line(c.Input.Text);
+                c.Apply(null, s => s.Append(c.Space, made));
                 at += down;
                 second += down;
                 c.Remember("text.next", 1.0);
@@ -246,17 +252,65 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>
         /// The box TEXT previews while its height and its rotation are asked, as AutoCAD 2021 shows where the text will stand: a
         /// square of the height on the baseline from the point given, turned by the angle; a height of 2.5 at (10, 10) level
-        /// gives the square from (10, 10) to (12.5, 12.5). Null for a height of nothing.
+        /// gives the square from (10, 10) to (12.5, 12.5). Null for a height of nothing. The square is held at the point as the
+        /// justification holds the text: Center has it half to each side, from (8.75, 10) to (11.25, 12.5), Right to the left
+        /// of the point, Middle and MC about it, the Top ones below it. A text fitted between two points gives the box as long
+        /// as they are apart.
         /// </summary>
-        private static DxfPolyline TextBox(CadCommandContext c, GeoPoint2 at, double height, double angle)
+        private static DxfPolyline TextBox(CadCommandContext c, GeoPoint2 at, double height, double angle, DxfAttachmentPoint justification = DxfAttachmentPoint.BaseLeft, double span = 0.0)
         {
             if (!(height > c.Session.Tolerance.EqualPoint))
             {
                 return null;
             }
 
-            var along = new GeoVector2(Math.Cos(angle), Math.Sin(angle)) * height;
-            var up = new GeoVector2(-along.Y, along.X);
+            double across = 0.0;
+            double rise = 0.0;
+
+            switch (justification)
+            {
+                case DxfAttachmentPoint.BaseCenter:
+                case DxfAttachmentPoint.BottomCenter:
+                    across = -0.5;
+                    break;
+                case DxfAttachmentPoint.BaseRight:
+                case DxfAttachmentPoint.BottomRight:
+                    across = -1.0;
+                    break;
+                case DxfAttachmentPoint.MiddleLeft:
+                    rise = -0.5;
+                    break;
+                case DxfAttachmentPoint.BaseMid:
+                case DxfAttachmentPoint.MiddleCenter:
+                    across = -0.5;
+                    rise = -0.5;
+                    break;
+                case DxfAttachmentPoint.MiddleRight:
+                    across = -1.0;
+                    rise = -0.5;
+                    break;
+                case DxfAttachmentPoint.TopLeft:
+                    rise = -1.0;
+                    break;
+                case DxfAttachmentPoint.TopCenter:
+                    across = -0.5;
+                    rise = -1.0;
+                    break;
+                case DxfAttachmentPoint.TopRight:
+                    across = -1.0;
+                    rise = -1.0;
+                    break;
+            }
+
+            var level = new GeoVector2(Math.Cos(angle), Math.Sin(angle));
+            GeoVector2 along = level * (justification == DxfAttachmentPoint.BaseFit ? span : height);
+            GeoVector2 up = new GeoVector2(-level.Y, level.X) * height;
+
+            if (across != 0.0 || rise != 0.0)
+            {
+                at = at + along * across + up * rise;
+            }
+
             var box = new DxfPolyline();
             GeoPoint2[] corners = { at, at + along, at + along + up, at + up };
 
@@ -428,7 +482,7 @@ namespace GeometryHelper.Dxf.Viewer
                 }
                 else if (c.Input.Is("Rotation"))
                 {
-                    yield return CadPrompt.ForAngle("Specify rotation angle", a, null, Number(rotation * 180.0 / Math.PI));
+                    yield return CadPrompt.ForAngle("Specify rotation angle", a, null, Counted(c, rotation));
 
                     if (c.Input.Kind == CadInputKind.Number)
                     {

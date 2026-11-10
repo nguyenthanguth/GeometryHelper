@@ -262,7 +262,8 @@ namespace GeometryHelper.Dxf.Viewer
             }
             else
             {
-                yield return CadPrompt.ForPoint("Specify insertion point");
+                // The objects follow the cursor by their base point, as they are put at the point picked.
+                yield return CadPrompt.ForPoint("Specify insertion point").Previewing(CadPreview.Bringing(c, fragment, input => Affine2.Translation(input.Point.X - basePoint.X, input.Point.Y - basePoint.Y)));
 
                 if (!c.Input.IsPoint)
                 {
@@ -310,27 +311,18 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Text of another app pasted as an MTEXT at the point given, in the current text style and height, its lines its paragraphs.</summary>
         private static IEnumerable<CadPrompt> PasteText(CadCommandContext c, string text)
         {
-            yield return CadPrompt.ForPoint("Specify insertion point");
-
-            if (!c.Input.IsPoint)
-            {
-                yield break;
-            }
-
-            GeoPoint2 at = c.Input.Point;
             string style = TextStyle(c);
             DxfTextStyleTableRecord record = StyleRecord(c, style);
             double height = record != null && record.TextSize > 0.0 ? record.TextSize : c.Remembered("text.height", TextSize(c));
             string words = MTextOfPlain(text);
 
-            if (words.Length == 0)
+            DxfEntity Made(GeoPoint2 at)
             {
-                c.Write("The Clipboard's text is empty.");
-                yield break;
-            }
+                if (words.Length == 0)
+                {
+                    return null;
+                }
 
-            c.Apply(null, s =>
-            {
                 var mtext = new DxfMText { Location = P3(at), TextHeight = height, Width = 0.0, Attachment = DxfAttachmentPoint.TopLeft, Contents = words };
 
                 if (style != null)
@@ -338,8 +330,25 @@ namespace GeometryHelper.Dxf.Viewer
                     mtext.TextStyleName = style;
                 }
 
-                s.Append(c.Space, Current(c, mtext));
-            });
+                return Current(c, mtext);
+            }
+
+            yield return CadPrompt.ForPoint("Specify insertion point").Previewing(CadPreview.MakingOne(c, input => Made(input.Point)));
+
+            if (!c.Input.IsPoint)
+            {
+                yield break;
+            }
+
+            DxfEntity made = Made(c.Input.Point);
+
+            if (made == null)
+            {
+                c.Write("The Clipboard's text is empty.");
+                yield break;
+            }
+
+            c.Apply(null, s => s.Append(c.Space, made));
         }
 
         /// <summary>Plain text as an MTEXT's words: its backslashes and braces escaped, each line a paragraph (<c>\P</c>), the blank lines at the end left out.</summary>

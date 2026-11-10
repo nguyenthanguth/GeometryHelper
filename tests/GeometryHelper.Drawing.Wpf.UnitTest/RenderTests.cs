@@ -14,11 +14,12 @@ namespace GeometryHelper.Drawing.Wpf.UnitTest
 {
     /// <summary>
     /// The workspace with a model drawing open and each dialog of the model drawing, drawn offscreen on an STA thread as the
-    /// app's screenshot mode draws them, and their pixels read back; the PNGs are kept in %TEMP%\gk\drawing\wpf-b-tests.
+    /// app's screenshot mode draws them, and their pixels read back; the PNGs go beside the run's settings file and are
+    /// deleted with it.
     /// </summary>
     public class RenderTests
     {
-        private static readonly string Folder = Path.Combine(Path.GetTempPath(), "gk", "drawing", "wpf-b-tests");
+        private static readonly string Folder = Path.Combine(TestSettings.Folder, "pictures");
 
         [Fact]
         public void TheWorkspaceWithAModelDrawingShowsTheDrawingTabAndTheSheetOnTheCanvas()
