@@ -64,6 +64,9 @@ namespace GeometryHelper.Dxf
         private int _layoutEnd;
         private MarginsRead _styleMargins;
 
+        // Whether the table's style leaves the title and the header out, kept as the margins are.
+        private FlagsRead _styleFlags;
+
         // Whether the rows AutoCAD 2021 merges when it loads the file have been merged, at the table's first edit (MergeAsLoaded).
         private bool _mergedAsLoaded;
 
@@ -194,17 +197,19 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Gets whether the table leaves its title out (its own 280, after its cells or in its head, as
-        /// <see cref="HorizontalCellMargin"/> reads it), as AutoCAD's <c>IsTitleSuppressed</c>; false where the table gives
-        /// none of its own, as AutoCAD's table style STANDARD shows it.
+        /// <see cref="HorizontalCellMargin"/> reads it), as AutoCAD's <c>IsTitleSuppressed</c>, or its table style leaves it
+        /// out (<see cref="DxfTableStyle.IsTitleSuppressed"/>), as AutoCAD 2021 reads a table: one of no flag of its own in a
+        /// style that leaves the title out was read with its first row the header (<c>_HEADER</c>) and the rest data, and one
+        /// of its own <c>280 0</c> the same. False where neither leaves it out.
         /// </summary>
-        public bool IsTitleSuppressed => TableWhole(280, 0) != 0;
+        public bool IsTitleSuppressed => LeftOut(280);
 
         /// <summary>
         /// Gets whether the table leaves its header out (its own 281, after its cells or in its head, where AutoCAD 2021 wrote
-        /// <c>93 2</c> ... <c>96 0</c>, <c>281 1</c>), as AutoCAD's <c>IsHeaderSuppressed</c>; false where the table gives none
-        /// of its own.
+        /// <c>93 2</c> ... <c>96 0</c>, <c>281 1</c>), as AutoCAD's <c>IsHeaderSuppressed</c>, or its table style leaves it
+        /// out (<see cref="DxfTableStyle.IsHeaderSuppressed"/>), as <see cref="IsTitleSuppressed"/> reads the title.
         /// </summary>
-        public bool IsHeaderSuppressed => TableWhole(281, 0) != 0;
+        public bool IsHeaderSuppressed => LeftOut(281);
 
         /// <summary>
         /// Gets which way the rows follow one another (its own 70, after its cells or in its head: 0 down, 1 up), as AutoCAD's
@@ -1393,6 +1398,62 @@ namespace GeometryHelper.Dxf
             }
 
             return margins;
+        }
+
+        /// <summary>
+        /// Whether the table leaves its title (280) or its header (281) out: where its own says so, or its style does, as
+        /// AutoCAD 2021 read a table of its own <c>93 1</c>, <c>280 0</c> in a style that leaves the title out without its
+        /// title all the same.
+        /// </summary>
+        private bool LeftOut(int code) => TableWhole(code, 0) != 0 || StyleLeavesOut(code);
+
+        /// <summary>Whether the table leaves its title (280) or its header (281) out, its own read of a layout of its record.</summary>
+        private bool LeftOut(Layout layout, int code) => TableWhole(layout, code, 0) != 0 || StyleLeavesOut(code);
+
+        /// <summary>
+        /// Whether the table's style leaves the title (280) or the header (281) out; false for a table of no style. Read once
+        /// and kept while the drawing is not changed, as <see cref="StyleMargins"/> keeps the margins.
+        /// </summary>
+        private bool StyleLeavesOut(int code)
+        {
+            DxfFile file = IsResident ? Item.File : null;
+
+            if (file == null)
+            {
+                return false;
+            }
+
+            FlagsRead kept = _styleFlags;
+
+            if (kept == null || kept.Edits != file.EditCount || !ReferenceEquals(kept.File, file))
+            {
+                DxfItem item = StyleItem();
+                var style = item == null ? null : OfObject(item) as DxfTableStyle;
+                kept = new FlagsRead(file, file.EditCount, style != null && style.IsTitleSuppressed, style != null && style.IsHeaderSuppressed);
+                _styleFlags = kept;
+            }
+
+            return code == 280 ? kept.Title : kept.Header;
+        }
+
+        /// <summary>Whether a table's style leaves the title and the header out, with the file and its count of changes they were read at.</summary>
+        private sealed class FlagsRead
+        {
+            internal FlagsRead(DxfFile file, int edits, bool title, bool header)
+            {
+                File = file;
+                Edits = edits;
+                Title = title;
+                Header = header;
+            }
+
+            internal DxfFile File { get; }
+
+            internal int Edits { get; }
+
+            internal bool Title { get; }
+
+            internal bool Header { get; }
         }
 
         /// <summary>The margins of a table's style as read, with the file and its count of changes they were read at.</summary>

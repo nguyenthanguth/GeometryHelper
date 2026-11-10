@@ -940,7 +940,7 @@ namespace GeometryHelper.Dxf
         {
             List<KeyValuePair<int, string>>[] looks = tables ? RowKindLooks(layout) : null;
             int[] kept = KeptKinds(layout, shownOf);
-            int[] places = shownOf ? PlaceKinds(layout.Rows, TableWhole(layout, 280, 0) == 0, TableWhole(layout, 281, 0) == 0) : PlaceKinds(layout.Rows);
+            int[] places = shownOf ? PlaceKinds(layout.Rows, !LeftOut(layout, 280), !LeftOut(layout, 281)) : PlaceKinds(layout.Rows);
             List<KeyValuePair<int, string>>[] own = null;
             moved = null;
 
