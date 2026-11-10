@@ -765,6 +765,8 @@ namespace GeometryHelper.Dxf.Viewer
 
             CadEditResult result = c.Apply(planned, s =>
             {
+                var copies = copy ? new Dictionary<string, DxfEntity>(StringComparer.OrdinalIgnoreCase) : null;
+
                 foreach (string handle in handles)
                 {
                     if (!copy && s.IsHandled(handle))
@@ -777,16 +779,20 @@ namespace GeometryHelper.Dxf.Viewer
 
                     if (copy)
                     {
-                        DxfEntity copied = entity.GetTransformedCopy(kept?.Transform ?? transform);
-                        CadOwnerTag.Remove(copied);
-                        s.Append(s.Document.FindSpace(handle), copied);
+                        DxfEntity copied = AppendCopy(s, handle, kept?.Transform ?? transform);
                         kept?.Finish(copied);
+                        copies[handle] = copied;
                     }
                     else
                     {
                         entity.TransformBy(kept?.Transform ?? transform);
                         kept?.Finish(entity);
                     }
+                }
+
+                if (copy)
+                {
+                    CadDimAssociation.TieCopies(s, copies);
                 }
             });
 

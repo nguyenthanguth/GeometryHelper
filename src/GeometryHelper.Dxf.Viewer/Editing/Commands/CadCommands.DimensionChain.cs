@@ -48,6 +48,12 @@ namespace GeometryHelper.Dxf.Viewer
             /// <summary>The origin the next dimension starts from: the last second origin, or the base of a baseline row.</summary>
             public GeoPoint2 Origin { get; set; }
 
+            /// <summary>What <see cref="Origin"/> is tied to, as the first point of the next dimension; null where it is tied to nothing.</summary>
+            public DxfOsnapPointRef OriginTie { get; set; }
+
+            /// <summary>What the vertex of an angular row is tied to, as the third point of the next dimension; null for none.</summary>
+            public DxfOsnapPointRef VertexTie { get; set; }
+
             public Chain Copy() => (Chain)MemberwiseClone();
         }
 
@@ -117,6 +123,10 @@ namespace GeometryHelper.Dxf.Viewer
                     double spacing = baseline ? style.Dimdli * (style.Dimscale > 0.0 ? style.Dimscale : 1.0) : 0.0;
                     string handle;
 
+                    // AutoCAD 2021 ties the new dimension's second point to what it was snapped to, and its first to what the
+                    // origin it starts from was tied to: DIMCONTINUE the last one's second, DIMBASELINE the base's first.
+                    DxfOsnapPointRef snapped = CadDimAssociation.FromSnap(c.Document, 1, c.Input.Snap);
+
                     if (chain.Ordinate)
                     {
                         // Continued or based alike, an ordinate dimension measures from the same origin, its leader ending level with the last's.
@@ -142,9 +152,12 @@ namespace GeometryHelper.Dxf.Viewer
 
                     if (handle != null)
                     {
+                        CadDimAssociation.Tie(c, handle, chain.Ordinate ? new[] { snapped } : new[] { chain.OriginTie, snapped, chain.Angular ? chain.VertexTie : null });
+
                         if (!baseline && !chain.Ordinate)
                         {
                             next.Origin = c.Input.Point;
+                            next.OriginTie = CadDimAssociation.Renumbered(snapped, 0);
                         }
 
                         made.Add(handle);
@@ -238,6 +251,8 @@ namespace GeometryHelper.Dxf.Viewer
                 chain.Origin = baseline ? first : second;
             }
 
+            chain.OriginTie = CadDimAssociation.TiedAt(dimension, chain.Origin, 0);
+            chain.VertexTie = chain.Angular ? CadDimAssociation.TiedAt(dimension, chain.Vertex, 2) : null;
             return chain;
         }
 
@@ -410,27 +425,42 @@ namespace GeometryHelper.Dxf.Viewer
             var points = new List<GeoPoint2>();
             var round = new List<DxfCurve>();
 
+            // What each point is tied to, as AutoCAD 2021's QDIM ties it: the ends of lines, the vertices of polylines, the
+            // centres of circles and arcs.
+            var ties = new Dictionary<GeoPoint2, DxfOsnapPointRef>();
+
+            void Add(GeoPoint2 point, DxfOsnapPointRef tie)
+            {
+                points.Add(point);
+
+                if (!ties.ContainsKey(point))
+                {
+                    ties[point] = tie;
+                }
+            }
+
             foreach (string handle in c.Input.Handles)
             {
                 switch (c.Document.FindEntity(handle))
                 {
                     case DxfLine line:
-                        points.Add(P2(line.StartPoint));
-                        points.Add(P2(line.EndPoint));
+                        DxfOsnapPointRef[] ends = CadDimAssociation.LineEnds(line);
+                        Add(P2(line.StartPoint), ends[0]);
+                        Add(P2(line.EndPoint), ends[1]);
                         break;
                     case DxfPolyline polyline:
                         for (int i = 0; i < polyline.NumberOfVertices; i++)
                         {
-                            points.Add(polyline.GetPoint2dAt(i));
+                            Add(polyline.GetPoint2dAt(i), CadDimAssociation.VertexOf(polyline, i));
                         }
 
                         break;
                     case DxfCircle circle:
-                        points.Add(P2(circle.Center));
+                        Add(P2(circle.Center), CadDimAssociation.CenterOf(circle)[0]);
                         round.Add(circle);
                         break;
                     case DxfArc arc:
-                        points.Add(P2(arc.Center));
+                        Add(P2(arc.Center), CadDimAssociation.CenterOf(arc)[0]);
                         round.Add(arc);
                         break;
                 }
@@ -532,7 +562,7 @@ namespace GeometryHelper.Dxf.Viewer
             }
             else
             {
-                count = QuickLinear(c, style, points, datum, location, mode);
+                count = QuickLinear(c, style, points, ties, datum, location, mode);
             }
 
             if (count == 0)
@@ -561,7 +591,7 @@ namespace GeometryHelper.Dxf.Viewer
         /// or below them, upright where to a side), those within the tolerance of one another along it taken as one, then
         /// dimensioned as the mode says. The number made.
         /// </summary>
-        private static int QuickLinear(CadCommandContext c, DxfDimStyleTableRecord style, List<GeoPoint2> points, GeoPoint2? datum, GeoPoint2 location, string mode)
+        private static int QuickLinear(CadCommandContext c, DxfDimStyleTableRecord style, List<GeoPoint2> points, Dictionary<GeoPoint2, DxfOsnapPointRef> ties, GeoPoint2? datum, GeoPoint2 location, string mode)
         {
             CadUcs ucs = c.Session.Ucs;
             var local = new List<GeoPoint2>();
@@ -626,6 +656,25 @@ namespace GeometryHelper.Dxf.Viewer
             double spacing = style.Dimdli * (style.Dimscale > 0.0 ? style.Dimscale : 1.0);
             int made = 0;
 
+            // Ties a dimension made to what its points are tied to, numbered from the first given; false where none was made.
+            bool Tied(string handle, int first, params GeoPoint2[] tied)
+            {
+                if (handle == null)
+                {
+                    return false;
+                }
+
+                var references = new DxfOsnapPointRef[tied.Length];
+
+                for (int i = 0; i < tied.Length; i++)
+                {
+                    references[i] = ties.TryGetValue(tied[i], out DxfOsnapPointRef tie) ? CadDimAssociation.Renumbered(tie, first + i) : null;
+                }
+
+                CadDimAssociation.Tie(c, handle, references);
+                return true;
+            }
+
             switch (mode)
             {
                 case "Ordinate":
@@ -637,7 +686,7 @@ namespace GeometryHelper.Dxf.Viewer
                     {
                         GeoPoint2 u = ucs.ToUcs(point);
                         GeoPoint2 end = ucs.ToWorld(level ? new GeoPoint2(u.X, at.Y) : new GeoPoint2(at.X, u.Y));
-                        made += OrdinateDimension(c, style, level, zero, ucs.Angle, point, end, null, null, false) != null ? 1 : 0;
+                        made += Tied(OrdinateDimension(c, style, level, zero, ucs.Angle, point, end, null, null, false), 1, point) ? 1 : 0;
                     }
 
                     break;
@@ -647,7 +696,7 @@ namespace GeometryHelper.Dxf.Viewer
 
                     foreach (GeoPoint2 point in row)
                     {
-                        if (LinearDimension(c, style, angle, origin, point, location + square * (spacing * step), false) != null)
+                        if (Tied(LinearDimension(c, style, angle, origin, point, location + square * (spacing * step), false), 0, origin, point))
                         {
                             made++;
                             step++;
@@ -658,7 +707,7 @@ namespace GeometryHelper.Dxf.Viewer
                 case "Staggered":
                     for (int i = row.Count / 2 - 1, step2 = 0; i >= 0; i--)
                     {
-                        if (LinearDimension(c, style, angle, row[i], row[row.Count - 1 - i], location + square * (spacing * step2), false) != null)
+                        if (Tied(LinearDimension(c, style, angle, row[i], row[row.Count - 1 - i], location + square * (spacing * step2), false), 0, row[i], row[row.Count - 1 - i]))
                         {
                             made++;
                             step2++;
@@ -669,7 +718,7 @@ namespace GeometryHelper.Dxf.Viewer
                 default:
                     for (int i = 0; i + 1 < row.Count; i++)
                     {
-                        made += LinearDimension(c, style, angle, row[i], row[i + 1], location, false) != null ? 1 : 0;
+                        made += Tied(LinearDimension(c, style, angle, row[i], row[i + 1], location, false), 0, row[i], row[i + 1]) ? 1 : 0;
                     }
 
                     break;

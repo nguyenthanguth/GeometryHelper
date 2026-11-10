@@ -53,7 +53,7 @@ namespace GeometryHelper.Dxf
     /// back as AutoCAD writes its own, the BLOCK <c>*D1</c> of flag 1. A copy added to another drawing brings a copy of its
     /// block where AutoCAD names the block itself (<c>*D1</c>), and needs one of the same name there where it does not. A copy
     /// added to the drawing it came from shares its original's block, and loses flag 32, so that moving the one leaves the
-    /// other's picture where it is; one made in code is written without it. A copy of a dimension that names no block, as
+    /// other's picture where it is; one made in code is written with it once given an anonymous block. A copy of a dimension that names no block, as
     /// the dimensions of the constraints of AutoCAD's Parking sample name none in the block and in its anonymous copies,
     /// names none, so that an INSERT of such a dynamic block is set.
     /// </para>
@@ -446,7 +446,9 @@ namespace GeometryHelper.Dxf
         /// block of its name. A dimension in no drawing yet, copied from one, gives the block of that drawing.
         /// </summary>
         /// <value>Set, a block of the drawing (of any drawing for a dimension made in code, whose drawing's block of the same name
-        /// it then names), written as its name; the block is not drawn anew.</value>
+        /// it then names), written as its name; the block is not drawn anew. An anonymous block set is marked as this dimension's
+        /// own (flag 32 of group 70), as AutoCAD 2021 writes a DIMLINEAR's 70 as 32, so that a move takes the picture with it;
+        /// give each dimension a block of its own.</value>
         /// <exception cref="ArgumentNullException">Thrown when the block set is null.</exception>
         /// <exception cref="ArgumentException">Thrown when the block set is a layout, in no drawing, or of another drawing than the
         /// dimension's.</exception>
@@ -475,6 +477,12 @@ namespace GeometryHelper.Dxf
                 if (!string.Equals(value.Name, Own().Text(2, Own().Base), StringComparison.Ordinal))
                 {
                     Write(g => g.Set(2, value.Name, g.Base, BaseOrder));
+                }
+
+                // An anonymous block given is the dimension's own (flag 32), as AutoCAD writes the block it draws for each.
+                if (value.IsAnonymous && (Kind & 32) == 0)
+                {
+                    Write(g => SetFlag(g, 32, true));
                 }
             }
         }

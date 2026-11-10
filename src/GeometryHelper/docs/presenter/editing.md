@@ -158,16 +158,27 @@ dimension goes or a second line for the angle; a circle's diameter, an arc's rad
 dimension. Its options run the commands of their names, and LAyer puts the dimensions made next on a layer.
 
 A dimension made with DIMASSOC 2 (the default) whose points were picked with an object snap is associative, as in AutoCAD
-2021: DIMLINEAR and DIMALIGNED tie each origin snapped with ENDpoint, MIDpoint, CENter, QUAdrant, NODe or NEArest to its
-line, arc, circle, polyline segment or point (both ends where a line is selected), DIMRADIUS and DIMDIAMETER tie the center
-of the circle or arc, and DIMANGULAR of an arc its two ends and center, kept in a DIMASSOC as AutoCAD keeps it. Every edit
+2021: DIMLINEAR, DIMALIGNED and DIM tie each origin snapped with ENDpoint, MIDpoint, CENter, QUAdrant, NODe or NEArest to
+its line, arc, circle, polyline segment or point (both ends where a line is selected), and one snapped with INTersection to
+the two lines, arcs or circles that cross there; DIMRADIUS and DIMDIAMETER tie the center of the circle or arc, DIMANGULAR
+of an arc its two ends and center, of two lines the four ends, of three points those snapped, DIMORDINATE its feature;
+DIMCONTINUE and DIMBASELINE tie their first point to what the last dimension's second (or the base's first) was tied to,
+and QDIM the ends of lines, the vertices of polylines and the centers of circles, all kept in a DIMASSOC as AutoCAD keeps
+it. Every edit
 that changes those objects, whatever command or grip makes it, carries the dimension with it in the same undo step: a line
 from (0, 0) to (100, 0) moved by (10, 5) takes its dimension, 20 above, whole to (10, 5), (110, 5) and a line at 25; its end
 stretched to (120, 30) moves the second origin there and measures 120, the dimension line staying 20 up; a circle of 25
-scaled twice about its center gives its radius 50 drawn out the same way. Erasing the object, or moving the dimension
+scaled twice about its center gives its radius 50 drawn out the same way. An aligned dimension keeps its line as far from
+the line measured, square to it: 20 above (0, 0)-(100, 0), the end stretched to (120, 30), its line point goes to
+(115.149, 49.403). TRIM, EXTEND and LENGTHEN carry the end they move; an ordinate's leader end follows its point along the
+axis measured alone, (100, -40) to (110, -40) for a point moved by (10, 5); an angle of two lines keeps its arc as far from
+the vertex and at the same share of the angle. Erasing the object, or moving the dimension
 without it, unties the dimension, which keeps its points. DIMREASSOCIATE asks each selected dimension for its points again,
 `Specify first extension line origin or [Select object] <next>:`, and ties those snapped; DIMDISASSOCIATE (and
--DIMDISASSOCIATE) unties those selected, `1 disassociated.`. A copy of a dimension is tied to nothing. The window hands the
+-DIMDISASSOCIATE) unties those selected, `1 disassociated.`. A copy of a dimension alone is tied to nothing; copied with
+its objects, it is tied to their copies, as AutoCAD's COPY ties it. Each copy of a dimension (COPY, ARRAY, a grip's Copy)
+gets a picture block of its own, and a dimension made here is written with flag 32 of group 70, so a plain MOVE takes its
+picture with it. The window hands the
 snap with its point through `CadCommandSession.Feed(CadSnapResult, bool)`; a point typed or fed with `Feed(GeoPoint2)` ties
 nothing.
 
