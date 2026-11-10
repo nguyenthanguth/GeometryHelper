@@ -17,6 +17,11 @@ namespace GeometryHelper.Dxf
         /// <summary>Gets the UCS table of the drawing, as AutoCAD's <c>UcsTableId</c> gives its id: the named user coordinate systems, as <see cref="DxfUcsTable"/> says.</summary>
         public DxfUcsTable UcsTable => _ucsTable ?? (_ucsTable = new DxfUcsTable(File, File.TableItem("UCS")));
 
+        private DxfViewTable _viewTable;
+
+        /// <summary>Gets the VIEW table of the drawing, as AutoCAD's <c>ViewTableId</c> gives its id: the named views, as <see cref="DxfViewTable"/> says.</summary>
+        public DxfViewTable ViewTable => _viewTable ?? (_viewTable = new DxfViewTable(File, File.TableItem("VIEW")));
+
         /// <summary>Gets the origin of the current UCS of model space (<c>$UCSORG</c>), as AutoCAD's <c>Ucsorg</c>, in world coordinates; the origin where the header gives none.</summary>
         public GeoPoint3 Ucsorg => Point("$UCSORG");
 

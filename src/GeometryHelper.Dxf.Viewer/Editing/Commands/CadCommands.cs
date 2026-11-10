@@ -34,6 +34,8 @@ namespace GeometryHelper.Dxf.Viewer
             registry.Add(new CadCommand("LAYER", Layer));
             registry.Add(new CadCommand("-LAYER", LayerTyped));
             registry.Add(new CadCommand("LAYERSTATE", LayerStateManager));
+            registry.Add(new CadCommand("VIEW", ViewManager));
+            registry.Add(new CadCommand("-VIEW", ViewTyped));
             registry.Add(new CadCommand("UNDO", Undo));
             registry.Add(new CadCommand("U", UndoOne));
             registry.Add(new CadCommand("REDO", Redo));

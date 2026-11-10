@@ -341,6 +341,10 @@ namespace GeometryHelper.Dxf.Viewer
         /// layer made current again where it is there and not frozen, the layers it does not name turned off where
         /// <paramref name="turnOffMissing"/> says so, and the state marked as the one restored last.
         /// </summary>
+        /// <remarks>
+        /// A named view's snapshot, a hidden state AutoCAD 2021 saves with the mask 0x8200, is restored in every property, as
+        /// AutoCAD restores a view's layers, and not marked.
+        /// </remarks>
         /// <returns>The names of the layers changed, in ordinal order.</returns>
         internal static List<string> Restore(DxfDatabase database, string name, bool turnOffMissing)
         {
@@ -354,6 +358,8 @@ namespace GeometryHelper.Dxf.Viewer
 
             IReadOnlyList<DxfTypedValue> data = record.Data;
             int mask = MaskOf(data);
+            bool hidden = (mask & Hidden) != 0;
+            mask = hidden ? All : mask;
             var named = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             string current = Text(data, 302);
             List<KeyValuePair<string, List<DxfTypedValue>>> layers = Layers(database, data);
@@ -400,7 +406,11 @@ namespace GeometryHelper.Dxf.Viewer
                 }
             }
 
-            MarkRestored(database, record);
+            if (!hidden)
+            {
+                MarkRestored(database, record);
+            }
+
             return changed.ToList();
         }
 

@@ -130,6 +130,8 @@ namespace GeometryHelper.Dxf.Viewer
                 ["MEA"] = "MEASUREGEOM",
                 ["-LA"] = "-LAYER",
                 ["LAS"] = "LAYERSTATE",
+                ["V"] = "VIEW",
+                ["-V"] = "-VIEW",
                 ["UN"] = "UNITS",
                 ["-UN"] = "-UNITS",
                 ["SCR"] = "SCRIPT",
