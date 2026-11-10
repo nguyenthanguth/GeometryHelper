@@ -117,7 +117,7 @@ namespace GeometryHelper.Dxf
         /// </summary>
         /// <remarks>
         /// Where the drawing shows model space, or the viewports of paper space are not asked for, none: the viewports AutoCAD gives
-        /// then are the records of the VPORT table that tile model space, which the library has no class for.
+        /// then are the records of the VPORT table that tile model space, which <see cref="ViewportTable"/> gives.
         /// </remarks>
         /// <param name="getPaperspaceVports">Whether the viewports of paper space are asked for, as AutoCAD's
         /// <c>bGetPaperspaceVports</c>.</param>

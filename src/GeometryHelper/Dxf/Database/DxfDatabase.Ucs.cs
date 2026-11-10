@@ -22,6 +22,14 @@ namespace GeometryHelper.Dxf
         /// <summary>Gets the VIEW table of the drawing, as AutoCAD's <c>ViewTableId</c> gives its id: the named views, as <see cref="DxfViewTable"/> says.</summary>
         public DxfViewTable ViewTable => _viewTable ?? (_viewTable = new DxfViewTable(File, File.TableItem("VIEW")));
 
+        private DxfViewportTable _viewportTable;
+
+        /// <summary>
+        /// Gets the VPORT table of the drawing, as AutoCAD's <c>ViewportTableId</c> gives its id: the tiled viewports of model
+        /// space, the snap and the grid of the drawing in its <c>*Active</c>, as <see cref="DxfViewportTable"/> says.
+        /// </summary>
+        public DxfViewportTable ViewportTable => _viewportTable ?? (_viewportTable = new DxfViewportTable(File, File.TableItem("VPORT")));
+
         /// <summary>Gets the origin of the current UCS of model space (<c>$UCSORG</c>), as AutoCAD's <c>Ucsorg</c>, in world coordinates; the origin where the header gives none.</summary>
         public GeoPoint3 Ucsorg => Point("$UCSORG");
 

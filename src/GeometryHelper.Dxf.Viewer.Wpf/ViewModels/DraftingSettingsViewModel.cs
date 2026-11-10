@@ -247,8 +247,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             _model.Toggles.First(t => t.Name == "GRID").IsOn = _isGridOn;
             _model.Toggles.First(t => t.Name == "POLAR").IsOn = _isPolarOn;
             _model.Toggles.First(t => t.Name == "OTRACK").IsOn = _isTrackingOn;
-            _model.Snap.GridX = x;
-            _model.Snap.GridY = y;
+            _model.SetSnapSpacing(x, y);
             _model.SetPolarAngle(degrees);
             Notice = string.Empty;
             return true;
