@@ -181,7 +181,7 @@ namespace GeometryHelper.Dxf.Viewer
                 && !ReferenceEquals(table.TableStyle, grid.TableStyle))
             {
                 grid.TableStyle = table.TableStyle;
-                grid.RecomputeTableBlock();
+                CadTableEditor.Redraw(grid, CadDocument.Showing(db));
             }
 
             if ((which & CadMatchProperties.Multileader) != 0 && from is DxfMLeader mleader && to is DxfMLeader leader && mleader.MLeaderStyle != null)

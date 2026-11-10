@@ -240,7 +240,7 @@ namespace GeometryHelper.Dxf.Viewer
                         continue;
                     }
 
-                    ReplaceIn(value, result, pattern, replacement);
+                    ReplaceIn(s.Document, value, result, pattern, replacement);
                 }
             });
         }
@@ -259,7 +259,7 @@ namespace GeometryHelper.Dxf.Viewer
             return new Regex(body, flags);
         }
 
-        private static void ReplaceIn(DxfDBObject value, CadFindResult result, Regex pattern, string with)
+        private static void ReplaceIn(CadDocument document, DxfDBObject value, CadFindResult result, Regex pattern, string with)
         {
             switch (value)
             {
@@ -271,7 +271,7 @@ namespace GeometryHelper.Dxf.Viewer
                     {
                         // The table drawn anew with the new words, as AutoCAD draws it after a replace.
                         table.SetTextString(result.Row, result.Column, replaced);
-                        table.RecomputeTableBlock();
+                        CadTableEditor.Redraw(table, document);
                     }
 
                     break;

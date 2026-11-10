@@ -6,6 +6,16 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**CHANGED.** A table in the presenter grows its rows to hold their words, as AutoCAD 2021 lays a table out. A cell's text
+wraps at the cell's width less its margins, laid out as an MTEXT of that width by the presenter's own MTEXT layout, and its
+row becomes as high as its tallest cell needs: the words' actual height and the margins above and below, one line of four
+thirds of the text height at least. A row is never made lower than it was. This happens whenever the presenter draws a
+table anew: a cell typed, Find and Replace, a table style changed or matched, and a table made by TABLE. In AutoCAD's
+Standard in ghsimplex, with columns 30 wide, the title "Bill of steel members for the north frame of the hall" makes its
+row 39.29 high, "Section and grade" the header's 24.21 and "HEA300 S355 with end plates both sides" its row 45.43, and
+each text stands where AutoCAD 2021 put it, all within 1E-5 of AutoCAD's numbers. An MTEXT line also takes a word whose
+ink ends exactly on the width, as AutoCAD does: "with end" 27 wide in ghsimplex 4.5 high is one line, where it broke in two.
+
 **FIXED.** The presenter draws a layer switched off or frozen in a third of the time it took. An entity on a layer that
 is not shown is passed over before its own visibility is read from its groups, which cost near a microsecond each, and
 a display list made again after an edit is sized as the one before, not grown by doubling. In a drawing of 100 000

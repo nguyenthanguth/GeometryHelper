@@ -405,7 +405,7 @@ namespace GeometryHelper.Dxf.Viewer
                 {
                     if (!s.IsHandled(handle) && s.Document.FindEntity(handle) is DxfTable table)
                     {
-                        table.RecomputeTableBlock();
+                        CadTableEditor.Redraw(table, s.Document);
                     }
                 }
             });

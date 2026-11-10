@@ -393,7 +393,7 @@ namespace GeometryHelper.Dxf.Viewer
                     table.SetRowHeight(r, heights[r]);
                 }
 
-                table.RecomputeTableBlock();
+                CadTableEditor.Redraw(table, s.Document);
                 handle = table.Handle;
             });
 

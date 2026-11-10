@@ -508,8 +508,129 @@ namespace GeometryHelper.Dxf.Viewer
                 }
 
                 change(table);
-                table.RecomputeTableBlock();
+                Redraw(table, s.Document);
             });
+
+        /// <summary>
+        /// Draws a table anew in its block as AutoCAD lays it out: each row first grown to hold the tallest of its cells
+        /// (<see cref="FitRows"/>), never shrunk, then its block drawn (<see cref="DxfTable.RecomputeTableBlock"/>), in the
+        /// fonts of the document given; with none, the rows keep their heights.
+        /// </summary>
+        internal static void Redraw(DxfTable table, CadDocument document)
+        {
+            if (document != null)
+            {
+                FitRows(document, table);
+            }
+
+            table.RecomputeTableBlock();
+        }
+
+        /// <summary>
+        /// Grows each row of a table to hold its cells, as AutoCAD 2021's table lays itself out: a cell's text wraps at the
+        /// cell's width less its margins, as an MTEXT of that width (<see cref="CadMTextLayout"/>), and needs its actual
+        /// height, at least four thirds of its text height (one line), and the margin above and below; a row is as high as the
+        /// most any of its cells needs, and never lower than it was. A block of merged cells across rows grows its last row by
+        /// what the rows lack. In AutoCAD's Standard (text 4.5, margins 1.5) a row of nothing but one-line words is 9 high, and
+        /// "HEA300 S355 with end plates both sides" in a column 30 wide, wrapped to five lines of ghsimplex, makes its row
+        /// 45.42857, as AutoCAD 2021 laid them out. Block cells are left as they are.
+        /// </summary>
+        internal static void FitRows(CadDocument document, DxfTable table)
+        {
+            int rows = table.NumRows;
+            int columns = table.NumColumns;
+            var style = table.TableStyle as DxfTableStyle;
+            double hMargin = table.HorizontalCellMargin;
+            double vMargin = table.VerticalCellMargin;
+            var heights = new double[rows];
+
+            for (int r = 0; r < rows; r++)
+            {
+                heights[r] = table.RowHeight(r);
+            }
+
+            var wanted = (double[])heights.Clone();
+            var tall = new List<KeyValuePair<DxfCellRange, double>>();
+
+            for (int r = 0; r < rows; r++)
+            {
+                for (int c = 0; c < columns; c++)
+                {
+                    DxfCellRange block = table.GetMergeRange(r, c);
+
+                    if (block.TopRow != r || block.LeftColumn != c || table.CellType(r, c) == DxfTableCellType.BlockCell)
+                    {
+                        continue;
+                    }
+
+                    double need = CellNeeds(document, table, style, r, c, block, hMargin) + 2.0 * vMargin;
+
+                    if (block.BottomRow == r)
+                    {
+                        wanted[r] = Math.Max(wanted[r], need);
+                    }
+                    else
+                    {
+                        tall.Add(new KeyValuePair<DxfCellRange, double>(block, need));
+                    }
+                }
+            }
+
+            // A block across rows: what the rows it spans lack goes to its last row.
+            foreach (KeyValuePair<DxfCellRange, double> block in tall)
+            {
+                double spanned = 0.0;
+
+                for (int r = block.Key.TopRow; r <= block.Key.BottomRow; r++)
+                {
+                    spanned += wanted[r];
+                }
+
+                if (block.Value > spanned)
+                {
+                    wanted[block.Key.BottomRow] += block.Value - spanned;
+                }
+            }
+
+            for (int r = 0; r < rows; r++)
+            {
+                if (wanted[r] > heights[r])
+                {
+                    table.SetRowHeight(r, wanted[r]);
+                }
+            }
+        }
+
+        /// <summary>The height a cell's content needs, margins left out: its words laid out as an MTEXT as wide as the cell less its margins, one line of its text height at least.</summary>
+        private static double CellNeeds(CadDocument document, DxfTable table, DxfTableStyle style, int row, int column, DxfCellRange block, double hMargin)
+        {
+            DxfRowType kind = table.RowType(row);
+            double height = table.TextHeight(row, column) ?? (style != null ? style.TextHeight(kind) : kind == DxfRowType.TitleRow ? 6.0 : 4.5);
+            double oneLine = height * 4.0 / 3.0;
+            string words = table.TextString(row, column);
+
+            if (words.Length == 0)
+            {
+                return oneLine;
+            }
+
+            double width = 0.0;
+
+            for (int c = block.LeftColumn; c <= block.RightColumn; c++)
+            {
+                width += table.ColumnWidth(c);
+            }
+
+            var text = new DxfMText { Contents = words, TextHeight = height, Width = Math.Max(0.0, width - 2.0 * hMargin) };
+            string styleName = table.TextStyle(row, column)?.Name ?? style?.TextStyleName(kind);
+
+            if (!string.IsNullOrEmpty(styleName))
+            {
+                text.TextStyleName = styleName;
+            }
+
+            return Math.Max(oneLine, document.LayoutOf(text).ActualHeight);
+        }
 
         private static DxfTable Find(CadDocument document, string handle, out CadEditResult refused)
         {

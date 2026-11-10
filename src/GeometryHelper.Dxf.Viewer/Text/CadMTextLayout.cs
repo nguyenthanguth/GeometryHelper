@@ -13,9 +13,9 @@ namespace GeometryHelper.Dxf.Viewer
     /// <remarks>
     /// <para>
     /// Wrapping. A line breaks at spaces only, never after a hyphen, and a word longer than the width stays whole. A word moves
-    /// down when the pen at its start and its ink, taken from its own left edge, do not come inside the width. The spaces at a
-    /// break are dropped; those inside a line are kept; a hard space (<c>\~</c>) joins its neighbours. A stack is one word. A
-    /// width of nought never wraps, and the box is then as wide as the widest line.
+    /// down when the pen at its start and its ink, taken from its own left edge, go past the width; one that ends on it stays.
+    /// The spaces at a break are dropped; those inside a line are kept; a hard space (<c>\~</c>) joins its neighbours. A stack
+    /// is one word. A width of nought never wraps, and the box is then as wide as the widest line.
     /// </para>
     /// <para>
     /// Across. A line is set by its ink: its first ink at the left edge, its ink centred, or its last ink at the right edge, as
@@ -848,7 +848,8 @@ namespace GeometryHelper.Dxf.Viewer
                             : stop.Key - inkLeft;
                     }
 
-                    if (wraps && any && !((start - origin) + (inkRight - inkLeft) < right - line.Left))
+                    // A word that ends on the width fits, as "with end" 27 wide in ghsimplex 4.5 high stays one line in AutoCAD 2021.
+                    if (wraps && any && !((start - origin) + (inkRight - inkLeft) <= right - line.Left + 1E-9))
                     {
                         End(line);
                         line = Start(format, align, false, false);

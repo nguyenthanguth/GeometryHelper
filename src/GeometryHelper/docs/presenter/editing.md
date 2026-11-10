@@ -286,8 +286,13 @@ to type in; a double click or F2 on a cell runs it. TABLESTYLE (TS) shows the Ta
 ([`CadTableStyleEditor`](xref:GeometryHelper.Dxf.Viewer.CadTableStyleEditor)); a style changed draws its tables anew. A
 click in a cell selects it with the Table Cell tab ([`CadTableEditor`](xref:GeometryHelper.Dxf.Viewer.CadTableEditor)):
 rows and columns put in and taken out, cells merged and unmerged, their alignment, fill and borders, the arrows moving
-the cell and Delete emptying it, each one undo step that draws the table anew in its block. A cell written in a table of
-100 rows of 20 columns is written and drawn in about 50 ms.
+the cell and Delete emptying it, each one undo step that draws the table anew in its block. Drawn anew, each row grows to
+hold its cells, as AutoCAD lays a table out: a cell's words wrap at the cell's width less its margins, as an MTEXT of that
+width, and need their actual height and the margins above and below, one line of four thirds of the text height at
+least; a row is as high as its tallest cell needs and is never made lower. In AutoCAD's Standard, "HEA300 S355 with end
+plates both sides" in ghsimplex in a column 30 wide takes six lines and makes its row 45.43 high, as AutoCAD 2021 laid it
+out, and the row keeps 45.43 when the words are made short again. A cell written in a table of 100 rows of 20 columns
+is written and drawn in about 50 ms.
 
 MLEADERSTYLE (MLS), and the last item of the multileader style box of the Annotate tab, show the Multileader Style
 Manager ([`CadMLeaderStyleEditor`](xref:GeometryHelper.Dxf.Viewer.CadMLeaderStyleEditor)): Set Current, New…, Modify…
