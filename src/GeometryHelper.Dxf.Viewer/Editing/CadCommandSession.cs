@@ -37,10 +37,14 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         public CadImageJob Image => Payload as CadImageJob;
 
+        /// <summary>Gets the file EXPORT or -EXPORT asks for, the <see cref="Payload"/> of those requests; null for every other request.</summary>
+        public CadExportJob Export => Payload as CadExportJob;
+
         /// <summary>
         /// Gets what is asked: PROPERTIES, LAYER, OPTIONS, QSAVE, RECOVER, PLOT, PREVIEW, PAGESETUP, -PLOT to write a plot to a
-        /// file, PNGOUT, JPGOUT or BMPOUT for the file of an image, IMAGEOUT to draw the image and write it, or MATCHPROP for
-        /// its Property Settings dialog, which sets the session's <see cref="CadCommandSession.MatchProperties"/>.
+        /// file, PNGOUT, JPGOUT or BMPOUT for the file of an image, IMAGEOUT to draw the image and write it, EXPORT or -EXPORT
+        /// for the file of an export, or MATCHPROP for its Property Settings dialog, which sets the session's
+        /// <see cref="CadCommandSession.MatchProperties"/>.
         /// </summary>
         public string Name { get; }
 

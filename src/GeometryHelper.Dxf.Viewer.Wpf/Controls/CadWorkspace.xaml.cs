@@ -565,6 +565,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 _model.ShowPlotPreview = preview => PlotPreviewWindow.Show(Window.GetWindow(this), preview);
                 _model.AskPlotFile = AskPlotFile;
                 _model.AskImageFile = AskImageFile;
+                _model.AskExportFile = AskExportFile;
                 _model.WindowsPrinters = WindowsPrinters;
                 _model.ShowQuickSelect = dialog => QuickSelectWindow.Show(Window.GetWindow(this), dialog);
                 _model.ShowFindReplace = dialog => FindReplaceWindow.Show(Window.GetWindow(this), dialog);
@@ -611,6 +612,38 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             return dialog.ShowDialog(Window.GetWindow(this)) == true ? dialog.FileName : null;
+        }
+
+        /// <summary>
+        /// Export Data of EXPORT, or Save As PDF of -EXPORT: the standard Save dialog of the job's types, its type chosen first;
+        /// the file and the type chosen put into the job, the file null where it is cancelled.
+        /// </summary>
+        private void AskExportFile(CadExportJob job)
+        {
+            string Filter(string type) => type + "|" + string.Join(";", CadExportJob.ExtensionsOf(type).Select(e => "*" + e));
+            string folder = Path.GetDirectoryName(job.FileName);
+            var dialog = new SaveFileDialog
+            {
+                Title = job.Title,
+                Filter = string.Join("|", job.FileTypes.Select(Filter)),
+                FilterIndex = job.FileTypes.ToList().IndexOf(job.FileType) + 1,
+                FileName = Path.GetFileName(job.FileName),
+            };
+
+            if (folder != null && Directory.Exists(folder))
+            {
+                dialog.InitialDirectory = folder;
+            }
+
+            if (dialog.ShowDialog(Window.GetWindow(this)) == true)
+            {
+                job.FileName = dialog.FileName;
+                job.FileType = job.FileTypes[Math.Max(0, Math.Min(job.FileTypes.Count - 1, dialog.FilterIndex - 1))];
+            }
+            else
+            {
+                job.FileName = null;
+            }
         }
 
         /// <summary>The printers of Windows by name, each with whether it is on the network, as the print spooler lists them.</summary>

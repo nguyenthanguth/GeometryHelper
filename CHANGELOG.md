@@ -15,6 +15,30 @@ base point, 8 pixels off it on the other, so that neither covers the band. Typin
 the band work as before: 300 locked at a line from (1 000, 1 000) with the cursor at (1 300, 1 400) still ends it at
 (1 180, 1 240). RECTANG's X and Y fields and the X and Y of pointer input are unchanged.
 
+**NEW.** EXPORT and -EXPORT in the presenter, as AutoCAD 2021 has them. EXPORT's Export Data dialog lists AutoCAD's
+types: 3D DWF, 3D DWFx, ACIS, Bitmap, Block, DXX Extract, Encapsulated PS, IGES, Lithography, Metafile, V7 DGN and V8 DGN.
+Bitmap is written as BMPOUT writes it. The other types have no writer and are refused, with nothing written:
+`Metafile (*.wmf) has no writer in the presenter: nothing was exported.` -EXPORT asks
+`Enter file format [Dwf/dwfX/Pdf] <dwfX>`, then `Enter plot area [Display/Extents/Window] <Display>:` (on a layout
+`[Current layout/All layouts]`), then `Detailed plot configuration? [Yes/No] <No>:`, word for word as AutoCAD 2021's
+console asks them. It then asks for the file in a Save As PDF dialog, or on the command line with FILEDIA 0, and writes
+the PDF with -PLOT's writer. Dwf, dwfX and All layouts are refused. The format answered becomes the next default. The
+file dialogs go through `MainViewModel.AskExportFile` and a [`CadExportJob`](xref:GeometryHelper.Dxf.Viewer.CadExportJob),
+and Other Formats under Export in the application menu, greyed until now, runs EXPORT. The registry holds 175 commands.
+
+**NEW.** The presenter's command line searches the drawing's content, as AutoCAD 2021's Search Content: below the
+commands and system variables, under a rule, the AutoComplete list holds the blocks, layers, hatch patterns, text styles
+and dimension styles whose names begin with the letters typed, then those with the letters inside, each kind by name and
+marked at the right. WAL typed in a drawing of the block WALL_TAG and the layers WALLS and WALL-FINISH lists
+`WALL_TAG Block`, `WALL-FINISH Layer` and `WALLS Layer`; a kind's keyword (BLOCK or INSERT, LAYER, HATCH, TEXTSTYLE or
+STYLE, DIMSTYLE) lists every name of the kind. Choosing a row acts on it: a layer is made current through CLAYER, a block
+inserted through -INSERT, which then asks the insertion point, a hatch pattern given to HATCH, a text style or a
+dimension style made current. Search Content of the command line's Input Settings, greyed until now, switches it and is
+kept in the settings file; it is on by default, as in AutoCAD. As AutoCAD's help says, the content is searched at the
+command line only, not in the box of dynamic input at the cursor. AutoCAD's choice and order of the kinds (Input Search
+Options), its collapsible section and its picture of a hatch pattern under the pointer are not built: they need a dialog
+and a list of their own.
+
 **FIXED.** The presenter's dimension pictures follow DIMTMOVE as AutoCAD 2021 draws them. Words the fit moves out of a
 linear dimension stand over its line under DIMTMOVE 2, on the side away from the points, DIMEXE, one and a half DIMGAP
 and half their height out, their height more where they read below it ("4" of a dimension of 4, 5.9375 below the middle

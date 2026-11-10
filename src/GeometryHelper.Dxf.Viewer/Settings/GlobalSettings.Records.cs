@@ -102,6 +102,12 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Gets or sets whether the list holds system variables as well as commands: on by default.</summary>
         public bool SearchSystemVariables { get; set; } = true;
 
+        /// <summary>
+        /// Gets or sets whether the list holds the drawing's named objects too, below the commands and variables: its blocks,
+        /// layers, hatch patterns, text styles and dimension styles, as AutoCAD 2021's Search Content: on by default.
+        /// </summary>
+        public bool SearchContent { get; set; } = true;
+
         /// <summary>Gets or sets whether the list holds names with the letters inside them, below those that begin with them: on by default.</summary>
         public bool MidStringSearch { get; set; } = true;
 
@@ -364,6 +370,7 @@ namespace GeometryHelper.Dxf.Viewer
             w.Value("autoComplete", AutoComplete);
             w.Value("autoCorrect", AutoCorrect);
             w.Value("searchSystemVariables", SearchSystemVariables);
+            w.Value("searchContent", SearchContent);
             w.Value("midStringSearch", MidStringSearch);
             w.Value("delayMilliseconds", _autoCompleteDelay);
             w.Close();
