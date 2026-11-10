@@ -1455,6 +1455,72 @@ namespace GeometryHelper.Dwg
             }
         }
 
+        /// <summary>
+        /// An MLINE: its scale, justification, start, plane and flags, then for each vertex its point, direction and mitre
+        /// and for each line of the style its segment and fill parameters; the style by handle, and DXF names it too.
+        /// </summary>
+        private void ReadMLine()
+        {
+            double scale = _data.BitDouble();
+            int justification = _data.RawChar();
+            double[] start = _data.Point3();
+            double[] normal = _data.Point3();
+            int flags = _data.BitShort();
+            int lines = _data.RawChar();
+            int count = _data.BitShort();
+
+            if (count < 0 || count > _data.Remaining)
+            {
+                throw new FormatException("The MLINE names more vertices than it has room for.");
+            }
+
+            var vertices = new List<DwgGroup>();
+
+            for (int i = 0; i < count; i++)
+            {
+                AddPoint(vertices, 11, _data.Point3());
+                AddPoint(vertices, 12, _data.Point3());
+                AddPoint(vertices, 13, _data.Point3());
+
+                for (int j = 0; j < lines; j++)
+                {
+                    ReadMLineParameters(vertices, 74, 41);
+                    ReadMLineParameters(vertices, 75, 42);
+                }
+            }
+
+            ulong style = H();
+            _object.Add(100, "AcDbMline");
+            _object.Add(2, new DwgName(style, "STANDARD"));
+            _object.Add(340, style);
+            _object.Add(40, scale);
+            _object.Add(70, justification);
+            _object.Add(71, flags);
+            _object.Add(72, count);
+            _object.Add(73, lines);
+            _object.AddPoint(10, start);
+            _object.AddPoint(210, normal);
+            _object.Body.AddRange(vertices);
+        }
+
+        /// <summary>A count of parameters (a bit short) under <paramref name="countCode"/> and the parameters under <paramref name="code"/>.</summary>
+        private void ReadMLineParameters(List<DwgGroup> groups, int countCode, int code)
+        {
+            int count = _data.BitShort();
+
+            if (count < 0 || count > _data.Remaining)
+            {
+                throw new FormatException("The MLINE names more parameters than it has room for.");
+            }
+
+            groups.Add(new DwgGroup(countCode, count));
+
+            for (int i = 0; i < count; i++)
+            {
+                groups.Add(new DwgGroup(code, _data.BitDouble()));
+            }
+        }
+
         private void ReadDimension(int type)
         {
             int version = R2010Plus ? _data.RawChar() : 0;

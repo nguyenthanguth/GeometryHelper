@@ -89,6 +89,8 @@ namespace GeometryHelper.UnitTest.Dwg
         [InlineData("leaders_AC1032")]
         [InlineData("images_AC1015")]
         [InlineData("images_AC1032")]
+        [InlineData("mline_AC1015")]
+        [InlineData("mline_AC1032")]
         public void ADrawingOfTheTypesOfW4_ReadFromItsDwg_IsTheDxfAutoCadWroteOfIt(string drawing)
         {
             // Made by probe GhDwg4 in all six versions; the repository holds the oldest and the newest of each.
@@ -170,6 +172,21 @@ namespace GeometryHelper.UnitTest.Dwg
             Assert.True(images[1].IsClipped);
             Assert.Equal(4, images[1].GetClipBoundary().Count);
             Assert.Equal(2, database.ModelSpace.OfType<DxfWipeout>().Count());
+        }
+
+        [Theory]
+        [InlineData("mline_AC1015")]
+        [InlineData("mline_AC1032")]
+        public void TheMultilines_AreRead_AndAStyleOfTheirsNamesItsLinetypes(string drawing)
+        {
+            List<DwgAnswerKey.Record> records = DwgAnswerKey.Parse(DwgReader.ToDxf(DwgAnswerKey.Dwg(drawing)));
+            DxfDatabase database = DwgReader.Open(new MemoryStream(DwgAnswerKey.Dwg(drawing), false));
+
+            // Two of STANDARD, one of GH3, whose three lines are Continuous, ByLayer and ByBlock: before R2018 the file
+            // gives the first by its place in the linetype table.
+            Assert.Equal(3, database.ModelSpace.OfType<DxfUnknownEntity>().Count(e => e.DxfName == "MLINE"));
+            DwgAnswerKey.Record style = Assert.Single(records, r => r.Type == "MLINESTYLE" && r.Groups.Any(g => g.Key == 2 && g.Value == "GH3"));
+            Assert.Equal(new[] { "Continuous", "BYLAYER", "BYBLOCK" }, style.Groups.Where(g => g.Key == 6).Select(g => g.Value));
         }
 
         [Fact]

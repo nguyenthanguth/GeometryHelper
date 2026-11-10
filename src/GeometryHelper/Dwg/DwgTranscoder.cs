@@ -372,6 +372,13 @@ namespace GeometryHelper.Dwg
                     _dxf.Write(group.Code, found);
                 }
             }
+            else if (group.Value is DwgLinetypeIndex linetype)
+            {
+                // The records of the table follow ByBlock and ByLayer, which the control lists first.
+                List<ulong> entries = Find(_header.Handle("_LTYPES"))?.Entries;
+                byte[] named = entries != null && linetype.Index >= 0 && linetype.Index + 2 < entries.Count ? NameOf(entries[linetype.Index + 2]) : null;
+                _dxf.Write(group.Code, named ?? Encoding.ASCII.GetBytes("BYLAYER"));
+            }
             else if (group.Value is DwgViewportNumber number)
             {
                 _dxf.Write(group.Code, _viewportNumbers.TryGetValue(number.Viewport, out int[] numbers) ? numbers[number.Status ? 1 : 0] : 0);

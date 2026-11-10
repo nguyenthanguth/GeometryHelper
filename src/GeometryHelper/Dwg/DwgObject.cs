@@ -51,6 +51,22 @@ namespace GeometryHelper.Dwg
     }
 
     /// <summary>
+    /// A linetype given by its place among the records of the linetype table, as an MLINESTYLE before R2018 gives the
+    /// linetype of an element; the transcoder writes its name.
+    /// </summary>
+    internal sealed class DwgLinetypeIndex
+    {
+        /// <summary>The place of the linetype among the records of the table, from 0.</summary>
+        public readonly int Index;
+
+        /// <summary>The linetype at <paramref name="index"/>.</summary>
+        public DwgLinetypeIndex(int index)
+        {
+            Index = index;
+        }
+    }
+
+    /// <summary>
     /// The number of a viewport (group 69) or its status (group 68), which a DWG does not hold: the transcoder gives them
     /// from the place of the viewport among those of its layout.
     /// </summary>

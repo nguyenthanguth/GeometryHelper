@@ -124,8 +124,17 @@ namespace GeometryHelper.Dwg
                 }
                 else
                 {
+                    // Before R2018 the linetype is its place among the linetypes of the table, 32767 ByLayer, 32766 ByBlock.
                     int linetype = _data.BitShort();
-                    _object.Add(6, linetype == 32766 ? "BYBLOCK" : "BYLAYER");
+
+                    if (linetype == 32766 || linetype == 32767)
+                    {
+                        _object.Add(6, linetype == 32766 ? "BYBLOCK" : "BYLAYER");
+                    }
+                    else
+                    {
+                        _object.Add(6, new DwgLinetypeIndex(linetype));
+                    }
                 }
             }
         }

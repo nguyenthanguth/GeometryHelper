@@ -731,6 +731,7 @@ namespace GeometryHelper.Dwg
                 case 0x2C: ReadMText(); return true;
                 case 0x2D: ReadLeader(); return true;
                 case 0x2E: ReadTolerance(); return true;
+                case 0x2F: ReadMLine(); return true;
                 case 0x30:
                 case 0x32:
                 case 0x34:
