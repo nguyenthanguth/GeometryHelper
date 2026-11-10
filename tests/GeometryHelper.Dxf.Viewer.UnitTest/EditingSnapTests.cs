@@ -171,6 +171,25 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Snapped(snap.Snap(index, P(12, 18), 1.0), CadSnapKind.Grid, 10, 20);
         }
 
+        [Fact]
+        public void AnObjectSnapUnderTheAperture_WinsOverGridSnapOrthoAndPolar()
+        {
+            PickIndex index = Index(TestDrawings.Line(0, 0, 4000, 3000, handle: "A1"));
+            var snap = new ObjectSnap(Tight) { Modes = CadSnapModes.Endpoint, GridSnap = true, GridX = 10, GridY = 10 };
+
+            Snapped(snap.Snap(index, P(3987, 2988), 50.0, P(1000, 500)), CadSnapKind.Endpoint, 4000, 3000);
+            snap.Ortho = true;
+            Snapped(snap.Snap(index, P(3987, 2988), 50.0, P(1000, 500)), CadSnapKind.Endpoint, 4000, 3000);
+            snap.Ortho = false;
+            snap.Polar = true;
+            snap.PolarAngle = Math.PI / 4.0;
+            Snapped(snap.Snap(index, P(3987, 2988), 50.0, P(1000, 500)), CadSnapKind.Endpoint, 4000, 3000);
+
+            // Away from the line the grid holds the cursor again.
+            snap.Polar = false;
+            Snapped(snap.Snap(index, P(2987, 1012), 50.0, P(1000, 500)), CadSnapKind.Grid, 2990, 1010);
+        }
+
         // Three walls of a room 4000 by 3000 and a column at its middle, written by hand as R12: no header, no tables, no handles.
         private const string HandleLessRoom =
             "  0\nSECTION\n  2\nENTITIES\n" +

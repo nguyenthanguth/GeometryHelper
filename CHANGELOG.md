@@ -15,7 +15,9 @@ header made where it has none, and reads the drawing anew with them. They are wr
 drawing back from its saved bytes, finds each entity under the same handle, and the drawing is saved with them, as
 AutoCAD saves it. The corner snaps as an endpoint, 3 905.12 from (1 000, 500), the column's rim gives its quadrant and
 centre, and a wall erased, undone and redone is picked as the same wall. A file with handles opens as before; the snap at
-the cursor on the 100 000-entity drawing costs about 1.1 µs either way.
+the cursor on the 100 000-entity drawing costs about 1.1 µs either way. The presenter's order was AutoCAD 2021's already
+and is now pinned by a test: a point typed is taken as typed, and an object snap under the aperture beats object snap
+tracking, which beats polar tracking or ortho, which beat the grid.
 
 **FIXED.** The presenter draws a layer switched off or frozen in a third of the time it took. An entity on a layer that
 is not shown is passed over before its own visibility is read from its groups, which cost near a microsecond each, and
