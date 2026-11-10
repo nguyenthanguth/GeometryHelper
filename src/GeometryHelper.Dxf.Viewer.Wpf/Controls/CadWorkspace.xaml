@@ -1935,95 +1935,184 @@
                                      Revision="{Binding Revision}" Visibility="{Binding HasDocument, Converter={StaticResource Shown}}" />
                     <TextBlock Text="{Binding ViewportLabel}" FontFamily="{StaticResource GhMonoFont}" FontSize="11" Foreground="{StaticResource GhTextMuted}"
                                HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,8,0,0" IsHitTestVisible="False" />
-                    <!-- Dynamic input (DYN, F12): the prompt, then the coordinates, the distance and angle, or what is typed, beside the cursor. -->
-                    <Canvas IsHitTestVisible="False" Visibility="{Binding IsDynamicInputShown, Converter={StaticResource Shown}}">
+                    <!--
+                    Dynamic input (DYN, F12), design DynInputCursor: at the Command prompt what is typed, with the AutoComplete list
+                    under it; in a command the prompt, the ↓ of its options and the X and Y fields in one box 18 px right of the
+                    cursor and 14 px below it, the options menu under it; at LINE's and PLINE's next point the length on a dimension
+                    line along the rubber band and the angle on an arc from the X axis. Only the list and the menu take clicks.
+                    -->
+                    <Canvas x:Name="DynamicInputLayer" Visibility="{Binding IsDynamicInputShown, Converter={StaticResource Shown}}"
+                            TextElement.FontFamily="{StaticResource GhMonoFont}" TextElement.FontSize="11">
                         <Canvas.Resources>
-                            <!-- A field of a point prompt: the one typed into framed in the accent, a locked one darker with a lock. -->
+                            <!-- A field: the one typed into framed in the accent, a locked one with a lock. -->
                             <Style x:Key="DynamicField" TargetType="Border">
                                 <Setter Property="BorderBrush" Value="{StaticResource GhBorder}" />
                                 <Setter Property="BorderThickness" Value="1" />
+                                <Setter Property="CornerRadius" Value="2" />
                                 <Setter Property="Background" Value="{StaticResource GhInput}" />
-                                <Setter Property="Padding" Value="4,0" />
-                                <Setter Property="MinWidth" Value="64" />
+                                <Setter Property="Padding" Value="6,0" />
+                                <Setter Property="IsHitTestVisible" Value="False" />
+                            </Style>
+                            <Style x:Key="FirstField" TargetType="Border" BasedOn="{StaticResource DynamicField}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsDynamicInputFirstActive}" Value="True">
+                                        <Setter Property="BorderBrush" Value="{StaticResource GhAccent}" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                            <Style x:Key="SecondField" TargetType="Border" BasedOn="{StaticResource DynamicField}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsDynamicInputSecondActive}" Value="True">
+                                        <Setter Property="BorderBrush" Value="{StaticResource GhAccent}" />
+                                    </DataTrigger>
+                                </Style.Triggers>
                             </Style>
                         </Canvas.Resources>
-                        <Border x:Name="DynamicInputBox" Background="{StaticResource GhHeader}" BorderBrush="{StaticResource GhBorder}" BorderThickness="1"
-                                CornerRadius="2" Padding="6,3" TextElement.FontFamily="{StaticResource GhMonoFont}" TextElement.FontSize="11">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="{Binding DynamicInputPrompt}" Foreground="{StaticResource GhTextMuted}" VerticalAlignment="Center" />
-                                <Border BorderBrush="{StaticResource GhAccent}" BorderThickness="1" Background="{StaticResource GhInput}" Margin="6,0,0,0"
-                                        Padding="4,0" MinWidth="64">
-                                    <Border.Style>
-                                        <Style TargetType="Border">
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding DynamicInputValue}" Value="">
-                                                    <Setter Property="Visibility" Value="Collapsed" />
-                                                </DataTrigger>
-                                                <DataTrigger Binding="{Binding IsDynamicInputFields}" Value="True">
-                                                    <Setter Property="Visibility" Value="Collapsed" />
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </Border.Style>
-                                    <TextBlock Text="{Binding DynamicInputValue}" Foreground="{StaticResource GhText}" />
-                                </Border>
-                                <!-- At a point prompt two fields, X and Y or distance < angle; Tab moves between them, a number typed locks one. -->
-                                <StackPanel Orientation="Horizontal" Margin="6,0,0,0" Visibility="{Binding IsDynamicInputFields, Converter={StaticResource Shown}}">
-                                    <Border>
-                                        <Border.Style>
-                                            <Style TargetType="Border" BasedOn="{StaticResource DynamicField}">
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding IsDynamicInputFirstLocked}" Value="True">
-                                                        <Setter Property="Background" Value="{StaticResource GhCommandInput}" />
-                                                    </DataTrigger>
-                                                    <DataTrigger Binding="{Binding IsDynamicInputFirstActive}" Value="True">
-                                                        <Setter Property="BorderBrush" Value="{StaticResource GhAccent}" />
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </Border.Style>
-                                        <StackPanel Orientation="Horizontal">
-                                            <local:IconView Size="10" StrokeThickness="2.5" Stroke="{StaticResource GhAccent}" Data="{StaticResource GhIconLock}" Margin="0,0,4,0"
-                                                            VerticalAlignment="Center" Visibility="{Binding IsDynamicInputFirstLocked, Converter={StaticResource Shown}}" />
-                                            <TextBlock Text="{Binding DynamicInputFirst}" Foreground="{StaticResource GhText}" />
-                                        </StackPanel>
-                                    </Border>
-                                    <TextBlock Margin="4,0" Foreground="{StaticResource GhTextMuted}" VerticalAlignment="Center">
+
+                        <!-- Dimensional input: the dimension line and its extension lines, the X axis dashed and the arc of the angle. -->
+                        <Canvas x:Name="DimensionalInput" IsHitTestVisible="False" Visibility="{Binding IsDynamicInputPolar, Converter={StaticResource Shown}}">
+                            <Path x:Name="DimensionalLines" Stroke="{StaticResource GhTextMuted}" StrokeThickness="1" />
+                            <Path x:Name="DimensionalAxis" Stroke="{StaticResource GhTextMuted}" StrokeThickness="1" StrokeDashArray="3 3" />
+                            <Path x:Name="DimensionalArc" Stroke="{StaticResource GhTextMuted}" StrokeThickness="1" />
+                            <Border x:Name="LengthField" Style="{StaticResource FirstField}">
+                                <StackPanel Orientation="Horizontal">
+                                    <local:IconView Size="10" StrokeThickness="2.5" Stroke="{StaticResource GhAccent}" Data="{StaticResource GhIconLock}" Margin="0,0,4,0"
+                                                    VerticalAlignment="Center" Visibility="{Binding IsDynamicInputFirstLocked, Converter={StaticResource Shown}}" />
+                                    <TextBlock Text="{Binding DynamicInputFirst}" Foreground="{StaticResource GhText}" />
+                                </StackPanel>
+                            </Border>
+                            <Border x:Name="AngleField" Style="{StaticResource SecondField}">
+                                <StackPanel Orientation="Horizontal">
+                                    <local:IconView Size="10" StrokeThickness="2.5" Stroke="{StaticResource GhAccent}" Data="{StaticResource GhIconLock}" Margin="0,0,4,0"
+                                                    VerticalAlignment="Center" Visibility="{Binding IsDynamicInputSecondLocked, Converter={StaticResource Shown}}" />
+                                    <TextBlock Foreground="{StaticResource GhText}"><Run Text="{Binding DynamicInputSecond, Mode=OneWay}" /><Run Text="°" /></TextBlock>
+                                </StackPanel>
+                            </Border>
+                        </Canvas>
+
+                        <StackPanel x:Name="DynamicInputBox">
+                            <Border Background="{StaticResource GhHeader}" BorderBrush="{StaticResource GhBorder}" BorderThickness="1" CornerRadius="3" Padding="6,3"
+                                    HorizontalAlignment="Left" IsHitTestVisible="False">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="{Binding DynamicInputPrompt}" Foreground="{StaticResource GhIcon}" VerticalAlignment="Center" Margin="0,0,6,0">
                                         <TextBlock.Style>
                                             <Style TargetType="TextBlock">
-                                                <Setter Property="Text" Value="," />
                                                 <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding IsDynamicInputPolar}" Value="True">
-                                                        <Setter Property="Text" Value="&lt;" />
+                                                    <DataTrigger Binding="{Binding IsCommandRunning}" Value="False">
+                                                        <Setter Property="Visibility" Value="Collapsed" />
                                                     </DataTrigger>
                                                 </Style.Triggers>
                                             </Style>
                                         </TextBlock.Style>
                                     </TextBlock>
-                                    <Border>
+                                    <!-- The ↓ of a prompt with options: ↓ opens their menu, the icon then in the accent. -->
+                                    <Border Width="14" Height="14" BorderThickness="1" CornerRadius="2" Margin="0,0,6,0" VerticalAlignment="Center"
+                                            Visibility="{Binding HasDynamicInputOptions, Converter={StaticResource Shown}}">
                                         <Border.Style>
-                                            <Style TargetType="Border" BasedOn="{StaticResource DynamicField}">
+                                            <Style TargetType="Border">
+                                                <Setter Property="BorderBrush" Value="#5A6472" />
                                                 <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding IsDynamicInputSecondLocked}" Value="True">
-                                                        <Setter Property="Background" Value="{StaticResource GhCommandInput}" />
-                                                    </DataTrigger>
-                                                    <DataTrigger Binding="{Binding IsDynamicInputSecondActive}" Value="True">
+                                                    <DataTrigger Binding="{Binding IsDynamicInputMenuOpen}" Value="True">
                                                         <Setter Property="BorderBrush" Value="{StaticResource GhAccent}" />
+                                                        <Setter Property="Background" Value="{StaticResource GhSelected}" />
                                                     </DataTrigger>
                                                 </Style.Triggers>
                                             </Style>
                                         </Border.Style>
-                                        <StackPanel Orientation="Horizontal">
-                                            <local:IconView Size="10" StrokeThickness="2.5" Stroke="{StaticResource GhAccent}" Data="{StaticResource GhIconLock}" Margin="0,0,4,0"
-                                                            VerticalAlignment="Center" Visibility="{Binding IsDynamicInputSecondLocked, Converter={StaticResource Shown}}" />
-                                            <TextBlock Text="{Binding DynamicInputSecond}" Foreground="{StaticResource GhText}" />
-                                        </StackPanel>
+                                        <local:IconView Size="8" StrokeThickness="2.2" Stroke="{StaticResource GhText}" Data="M12 4v16M5 13l7 7 7-7"
+                                                        HorizontalAlignment="Center" VerticalAlignment="Center" />
                                     </Border>
-                                    <TextBlock Text="°" Foreground="{StaticResource GhTextMuted}" Margin="2,0,0,0" VerticalAlignment="Center"
-                                               Visibility="{Binding IsDynamicInputPolar, Converter={StaticResource Shown}}" />
+                                    <!-- At the Command prompt the text typed and the caret; in a command what is typed at a prompt with no fields. -->
+                                    <StackPanel Orientation="Horizontal" MinWidth="108" Visibility="{Binding IsCommandRunning, Converter={StaticResource Hidden}}">
+                                        <TextBlock Text="{Binding CommandText}" Foreground="{StaticResource GhText}" />
+                                        <Rectangle Width="1" Height="13" Margin="1,0,0,0" Fill="{StaticResource GhText}" VerticalAlignment="Center" />
+                                    </StackPanel>
+                                    <Border>
+                                        <Border.Style>
+                                            <Style TargetType="Border" BasedOn="{StaticResource DynamicField}">
+                                                <Setter Property="BorderBrush" Value="{StaticResource GhAccent}" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsCommandRunning}" Value="False">
+                                                        <Setter Property="Visibility" Value="Collapsed" />
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding IsDynamicInputFields}" Value="True">
+                                                        <Setter Property="Visibility" Value="Collapsed" />
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding DynamicInputValue}" Value="">
+                                                        <Setter Property="Visibility" Value="Collapsed" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <TextBlock Text="{Binding DynamicInputValue}" Foreground="{StaticResource GhText}" />
+                                    </Border>
+                                    <!-- Pointer input: X and Y, from the base point where there is one; Tab moves between them, a comma to Y. -->
+                                    <StackPanel Orientation="Horizontal">
+                                        <StackPanel.Style>
+                                            <Style TargetType="StackPanel">
+                                                <Setter Property="Visibility" Value="Collapsed" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsDynamicInputFields}" Value="True">
+                                                        <Setter Property="Visibility" Value="Visible" />
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding IsDynamicInputPolar}" Value="True">
+                                                        <Setter Property="Visibility" Value="Collapsed" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </StackPanel.Style>
+                                        <Border Style="{StaticResource FirstField}">
+                                            <StackPanel Orientation="Horizontal">
+                                                <local:IconView Size="10" StrokeThickness="2.5" Stroke="{StaticResource GhAccent}" Data="{StaticResource GhIconLock}" Margin="0,0,4,0"
+                                                                VerticalAlignment="Center" Visibility="{Binding IsDynamicInputFirstLocked, Converter={StaticResource Shown}}" />
+                                                <TextBlock Text="{Binding DynamicInputFirst}" Foreground="{StaticResource GhText}" />
+                                            </StackPanel>
+                                        </Border>
+                                        <TextBlock Text="," Margin="6,0" Foreground="{StaticResource GhTextMuted}" VerticalAlignment="Center" />
+                                        <Border Style="{StaticResource SecondField}">
+                                            <StackPanel Orientation="Horizontal">
+                                                <local:IconView Size="10" StrokeThickness="2.5" Stroke="{StaticResource GhAccent}" Data="{StaticResource GhIconLock}" Margin="0,0,4,0"
+                                                                VerticalAlignment="Center" Visibility="{Binding IsDynamicInputSecondLocked, Converter={StaticResource Shown}}" />
+                                                <TextBlock Text="{Binding DynamicInputSecond}" Foreground="{StaticResource GhText}" />
+                                            </StackPanel>
+                                        </Border>
+                                    </StackPanel>
                                 </StackPanel>
-                            </StackPanel>
-                        </Border>
+                            </Border>
+                            <!-- The compact AutoComplete list under the box, the same rows as the command line's; a click runs a row. -->
+                            <local:CommandSuggestionList x:Name="CursorSuggestionList" Width="230" FontSize="11" Margin="0,2,0,0" HorizontalAlignment="Left"
+                                                         Visibility="{Binding IsSuggestionListAtCursor, Converter={StaticResource Shown}}">
+                                <local:CommandSuggestionList.Effect>
+                                    <DropShadowEffect BlurRadius="16" ShadowDepth="6" Opacity="0.5" Color="Black" />
+                                </local:CommandSuggestionList.Effect>
+                            </local:CommandSuggestionList>
+                            <!-- The options menu ↓ opens: the keywords of the prompt, one per row; a click picks one. -->
+                            <Border Width="140" Margin="0,2,0,0" Padding="0,1" HorizontalAlignment="Left" Background="{StaticResource GhPanel}" BorderBrush="{StaticResource GhBorder}"
+                                    BorderThickness="1" CornerRadius="2" TextElement.FontFamily="{StaticResource GhFont}"
+                                    Visibility="{Binding IsDynamicInputMenuOpen, Converter={StaticResource Shown}}">
+                                <Border.Effect>
+                                    <DropShadowEffect BlurRadius="16" ShadowDepth="6" Opacity="0.5" Color="Black" />
+                                </Border.Effect>
+                                <ItemsControl ItemsSource="{Binding DynamicInputOptions}" Focusable="False">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate DataType="{x:Type local:DynamicInputOptionViewModel}">
+                                            <Border x:Name="Row" Padding="22,2,8,2" Background="Transparent" Cursor="Hand" MouseLeftButtonUp="OnDynamicOptionClick"
+                                                    AutomationProperties.Name="{Binding Keyword}">
+                                                <TextBlock Text="{Binding Keyword}" Foreground="{StaticResource GhText}" />
+                                            </Border>
+                                            <DataTemplate.Triggers>
+                                                <Trigger SourceName="Row" Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="Row" Property="Background" Value="{StaticResource GhHover}" />
+                                                </Trigger>
+                                                <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                    <Setter TargetName="Row" Property="Background" Value="{StaticResource GhSelected}" />
+                                                </DataTrigger>
+                                            </DataTemplate.Triggers>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </Border>
+                        </StackPanel>
                     </Canvas>
                     <!-- Text edited in place: TEXTEDIT's box over a single-line text, the MTEXT editor's frame over an MTEXT. -->
                     <Canvas x:Name="InPlaceLayer">
@@ -2136,7 +2225,7 @@
                                 Background="{StaticResource GhCommandInput}" PreviewMouseRightButtonUp="OnCommandLineRightUp">
                             <DockPanel>
                                 <Popup x:Name="SuggestionPopup" PlacementTarget="{Binding ElementName=CommandInput}" Placement="Top" VerticalOffset="-2"
-                                       IsOpen="{Binding IsSuggestionListOpen, Mode=OneWay}" StaysOpen="True" AllowsTransparency="True" Focusable="False">
+                                       IsOpen="{Binding IsSuggestionListAtCommandLine, Mode=OneWay}" StaysOpen="True" AllowsTransparency="True" Focusable="False">
                                     <local:CommandSuggestionList x:Name="SuggestionList" Margin="0,0,8,8">
                                         <local:CommandSuggestionList.Effect>
                                             <DropShadowEffect BlurRadius="16" ShadowDepth="6" Opacity="0.5" Color="Black" />

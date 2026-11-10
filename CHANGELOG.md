@@ -6,6 +6,15 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**CHANGED.** Dynamic input in the presenter works at the cursor as AutoCAD 2021's. At the Command prompt the text typed
+shows in a box 18 pixels right of the crosshair and 14 below it, with the AutoComplete list under it; the command line's
+own list stays closed while DYN is on. In a command the box shows the prompt as AutoCAD words it, "Specify next point or",
+with a ↓ that opens the prompt's options one per row, Esc closing the menu alone. The X and Y fields are relative to the
+base point, as DYNPIFORMAT 0, # making them absolute: RECTANG's other corner shows 1 200.00 and 800.00 for a corner
+1 200 by 800 from the first, and "500,300" typed there is a corner 500 by 300 from it. LINE's and PLINE's next point
+show the length on a dimension line beside the rubber band and the angle on an arc from the X axis.
+`MainViewModel.DynamicInputPrompt` no longer carries the options and the colon: "Specify next point or".
+
 **NEW.** BATTMAN, the presenter's Block Attribute Manager: the attribute definitions of a block in its order, with the
 INSERTs of it counted in the drawing and in model space, the modes as AutoCAD's letters I C V P L M and a tag given twice
 in red; Move Up, Move Down, Edit Attribute (Attribute, Text Options and Properties) and Remove, written into the block by
