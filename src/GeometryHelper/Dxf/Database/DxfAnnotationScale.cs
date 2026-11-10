@@ -62,7 +62,7 @@ namespace GeometryHelper.Dxf
         /// <exception cref="ArgumentException">Thrown when the name set is empty, has a control character in it, or is another
         /// scale's of the list.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the scale's SCALE is erased, or the scale is the current one and
-        /// its drawing could not write CANNOSCALE anew, as one whose CLASSES section lists no DICTIONARYVAR; nothing is written
+        /// its drawing could not write CANNOSCALE anew, as one with no CLASSES section to list DICTIONARYVAR in; nothing is written
         /// then.</exception>
         public override string Name
         {

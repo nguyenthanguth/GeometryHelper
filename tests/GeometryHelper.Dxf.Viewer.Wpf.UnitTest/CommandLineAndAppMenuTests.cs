@@ -201,6 +201,31 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         }
 
         [Fact]
+        public void EscWithACommandNameTyped_ClearsWhatIsTyped_AndClosesTheList_AsAutoCadDoes()
+        {
+            MainViewModel model = Opened();
+            model.CommandText = "REC";
+            model.ShowSuggestions();
+            Assert.True(model.IsSuggestionListOpen);
+
+            model.Escape();
+
+            Assert.Equal(string.Empty, model.CommandText);
+            Assert.False(model.IsSuggestionListOpen);
+
+            // Typed with no list open, Esc clears it all the same.
+            model.CommandText = "REC";
+            model.Escape();
+            Assert.Equal(string.Empty, model.CommandText);
+
+            // At the Command prompt Esc writes *Cancel*; in a command, the prompt and *Cancel*.
+            Assert.Equal("*Cancel*", model.History.Last());
+            model.Execute("LINE");
+            model.Escape();
+            Assert.Equal("Specify first point: *Cancel*", model.History.Last());
+        }
+
+        [Fact]
         public void TheArrowsMoveTheRowChosen_TheListFollowsWhatIsTyped_AndEmptyingItClosesIt()
         {
             MainViewModel model = Opened();

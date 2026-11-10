@@ -29,6 +29,30 @@ namespace GeometryHelper.UnitTest.Dxf
         private static string Lf(string text) => text.Replace("\r\n", "\n");
 
         [Fact]
+        public void AStyleMadeAnnotative_HasItsGroup296Set_AndNoExtendedData_AsAutoCad2021Writes()
+        {
+            // AutoCAD 2021's MLeaderStyle.Annotative = True, dumped with entget and every application's data: 296 is 1 and
+            // there is no AcadAnnotative, as on the style Annotative of acad.dwt; Standard has 0.
+            DxfDatabase db = Drawing();
+            var style = new DxfMLeaderStyle();
+            db.MLeaderStyleDictionary.SetAt("GH_NOTES", style);
+            Assert.Equal(DxfAnnotativeStates.False, style.Annotative);
+
+            style.Annotative = DxfAnnotativeStates.True;
+
+            string record = DxfModel.Records(Lf(db.ToText())).Single(r => r.StartsWith("  0\nMLEADERSTYLE\n", StringComparison.Ordinal) && r.Contains("\n  5\n" + style.Handle + "\n"));
+            Assert.Contains("\n296\n1\n", record, StringComparison.Ordinal);
+            Assert.DoesNotContain("1001", record, StringComparison.Ordinal);
+            var again = (DxfMLeaderStyle)DxfDatabase.Parse(db.ToText()).MLeaderStyleDictionary["GH_NOTES"];
+            Assert.Equal(DxfAnnotativeStates.True, again.Annotative);
+
+            style.Annotative = DxfAnnotativeStates.False;
+            Assert.Equal(DxfAnnotativeStates.False, style.Annotative);
+            Assert.Contains("\n296\n0\n", DxfModel.Records(Lf(db.ToText())).Single(r => r.Contains("\n  5\n" + style.Handle + "\n")), StringComparison.Ordinal);
+            Assert.Throws<InvalidOperationException>(() => new DxfMLeaderStyle().Annotative = DxfAnnotativeStates.True);
+        }
+
+        [Fact]
         public void ANewStyleAdded_IsWrittenWithEveryGroupAutoCadHolds_InItsOrder_AndReadsBack()
         {
             DxfDatabase db = Drawing();
@@ -181,7 +205,7 @@ namespace GeometryHelper.UnitTest.Dxf
         [Fact]
         public void AMultileaderAdded_TakesAStyleMadeInCode_AndItsValuesFromIt()
         {
-            // A drawing the library makes has no class DICTIONARYVAR for CMLEADERSTYLE: the multileader takes Standard.
+            // CMLEADERSTYLE is not set in the drawing: the multileader takes Standard.
             DxfDatabase db = Drawing();
             db.MLeaderStyleDictionary.SetAt("Standard", new DxfMLeaderStyle { TextHeight = 2.5, ArrowSize = 2.5, LandingGap = 2, DoglegLength = 8 });
             db.MLeaderStyleDictionary.SetAt("GH_NOTES", new DxfMLeaderStyle { TextHeight = 3.5, ArrowSize = 3 });

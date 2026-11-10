@@ -54,7 +54,7 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Gets or sets the distance of the landing.</summary>
         public double LandingDistance { get; set; } = 8.0;
 
-        /// <summary>Gets or sets whether the style is annotative, as the drawing has it; not written.</summary>
+        /// <summary>Gets or sets whether the style is annotative (group 296 of the style, as AutoCAD 2021 writes it).</summary>
         public bool Annotative { get; set; }
 
         /// <summary>Gets or sets the scale of the multileaders; 0 for Scale multileaders to layout.</summary>
@@ -297,7 +297,7 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// Makes a style current (CMLEADERSTYLE), as Set Current does. Refused where the drawing has no such style, or cannot
-        /// hold the variable: a drawing whose CLASSES section lists no DICTIONARYVAR, as one the library makes new.
+        /// hold the variable: a drawing with no CLASSES section to list DICTIONARYVAR in.
         /// </summary>
         /// <param name="document">The document.</param>
         /// <param name="name">The style's name.</param>
@@ -332,7 +332,8 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>
         /// Adds a style, as New of the Multileader Style Manager: a copy of the settings of another (Start with), under a name
         /// no style of the drawing has, letters of either case the same; the dictionary ACAD_MLEADERSTYLE made where the drawing
-        /// has none, and the named object dictionary first where the drawing was written without it. A copy of an annotative style is not annotative: the library does not write the flag.
+        /// has none, and the named object dictionary first where the drawing was written without it. A copy of an annotative
+        /// style is annotative, as AutoCAD's New starts from the style's Annotative box.
         /// </summary>
         /// <param name="document">The document.</param>
         /// <param name="name">The new name, as Detail notes.</param>
@@ -365,7 +366,6 @@ namespace GeometryHelper.Dxf.Viewer
 
             DxfMLeaderStyle source = from == null ? null : Find(document.Database, from);
             CadMLeaderStyleSettings settings = source == null ? new CadMLeaderStyleSettings() : CadMLeaderStyleSettings.Of(source);
-            settings.Annotative = false;
             document.EnsureNamedObjectsDictionary();
             return document.ApplyEdit("MLEADERSTYLE", new[] { new CadEditRecord(CadEditRecordKind.TableChanged, null, "New multileader style", null, trimmed) }, s =>
             {
@@ -784,6 +784,7 @@ namespace GeometryHelper.Dxf.Viewer
             style.SetTextAttachmentType(settings.TopAttachment, DxfLeaderDirectionType.TopLeader);
             style.SetTextAttachmentType(settings.BottomAttachment, DxfLeaderDirectionType.BottomLeader);
             style.LandingGap = settings.LandingGap;
+            style.Annotative = settings.Annotative ? DxfAnnotativeStates.True : DxfAnnotativeStates.False;
 
             if (string.CompareOrdinal(database.Version ?? string.Empty, "AC1027") >= 0)
             {

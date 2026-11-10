@@ -42,6 +42,7 @@ The list of work on the drawing stack: Part A, the 2D presenter (`GeometryHelper
       screenshot mode shared with Drawing.App through `CadAppHost`
 - [x] Blocks round 2: EATTEDIT live with Apply kept open, INSERT drags the block, -ATTEDIT picks one attribute, ATTSYNC,
       Block Definition previews the selection, redefine a block brought from another drawing
+- [x] Core: PEDIT Fit as AutoCAD 2021 (matches 60 polylines to 1E-11), 3D spline vertex order, DICTIONARYVAR listed so      Set Current works in new drawings (multileader and table styles), annotative multileader styles
 - [x] Block Editor: BEDIT, -BEDIT, BSAVE, BSAVEAS, BCLOSE to the design (v107), its own space, background and tab; the      screenshot mode never shows a real dialog- [x] Leftovers: -GROUP on an R2000 drawing without OBJECTS, INSERT base point in other units, -ATTEDIT by window, PICKADD,      ATTREQ, DYNMODE values, ORTHOMODE in the drawing, Recent Commands kept, missing recent files dropped, previews off      the UI thread
 - [x] Associative dimensions (DIMASSOC 2): stored as AutoCAD stores them, following MOVE, STRETCH, grips, SCALE and the
       rest in the same undo step; DIMREASSOCIATE, DIMDISASSOCIATE; AutoCAD's own MOVE carries them too
@@ -89,11 +90,9 @@ the ones wanted.
       by entity with AutoCAD's own; check Ctrl, ANGDIR 1 and the MTEXT column defaults against AutoCAD (S)
 - [ ] Properties: dimension rows Ext line fixed and length (core DIMFXLENON), Fill color, Fractional type, Text view
       direction, Text position X/Y; hatch origin kept through angle and scale; MATCHPROP plot style and gradient hatch (S)
-- [ ] Variables: POLARMODE, ATTDIA (needs an Edit Attributes dialog), FILEDIA, CMDDIA; AUTOSNAP's other bits; new
+- [ ] Variables (running): POLARMODE, ATTDIA (needs an Edit Attributes dialog), FILEDIA, CMDDIA; AUTOSNAP's other bits; new
       dimensions follow DIMSCALE (the header's $DIMSCALE written as an override); polar angle field in Global settings;
       TK (TRACKING); the named-dictionary guard in the table and multileader style editors (S)
-- [ ] Core (running): `DxfPolyline2d.CurveFit` tangents differ from AutoCAD's for closed polylines (AutoCAD bisects) and open ones of 4
-      or more vertices (64.41 against 63.43 degrees in one case); `DxfPolyline3d.SplineFit` vertex order (M)
 - [ ] PEDIT: PEACCEPT and PLINETYPE read through SETVAR; a spline turned into a polyline with a precision; 3D polylines;
       Extend for arc ends in a fuzz join (S)
 - [ ] REVCLOUD: the 2021 approximate arc length (REVCLOUDARCVARIANCE), REVCLOUDPROPERTIES, a Freehand preview, Modify on
@@ -101,18 +100,31 @@ the ones wanted.
 - [ ] Layouts: twisted viewports entered; one undo step per wheel or pan gesture; a ZOOM Previous list per viewport;
       SCALELISTEDIT (Custom… runs VPSCALE now); Rename and Isolate in the Layer manager; New VP Freeze on viewports made
       through the core's API, not only MVIEW (S)
-- [ ] Styles (running): DICTIONARYVAR class in drawings made new, so Set Current works for multileader and table styles; MLEADER with
-      no style makes Standard; Block and None content; the Annotative flag written (S)
+- [ ] Styles: MLEADER with no style makes Standard; Block and None content of multileader styles; the scale options
+      greyed when Annotative is ticked (S)
 - [x] Associative dimensions round 3: flag 32 written so a plain MOVE takes the picture; copies get their own picture and
       stay tied to copied objects; intersection snaps; ties from DIM, QDIM, DIMCONTINUE, DIMBASELINE, ordinate, angular
-- [ ] Associative dimensions: PERpendicular and TANgent snaps tied (AutoCAD writes a second "last point" reference after
+- [ ] Associative dimensions (running): PERpendicular and TANgent snaps tied (AutoCAD writes a second "last point" reference after
       one of 75 = 1, which the core's DIMASSOC neither reads apart nor writes) (S)
-- [ ] Dimension pictures: radius, diameter and angular follow DIMTAD, DIMJUST and the fit rules; the line from the back of
-      an open arrowhead (_CLOSED, _CLOSEDBLANK); DIMTVP; DIMGAP below zero (box round the words) (M)
-- [ ] Blocks: dynamic blocks in use: custom grips (visibility, lookup, stretch, flip, rotate, array) and their Properties
+- [x] Dimension pictures: radius, diameter and angular laid out by DIMTAD, DIMJUST and the fit rules; every line from the
+      back of its arrowhead; DIMTVP; the box of DIMGAP below zero (526 AutoCAD pictures compared, 511 match)
+- [ ] Dimensions: words measured by the drawing's fonts in the pictures (the main gap left); DIMTEDIT on angular and
+      radius with DIMTMOVE 0 as AutoCAD; DIMARC; radial dimensions made under DIMTMOVE 1/2 (S)
+- [ ] Blocks (running): dynamic blocks in use: custom grips (visibility, lookup, stretch, flip, rotate, array) and their Properties
       rows (L)
 
 ### To do
+
+- [ ] Dynamic input at the cursor as AutoCAD's with DYN on: what is typed at the Command prompt shows in a box at the
+      cursor with the AutoComplete list under it, the prompt and its options (the ▼ menu) at the cursor in a command,
+      the command line keeping its own copy; with DYN off only the command line (design first) (M)
+- [ ] Previews as AutoCAD draws them while a command asks for a point (the maintainer saw RECTANG preview a diagonal
+      line): audit every command's rubber band and ghost (RECTANG rectangle, CIRCLE circle by each option, ARC, ELLIPSE,
+      POLYGON, DONUT, XLINE/RAY, PLINE arcs, OFFSET, FILLET, ARRAY, STRETCH, SCALE/ROTATE reference, DIM* lines, MLEADER,
+      TEXT box, MTEXT frame, HATCH boundary, REVCLOUD…) and draw each as AutoCAD does (M) (running)
+- [ ] Tests: the Wpf suite and a parallel run share the global settings file and fail together; give tests their own
+      settings path (S)
+- [ ] Layer States Manager, View Manager with New View, Drawing Units with Direction Control (designed in v110) (M)
 - [ ] Command line and Recent: AutoComplete inside a running command; Search Content; an EXPORT command (S)
 - [ ] Dxf.App: an app icon, file association for .dxf (installer or registry), `--tab Home` in screenshot mode
 - [ ] Images of an area: PNG and JPG devices in PLOT and -PLOT ("GeometryHelper PNG", "GeometryHelper JPG", as AutoCAD's
@@ -121,7 +133,6 @@ the ones wanted.
 - [ ] COPYVIEW (not in AutoCAD): the view as an image on the clipboard, also on the canvas right-click menu (optional)
 - [ ] Tables: the cell right-click menu, column letters and row numbers, autofill and width grips, drag-select a range
 - [ ] Tables: rows grow for wrapped text; Tab in the last cell adds a row; first/second/other row cell styles
-- [ ] Tables: set the current table style in drawings made new (DICTIONARYVAR class in the template)
 
 - [ ] Ribbon: check drop-downs and the Insert block gallery at 125 % and 150 % display scaling; pin and Esc by hand
 - [ ] Ribbon: disabled buttons barely look greyed (GhFlatButton); Home panels a few pixels wider than their design widths
@@ -129,7 +140,7 @@ the ones wanted.
 - [ ] Speed: draw the first display off the UI thread (10–13 s at 1 000 000 entities)
 - [ ] Speed: frame at extents at 1 000 000 entities (0.8–1.1 s, inside Skia); level of detail would change pixels (needs a decision)
 - [ ] Speed: highlight of 100 000 selected objects (1.2–1.6 s)
-- [ ] Blocks: BATTMAN, the Block Attribute Manager (design first)
+- [ ] Blocks (running): BATTMAN, the Block Attribute Manager (designed in v110)
 - [ ] Dimensions: radius, diameter and angular pictures follow DIMTAD, DIMJUST and the fit rules (linear and ordinate do)
 - [ ] Dimensions: the dimension line starts at the back of a closed arrowhead, as AutoCAD draws it; words sized by the
       font, not estimated
@@ -141,7 +152,7 @@ the ones wanted.
 - [ ] PLOT: print to Windows printers; add named page setups; embed only the glyphs used (smaller PDFs)
 - [ ] Xrefs: XOPEN, a balloon when a file changes, editable xref layers (`NAME|LAYER`), nested xrefs in the palette
 - [ ] Images: IMAGEFRAME in a drawing with no image yet (needs RASTERVARIABLES made in core)
-- [ ] PURGE dialog, Group Manager, Draw Order dialogs (design first)
+- [ ] PURGE dialog and Group Manager (running; designed in v110); Draw Order has no dialog in AutoCAD
 - [ ] Selection: QSELECT's "select objects" button
 
 ### Decisions for the maintainer

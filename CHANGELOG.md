@@ -6,6 +6,45 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** `DxfPolyline2d.CurveFit` (PEDIT Fit) now gives AutoCAD 2021's arcs, vertex by vertex to 1E-11 on 60 polylines
+fitted in its console. The tangent between the ends of an open polyline, and everywhere round a closed one, is AutoCAD's
+blend of the two segments at the vertex weighted by the turns either side, not the circle through the vertex and its
+neighbours: on (0, 0), (100, 0), (100, 50), (0, 80) the tangent at (100, 0) is 64.41 degrees, not 63.43, and a closed
+triangle takes the bisector at each corner. The arcs of a segment meet where the curve runs along the chord, or for an
+S-shaped segment with radii as the sines of the tangents' angles to it, not at equal tangent lengths. A segment whose
+tangent at either end is within a millionth of a radian of its line, and a polyline of two vertices, stay straight with
+no vertex added; two vertices on one point split the curve in two there; the vertex added after one given a tangent
+keeps its direction (group 50), as AutoCAD writes it.
+
+**FIXED.** `DxfPolyline3d.SplineFit` keeps the vertices of the curve after the first vertex of the frame, the rest of the
+frame after them, as AutoCAD 2021 stores them and as the polyline of the plane already did.
+
+**NEW.** A drawing whose CLASSES section lists no DICTIONARYVAR, as one the library makes new and the presenter's NEW
+template, is given the class as AutoCAD 2021 lists it (AcDbDictionaryVar, ObjectDBX Classes, proxy flags 0, counted once
+from R2004 on) when its first variable kept out of the header is set, where before the variable was refused. Set Current
+of the presenter's multileader and table styles now works in a new drawing; AutoCAD 2021 audits such a drawing with no
+error and reads CMLEADERSTYLE and CTABLESTYLE as set.
+
+**NEW.** `Annotative` of a multileader style is set, as group 296 with no extended data, as AutoCAD 2021 writes the style
+it makes annotative; the Annotative box of the presenter's Modify Multileader Style is enabled, and a new style started
+from an annotative one is annotative.
+
+**NEW.** The presenter lays out radius, diameter and angular dimensions as AutoCAD 2021 does: the words by DIMTAD, DIMTVP,
+DIMJUST, DIMTIH and DIMTOH, what moves out where they do not fit by DIMATFIT, DIMTIX, DIMSOXD and DIMTOFL, the centre
+mark and centre lines of DIMCEN, and an angle's words moved by DIMTEDIT under DIMTMOVE 1 (a leader and a landing) and 2.
+A radius of 20 put 45 from its centre has its arrowhead outside the rim and the line from its back; an angle of 8 degrees
+has its words and arrowheads outside past its first ray. Checked against 526 pictures AutoCAD 2021 drew of the same
+inputs: 511 agree but for the width of the words, which AutoCAD measures by the font, and AUDIT finds no error.
+
+**NEW.** The presenter's DIMTVP lifts the words of DIMTAD 0 by that many times their height (the line broken about them
+below 0.7, as AutoCAD 2021), and a DIMGAP below nought draws a box round the words, words above the line standing clear
+of it by the gap again.
+
+**FIXED.** The dimension line of the presenter's dimensions ran to the tips of the arrowheads; it now starts at the back
+of each, as AutoCAD 2021 draws it: a dimension of 100 with arrowheads of 2.5 has its line from 2.5 to 97.5, closed
+filled ones too. The ticks, Dot small, Dot small blank, Integral and None run to the tip and, as AutoCAD's, never move
+outside a short dimension.
+
 **FIXED.** The presenter's -GROUP on a DXF of R2000 written without its OBJECTS section said "Object reference not set to
 an instance of an object."; the drawing is now given the named object dictionary AutoCAD makes on opening it, and the
 group goes in, one undo taking both back. New of the Table Style and Multileader Style dialogs, and TABLE making
@@ -135,7 +174,7 @@ locked rows set a viewport's scale: 1:50 in a viewport 100 high shows 5 000 of m
 list opens above the command line 300 ms after the last key: LA typed lists LAYER first with "alias LA", then the commands
 that begin with LA, the most used first (each command run is counted, `GlobalSettings.CommandUses`, kept in the settings
 file), then the system variables marked {x}, then, below a rule, the names with LA inside (CLAYER, PLAN, POLAR). Enter or
-Space runs the row chosen, the arrows move it, Esc closes the list. Ten synonyms are built in (ROUND for FILLET, BEVEL for
+Space runs the row chosen, the arrows move it, Esc closes the list and clears what is typed. Ten synonyms are built in (ROUND for FILLET, BEVEL for
 CHAMFER, DELETE and REMOVE for ERASE, DUPLICATE for COPY, FLIP for MIRROR, TURN for ROTATE, RESIZE for SCALE, SYMBOL for
 INSERT, PRINT for PLOT), shown as `ROUND (FILLET)`. AutoCorrect: LIEN followed by LINE three times has LINE offered first
 for LIEN (`GlobalSettings.NoteCorrection`, `CorrectionOf`). The command line's right-click menu has Recent Commands (the

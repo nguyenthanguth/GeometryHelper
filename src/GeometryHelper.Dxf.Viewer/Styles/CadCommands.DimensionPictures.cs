@@ -80,6 +80,20 @@ namespace GeometryHelper.Dxf.Viewer
                 words.Rotation = Turned(dimension.TextRotation);
             }
 
+            // The box of a DIMGAP below nought goes with the words: the four sides after them drawn again about them.
+            int index = words == null ? -1 : picture.IndexOf(words);
+
+            if (style.Dimgap < 0.0 && index >= 0 && index + 4 < picture.Count && picture.Skip(index + 1).Take(4).All(e => e is DxfLine))
+            {
+                double scale = style.Dimscale > 0.0 ? style.Dimscale : 1.0;
+                List<DxfLine> sides = Frame(P2(words.Location), words.Rotation, WordsWidth(picture, words.Contents, words.TextHeight), words.TextHeight, Math.Abs(style.Dimgap) * scale);
+
+                for (int i = 0; i < 4; i++)
+                {
+                    picture[index + 1 + i] = Lined(sides[i], style.Dimclrd, style.Dimlwd);
+                }
+            }
+
             return picture;
         }
 
@@ -208,7 +222,10 @@ namespace GeometryHelper.Dxf.Viewer
             return onLine + along * ((point - onLine).X * along.X + (point - onLine).Y * along.Y);
         }
 
-        /// <summary>How wide the words of a picture are: as its MTEXT measures them, else 0.7 of the height a letter.</summary>
+        /// <summary>
+        /// How wide the words of a picture are: as its MTEXT measures them, else 0.7 of the height a letter, the codes %%c, %%d
+        /// and %%p a letter each, as the diameter sign, the degree sign and plus-minus they stand for.
+        /// </summary>
         internal static double WordsWidth(List<DxfEntity> picture, string words, double height)
         {
             DxfMText text = picture.OfType<DxfMText>().FirstOrDefault();
@@ -223,7 +240,19 @@ namespace GeometryHelper.Dxf.Viewer
                 width = 0.0;
             }
 
-            return width > 0.0 && !double.IsInfinity(width) ? width : 0.7 * height * (words ?? string.Empty).Length;
+            if (width > 0.0 && !double.IsInfinity(width))
+            {
+                return width;
+            }
+
+            string letters = words ?? string.Empty;
+
+            foreach (string code in new[] { "%%c", "%%d", "%%p" })
+            {
+                letters = letters.Replace(code, "#").Replace(code.ToUpperInvariant(), "#");
+            }
+
+            return 0.7 * height * letters.Length;
         }
 
         /// <summary>
@@ -246,7 +275,7 @@ namespace GeometryHelper.Dxf.Viewer
             double reach = placed == null ? radius : (placed.Value - center).X * outward.X + (placed.Value - center).Y * outward.Y;
             GeoPoint2 location = center + outward * reach;
             GeoPoint2 far = center - outward * radius;
-            return Radial(style, style.Dimscale, textHeight, center, radius, chord, far, location, diameter, Formatted(dimension, diameter ? 2.0 * radius : radius, diameter ? "%%c" : "R"));
+            return Radial(style, style.Dimscale, textHeight, center, radius, chord, far, location, diameter, Formatted(dimension, diameter ? 2.0 * radius : radius, diameter ? "%%c" : "R"), !dimension.UsingDefaultTextPosition);
         }
 
         private static List<DxfEntity> AngularPicture(DxfDimension dimension, DxfDimStyleTableRecord style, double textHeight, DxfLine first, DxfLine second, GeoPoint2 vertex, GeoPoint2[] points, GeoPoint2 location)
@@ -262,7 +291,8 @@ namespace GeometryHelper.Dxf.Viewer
                 return null;
             }
 
-            return Angular(style, style.Dimscale, textHeight, vertex, radius, from, sweep, near, far, Formatted(dimension, sweep, string.Empty));
+            GeoPoint2? placed = dimension.UsingDefaultTextPosition ? (GeoPoint2?)null : P2(dimension.TextPosition);
+            return Angular(style, style.Dimscale, textHeight, vertex, radius, from, sweep, near, far, Formatted(dimension, sweep, string.Empty), placed);
         }
 
         /// <summary>The words of a dimension of a drawing: the measurement as it writes it, in place of the &lt;&gt; of its own text.</summary>

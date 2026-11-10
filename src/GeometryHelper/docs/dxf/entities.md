@@ -120,7 +120,13 @@ in its place, its handle, owner, look, extended data and extension dictionary ke
 the object id over; with `false` the new polyline is made in no file and the old one kept. A polyline of the plane is
 fitted with `CurveFit` (a pair of arcs on each segment through every vertex) or `SplineFit` (a uniform B-spline on its
 vertices as a frame, of the header's SPLINETYPE, 5 quadratic or 6 cubic, and SPLINESEGS segments to each span), a 3D
-polyline with `SplineFit`, a polygon mesh with `SurfaceFit` (of SURFTYPE, SURFU and SURFV, spans each way, so that an open
+polyline with `SplineFit`, the vertices of the curve kept after the first of the frame, as AutoCAD keeps them. `CurveFit`
+is AutoCAD 2021's PEDIT Fit to 1E-11 in every vertex and bulge: the tangent at an end of an open polyline is that of the
+circle through its first or last three vertices, and between, a blend of the two segments at the vertex weighted by the
+turns at the vertices either side, so that on (0, 0), (100, 0), (100, 50), (0, 80) the tangent at (100, 0) is 64.41
+degrees, not the 63.43 of the circle through it and its neighbours; a segment whose tangent at either end is within a
+millionth of a radian of its line stays straight, with no vertex added, and two vertices on one point split the curve in
+two there. A polygon mesh is smoothed with `SurfaceFit` (of SURFTYPE, SURFU and SURFV, spans each way, so that an open
 mesh smoothed at 6 and 6 is given 7 rows of 7 points, as AutoCAD 2021's PEDIT makes them), each straightened by
 `Straighten` or `ConvertToPolyType` / `ConvertToPolyMeshType`; the vertices of the frame keep their handles. The reader reads
 a fitted polyline along the vertices the fitting made, and a smoothed mesh as its grid. Every vertex of a POLYLINE carries

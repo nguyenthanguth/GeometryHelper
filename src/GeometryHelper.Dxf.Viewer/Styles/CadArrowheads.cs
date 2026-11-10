@@ -140,6 +140,27 @@ namespace GeometryHelper.Dxf.Viewer
             => string.Equals(blockName, "_ARCHTICK", StringComparison.OrdinalIgnoreCase) || string.Equals(blockName, "_OBLIQUE", StringComparison.OrdinalIgnoreCase);
 
         /// <summary>
+        /// Whether a dimension's line runs on to the tip of the arrowhead, which takes no room between the extension lines and
+        /// never moves out: the ticks, Dot small, Dot small blank, Integral and None, as AutoCAD 2021 draws them. Every other
+        /// arrowhead, closed filled too, has the line start at its back, an arrowhead in from the tip.
+        /// </summary>
+        internal static bool TakesNoRoom(string blockName)
+        {
+            switch ((blockName ?? string.Empty).ToUpperInvariant())
+            {
+                case "_ARCHTICK":
+                case "_OBLIQUE":
+                case "_DOTSMALL":
+                case "_SMALL":
+                case "_INTEGRAL":
+                case "_NONE":
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        /// <summary>
         /// The entities of an arrowhead of a block name, letters of either case the same, its tip at a point, pointing a way of
         /// unit length, a size long, as AutoCAD's block of it holds them (see <see cref="CadArrowheads"/>): closed filled, the
         /// SOLID of a triangle a third as wide as long, for no name and for a name not AutoCAD's; none for <c>_None</c>. A

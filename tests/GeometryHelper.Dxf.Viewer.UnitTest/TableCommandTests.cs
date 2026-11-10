@@ -118,7 +118,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         [Fact]
-        public void ATableOfAStyleNotCurrent_IsMadeInIt_ThoughTheNewDrawingCannotMakeItCurrent()
+        public void ATableOfAStyleNotCurrent_IsMadeInIt_AndTheStyleIsMadeCurrent_InADrawingMadeNew_Too()
         {
             CadDocument document = Metric();
             Assert.True(CadTableStyleEditor.Add(document, "GH_SCHEDULE", null).Succeeded);
@@ -126,7 +126,8 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
             DxfTable table = Assert.Single(All<DxfTable>(document.ModelSpace));
             Assert.Equal("GH_SCHEDULE", table.TableStyleName);
-            Assert.Equal("Standard", CadTableStyleEditor.Current(document.Database));
+            // A drawing made new is given the class DICTIONARYVAR as AutoCAD 2021 lists it, so CTABLESTYLE takes the style.
+            Assert.Equal("GH_SCHEDULE", CadTableStyleEditor.Current(document.Database));
         }
 
         /// <summary>A new drawing of R2013 written without its OBJECTS section, as a program that writes only the tables, blocks and entities saves one.</summary>

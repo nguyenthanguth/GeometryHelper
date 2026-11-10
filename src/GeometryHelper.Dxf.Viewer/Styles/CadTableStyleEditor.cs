@@ -266,7 +266,7 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// Makes a style current (CTABLESTYLE), as Set Current does. Refused where the drawing has no such style, or cannot hold
-        /// the variable: a drawing whose CLASSES section lists no DICTIONARYVAR, as one the library makes new.
+        /// the variable: a drawing with no CLASSES section to list DICTIONARYVAR in.
         /// </summary>
         /// <param name="document">The document.</param>
         /// <param name="name">The style's name.</param>

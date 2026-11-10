@@ -142,7 +142,7 @@ With a drawing open and no command running, the command line lists what matches 
 for 300 milliseconds, as AutoCAD 2021's AutoComplete. LA typed lists LAYER first with "alias LA" at its right, then the
 commands that begin with LA, the ones used most first and the rest by name, then the system variables that begin with LA
 (each marked {x}), then, below a rule, the names with LA inside: CLAYER, PLAN, POLAR. The first row is chosen: Enter or
-Space runs it, the arrows move it, a click runs another and Esc closes the list, keeping what is typed. Typing on with the
+Space runs it, the arrows move it, a click runs another and Esc closes the list and clears what is typed, as AutoCAD's does. Typing on with the
 list open updates it at once.
 
 - **Most used first.** Each command run is counted, and the counts are kept in the settings file, so that a command used

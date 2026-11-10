@@ -82,12 +82,36 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             Assert.Equal("Detail notes", manager.SelectedStyle.Name);
             Assert.True(manager.CanDelete);
 
-            // A drawing made new lists no DICTIONARYVAR: Set Current says so and the style stays as it was.
-            Assert.False(manager.SetCurrent());
-            Assert.Contains("cannot be made current", manager.Notice);
+            // A drawing made new is given the class DICTIONARYVAR as AutoCAD 2021 lists it: Set Current makes the style
+            // current, and a current style is not deleted.
+            Assert.True(manager.SetCurrent());
+            Assert.Equal("Current: Detail notes", manager.CurrentStyleText);
+            Assert.Equal("Detail notes", DxfDatabase.Parse(document.Database.ToText()).MLeaderstyle);
+            Assert.False(manager.CanDelete);
 
+            manager.SelectedStyle = manager.Styles.Single(s => s.Name == "Standard");
+            Assert.True(manager.SetCurrent());
+            manager.SelectedStyle = manager.Styles.Single(s => s.Name == "Detail notes");
             Assert.True(manager.Delete());
             Assert.Equal(new[] { "Standard" }, manager.Styles.Select(s => s.Name));
+        }
+
+        [Fact]
+        public void TheAnnotativeBox_MakesTheStyleAnnotative_ByItsGroup296_AsAutoCad2021WritesIt()
+        {
+            MainViewModel model = Opened(out CadDocument document);
+            MLeaderStyleEditViewModel editor = model.CreateMLeaderStyleManager().CreateModify();
+
+            editor.FieldsOf("Leader Structure").Single(f => f.Label == "Annotative").LeadChecked = true;
+            Assert.True(editor.Ok());
+
+            var style = (DxfMLeaderStyle)document.Database.MLeaderStyleDictionary["Standard"];
+            Assert.Equal(DxfAnnotativeStates.True, style.Annotative);
+            Assert.True(model.CreateMLeaderStyleManager().Styles.Single(s => s.Name == "Standard").IsAnnotative);
+            Assert.Equal(DxfAnnotativeStates.True, ((DxfMLeaderStyle)DxfDatabase.Parse(document.Database.ToText()).MLeaderStyleDictionary["Standard"]).Annotative);
+
+            document.Undo();
+            Assert.Equal(DxfAnnotativeStates.False, ((DxfMLeaderStyle)document.Database.MLeaderStyleDictionary["Standard"]).Annotative);
         }
 
         [Fact]
@@ -100,7 +124,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             MLeaderFieldViewModel type = editor.FieldsOf("Content").Single(f => f.Label == "Type");
             Assert.Equal(new[] { "Mtext", "Block", "None" }, type.Choices.Select(c => c.Label));
             Assert.False(type.Choices.Single(c => c.Label == "Block").IsEnabled);
-            Assert.False(editor.FieldsOf("Leader Structure").Single(f => f.Label == "Annotative").IsLeadEnabled);
+            MLeaderFieldViewModel annotative = editor.FieldsOf("Leader Structure").Single(f => f.Label == "Annotative");
+            Assert.True(annotative.IsLeadEnabled);
+            Assert.False(annotative.LeadChecked);
 
             MLeaderFieldViewModel first = editor.FieldsOf("Leader Structure").Single(f => f.Label == "First segment angle");
             Assert.False(first.LeadChecked);

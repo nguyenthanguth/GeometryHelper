@@ -148,7 +148,21 @@ is broken about them by DIMGAP (0), above it (1, and JIS, 3), on the side away f
 (4); DIMJUST puts them in the middle, next to an extension line or over one; and where the words and the arrowheads do
 not both fit, DIMTIX, DIMSOXD, DIMATFIT and DIMTOFL say what moves outside, DIMTIH and DIMTOH whether the words stay
 level. With ISO-25's sizes a dimension of 100 has its words "100" in the middle, one of 5 its words inside and its
-arrowheads outside, and one of 7 its arrowheads inside and its words 3.9 past the second extension line. DIMORDINATE
+arrowheads outside, and one of 7 its arrowheads inside and its words 3.9 past the second extension line. The line starts
+at the back of each arrowhead, 2.5 in from its tip, but for the ticks, Dot small, Dot small blank, Integral and None,
+which take no room and never move out. DIMTVP lifts the words of DIMTAD 0 by that many times their height, the line
+broken about them below 0.7; a DIMGAP below nought draws a box round the words, the gap clear of them.
+
+Radius, diameter and angular dimensions follow the same variables. A radius of 20 with its line put 45 from the centre
+has its arrowhead outside the rim, its line from the back of it on under the words, and a line from the centre to the
+rim by DIMTOFL, or with DIMTOFL off the centre mark of DIMCEN (centre lines too where DIMCEN is below nought); put 8 from
+the centre, the arrowhead stands inside and the line runs in past the words. Inside a small circle DIMATFIT 3 keeps the
+words where they are put, no nearer the rim than two arrowheads and the gap; 0 to 2 put them in the middle of the line
+where they fit, else outside past the rim. An angle of 60 degrees with its arc 30 from the vertex has its arc from the
+back of one arrowhead to the back of the other, 4.78 to 55.22 degrees, the arrowheads set along their chords; an angle
+of 8 degrees has its words and arrowheads outside past its first ray, the arc run on and a line along it to the words.
+DIMJUST 1 puts an angle's words next to its second ray, 2 next to its first. Words of an angle moved by DIMTEDIT stand
+level past a leader from the middle of the arc under DIMTMOVE 1, and turned along the arc under 2. DIMORDINATE
 (DOR) measures a point from the origin of the UCS along X where its leader runs up or down, along Y where it runs aside:
 (300, 40) with its leader ending at (310, 80) is an X datum of 300, the leader jogged two arrowheads before its end.
 DIMCONTINUE, DIMBASELINE and QDIM's Ordinate go on from an ordinate dimension, each leader ending level with the last.

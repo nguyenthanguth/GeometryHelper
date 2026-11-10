@@ -269,8 +269,9 @@ made where a drawing of R2007 or later has none, and a scale of as many units of
 scale where the list has none; `RemoveContext("1:100")` takes it out, refused for
 the unit scale, the current scale and a scale an object points at. `Annotative` reads the extended data AcadAnnotative of a
 TEXT, an MTEXT, an attribute, a dimension, a leader, a multileader (or its own 293), a tolerance, a hatch, a style or a block,
-an INSERT reading its block's, and gives `NotApplicable` for a line. Set true, it makes a text style or a dimension style
-annotative by that data alone; an entity is refused, since AutoCAD shows an annotative entity at a scale by a context record
+an INSERT reading its block's, a multileader style its group 296, and gives `NotApplicable` for a line. Set true, it makes
+a text style or a dimension style annotative by that data alone, and a multileader style by 1 in its group 296 with no
+extended data, as AutoCAD 2021 writes the style it makes annotative; an entity is refused, since AutoCAD shows an annotative entity at a scale by a context record
 of the OBJECTS section that the library does not write until that record is checked on a drawing AutoCAD saved. `HasContext`
 reads an object's contexts, of any kind, under ACDB_ANNOTATIONSCALES of AcDbContextDataManager of its extension dictionary, by
 the scale each points at (its 340), and none of an object never annotative, as a LINE or a CIRCLE handed a TEXT's contexts by
