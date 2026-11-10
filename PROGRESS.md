@@ -168,6 +168,8 @@ the ones wanted.
       PublishToWeb PNG/JPG), plot area Window, Extents, Display or Layout, size in pixels (1920 x 1080, 3840 x 2160 or
       typed) in place of a paper (designed in v111)
 - [x] Dynamic input: dimensional input (length and angle boxes) beyond LINE and PLINE (M)
+- [ ] Dynamic input (user 2026-11-10, first after the reset): while drawing LINE and the other commands with length and
+      angle fields, draw no dimension line, extension lines or angle arc; keep the length and angle values in their boxes (S)
 - [ ] Dynamic input follow-ups: MIRROR and other commands still on X and Y; CIRCLE 3P; angle field from a reference line;
       grip rotate and scale tested on their own (S)
 - [ ] COPYVIEW (not in AutoCAD): the view as an image on the clipboard, also on the canvas right-click menu (optional)
