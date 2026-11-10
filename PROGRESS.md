@@ -141,11 +141,17 @@ the ones wanted.
 - [x] Dynamic input at the cursor as AutoCAD's with DYN on: what is typed at the Command prompt shows in a box at the
       cursor with the AutoComplete list under it, the prompt and its options (the ▼ menu) at the cursor in a command,
       the command line keeping its own copy; with DYN off only the command line (M) (designed in v111)
-- [ ] Previews left (running): FILLET and CHAMFER hovering the second object, TRIM and EXTEND Quick mode, LENGTHEN Dynamic,
+- [x] Previews round 2: FILLET and CHAMFER hovering the second object, TRIM and EXTEND Quick mode, LENGTHEN Dynamic,
       HATCH pick points, TEXT, TABLE, MLEADER, QDIM, BREAK, ALIGN, the Points of ROTATE/SCALE Reference, -ARRAY (M)
-- [ ] Tests: the Wpf suite and a parallel run share the global settings file and fail together; give tests their own
-      settings path (S)
-- [ ] Layer States Manager, View Manager with New View, Drawing Units with Direction Control (designed in v110) (M)
+- [ ] Tests (running): the Wpf suite and a parallel run share the global settings file and fail together; give tests
+      their own settings path (S)
+- [x] Layer States Manager, View Manager with New View, Drawing Units with Direction Control (designed in v110) (M)
+- [ ] Previews follow-ups: TRIM in Standard mode and Shift swapping TRIM and EXTEND; -ARRAY distances without a base point
+      and polar -ARRAY; the TEXT box by justification; BREAK and the -ARRAY unit cell checked against what AutoCAD shows;
+      a look by eye in the running app (S)
+- [ ] Managers follow-ups 2: an Edit Layer State dialog and a description in New; viewport overrides on restore; layout
+      views listed per layout; the xref rule of GetLayerStateNames for states AutoCAD's Import writes by name; ANGBASE and
+      ANGDIR on typed polar angles; disabled GhComboBox drawn greyed (M)
 - [ ] Command line and Recent: AutoComplete inside a running command; Search Content; an EXPORT command (S)
 - [ ] Dxf.App: an app icon, file association for .dxf (installer or registry), `--tab Home` in screenshot mode
 - [x] Images of an area: PNG and JPG devices in PLOT and -PLOT ("GeometryHelper PNG", "GeometryHelper JPG", as AutoCAD's
