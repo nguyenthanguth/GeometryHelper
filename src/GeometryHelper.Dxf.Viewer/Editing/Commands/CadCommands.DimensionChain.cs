@@ -532,9 +532,31 @@ namespace GeometryHelper.Dxf.Viewer
             GeoPoint2? datum = null;
             string[] keywords = { "Continuous", "Staggered", "Baseline", "Ordinate", "Radius", "Diameter", "datumPoint", "Edit", "seTtings" };
 
+            // The dimensions put at a point, made; or, given a list, their pictures added to it, as the row previews at the cursor.
+            int Dimensioned(GeoPoint2 location, List<DxfEntity> preview)
+            {
+                if (mode != "Radius" && mode != "Diameter")
+                {
+                    return QuickLinear(c, style, points, ties, datum, location, mode, preview);
+                }
+
+                int count = 0;
+
+                foreach (DxfCurve curve in round)
+                {
+                    count += RadialOf(c, style, curve, location, mode == "Diameter", preview) ? 1 : 0;
+                }
+
+                return count;
+            }
+
             while (true)
             {
-                yield return CadPrompt.ForPoint("Specify dimension line position,", null, keywords, mode);
+                yield return CadPrompt.ForPoint("Specify dimension line position,", null, keywords, mode).Previewing(DimPreview(c, input =>
+                {
+                    var preview = new List<DxfEntity>();
+                    return Dimensioned(input.Point, preview) > 0 ? preview : null;
+                }));
 
                 if (c.Input.IsPoint)
                 {
@@ -604,24 +626,7 @@ namespace GeometryHelper.Dxf.Viewer
                 }
             }
 
-            GeoPoint2 location = c.Input.Point;
-            int count;
-
-            if (mode == "Radius" || mode == "Diameter")
-            {
-                count = 0;
-
-                foreach (DxfCurve curve in round)
-                {
-                    count += RadialOf(c, style, curve, location, mode == "Diameter") ? 1 : 0;
-                }
-            }
-            else
-            {
-                count = QuickLinear(c, style, points, ties, datum, location, mode);
-            }
-
-            if (count == 0)
+            if (Dimensioned(c.Input.Point, null) == 0)
             {
                 c.Write("No dimensions made: the geometry selected has nothing to dimension that way.");
             }
@@ -645,9 +650,10 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>
         /// The linear dimensions of QDIM: the points ordered along the axis the line is put across (level where it lies above
         /// or below them, upright where to a side), those within the tolerance of one another along it taken as one, then
-        /// dimensioned as the mode says. The number made.
+        /// dimensioned as the mode says. The number made; given a list to preview into, the number whose pictures were added to
+        /// it instead.
         /// </summary>
-        private static int QuickLinear(CadCommandContext c, DxfDimStyleTableRecord style, List<GeoPoint2> points, Dictionary<GeoPoint2, DxfOsnapPointRef> ties, GeoPoint2? datum, GeoPoint2 location, string mode)
+        private static int QuickLinear(CadCommandContext c, DxfDimStyleTableRecord style, List<GeoPoint2> points, Dictionary<GeoPoint2, DxfOsnapPointRef> ties, GeoPoint2? datum, GeoPoint2 location, string mode, List<DxfEntity> preview = null)
         {
             CadUcs ucs = c.Session.Ucs;
             var local = new List<GeoPoint2>();
@@ -731,6 +737,19 @@ namespace GeometryHelper.Dxf.Viewer
                 return true;
             }
 
+            // One rotated dimension of the row, made and tied; or, for a preview, its picture added to the list.
+            bool Measured(GeoPoint2 p1, GeoPoint2 p2, GeoPoint2 onLine)
+            {
+                if (preview == null)
+                {
+                    return Tied(LinearDimension(c, style, angle, p1, p2, onLine, false), 0, p1, p2);
+                }
+
+                List<DxfEntity> picture = LinearDimensionMade(c, style, angle, p1, p2, onLine, out _, out _);
+                preview.AddRange(picture ?? new List<DxfEntity>());
+                return picture != null;
+            }
+
             switch (mode)
             {
                 case "Ordinate":
@@ -742,7 +761,15 @@ namespace GeometryHelper.Dxf.Viewer
                     {
                         GeoPoint2 u = ucs.ToUcs(point);
                         GeoPoint2 end = ucs.ToWorld(level ? new GeoPoint2(u.X, at.Y) : new GeoPoint2(at.X, u.Y));
-                        made += Tied(OrdinateDimension(c, style, level, zero, ucs.Angle, point, end, null, null, false), 1, point) ? 1 : 0;
+                        if (preview == null)
+                        {
+                            made += Tied(OrdinateDimension(c, style, level, zero, ucs.Angle, point, end, null, null, false), 1, point) ? 1 : 0;
+                        }
+                        else if ((end - point).Length > c.Session.Tolerance.EqualPoint)
+                        {
+                            preview.AddRange(OrdinateMade(c, style, level, zero, ucs.Angle, point, end, null, null, out _, out _));
+                            made++;
+                        }
                     }
 
                     break;
@@ -752,7 +779,7 @@ namespace GeometryHelper.Dxf.Viewer
 
                     foreach (GeoPoint2 point in row)
                     {
-                        if (Tied(LinearDimension(c, style, angle, origin, point, location + square * (spacing * step), false), 0, origin, point))
+                        if (Measured(origin, point, location + square * (spacing * step)))
                         {
                             made++;
                             step++;
@@ -763,7 +790,7 @@ namespace GeometryHelper.Dxf.Viewer
                 case "Staggered":
                     for (int i = row.Count / 2 - 1, step2 = 0; i >= 0; i--)
                     {
-                        if (Tied(LinearDimension(c, style, angle, row[i], row[row.Count - 1 - i], location + square * (spacing * step2), false), 0, row[i], row[row.Count - 1 - i]))
+                        if (Measured(row[i], row[row.Count - 1 - i], location + square * (spacing * step2)))
                         {
                             made++;
                             step2++;
@@ -774,7 +801,7 @@ namespace GeometryHelper.Dxf.Viewer
                 default:
                     for (int i = 0; i + 1 < row.Count; i++)
                     {
-                        made += Tied(LinearDimension(c, style, angle, row[i], row[i + 1], location, false), 0, row[i], row[i + 1]) ? 1 : 0;
+                        made += Measured(row[i], row[i + 1], location) ? 1 : 0;
                     }
 
                     break;
@@ -783,8 +810,11 @@ namespace GeometryHelper.Dxf.Viewer
             return made;
         }
 
-        /// <summary>A radius or a diameter of a circle or an arc for QDIM, its line toward the point the dimensions are put at.</summary>
-        private static bool RadialOf(CadCommandContext c, DxfDimStyleTableRecord style, DxfCurve curve, GeoPoint2 location, bool diameter)
+        /// <summary>
+        /// A radius or a diameter of a circle or an arc for QDIM, its line toward the point the dimensions are put at; given a
+        /// list to preview into, its picture added to it instead.
+        /// </summary>
+        private static bool RadialOf(CadCommandContext c, DxfDimStyleTableRecord style, DxfCurve curve, GeoPoint2 location, bool diameter, List<DxfEntity> preview = null)
         {
             GeoPoint2 center;
             double radius;
@@ -819,7 +849,15 @@ namespace GeometryHelper.Dxf.Viewer
                 ? (DxfDimension)new DxfDiametricDimension(P3(chord), P3(far), leader, string.Empty, null)
                 : new DxfRadialDimension(P3(center), P3(chord), leader, string.Empty, null);
             string words = Words(style, made, diameter ? 2.0 * radius : radius, null, prefix);
-            return AddedHandle(Place(c, style, textHeight, made, Radial(style, Dimscale(c), textHeight, center, radius, chord, far, chord + unit * leader, diameter, words))) != null;
+            List<DxfEntity> picture = Radial(style, Dimscale(c), textHeight, center, radius, chord, far, chord + unit * leader, diameter, words);
+
+            if (preview != null)
+            {
+                preview.AddRange(picture);
+                return true;
+            }
+
+            return AddedHandle(Place(c, style, textHeight, made, picture)) != null;
         }
     }
 }

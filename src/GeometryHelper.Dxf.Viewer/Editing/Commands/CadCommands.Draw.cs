@@ -469,7 +469,11 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             GeoPoint2 arrow = c.Input.Point;
-            yield return CadPrompt.ForPoint("Specify leader landing location", arrow);
+            string style = CadMLeaderStyleEditor.Current(c.Database);
+
+            // The leader and its landing to the cursor, made as the multileader is but of no words yet, as AutoCAD drags them.
+            yield return CadPrompt.ForPoint("Specify leader landing location", arrow).Previewing(CadPreview.MakingOne(c, input =>
+                (input.Point - arrow).Length > c.Session.Tolerance.EqualPoint ? Current(c, CadMLeaderStyleEditor.Make(CadMLeaderStyleEditor.Find(c.Database, style), P3(arrow), P3(input.Point), " ")) : null));
 
             if (!c.Input.IsPoint)
             {

@@ -128,7 +128,10 @@ namespace GeometryHelper.Dxf.Viewer
                 // aligned text takes the height its two points give it.
                 if (fixedHeight <= 0.0 && TextPoints[justify] != DxfAttachmentPoint.BaseAlign)
                 {
-                    yield return CadPrompt.ForDistance("Specify height", at, null, Length(height));
+                    GeoPoint2 start = at;
+                    double turned = twoPoints ? Math.Atan2(second.Y - at.Y, second.X - at.X) : c.Session.Ucs.AngleToWorld(c.Remembered("text.rotation", 0.0));
+                    yield return CadPrompt.ForDistance("Specify height", at, null, Length(height))
+                        .Previewing(CadPreview.MakingOne(c, input => TextBox(c, start, input.Number, turned), true));
 
                     if (c.Input.Kind == CadInputKind.Number)
                     {
@@ -150,7 +153,10 @@ namespace GeometryHelper.Dxf.Viewer
                 }
                 else
                 {
-                    yield return CadPrompt.ForAngle("Specify rotation angle of text", at, null, Number(rotation * 180.0 / Math.PI));
+                    GeoPoint2 start = at;
+                    double tall = height;
+                    yield return CadPrompt.ForAngle("Specify rotation angle of text", at, null, Number(rotation * 180.0 / Math.PI))
+                        .Previewing(CadPreview.MakingOne(c, input => TextBox(c, start, tall, c.Session.Ucs.AngleToWorld(input.Number)), true));
 
                     if (c.Input.Kind == CadInputKind.Number)
                     {
@@ -235,6 +241,32 @@ namespace GeometryHelper.Dxf.Viewer
                 c.Remember("text.next.height", height);
                 c.Remember("text.next.angle", angle);
             }
+        }
+
+        /// <summary>
+        /// The box TEXT previews while its height and its rotation are asked, as AutoCAD 2021 shows where the text will stand: a
+        /// square of the height on the baseline from the point given, turned by the angle; a height of 2.5 at (10, 10) level
+        /// gives the square from (10, 10) to (12.5, 12.5). Null for a height of nothing.
+        /// </summary>
+        private static DxfPolyline TextBox(CadCommandContext c, GeoPoint2 at, double height, double angle)
+        {
+            if (!(height > c.Session.Tolerance.EqualPoint))
+            {
+                return null;
+            }
+
+            var along = new GeoVector2(Math.Cos(angle), Math.Sin(angle)) * height;
+            var up = new GeoVector2(-along.Y, along.X);
+            var box = new DxfPolyline();
+            GeoPoint2[] corners = { at, at + along, at + along + up, at + up };
+
+            for (int i = 0; i < corners.Length; i++)
+            {
+                box.AddVertexAt(i, corners[i], 0.0, 0.0, 0.0);
+            }
+
+            box.Closed = true;
+            return Current(c, box);
         }
 
         /// <summary>

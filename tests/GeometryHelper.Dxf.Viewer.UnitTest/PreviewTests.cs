@@ -676,5 +676,74 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.NotEqual(one, both);
             PreviewMakes(session, P(250, 50), Enter);
         }
+
+        [Fact]
+        public void TextAskingItsHeightAndRotation_PreviewsTheBoxTheTextStandsIn()
+        {
+            CadCommandSession session = Started("TEXT", P(10, 10));
+            Assert.StartsWith("Specify height", session.PromptText);
+            Assert.True(session.Prompt.Preview.ShowsBand);
+
+            Assert.Equal("DisplayPolyline2 closed 10.000000 10.000000 15.000000 10.000000 15.000000 15.000000 10.000000 15.000000", Assert.Single(Shapes(session.Prompt.Preview.Items(P(10, 15)))));
+            Run(session, P(10, 15));
+            Assert.StartsWith("Specify rotation angle", session.PromptText);
+            Assert.Equal("DisplayPolyline2 closed 10.000000 10.000000 10.000000 15.000000 5.000000 15.000000 5.000000 10.000000", Assert.Single(Shapes(session.Prompt.Preview.Items(P(10, 30)))));
+            Run(session, P(10, 30), "AB", Enter);
+
+            DxfDBText text = Assert.Single(All<DxfDBText>(session.Document.ModelSpace));
+            Assert.Equal(5.0, text.Height, 9);
+            Assert.Equal(Math.PI / 2.0, text.Rotation, 9);
+        }
+
+        [Fact]
+        public void TableAskingItsInsertionPoint_PreviewsTheOutlineOfTheTable()
+        {
+            CadCommandSession session = Started("-TABLE", "3", "2", "W", "40");
+            Assert.StartsWith("Specify insertion point", session.PromptText);
+
+            string outline = Assert.Single(Shapes(session.Prompt.Preview.Items(P(10, 20))));
+            Run(session, P(10, 20));
+
+            DxfTable table = Assert.Single(All<DxfTable>(session.Document.ModelSpace));
+            DisplayBox box = DisplayBox.Empty;
+
+            foreach (DisplayItem2 item in session.Document.GetDisplay(session.Document.ModelSpace).Items.Where(i => i.Handle == table.Handle))
+            {
+                box = box.Union(item.Bounds);
+            }
+
+            var around = new DisplayPolyline2(new[] { box.MinX, box.MaxY, box.MaxX, box.MaxY, box.MaxX, box.MinY, box.MinX, box.MinY }, true, null, null, null);
+            Assert.Equal(Assert.Single(Shapes(new DisplayItem2[] { around })), outline);
+            Assert.StartsWith("DisplayPolyline2 closed 10.000000 20.000000 130.000000 20.000000", outline);
+        }
+
+        [Fact]
+        public void MLeaderAskingItsLanding_PreviewsTheLeaderAndLanding_AsMadeWithoutTheWords()
+        {
+            CadDocument document = BlankWithMLeaderStyle();
+            CadCommandSession session = Run(Session(document), "MLEADER", P(0, 0));
+            Assert.StartsWith("Specify leader landing location", session.PromptText);
+
+            List<string> previewed = Shapes(session.Prompt.Preview.Items(P(30, 20)));
+            Run(session, P(30, 20), "B-12");
+
+            DxfMLeader mleader = Assert.Single(All<DxfMLeader>(document.ModelSpace));
+            List<string> made = Shapes(document.GetDisplay(document.ModelSpace).Items.Where(i => i.Handle == mleader.Handle && !(i is DisplayText2)));
+            Assert.NotEmpty(previewed);
+            Assert.Equal(made, previewed);
+        }
+
+        [Fact]
+        public void QuickDimension_PreviewsTheRowAtTheCursor_InEachMode()
+        {
+            CadCommandSession session = Started("LINE", P(0, 0), P(100, 0), P(100, 50), Enter, "LINE", P(250, 0), P(400, 50), Enter);
+            string[] lines = All<DxfLine>(session.Document.ModelSpace).Select(l => l.Handle).ToArray();
+            Run(session, "QDIM", lines, Enter);
+            Assert.StartsWith("Specify dimension line position", session.PromptText);
+            PreviewMakes(session, P(100, -40));
+
+            Run(session, "QDIM", lines, Enter, "B");
+            PreviewMakes(session, P(100, -80));
+        }
     }
 }
