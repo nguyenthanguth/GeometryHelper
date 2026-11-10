@@ -144,7 +144,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
 
                 model.Execute("POLAR");
                 model.Enter();
-                Assert.False(On("POLAR"));
+                Assert.True(On("POLAR"));
 
                 model.Execute("SNAP OFF");
                 Assert.False(model.Snap.GridSnap);

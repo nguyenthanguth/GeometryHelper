@@ -290,11 +290,29 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             var model = new MainViewModel();
 
             Assert.Equal(new[] { "GRID", "SNAP", "ORTHO", "POLAR", "OTRACK", "OSNAP" }, model.Toggles.Select(t => t.Name));
-            Assert.Equal(new[] { false, true, false, false, true, true }, model.Toggles.Select(t => t.IsOn));
+            Assert.Equal(new[] { false, false, false, true, true, true }, model.Toggles.Select(t => t.IsOn));
 
             model.Toggles[0].ToggleCommand.Execute(null);
 
             Assert.True(model.Toggles[0].IsOn);
+        }
+
+        [Fact]
+        public void SnapStartsOff_AsAutoCadsSnapmode0()
+        {
+            var model = new MainViewModel();
+
+            Assert.False(model.Toggles.Single(t => t.Name == "SNAP").IsOn);
+            Assert.False(model.Snap.GridSnap);
+        }
+
+        [Fact]
+        public void PolarStartsOn_AsAutoCadsAutosnap63()
+        {
+            var model = new MainViewModel();
+
+            Assert.True(model.Toggles.Single(t => t.Name == "POLAR").IsOn);
+            Assert.True(model.Snap.Polar);
         }
     }
 }

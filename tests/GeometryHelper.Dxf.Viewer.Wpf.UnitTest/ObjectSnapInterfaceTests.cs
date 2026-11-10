@@ -152,6 +152,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             var model = new MainViewModel();
             OpenRoom(model);
             model.Toggles.Single(t => t.Name == "OSNAP").IsOn = false;
+            model.Toggles.Single(t => t.Name == "POLAR").IsOn = false;
             model.StartCommand("LINE");
 
             model.Execute("END");
