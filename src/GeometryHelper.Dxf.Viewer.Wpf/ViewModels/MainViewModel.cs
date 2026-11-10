@@ -1310,6 +1310,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private void Attach(KnownFile file, CadDocument document)
         {
             file.Document = document;
+            file.Drafting = ReadDrafting(document);
             file.Session = new CadCommandSession(document, Commands());
             file.Session.PromptChanged += OnPromptChanged;
             file.Session.UiRequested += OnUiRequested;
@@ -1631,17 +1632,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             ApplyToggles();
 
-            // ORTHO switched is written to the drawing's $ORTHOMODE too, as AutoCAD saves ORTHOMODE with the drawing.
-            if (sender is StatusToggleViewModel toggle && toggle.Name == "ORTHO" && _current?.Document != null && _current.Document.Database.Orthomode != toggle.IsOn)
+            // SNAP, GRID and ORTHO switched are written to the drawing too, as AutoCAD saves SNAPMODE, GRIDMODE and ORTHOMODE with it.
+            if (sender is StatusToggleViewModel toggle)
             {
-                try
-                {
-                    _current.Document.Database.Orthomode = toggle.IsOn;
-                }
-                catch (InvalidOperationException exception)
-                {
-                    GeometryHelperLog.Warn("MainViewModel: ORTHOMODE could not be written to the drawing.", exception);
-                }
+                WriteDraftingToggle(toggle);
             }
         }
 
@@ -1735,6 +1729,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             _current = file;
+            LoadDrafting();
             SpaceTabs.Clear();
 
             foreach (CadSpace space in TabSpaces(file.Document))
@@ -2021,6 +2016,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             public CadDocument Document { get; set; }
 
             public CadCommandSession Session { get; set; }
+
+            /// <summary>The drawing's SNAP, GRID, ORTHO, lineweights and spacings, shown while it is.</summary>
+            public DraftingState Drafting { get; set; } = new DraftingState();
 
             /// <summary>How many lines of the session's history <see cref="MainViewModel.History"/> holds.</summary>
             public int Synced { get; set; }
