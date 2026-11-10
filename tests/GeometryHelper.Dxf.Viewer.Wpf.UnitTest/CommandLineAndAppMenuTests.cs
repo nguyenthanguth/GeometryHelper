@@ -267,6 +267,114 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             Assert.Equal(1, model.Settings.CommandUses["LAYOUT"]);
         }
 
+        // ---- Search Content
+
+        [Fact]
+        public void LayerTyped_ListsEveryLayerBelowARule_AfterTheCommands_EachMarkedLayer()
+        {
+            MainViewModel model = Planned();
+
+            model.CommandText = "LAYER";
+            model.ShowSuggestions();
+
+            IReadOnlyList<CommandSuggestionViewModel> rows = model.Suggestions;
+            Assert.Equal("LAYER", rows[0].Name);
+            int rule = rows.ToList().FindIndex(r => r.StartsContent);
+            Assert.True(rule > 0);
+            Assert.Single(rows, r => r.StartsContent);
+            Assert.True(rows[rule].StartsGroup);
+            Assert.All(rows.Take(rule), r => Assert.Null(r.ContentType));
+
+            // The keyword lists the layers whole, whatever their names, by name.
+            List<CommandSuggestionViewModel> layers = rows.Where(r => r.ContentType == "Layer").ToList();
+            Assert.Equal(new[] { "0", "WALL-FINISH", "WALLS" }, layers.Select(r => r.Name));
+            Assert.All(layers, r => Assert.Equal("Layer", r.Note));
+            Assert.All(layers, r => Assert.Equal("CLAYER", r.Command));
+            Assert.All(layers, r => Assert.Equal("GhIconLayers", r.IconKey));
+        }
+
+        [Fact]
+        public void WalTyped_ListsTheBlockThenTheLayers_AndChoosingALayerMakesItCurrent()
+        {
+            MainViewModel model = Planned();
+
+            model.CommandText = "WAL";
+            model.ShowSuggestions();
+
+            // No command begins with WAL: the named objects come first, with no rule above them, the block before the layers.
+            IReadOnlyList<CommandSuggestionViewModel> rows = model.Suggestions.Where(r => r.ContentType != null).ToList();
+            Assert.Equal(new[] { "WALL_TAG", "WALL-FINISH", "WALLS" }, rows.Select(r => r.Name));
+            Assert.Equal(new[] { "Block", "Layer", "Layer" }, rows.Select(r => r.ContentType));
+            Assert.Equal(("", "WAL", "LS"), (rows[2].Before, rows[2].Hit, rows[2].After));
+
+            Assert.True(model.RunSuggestion(rows[2]));
+
+            Assert.Equal("WALLS", model.Document.Database.Clayer);
+            Assert.False(model.IsCommandRunning);
+            Assert.Contains(model.History, l => l.StartsWith("Command: CLAYER", StringComparison.Ordinal));
+        }
+
+        [Fact]
+        public void ABlockChosen_IsInsertedByInsert_WhichAsksItsInsertionPoint()
+        {
+            MainViewModel model = Planned();
+            model.CommandText = "WALL_";
+            model.ShowSuggestions();
+
+            CommandSuggestionViewModel block = Assert.Single(model.Suggestions, r => r.ContentType == "Block");
+            Assert.True(model.RunSuggestion(block));
+
+            Assert.True(model.IsCommandRunning);
+            Assert.Contains("Command: -INSERT", model.History);
+            Assert.StartsWith("Specify insertion point", model.Prompt, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void AHatchPatternChosen_IsTakenByHatch_AndAStyleChosenIsMadeCurrent()
+        {
+            MainViewModel model = Planned();
+
+            model.CommandText = "ANSI3";
+            model.ShowSuggestions();
+            CommandSuggestionViewModel pattern = model.Suggestions.First(r => r.ContentType == "Hatch" && r.Name != "ANSI31");
+            Assert.True(model.RunSuggestion(pattern));
+            Assert.Equal(pattern.Name, model.Document.HatchSettings.PatternName);
+            Assert.Contains("Command: HATCH", model.History);
+            model.Escape();
+
+            model.CommandText = "ANNOTATIVE";
+            model.ShowSuggestions();
+            Assert.True(model.RunSuggestion(Assert.Single(model.Suggestions, r => r.ContentType == "Text Style")));
+            Assert.Equal("Annotative", model.CurrentTextStyle);
+
+            model.CommandText = "STANDARD";
+            model.ShowSuggestions();
+            Assert.Equal(new[] { "Text Style", "Dim Style" }, model.Suggestions.Where(r => r.Name == "Standard").Select(r => r.ContentType));
+            Assert.Equal("ISO-25", model.CurrentDimStyle);
+            Assert.True(model.RunSuggestion(model.Suggestions.Single(r => r.ContentType == "Dim Style")));
+            Assert.Equal("Standard", model.CurrentDimStyle);
+        }
+
+        [Fact]
+        public void NoNamedObjectIsListed_WithSearchContentOff_OrInTheBoxAtTheCursor()
+        {
+            MainViewModel model = Planned();
+            GlobalSettings settings = model.Settings.Clone();
+            settings.SearchContent = false;
+            model.ApplySettings(settings);
+            model.CommandText = "LAYER";
+            model.ShowSuggestions();
+            Assert.True(model.IsSuggestionListOpen);
+            Assert.DoesNotContain(model.Suggestions, r => r.ContentType != null);
+
+            settings.SearchContent = true;
+            model.ApplySettings(settings);
+            model.RunKey("F12");
+            Assert.True(model.DynamicInput.IsOn);
+            model.ShowSuggestions();
+            Assert.DoesNotContain(model.Suggestions, r => r.ContentType != null);
+        }
+
         // ---- Recent Commands and the right-click menu
 
         [Fact]
@@ -296,7 +404,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         }
 
         [Fact]
-        public void TheCommandLineMenu_HasTheDesignsItems_RecentCommandsGreyedBeforeAny_AndSearchContentGreyed()
+        public void TheCommandLineMenu_HasTheDesignsItems_RecentCommandsGreyedBeforeAny_AndSearchContentOn()
         {
             MainViewModel model = Opened();
 
@@ -306,10 +414,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             Assert.False(menu[0].IsEnabled);
             IReadOnlyList<CadMenuItemViewModel> input = menu[1].Items;
             Assert.Equal(new[] { "AutoComplete", "AutoCorrect", "Search System Variables", "Search Content", "Mid-string Search", "", "Delay Time…" }, input.Select(i => i.Header));
-            Assert.All(input.Where(i => i.Header.Length > 0 && i.Header != "Search Content" && i.Header != "Delay Time…"), i => Assert.True(i.IsChecked, i.Header));
-            Assert.False(input[3].IsEnabled);
-            Assert.False(input[3].IsChecked);
+            Assert.All(input.Where(i => i.Header.Length > 0 && i.Header != "Delay Time…"), i => Assert.True(i.IsChecked, i.Header));
+            Assert.True(input[3].IsEnabled);
             Assert.True(input[6].IsEnabled);
+            input[3].Command.Execute(null);
+            Assert.False(model.Settings.SearchContent);
+            input[3].Command.Execute(null);
+            Assert.True(model.Settings.SearchContent);
 
             // A setting switched off is kept: the window saves the settings when told.
             int changed = 0;
@@ -384,6 +495,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 AutoCorrect = true,
                 SearchSystemVariables = false,
                 MidStringSearch = false,
+                SearchContent = false,
                 AutoCompleteDelay = 750,
             };
             settings.CountCommandUse("LINE");
@@ -409,6 +521,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             Assert.False(read.AutoComplete);
             Assert.False(read.SearchSystemVariables);
             Assert.False(read.MidStringSearch);
+            Assert.False(read.SearchContent);
             Assert.Equal(750, read.AutoCompleteDelay);
             Assert.Equal(2, read.CommandUses["LINE"]);
             Assert.Equal(1, read.CommandUses["-PLOT"]);
@@ -792,6 +905,29 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             model.CreateAppMenu().Items.Single(i => i.Key == "close").Items[1].Command.Execute(null);
 
             Assert.False(model.HasDocument);
+        }
+
+        /// <summary>
+        /// A metric drawing with the layers WALLS and WALL-FINISH and the block WALL_TAG, opened with dynamic input off, so that
+        /// the AutoComplete list is the command line's own.
+        /// </summary>
+        private static MainViewModel Planned()
+        {
+            DxfDatabase database = CadTemplate.CreateMetric();
+            database.LayerTable.Add(new DxfLayerTableRecord { Name = "WALLS", ColorIndex = 7 });
+            database.LayerTable.Add(new DxfLayerTableRecord { Name = "WALL-FINISH", ColorIndex = 3 });
+            var tag = new DxfBlockTableRecord { Name = "WALL_TAG", Origin = new GeometryHelper.Geometry.GeoPoint3(0, 0, 0) };
+            database.BlockTable.Add(tag);
+            tag.AppendEntity(new DxfCircle(new GeometryHelper.Geometry.GeoPoint3(0, 0, 0), new GeometryHelper.Geometry.GeoVector3(0, 0, 1), 50.0));
+            var model = new MainViewModel();
+            model.OpenDocument(CadDocument.From(database, "plan.dxf"));
+
+            if (model.DynamicInput.IsOn)
+            {
+                model.RunKey("F12");
+            }
+
+            return model;
         }
 
         private MainViewModel Opened()

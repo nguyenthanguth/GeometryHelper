@@ -6,6 +6,19 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** The presenter's command line searches the drawing's content, as AutoCAD 2021's Search Content: below the
+commands and system variables, under a rule, the AutoComplete list holds the blocks, layers, hatch patterns, text styles
+and dimension styles whose names begin with the letters typed, then those with the letters inside, each kind by name and
+marked at the right. WAL typed in a drawing of the block WALL_TAG and the layers WALLS and WALL-FINISH lists
+`WALL_TAG Block`, `WALL-FINISH Layer` and `WALLS Layer`; a kind's keyword (BLOCK or INSERT, LAYER, HATCH, TEXTSTYLE or
+STYLE, DIMSTYLE) lists every name of the kind. Choosing a row acts on it: a layer is made current through CLAYER, a block
+inserted through -INSERT, which then asks the insertion point, a hatch pattern given to HATCH, a text style or a
+dimension style made current. Search Content of the command line's Input Settings, greyed until now, switches it and is
+kept in the settings file; it is on by default, as in AutoCAD. As AutoCAD's help says, the content is searched at the
+command line only, not in the box of dynamic input at the cursor. AutoCAD's choice and order of the kinds (Input Search
+Options), its collapsible section and its picture of a hatch pattern under the pointer are not built: they need a dialog
+and a list of their own.
+
 **NEW.** PURGE and -PURGE of the presenter purge groups, as AutoCAD 2021's do: the Groups option of -PURGE and of its
 All, and a Groups node in the tree of the Purge dialog. A group is purged when it holds nothing, whether it was never
 given a member or its members were all erased, named or unnamed: of a drawing with the groups EMPTY and FULL and an

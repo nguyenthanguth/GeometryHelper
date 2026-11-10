@@ -178,11 +178,23 @@ list open updates it at once.
   DUPLICATE (COPY), FLIP (MIRROR), TURN (ROTATE), RESIZE (SCALE), SYMBOL (INSERT) and PRINT (PLOT).
 - **AutoCorrect.** A name no command has, followed by a command, is noted: LIEN typed three times, each followed by LINE,
   has LINE offered first, marked AutoCorrect, the next time LIEN is typed. The corrections are kept in the settings file.
+- **Search Content.** Below the commands and variables, under a rule, come the drawing's named objects, as AutoCAD
+  2021's: its blocks, layers, hatch patterns, text styles and dimension styles, in that order, each kind by name with
+  the names that begin with the letters first, and the kind at the right. WAL typed in a drawing of the block WALL_TAG
+  and the layers WALLS and WALL-FINISH lists `WALL_TAG Block`, `WALL-FINISH Layer` and `WALLS Layer`. A kind's keyword
+  lists every name of the kind: BLOCK or INSERT, LAYER, HATCH, TEXTSTYLE or STYLE, DIMSTYLE. Choosing a layer makes it
+  current through CLAYER, a block runs -INSERT with its name, which asks the insertion point, a hatch pattern starts
+  HATCH with it, and a text style or a dimension style is made current. The content is searched at the command line
+  only: with DYN on, the list at the cursor holds commands and variables alone, as AutoCAD's help says of the Dynamic
+  Input tooltip.
+
+AutoComplete works at the Command prompt only. AutoCAD 2021's help (Input Search Options, the command line suggestion
+list, Searching for Named Objects) describes no completion at the prompts of a running command, so none is offered there.
 
 A right click on the command line gives its menu: **Recent Commands** (the last 20 run, the newest first, each runs again,
 kept in the settings file from one session to the next),
-**Input Settings** (AutoComplete, AutoCorrect, Search System Variables and Mid-string Search, ticked when on and kept in the
-settings file; Search Content greyed; Delay Time…, which asks `Enter the delay time in milliseconds <300>:`, 100 to
+**Input Settings** (AutoComplete, AutoCorrect, Search System Variables, Search Content and Mid-string Search, ticked when
+on and kept in the settings file; Delay Time…, which asks `Enter the delay time in milliseconds <300>:`, 100 to
 10 000), **Copy** (the text selected in the command line), **Copy History** (every line written), **Paste** (the first
 line of the clipboard added to what is typed), **Paste To CmdLine** (each line of the clipboard run in turn) and
 **Options…** (Global settings).
