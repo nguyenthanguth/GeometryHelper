@@ -89,7 +89,7 @@ the ones wanted.
       by entity with AutoCAD's own; check Ctrl, ANGDIR 1 and the MTEXT column defaults against AutoCAD (S)
 - [ ] Properties: dimension rows Ext line fixed and length (core DIMFXLENON), Fill color, Fractional type, Text view
       direction, Text position X/Y; hatch origin kept through angle and scale; MATCHPROP plot style and gradient hatch (S)
-- [ ] Variables: POLARMODE, ATTDIA (needs an Edit Attributes dialog), FILEDIA, CMDDIA; AUTOSNAP's other bits; new
+- [ ] Variables (running): POLARMODE, ATTDIA (needs an Edit Attributes dialog), FILEDIA, CMDDIA; AUTOSNAP's other bits; new
       dimensions follow DIMSCALE (the header's $DIMSCALE written as an override); polar angle field in Global settings;
       TK (TRACKING); the named-dictionary guard in the table and multileader style editors (S)
 - [ ] Core (running): `DxfPolyline2d.CurveFit` tangents differ from AutoCAD's for closed polylines (AutoCAD bisects) and open ones of 4
@@ -105,11 +105,11 @@ the ones wanted.
       no style makes Standard; Block and None content; the Annotative flag written (S)
 - [x] Associative dimensions round 3: flag 32 written so a plain MOVE takes the picture; copies get their own picture and
       stay tied to copied objects; intersection snaps; ties from DIM, QDIM, DIMCONTINUE, DIMBASELINE, ordinate, angular
-- [ ] Associative dimensions: PERpendicular and TANgent snaps tied (AutoCAD writes a second "last point" reference after
+- [ ] Associative dimensions (running): PERpendicular and TANgent snaps tied (AutoCAD writes a second "last point" reference after
       one of 75 = 1, which the core's DIMASSOC neither reads apart nor writes) (S)
-- [ ] Dimension pictures: radius, diameter and angular follow DIMTAD, DIMJUST and the fit rules; the line from the back of
+- [ ] Dimension pictures (running): radius, diameter and angular follow DIMTAD, DIMJUST and the fit rules; the line from the back of
       an open arrowhead (_CLOSED, _CLOSEDBLANK); DIMTVP; DIMGAP below zero (box round the words) (M)
-- [ ] Blocks: dynamic blocks in use: custom grips (visibility, lookup, stretch, flip, rotate, array) and their Properties
+- [ ] Blocks (running): dynamic blocks in use: custom grips (visibility, lookup, stretch, flip, rotate, array) and their Properties
       rows (L)
 
 ### To do
