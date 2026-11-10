@@ -251,9 +251,10 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
             dimension = Entity<DxfRotatedDimension>(document, handle);
             Assert.False(dimension.UsingDefaultTextPosition);
+            // AutoCAD 2021: the line through the point given, the words above it there by the gap and half their height.
             Near(new GeoPoint3(60, -50, 0), dimension.TextPosition);
-            Near(new GeoPoint3(100, -50 - lift, 0), dimension.DimLinePoint);
-            Near(new GeoPoint3(60, -50, 0), dimension.DimBlock.OfType<DxfMText>().Single().Location);
+            Near(new GeoPoint3(100, -50, 0), dimension.DimLinePoint);
+            Near(new GeoPoint3(60, -50 + lift, 0), dimension.DimBlock.OfType<DxfMText>().Single().Location, 0.05);
             Assert.Equal("DIMTEDIT", document.NextUndo.Name);
 
             Run(session, "DIMTEDIT", new[] { handle }, "L");

@@ -736,11 +736,11 @@ namespace GeometryHelper.Dxf.Viewer
         /// the words, placed as AutoCAD places them from the style's variables (see <see cref="LinearLayout"/>).
         /// </summary>
         /// <remarks>
-        /// <paramref name="placed"/> says the words were put somewhere by hand (DIMTEDIT): they are drawn where the caller
-        /// puts them, so the line is not broken for them and they are not moved outside. <paramref name="jog"/> is the point of
-        /// a jog of DIMJOGLINE on the line, drawn <paramref name="jogHeight"/> high.
+        /// <paramref name="placed"/> is the text's point of words put somewhere by hand (DIMTEDIT), which the words stand by as
+        /// the style's DIMTMOVE says (see <see cref="PlaceMoved"/>); they are not moved outside. <paramref name="jog"/> is the
+        /// point of a jog of DIMJOGLINE on the line, drawn <paramref name="jogHeight"/> high.
         /// </remarks>
-        internal static List<DxfEntity> Linear(DxfDimStyleTableRecord style, double dimscale, double textHeight, GeoPoint2 p1, GeoPoint2 p2, GeoPoint2 q1, GeoPoint2 q2, string words, bool placed = false, GeoPoint2? jog = null, double jogHeight = 0.0)
+        internal static List<DxfEntity> Linear(DxfDimStyleTableRecord style, double dimscale, double textHeight, GeoPoint2 p1, GeoPoint2 p2, GeoPoint2 q1, GeoPoint2 q2, string words, GeoPoint2? placed = null, GeoPoint2? jog = null, double jogHeight = 0.0)
         {
             Sizes(style, dimscale, textHeight, out double scale, out double arrow, out double height, out double gap, out double offset, out double beyond);
             var picture = new List<DxfEntity>();
@@ -890,7 +890,7 @@ namespace GeometryHelper.Dxf.Viewer
         /// lines, and DIMGAP each side where the line is broken for them; the arrowheads two lengths and DIMGAP; ticks, and the
         /// other arrowheads that take no room (<see cref="CadArrowheads.TakesNoRoom"/>), never move out.
         /// </remarks>
-        private static LinearLayout LayOut(DxfDimStyleTableRecord style, GeoPoint2 p1, GeoPoint2 p2, GeoPoint2 q1, GeoPoint2 q2, GeoVector2 along, double angle, double width, double height, double gap, double arrow, double beyond, bool placed)
+        private static LinearLayout LayOut(DxfDimStyleTableRecord style, GeoPoint2 p1, GeoPoint2 p2, GeoPoint2 q1, GeoPoint2 q2, GeoVector2 along, double angle, double width, double height, double gap, double arrow, double beyond, GeoPoint2? placed)
         {
             var layout = new LinearLayout { Angle = angle };
             double length = (q2 - q1).Length;
@@ -919,7 +919,7 @@ namespace GeometryHelper.Dxf.Viewer
             bool textInside;
             bool arrowsInside;
 
-            if (placed || just == 3 || just == 4)
+            if (placed.HasValue || just == 3 || just == 4)
             {
                 textInside = true;
                 arrowsInside = needArrows <= length;
@@ -962,12 +962,16 @@ namespace GeometryHelper.Dxf.Viewer
             // Words above the line stand clear of it by the gap, and a box round them (DIMGAP below nought) by the gap again.
             double lift = tad != style.Dimtad ? style.Dimtvp * height : gap + height / 2.0 + (box ? gap : 0.0);
             int outerSide = just == 1 ? 1 : 2;
+            double outward2 = style.Dimtoh ? 0.0 : angle;
+
+            // Words moved out by the fit go over the line where DIMTMOVE is 1 or 2, not beside it past an extension line.
+            bool over = !textInside && !placed.HasValue && style.Dimtmove != 0 && Parallel(outward2, angle);
 
             for (int end = 1; end <= 2 && arrowsOut; end++)
             {
                 // The short line an arrowhead outside stands on, an arrowhead long; on the side of words outside the line run on
                 // to them is drawn instead.
-                if (textInside || end != outerSide)
+                if (textInside || over || end != outerSide)
                 {
                     GeoPoint2 tip = end == 1 ? q1 : q2;
                     GeoVector2 outward = end == 1 ? -along : along;
@@ -975,9 +979,55 @@ namespace GeometryHelper.Dxf.Viewer
                 }
             }
 
-            if (placed)
+            // Off the line words stand above it by the gap and half their height, or as DIMTAD puts them; on it (DIMTAD 0) only by
+            // DIMTVP.
+            double offLine = tad == 0 ? raised : Side(tad, above, p1, p2, middle) * lift;
+
+            if (placed.HasValue)
             {
-                layout.At = middle + above * lift;
+                PlaceMoved(layout, style.Dimtmove, placed.Value, q1, q2, along, readable, above, middle, width, height, gap, arrow, tad == 0, offLine);
+                return layout;
+            }
+
+            if (over)
+            {
+                // Over the line, on the side away from the points: DIMEXE, one and a half DIMGAP and half the words' height
+                // out, their height more where they stand below it as they read, no nearer than an arrowhead. DIMTMOVE 2 puts the
+                // words' middle there; 1 a leader's end, a third as far along again, then a landing on to the words (two gaps
+                // long, the words past a gap, on it for DIMTAD 0; under them, as wide as they are and a gap each side). AutoCAD
+                // 2021 draws the line between the extension lines again for the leader where the arrowheads stand outside.
+                var points = new GeoPoint2((p1.X + p2.X) / 2.0, (p1.Y + p2.Y) / 2.0);
+                double side = (middle - points).X * above.X + (middle - points).Y * above.Y < 0.0 ? -1.0 : 1.0;
+                double clearance = beyond + 1.5 * gap + height / 2.0;
+                double off = Math.Max(arrow, side > 0.0 ? clearance : clearance + height);
+                layout.Angle = angle;
+
+                if (style.Dimtmove == 2)
+                {
+                    layout.At = middle + above * (side * off);
+                    return layout;
+                }
+
+                GeoPoint2 knee = middle + readable * (0.3 * off) + above * (side * off);
+                bool onLanding = tad == 0;
+                double start2 = onLanding ? 3.0 * gap : gap;
+
+                // No further out than an arrowhead and a gap, the words stand centred where they would start, with no leader.
+                if (off <= arrow + gap)
+                {
+                    layout.At = knee + readable * start2 + above * offLine;
+                    return layout;
+                }
+
+                layout.Outside.Add(new KeyValuePair<GeoPoint2, GeoPoint2>(middle, knee));
+                layout.Outside.Add(new KeyValuePair<GeoPoint2, GeoPoint2>(knee, knee + readable * (onLanding ? 2.0 * gap : width + 2.0 * gap)));
+                layout.At = knee + readable * (start2 + width / 2.0) + above * offLine;
+
+                if (arrowsOut)
+                {
+                    layout.Outside.Add(new KeyValuePair<GeoPoint2, GeoPoint2>(q1, q2));
+                }
+
                 return layout;
             }
 
@@ -1034,7 +1084,6 @@ namespace GeometryHelper.Dxf.Viewer
 
             // Outside, past the extension line on the words' side: the line runs on under words above it, or up to words on it;
             // words kept level off a slanting line stand on a level landing from the end of the line run on.
-            double outward2 = style.Dimtoh ? 0.0 : angle;
             GeoPoint2 start = outerSide == 1 ? q1 : q2;
             GeoVector2 away = outerSide == 1 ? -along : along;
             double clear = arrowsOut ? 2.0 * arrow : ticks ? 0.0 : arrow;
@@ -1063,6 +1112,69 @@ namespace GeometryHelper.Dxf.Viewer
             layout.At = start + away * centre + (onLine ? above * raised : above * (Side(tad, above, p1, p2, middle) * lift));
             layout.Outside.Add(new KeyValuePair<GeoPoint2, GeoPoint2>(start + away * (arrowsOut ? arrow : 0.0), start + away * reach));
             return layout;
+        }
+
+        /// <summary>
+        /// Where the words of a linear dimension moved by DIMTEDIT stand, about their text's point, as AutoCAD 2021 draws them.
+        /// Under DIMTMOVE 0 the dimension line runs through the point and the words stand there as in the middle: above the line
+        /// by the gap and half their height, or on it for DIMTAD 0, the line broken a gap clear of them; past an end the line
+        /// runs on under them to a gap beyond them, or up to a gap short of words on it. Under 2 the words' middle is the point,
+        /// the line broken where it runs through them. Under 1 they stand there too (above it, but for DIMTAD 0) until the point
+        /// is further from the line than DIMGAP and half the heights of the words and the arrowheads; then a leader runs from
+        /// the middle of the line to a gap short of the point, three for DIMTAD 0, and a landing on away from the middle, under
+        /// words above it (as wide as they are and a gap each side) or two gaps up to words on it, the words starting at the
+        /// point. "100" moved 10 above the line 10 left of its middle has a leader to 0.625 short of the point and a landing
+        /// 6.53 long, the words above it.
+        /// </summary>
+        private static void PlaceMoved(LinearLayout layout, int move, GeoPoint2 at, GeoPoint2 q1, GeoPoint2 q2, GeoVector2 along, GeoVector2 readable, GeoVector2 above, GeoPoint2 middle, double width, double height, double gap, double arrow, bool onLine, double offLine)
+        {
+            double t = (at - q1).X * along.X + (at - q1).Y * along.Y;
+            GeoPoint2 foot = q1 + along * t;
+            double across = (at - foot).X * above.X + (at - foot).Y * above.Y;
+            double half = width / 2.0 + gap;
+            bool crossing = Math.Abs(across) < height / 2.0 + gap;
+
+            if (move == 0)
+            {
+                layout.At = foot + above * offLine;
+                double length = (q2 - q1).Length;
+                double reach = onLine ? -half : half;
+
+                if (onLine)
+                {
+                    layout.Middle = foot;
+                    layout.Break = half;
+                }
+
+                if (t > length && t + reach > length)
+                {
+                    layout.Outside.Add(new KeyValuePair<GeoPoint2, GeoPoint2>(q2, q1 + along * (t + reach)));
+                }
+                else if (t < 0.0 && t - reach < 0.0)
+                {
+                    layout.Outside.Add(new KeyValuePair<GeoPoint2, GeoPoint2>(q1 + along * (t - reach), q1));
+                }
+
+                return;
+            }
+
+            if (move == 1 && Math.Abs(across) > gap + (height + arrow) / 2.0)
+            {
+                GeoVector2 away = (at - middle).X * readable.X + (at - middle).Y * readable.Y >= 0.0 ? readable : -readable;
+                GeoPoint2 knee = at - away * (onLine ? 3.0 * gap : gap);
+                layout.Outside.Add(new KeyValuePair<GeoPoint2, GeoPoint2>(middle, knee));
+                layout.Outside.Add(new KeyValuePair<GeoPoint2, GeoPoint2>(knee, knee + away * (onLine ? 2.0 * gap : width + 2.0 * gap)));
+                layout.At = at + away * (width / 2.0) + above * offLine;
+                return;
+            }
+
+            layout.At = move == 1 ? at + above * offLine : at;
+
+            if (crossing && (move == 2 || onLine))
+            {
+                layout.Middle = foot;
+                layout.Break = half;
+            }
         }
 
         /// <summary>Whether words turned to one angle run along a line at another, either way.</summary>

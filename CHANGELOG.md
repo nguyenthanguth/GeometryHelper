@@ -6,6 +6,27 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** The presenter's dimension pictures follow DIMTMOVE as AutoCAD 2021 draws them. Words the fit moves out of a
+linear dimension stand over its line under DIMTMOVE 2, on the side away from the points, DIMEXE, one and a half DIMGAP
+and half their height out, their height more where they read below it ("4" of a dimension of 4, 5.9375 below the middle
+of its line), and under DIMTMOVE 1 beside a leader to that place and a landing; an angle's go over its arc along the
+middle of its sweep, past a leader under 1. DIMTEDIT of a linear dimension under DIMTMOVE 0 runs the line through the
+point given and stands the words above it there, on it with the line broken for DIMTAD 0, where the line ran a gap and
+half their height under them; under 1 a leader is drawn to words further from the line than DIMGAP and half the heights
+of the words and the arrowheads, and none to words nearer; under 2 the words' middle is the point, the line broken where
+it runs through them. A dimension of AutoCAD's with its words moved is drawn as AutoCAD drew it. Of 846 pictures
+AutoCAD drew for this, 762 match to 0.001. Left: 56 angles whose arc passes exactly through their points, where
+AutoCAD's side of one extension line follows the rounding of the coordinates, and 28 radii and diameters of a small
+circle made under DIMTMOVE 1 or 2 with their point inside it.
+
+**FIXED.** Two more rules of the presenter's radius, diameter and angular pictures follow AutoCAD 2021. A diameter's
+words on its line (DIMTAD 0) need their width and a gap each side, and with the arrowheads inside the arrowheads' room
+as well, as a linear dimension's do: "%%c6" 4.357 wide now stands at the centre of a diameter of 6 under DIMATFIT 1,
+DIMTOFL's line through the circle broken a gap clear of it, where it stood outside. An angle's extension lines run from
+DIMEXO off its points to DIMEXE past the arc wherever that is any length, as a linear dimension's: with its points 20
+from the vertex and its arc 20.3 out they run from 20.625 to 21.55, where none were drawn. Checked against 70 new
+pictures AutoCAD drew, all matching to 0.001; the 676 of the earlier rounds still match.
+
 **NEW.** PURGE and -PURGE of the presenter purge groups, as AutoCAD 2021's do: the Groups option of -PURGE and of its
 All, and a Groups node in the tree of the Purge dialog. A group is purged when it holds nothing, whether it was never
 given a member or its members were all erased, named or unnamed: of a drawing with the groups EMPTY and FULL and an
