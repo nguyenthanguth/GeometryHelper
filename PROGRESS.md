@@ -208,11 +208,17 @@ the ones wanted.
 - [x] Dimensions: the dimension line starts at the back of a closed arrowhead, as AutoCAD draws it
 - [x] Dimensions: DIMTVP, DIMTMOVE 1's leader for words moved out by fit, DIMGAP below zero (box round the words);
       DIMTEDIT on a DIMTAD 0 dimension puts the line through the words
-- [ ] Dimensions follow-ups (running): words sized by the font, not estimated; DIMJOGGED (prompts recorded, the jog picture not yet
-      derived: one chord at -23.6 deg unexplained); DIM offering Jogged and Arc length (2016+ DIM prompts not recordable
-      headless); DIM edits Mtext in the editor; parked: angles whose arc runs through their points (56 pictures, float
-      side choice), radius 3 circles under DIMTMOVE 1/2 with the point inside (28 pictures); DIMTEDIT Left/Right and
-      DIMTOH on slanted lines unprobed (M)
+- [x] Dimensions round 6: words sized by the font; DIMJOGGED (145 of 152 pictures); DIMTEDIT Left/Right and DIMTOH on
+      slanted lines (336 of 336); small radii under DIMTMOVE 1/2 (212 of 212); LARGE_RADIAL_DIMENSION groups 13/14/15
+      read as AutoCAD writes them (M)
+- [ ] Dimensions follow-ups 2: DIM offering Jogged and Arc length (2016+ DIM prompts not recordable headless); DIM edits
+      Mtext in the editor; parked: DIMJOGGED with the jog past the rim or far off its middle (4), DIMJOGANG 90 (2), words
+      pushed past the arrowhead (1); slanted Arial in angular dimensions (13 of 512, 0.1-0.4 off); r5's 14 diameter and
+      24 angle cases; angles whose arc runs through their points (float side choice) (M)
+- [ ] Try audit follow-ups: 21 spline intersections against tiny or huge circles, arcs, ellipses hang over 10 s
+      (D:/claude/scratch/try-audit/fuzz/out-finite2.txt); GetIntersections and GeoObb3.GetFaces/ToSolid still throw on
+      flat boxes; Corner2/3.TryFilletAt say "chamfer distance" for a bad radius; NaN input passes through as NaN
+      points on true (S-M)
 - [x] MTEXT: word wrap at the width, stacked fractions, columns; line spacing 5/3 as AutoCAD (check first)
 - [x] MTEXT in-place editor lays out with the drawn MTEXT's layout (wrap, spacing, stacks, columns, mask, frame)
 - [x] Speed: DisplayPatchSpeedTests "layer on" failing: no merge to blame; the three 100k speed tests ran in parallel and
