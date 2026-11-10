@@ -197,6 +197,35 @@ namespace GeometryHelper.Dxf.Viewer
             return false;
         }
 
+        /// <summary>
+        /// Turns an angle typed, counted as the drawing counts angles, into the direction it names: from the base direction
+        /// ANGBASE, clockwise where ANGDIR is 1. With ANGBASE at north and ANGDIR clockwise, as a surveyor counts, 30 is the
+        /// direction 60 degrees counter-clockwise from east.
+        /// </summary>
+        /// <param name="counted">The angle as typed, in radians.</param>
+        /// <param name="angbase">ANGBASE: the direction of angle nought, in radians counter-clockwise from east.</param>
+        /// <param name="clockwise">ANGDIR: whether angles grow clockwise.</param>
+        /// <returns>The direction, in radians counter-clockwise from east.</returns>
+        public static double ToDirection(double counted, double angbase, bool clockwise) => angbase + (clockwise ? -counted : counted);
+
+        /// <summary>
+        /// Turns a direction into the angle the drawing counts for it, the reverse of <see cref="ToDirection"/>, as AutoCAD's
+        /// ANGTOS: from ANGBASE, clockwise where ANGDIR is 1, from nought up to a whole turn. With ANGBASE at north and ANGDIR
+        /// clockwise, east is 90 degrees and north is nought.
+        /// </summary>
+        /// <param name="direction">The direction, in radians counter-clockwise from east.</param>
+        /// <param name="angbase">ANGBASE: the direction of angle nought, in radians counter-clockwise from east.</param>
+        /// <param name="clockwise">ANGDIR: whether angles grow clockwise.</param>
+        /// <returns>The angle counted, in radians, from nought up to a whole turn.</returns>
+        public static double FromDirection(double direction, double angbase, bool clockwise)
+        {
+            double counted = clockwise ? angbase - direction : direction - angbase;
+            counted -= Math.Floor(counted / (2.0 * Math.PI)) * 2.0 * Math.PI;
+
+            // An angle a rounding short of a whole turn is nought: north counted from north, clockwise.
+            return counted > 2.0 * Math.PI - 1E-9 ? 0.0 : counted + 0.0;
+        }
+
         /// <summary>Degrees with minutes and seconds, 45d30'15", or a plain number of degrees.</summary>
         private static bool TryDegrees(string text, out double degrees)
         {

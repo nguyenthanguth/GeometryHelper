@@ -228,7 +228,8 @@ the group 302 of the XRECORD ADSK_XREC_VTRVIEWINFO of its extension dictionary. 
 The layer states and layer filters a drawing keeps in the layer table's extension dictionary are read and listed:
 `db.LayerStateManager.GetLayerStateNames()` gives the entries of ACAD_LAYERSTATES, Plan and Sections for a drawing with the
 two, `GetLayerStateNames(false, false)` leaves out a state hidden (the flag 0x8000 of its mask, group 91, as AutoCAD 2021
-saves one) and one of an xref (its layers named by name, group 8, not by handle), `HasLayerState("plan")` finds one in
+saves one) and one of an xref (named `xref__state`, every layer of it named by name as `xref|layer`, group 8, not by
+handle; a state imported from a .las file names its layers by name too, `XR_DOORS`, and is listed), `HasLayerState("plan")` finds one in
 either case and `LayerStatesDictionary` is the dictionary, each state an XRECORD of it. `db.LayerFilters.Root` is All, and
 nested in it, as AutoCAD 2021 lists them, the property filters and groups of AutoCAD 2005 and later (the XRECORDs of
 ACLYDICTIONARY, each named by its group 300), the filters of AutoCAD 2004 and earlier (the entries of ACAD_LAYERFILTERS,

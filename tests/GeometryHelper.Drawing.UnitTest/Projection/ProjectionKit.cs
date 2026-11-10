@@ -178,20 +178,19 @@ namespace GeometryHelper.Drawing.UnitTest.Projection
         private static string Bits(double value) => BitConverter.DoubleToInt64Bits(value).ToString("X16") + ";";
 
         /// <summary>
-        /// A folder under %TEMP%/gk/drawing/proj holding acadiso.pat with the one pattern ANSI31, its one line at 45 degrees
+        /// The folder proj\patterns of the run (<see cref="TestRun"/>) holding acadiso.pat with the one pattern ANSI31, its one line at 45 degrees
         /// 3.175 apart, so that a drawing given it as its pattern search path holds the lines of the hatching it is given.
         /// </summary>
         public static string PatternFolder()
         {
-            string folder = Path.Combine(Path.GetTempPath(), "gk", "drawing", "proj", "patterns");
-            Directory.CreateDirectory(folder);
+            string folder = TestRun.Folder("proj", "patterns");
             File.WriteAllText(Path.Combine(folder, "acadiso.pat"), "*ANSI31, ANSI Iron, Brick, Stone masonry\n45, 0,0, 0,3.175\n");
             return folder;
         }
 
         /// <summary>
         /// Writes a view into a new drawing and draws the drawing, as the presenter shows it, into a PNG under
-        /// %TEMP%/gk/drawing/proj; gives the path. The drawing finds ANSI31 in <see cref="PatternFolder"/>, so that the
+        /// the folder proj of the run; gives the path. The drawing finds ANSI31 in <see cref="PatternFolder"/>, so that the
         /// hatching of a section is drawn.
         /// </summary>
         public static string SavePicture(ProjectedView2 view, string name, double hatchScale = 1.0)
@@ -208,8 +207,7 @@ namespace GeometryHelper.Drawing.UnitTest.Projection
                 cad.ZoomTo(box, 0.08);
             }
 
-            string folder = Path.Combine(Path.GetTempPath(), "gk", "drawing", "proj");
-            Directory.CreateDirectory(folder);
+            string folder = TestRun.Folder("proj");
             string path = Path.Combine(folder, name + ".png");
 
             using (var bitmap = new SKBitmap(width, height))

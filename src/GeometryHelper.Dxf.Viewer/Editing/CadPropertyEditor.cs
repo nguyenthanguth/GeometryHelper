@@ -292,8 +292,8 @@ namespace GeometryHelper.Dxf.Viewer
                         case "Center Y": write = e => { var a = (DxfArc)e; a.Center = new GeoPoint3(a.Center.X, v, a.Center.Z); }; return number ? null : notNumber;
                         case "Center Z": write = e => { var a = (DxfArc)e; a.Center = new GeoPoint3(a.Center.X, a.Center.Y, v); }; return number ? null : notNumber;
                         case "Radius": write = e => ((DxfArc)e).Radius = v; return number && v > 0.0 ? null : notPositive;
-                        case "Start angle": write = e => ((DxfArc)e).StartAngle = Turn(v); return number ? null : notNumber;
-                        case "End angle": write = e => ((DxfArc)e).EndAngle = Turn(v); return number ? null : notNumber;
+                        case "Start angle": write = e => ((DxfArc)e).StartAngle = Direction(db, v); return number ? null : notNumber;
+                        case "End angle": write = e => ((DxfArc)e).EndAngle = Direction(db, v); return number ? null : notNumber;
                     }
 
                     break;
@@ -302,7 +302,7 @@ namespace GeometryHelper.Dxf.Viewer
                     {
                         case "Contents": write = e => ((DxfDBText)e).TextString = text; return text.Length > 0 ? null : "A text has contents.";
                         case "Height": write = e => ((DxfDBText)e).Height = v; return number && v > 0.0 ? null : notPositive;
-                        case "Rotation": write = e => ((DxfDBText)e).Rotation = Turn(v); return number ? null : notNumber;
+                        case "Rotation": write = e => ((DxfDBText)e).Rotation = Direction(db, v); return number ? null : notNumber;
                         case "Position X": write = e => Shift(e, v - ((DxfDBText)e).Position.X, 0.0, 0.0); return number ? null : notNumber;
                         case "Position Y": write = e => Shift(e, 0.0, v - ((DxfDBText)e).Position.Y, 0.0); return number ? null : notNumber;
                         case "Position Z": write = e => Shift(e, 0.0, 0.0, v - ((DxfDBText)e).Position.Z); return number ? null : notNumber;
@@ -314,7 +314,7 @@ namespace GeometryHelper.Dxf.Viewer
                     {
                         case "Contents": write = e => ((DxfMText)e).Contents = text; return text.Length > 0 ? null : "An MTEXT has contents.";
                         case "Text height": write = e => ((DxfMText)e).TextHeight = v; return number && v > 0.0 ? null : notPositive;
-                        case "Rotation": write = e => ((DxfMText)e).Rotation = Turn(v); return number ? null : notNumber;
+                        case "Rotation": write = e => ((DxfMText)e).Rotation = Direction(db, v); return number ? null : notNumber;
                         case "Position X": write = e => { var m = (DxfMText)e; m.Location = new GeoPoint3(v, m.Location.Y, m.Location.Z); }; return number ? null : notNumber;
                         case "Position Y": write = e => { var m = (DxfMText)e; m.Location = new GeoPoint3(m.Location.X, v, m.Location.Z); }; return number ? null : notNumber;
                         case "Position Z": write = e => { var m = (DxfMText)e; m.Location = new GeoPoint3(m.Location.X, m.Location.Y, v); }; return number ? null : notNumber;
@@ -543,6 +543,12 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         private static void Shift(DxfEntity entity, double dx, double dy, double dz) => entity.TransformBy(GeoTransform3.Translation(new GeoVector3(dx, dy, dz)));
+
+        /// <summary>
+        /// The direction a row was given in degrees counted as the drawing counts angles, from ANGBASE and clockwise with
+        /// ANGDIR 1, in radians from the X axis as an entity keeps it.
+        /// </summary>
+        private static double Direction(DxfDatabase db, double degrees) => Turn(CadUnits.ToDirection(degrees * Math.PI / 180.0, db.Angbase, db.Angdir) * 180.0 / Math.PI);
 
         private static double Turn(double degrees)
         {

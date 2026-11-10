@@ -1115,7 +1115,7 @@ namespace GeometryHelper.Dxf.Viewer
 
                     if (c.Input.Is("Angle"))
                     {
-                        yield return CadPrompt.ForAngle("Enter delta angle", null, null, Number(c.Remembered("lengthen.deltaAngle", 0.0) * 180.0 / Math.PI));
+                        yield return CadPrompt.ForAngle("Enter delta angle", null, null, Number(c.Remembered("lengthen.deltaAngle", 0.0) * 180.0 / Math.PI)).Turning();
                         angle = true;
 
                         if (c.Input.Kind == CadInputKind.Number)
@@ -1149,7 +1149,7 @@ namespace GeometryHelper.Dxf.Viewer
 
                     if (c.Input.Is("Angle"))
                     {
-                        yield return CadPrompt.ForAngle("Specify total angle", null, null, Number(c.Remembered("lengthen.totalAngle", 1.0) * 180.0 / Math.PI));
+                        yield return CadPrompt.ForAngle("Specify total angle", null, null, Number(c.Remembered("lengthen.totalAngle", 1.0) * 180.0 / Math.PI)).Turning();
                         angle = true;
 
                         if (c.Input.Kind == CadInputKind.Number)

@@ -129,7 +129,7 @@ namespace GeometryHelper.Dxf.Viewer
             switch (mode)
             {
                 case 2:
-                    return CadPrompt.ForAngle("Specify rotation angle", basePoint, new[] { "Base point", "Copy", "Undo", "Reference", "eXit" }).Hiding(GripModeWords);
+                    return CadPrompt.ForAngle("Specify rotation angle", basePoint, new[] { "Base point", "Copy", "Undo", "Reference", "eXit" }).Turning().Hiding(GripModeWords);
                 case 3:
                     return CadPrompt.ForDistance("Specify scale factor", basePoint, new[] { "Base point", "Copy", "Undo", "Reference", "eXit" }).Hiding(GripModeWords);
                 default:
@@ -146,7 +146,7 @@ namespace GeometryHelper.Dxf.Viewer
         {
             var reference = new Ref<double?>();
 
-            foreach (CadPrompt prompt in Measured(c, angle ? "Specify reference angle" : "Specify reference length", angle ? Number(0.0) : Length(1.0), angle, reference))
+            foreach (CadPrompt prompt in Measured(c, angle ? "Specify reference angle" : "Specify reference length", angle ? Counted(c, 0.0) : Length(1.0), angle, reference))
             {
                 yield return prompt;
             }
@@ -157,7 +157,7 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             yield return angle
-                ? CadPrompt.ForAngle("Specify new angle", basePoint, new[] { "Points" }, Number(0.0))
+                ? CadPrompt.ForAngle("Specify new angle", basePoint, new[] { "Points" }, Counted(c, 0.0))
                 : CadPrompt.ForDistance("Specify new length", basePoint, new[] { "Points" }, Length(1.0));
             var target = new Ref<double?>();
 

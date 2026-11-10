@@ -19,6 +19,7 @@ namespace GeometryHelper.Dxf.Viewer
         {
             new KeyValuePair<string, string>("Blocks", "Blocks"),
             new KeyValuePair<string, string>("Dimstyles", "Dimension Styles"),
+            new KeyValuePair<string, string>("Groups", "Groups"),
             new KeyValuePair<string, string>("LAyers", "Layers"),
             new KeyValuePair<string, string>("LTypes", "Linetypes"),
             new KeyValuePair<string, string>("MUltileaderstyles", "Multileader Styles"),
@@ -235,6 +236,9 @@ namespace GeometryHelper.Dxf.Viewer
                 case "Plotstyles":
                     Dictionary(db.PlotStyleNameDictionary);
                     break;
+                case "Groups":
+                    names.AddRange(c.Document.Groups().Select(g => g.Name));
+                    break;
             }
 
             names.Sort(StringComparer.Ordinal);
@@ -376,8 +380,8 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// Why a named object in use cannot be purged, as AutoCAD's Possible reasons say it: kept always, current, from an
-        /// external reference, used by objects of model space and the layouts, by layers, by blocks; "It is referenced by
-        /// another named object." where none of these is found.
+        /// external reference, used by objects of model space and the layouts, by layers, by blocks; a group, that it holds
+        /// objects; "It is referenced by another named object." where none of these is found.
         /// </summary>
         private static IReadOnlyList<string> Reasons(CadCommandContext c, string kind, string name, PurgeUse use)
         {
@@ -421,6 +425,11 @@ namespace GeometryHelper.Dxf.Viewer
                 {
                     reasons.Add("Referenced by block " + holder + ".");
                 }
+            }
+
+            if (kind == "Groups")
+            {
+                reasons.Add(label + " holds objects.");
             }
 
             if (reasons.Count == 0)

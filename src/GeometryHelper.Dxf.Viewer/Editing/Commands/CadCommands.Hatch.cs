@@ -222,7 +222,7 @@ namespace GeometryHelper.Dxf.Viewer
                 }
             }
 
-            yield return CadPrompt.ForAngle("Specify an angle for the pattern", null, null, Number(settings.Angle));
+            yield return CadPrompt.ForAngle("Specify an angle for the pattern", null, null, Counted(c, settings.Angle * Math.PI / 180.0));
 
             if (c.Input.Kind == CadInputKind.Number)
             {
