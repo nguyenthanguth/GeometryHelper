@@ -110,6 +110,8 @@ the ones wanted.
       back of its arrowhead; DIMTVP; the box of DIMGAP below zero (526 AutoCAD pictures compared, 511 match)
 - [ ] Dimensions: words measured by the drawing's fonts in the pictures (the main gap left); DIMTEDIT on angular and
       radius with DIMTMOVE 0 as AutoCAD; DIMARC; radial dimensions made under DIMTMOVE 1/2 (S)
+- [x] BATTMAN with Edit Attribute and Settings, the Edit Attributes dialog of ATTDIA, the PURGE dialog (nested purge in
+      -PURGE too), Object Grouping (CLASSICGROUP), to the v110 boards
 - [x] Dynamic blocks in use: custom grips at AutoCAD's points (visibility, lookup, linear, flip, rotation, XY), the
       Custom group in Properties, RESETBLOCK, the Block Editor's visibility box; AutoCAD reads every value as written
 - [ ] Dynamic blocks: the core's AddVisibilityParameter lists no parameter in any state (AutoCAD then hides them); XY
@@ -142,7 +144,6 @@ the ones wanted.
 - [ ] Speed: draw the first display off the UI thread (10–13 s at 1 000 000 entities)
 - [ ] Speed: frame at extents at 1 000 000 entities (0.8–1.1 s, inside Skia); level of detail would change pixels (needs a decision)
 - [ ] Speed: highlight of 100 000 selected objects (1.2–1.6 s)
-- [ ] Blocks (running): BATTMAN, the Block Attribute Manager (designed in v110)
 - [ ] Dimensions: radius, diameter and angular pictures follow DIMTAD, DIMJUST and the fit rules (linear and ordinate do)
 - [ ] Dimensions: the dimension line starts at the back of a closed arrowhead, as AutoCAD draws it; words sized by the
       font, not estimated
@@ -154,7 +155,7 @@ the ones wanted.
 - [ ] PLOT: print to Windows printers; add named page setups; embed only the glyphs used (smaller PDFs)
 - [ ] Xrefs: XOPEN, a balloon when a file changes, editable xref layers (`NAME|LAYER`), nested xrefs in the palette
 - [ ] Images: IMAGEFRAME in a drawing with no image yet (needs RASTERVARIABLES made in core)
-- [ ] PURGE dialog and Group Manager (running; designed in v110); Draw Order has no dialog in AutoCAD
+- [ ] Managers: a design board for Order Group; previews of table and multileader styles and a Groups kind in PURGE; check BATTMAN's block change, ATTDIA Cancel and Object Grouping Cancel against AutoCAD (S)
 - [ ] Selection: QSELECT's "select objects" button
 
 ### Decisions for the maintainer
