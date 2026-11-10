@@ -745,5 +745,63 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Run(session, "QDIM", lines, Enter, "B");
             PreviewMakes(session, P(100, -80));
         }
+
+        [Fact]
+        public void RotateAndScaleByReferencePoints_MoveTheGhostAtTheSecondPoint()
+        {
+            CadCommandSession session = WithALine(out string line);
+            Run(session, "ROTATE", new[] { line }, Enter, P(0, 0), "R", "30", "P", P(0, 0));
+            Assert.StartsWith("Specify second point", session.PromptText);
+            MovesAsMade(session, line, P(-5, 5));
+
+            Run(session, "SCALE", new[] { line }, Enter, P(0, 0), "R", "4", "P", P(0, 0));
+            Assert.StartsWith("Specify second point", session.PromptText);
+            MovesAsMade(session, line, P(6, 0));
+        }
+
+        [Fact]
+        public void TypedRectangularArrayByAUnitCell_PreviewsEveryCopyAtTheOppositeCorner()
+        {
+            CadCommandSession session = WithALine(out string line);
+            Run(session, "-ARRAY", new[] { line }, Enter, "R", "2", "3", P(0, 0));
+            Assert.StartsWith("Specify opposite corner", session.PromptText);
+            IReadOnlyList<Affine2> moves = session.Prompt.Preview.Moves(P(40, 25));
+            Assert.Equal(5, moves.Count);
+            HashSet<string> before = Handles(session.Document);
+            List<string> previewed = moves.SelectMany(m => Ends(session.Document, new[] { line }, m)).OrderBy(s => s, StringComparer.Ordinal).ToList();
+
+            Run(session, P(40, 25));
+
+            List<string> made = Ends(session.Document, Handles(session.Document).Where(h => !before.Contains(h)), Affine2.Identity).OrderBy(s => s, StringComparer.Ordinal).ToList();
+            Assert.Equal(made, previewed);
+        }
+
+        [Fact]
+        public void BreakAskingItsSecondPoint_PreviewsThePieceTakenOut_Faded()
+        {
+            CadCommandSession session = Started("LINE", P(0, 0), P(100, 0), Enter, "BREAK", P(20, 0));
+            Assert.StartsWith("Specify second break point", session.PromptText);
+            Assert.True(session.Prompt.Preview.Fades);
+
+            Assert.Equal("DisplayPolyline2 open 20.000000 0.000000 60.000000 0.000000", Assert.Single(Shapes(session.Prompt.Preview.Items(P(60, 5)))));
+            Run(session, P(60, 5));
+
+            Assert.Equal(
+                new[] { "DisplayPolyline2 open 0.000000 0.000000 20.000000 0.000000", "DisplayPolyline2 open 60.000000 0.000000 100.000000 0.000000" },
+                Shapes(session.Document.GetDisplay(session.Document.ModelSpace).Items).OrderBy(s => s, StringComparer.Ordinal));
+        }
+
+        [Fact]
+        public void Align_MovesTheGhostByTheFirstPair_ThenTurnsItByTheSecond()
+        {
+            CadCommandSession session = WithALine(out string line);
+            Run(session, "ALIGN", new[] { line }, Enter, P(10, 0));
+            Assert.StartsWith("Specify first destination point", session.PromptText);
+            MovesAsMade(session, line, P(50, 50), Enter);
+
+            Run(session, "ALIGN", new[] { line }, Enter, P(50, 50), P(0, 0), P(70, 60));
+            Assert.StartsWith("Specify second destination point", session.PromptText);
+            MovesAsMade(session, line, P(0, 30), Enter, Enter);
+        }
     }
 }

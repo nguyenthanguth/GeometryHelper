@@ -178,7 +178,7 @@ namespace GeometryHelper.Dxf.Viewer
 
                     if (c.Input.Is("Points"))
                     {
-                        foreach (CadPrompt prompt in TwoPoints(c, true, target))
+                        foreach (CadPrompt prompt in TwoPoints(c, true, target, value => CadPreview.Flat(Turned(value - from))))
                         {
                             yield return prompt;
                         }
@@ -266,7 +266,7 @@ namespace GeometryHelper.Dxf.Viewer
 
                     if (c.Input.Is("Points"))
                     {
-                        foreach (CadPrompt prompt in TwoPoints(c, false, target))
+                        foreach (CadPrompt prompt in TwoPoints(c, false, target, value => length > c.Session.Tolerance.EqualPoint ? Scaled(value / length) : null))
                         {
                             yield return prompt;
                         }
@@ -705,8 +705,11 @@ namespace GeometryHelper.Dxf.Viewer
             }
         }
 
-        /// <summary>Asks two points and gives the angle of the line from the first to the second, or its length.</summary>
-        private static IEnumerable<CadPrompt> TwoPoints(CadCommandContext c, bool angle, Ref<double?> result)
+        /// <summary>
+        /// Asks two points and gives the angle of the line from the first to the second, or its length; the second point
+        /// previewing the objects selected moved as <paramref name="moved"/> moves them by the value to the cursor, where given.
+        /// </summary>
+        private static IEnumerable<CadPrompt> TwoPoints(CadCommandContext c, bool angle, Ref<double?> result, Func<double, Affine2?> moved = null)
         {
             yield return CadPrompt.ForPoint("Specify first point");
 
@@ -716,12 +719,19 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             GeoPoint2 first = c.Input.Point;
-            yield return CadPrompt.ForPoint("Specify second point", first);
+
+            double Between(GeoPoint2 to)
+            {
+                GeoVector2 between = to - first;
+                return angle ? c.Session.Ucs.AngleToUcs(Math.Atan2(between.Y, between.X)) : between.Length;
+            }
+
+            CadPrompt second = CadPrompt.ForPoint("Specify second point", first);
+            yield return moved == null ? second : second.Previewing(CadPreview.MovingOne(c, c.Selected, input => moved(Between(input.Point)), true));
 
             if (c.Input.IsPoint)
             {
-                GeoVector2 between = c.Input.Point - first;
-                result.Value = angle ? c.Session.Ucs.AngleToUcs(Math.Atan2(between.Y, between.X)) : between.Length;
+                result.Value = Between(c.Input.Point);
             }
         }
 

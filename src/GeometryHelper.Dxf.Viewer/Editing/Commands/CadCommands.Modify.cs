@@ -680,7 +680,15 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             c.Session.LastPoint = first;
-            yield return CadPrompt.ForPoint("Specify second break point", null, new[] { "First point" });
+
+            // The part the second point at the cursor would take out, faded as TRIM's.
+            CadPreview Gap(GeoPoint2 from) => CadPreview.Fading(c, input =>
+            {
+                var gone = new List<DxfEntity>();
+                return BreakAt(c, handle, from, input.Point, gone) ? gone : null;
+            });
+
+            yield return CadPrompt.ForPoint("Specify second break point", null, new[] { "First point" }).Previewing(Gap(first));
 
             if (c.Input.Is("First point"))
             {
@@ -692,7 +700,7 @@ namespace GeometryHelper.Dxf.Viewer
                 }
 
                 first = c.Input.Point;
-                yield return CadPrompt.ForPoint("Specify second break point", first);
+                yield return CadPrompt.ForPoint("Specify second break point", first).Previewing(Gap(first));
             }
 
             if (c.Input.IsPoint)
@@ -727,7 +735,11 @@ namespace GeometryHelper.Dxf.Viewer
             }
         }
 
-        private static bool BreakAt(CadCommandContext c, string handle, GeoPoint2 first, GeoPoint2 second)
+        /// <summary>
+        /// Breaks an object between two points, or in two at one. Given a list to preview into, it adds the pieces the break
+        /// takes out to it instead, and changes nothing; false where it takes none out, as a break at one point takes none.
+        /// </summary>
+        private static bool BreakAt(CadCommandContext c, string handle, GeoPoint2 first, GeoPoint2 second, List<DxfEntity> gone = null)
         {
             var curve = (DxfCurve)c.Document.FindEntity(handle);
             double eps = Slack(c);
@@ -740,7 +752,7 @@ namespace GeometryHelper.Dxf.Viewer
                 return false;
             }
 
-            IReadOnlyList<DxfCurve> pieces;
+            IReadOnlyList<DxfCurve> pieces = null;
             var kept = new List<DxfCurve>();
 
             if (curve.Closed)
@@ -807,6 +819,18 @@ namespace GeometryHelper.Dxf.Viewer
                         kept.Add(pieces[pieces.Count - 1]);
                     }
                 }
+            }
+
+            if (gone != null)
+            {
+                if (pieces == null)
+                {
+                    return false;
+                }
+
+                // No cut inside the object takes all of it out.
+                gone.AddRange(pieces.Count == 0 ? new[] { (DxfCurve)curve.Clone() } : pieces.Where(p => !kept.Contains(p)));
+                return gone.Count > 0;
             }
 
             return Replace(c, handle, kept, "Break");
