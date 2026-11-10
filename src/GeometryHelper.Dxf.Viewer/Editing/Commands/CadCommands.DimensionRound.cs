@@ -64,7 +64,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             // Under DIMATFIT 0 to 2 a radius's words go where the fit puts them however far out the line was put, as AutoCAD 2021
             // draws them: "R20" put 35 out stands in the middle of the radius.
-            bool fitted = !placed && !diameter && !style.Dimtix && style.Dimatfit != 3;
+            bool fitted = !placed && !diameter && !style.Dimtix && style.Dimatfit != 3 && style.Dimtmove == 0;
 
             if (along > radius + 1E-9 && !fitted)
             {
@@ -82,7 +82,7 @@ namespace GeometryHelper.Dxf.Viewer
                 farArrow = diameter;
                 farOut = true;
             }
-            else if (placed || style.Dimatfit == 3)
+            else if (placed || style.Dimatfit == 3 || (!diameter && style.Dimtmove == 1))
             {
                 arrowOut = false;
                 textOut = false;
@@ -224,8 +224,24 @@ namespace GeometryHelper.Dxf.Viewer
             GeoPoint2 from = diameter ? far + u * farTrim : center;
             var lines = new List<KeyValuePair<GeoPoint2, GeoPoint2>> { new KeyValuePair<GeoPoint2, GeoPoint2>(from, chord - u * trim) };
             double across = Cross(u, location - center);
+            bool onLine = Math.Abs(across) < height / 2.0 + gap;
+            double along = (location - center).X * u.X + (location - center).Y * u.Y;
+            double reach = (chord - center).Length;
+            bool pushed = !diameter && onLine && along < reach && (along - width / 2.0 - gap <= 0.0 || along + width / 2.0 + gap >= reach);
 
-            if (Math.Abs(across) < height / 2.0 + gap)
+            if (pushed)
+            {
+                // Words on a radius's line over its centre or its rim put its arrowhead outside, pointing in, on a line an
+                // arrowhead long, and its line runs whole from the centre to the rim, as AutoCAD 2021 draws "R20" put 1 out
+                // under DIMTMOVE 2; put 8 out they leave the arrowhead inside and the line broken about them.
+                lines = new List<KeyValuePair<GeoPoint2, GeoPoint2>> { new KeyValuePair<GeoPoint2, GeoPoint2>(center, chord) };
+
+                if (trim > 0.0)
+                {
+                    lines.Add(new KeyValuePair<GeoPoint2, GeoPoint2>(chord + u * trim, chord + u * (2.0 * trim)));
+                }
+            }
+            else if (onLine)
             {
                 lines = Broken(lines, location - new GeoVector2(-u.Y, u.X) * across, u, width / 2.0 + gap);
             }
@@ -235,7 +251,7 @@ namespace GeometryHelper.Dxf.Viewer
                 picture.Add(Lined(new DxfLine(P3(line.Key), P3(line.Value)), style.Dimclrd, style.Dimlwd));
             }
 
-            AddArrow(picture, style, DxfDimArrowFlag.FirstArrow, chord, u, arrow);
+            AddArrow(picture, style, DxfDimArrowFlag.FirstArrow, chord, pushed ? -u : u, arrow);
 
             if (diameter)
             {

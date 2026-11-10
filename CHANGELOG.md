@@ -6,6 +6,14 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** A radius dimension made in the presenter with its words put inside the circle under DIMTMOVE 1 or 2 is drawn
+as AutoCAD 2021 draws it. Under 1 its words stay where DIMATFIT 3 keeps them whatever DIMATFIT says: "R12" put 11 out
+under DIMATFIT 0 stands 3.4 out, not in the middle of the line. Under 2, words on the line over the centre or the rim put
+the arrowhead outside the rim, pointing in, and the line runs whole from the centre to the rim: "R20" put 1 out. Put 8 out
+they leave the arrowhead inside and the line broken about them, as before. Of 212 pictures of radii from 3 to 26 with
+their words put 0.5 to 11 out, 212 match AutoCAD's where 30 of the first 120 did; round 5's radius-3 cases now match too
+(154 of 192 there, from 140). The diameters of that round are left as they were.
+
 **FIXED.** DIMTEDIT Left and Right in the presenter put a linear dimension's words where AutoCAD 2021 puts them: an
 arrowhead and a gap in from the extension line, then the words with a gap about them, where they stood two arrowheads
 in. "100" of Arial on a line at 30 degrees stands 6.733 in from its end, not 7.983. The left of a vertical line is its top,

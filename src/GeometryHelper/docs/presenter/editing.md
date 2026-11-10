@@ -215,6 +215,9 @@ on the arc, which then runs through the point given, under DIMTMOVE 0 ("60°" mo
 out, above the arc as it reads), level past a leader from the middle of the arc under 1, and turned along the arc under
 2. Those of a radius or a diameter slide along its line, which stays, to where the point falls on it under 0 and 1, and
 stand at the point under 2; a radius made under 1 or 2 keeps its line through the point the circle was picked at.
+A radius put inside under 1 keeps its words as DIMATFIT 3 does, whatever DIMATFIT; under 2, words on its line over its
+centre or its rim put its arrowhead outside, pointing in, and its line runs whole from the centre to the rim: "R20" put 1
+out. Put 8 out they leave the arrowhead inside and the line broken about them.
 The words are measured in the font of the dimension's text style, laid out as the canvas lays out an MTEXT, as AutoCAD
 measures them: "R20" of arial.ttf 2.5 high is 5.965 wide and 2.553 high, "100" of ghsimplex 6.071 wide and widened 1.5
 times 9.107. A TrueType font is read from the Fonts folders of Windows, an SHX font where the fonts set on the document

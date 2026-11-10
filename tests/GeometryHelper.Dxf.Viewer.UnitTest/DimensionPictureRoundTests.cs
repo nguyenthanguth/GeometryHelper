@@ -914,5 +914,35 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Near(At30(2.5 + Gap + 3.75, 20), P2(Words(dimension).Location), 1E-9);
             Assert.Equal(0.0, Words(dimension).Rotation, 9);
         }
+
+        [Fact]
+        public void UnderDimtmoveTwo_WordsOverTheCentreOfARadius_PutItsArrowheadOutside_AndWordsBetweenLeaveItInside()
+        {
+            // "R20" put 1 out on its line: the words over the centre, the arrowhead outside the rim pointing in, on a line from
+            // 22.5 to 25, and the line from the centre to the rim whole, as AutoCAD 2021 draws it.
+            CadCommandSession session = Metric(s => { s.Dimtmove = 2; s.Dimatfit = 0; });
+            Run(session, "DRA", new[] { Circle(session, 20) }, At30(1));
+            DxfDimension dimension = Made(session);
+            Near(At30(22.5), Back(ArrowAt(dimension, At30(20))), 1E-3);
+            HasLine(dimension, P(0, 0), At30(20));
+            HasLine(dimension, At30(22.5), At30(25));
+
+            // Put 8 out they cover neither the centre nor the rim: the arrowhead inside, the line broken about them.
+            session = Metric(s => { s.Dimtmove = 2; s.Dimatfit = 0; });
+            Run(session, "DRA", new[] { Circle(session, 20) }, At30(8));
+            dimension = Made(session);
+            Near(At30(17.5), Back(ArrowAt(dimension, At30(20))), 1E-3);
+            HasLine(dimension, P(0, 0), At30(8 - 3 * Letter / 2 - Gap));
+        }
+
+        [Fact]
+        public void UnderDimtmoveOne_ARadiusPutInside_KeepsItsWordsAsBestFitDoes()
+        {
+            // "R12", 5.25 wide here, put 11 out under DIMATFIT 0 stands no nearer the rim than two arrowheads and the gap,
+            // 12 - 5 - 0.625 - 2.625 = 3.75 out, as AutoCAD 2021 keeps "R12" 3.4 out under DIMATFIT 0 and 3 alike.
+            CadCommandSession session = Metric(s => { s.Dimtmove = 1; s.Dimatfit = 0; });
+            Run(session, "DRA", new[] { Circle(session, 12) }, At30(11));
+            Near(At30(3.75, Lift), P2(Words(Made(session)).Location), 1E-9);
+        }
     }
 }
