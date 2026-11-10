@@ -121,11 +121,20 @@ the ones wanted.
 
 ### To do
 
-- [ ] DWG through ACadSharp (MIT, reads and writes AC1014-AC1032): first a trial that opens AutoCAD-made DWGs through it
-      into the library's DXF, compares what arrives with AutoCAD's own DXF of the same drawing, saves back to DWG, has
-      AutoCAD 2021 AUDIT it and reads it back, and lists what is lost; then, if the maintainer agrees, a project of its own
-      (GeometryHelper.Dwg) so the core takes no new dependency, Open, Save As DWG (2000-2018) and drag and drop in
-      GeometryHelper DXF, DWG xrefs (M)
+- [ ] DWG, our own reader and writer (the maintainer's choice: code of our own, to change at will). Sources: the Open
+      Design Specification for .dwg (the main one), ACadSharp (MIT: may be ported, with its notice), LibreDWG (GPLv3: its
+      documentation only, never its code). The reader turns a DWG into the library's DXF records, so everything built
+      works on DWG; the writer goes back. Checked against DWGs and DXFs AutoCAD 2021 writes through a probe plugin, AUDIT
+      of what we write, ACadSharp as a side check in scratch only.
+  - [ ] W1 Bits and R2000 (AC1015): bit codes, CRC, header, section locator, header variables, classes, tables, blocks,
+        the common entities and objects, the handle map (L)
+  - [ ] W2 R2004, R2010, R2013, R2018 (AC1018-AC1032): pages, LZ77 compression, the encrypted header, the object stream
+        of 2010 on (L)
+  - [ ] W3 R2007 (AC1021): its own layout, Reed-Solomon, Unicode strings (M-L)
+  - [ ] W4 Every entity and object: hatch, dimension, MTEXT, multileader, table, dynamic block data, xref, image,
+        layouts; proxies kept as they are (L)
+  - [ ] W5 Writing R2018 (AutoCAD 2021's own), then R2000-R2013 if wanted (L)
+  - [ ] W6 GeometryHelper DXF: Open and Save As DWG, drag and drop, DWG xrefs (M)
 - [ ] Dynamic input at the cursor as AutoCAD's with DYN on: what is typed at the Command prompt shows in a box at the
       cursor with the AutoComplete list under it, the prompt and its options (the ▼ menu) at the cursor in a command,
       the command line keeping its own copy; with DYN off only the command line (M) (running; designed in v111)
