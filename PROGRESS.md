@@ -129,7 +129,7 @@ the ones wanted.
       documentation only, never its code). The reader turns a DWG into the library's DXF records, so everything built
       works on DWG; the writer goes back. Checked against DWGs and DXFs AutoCAD 2021 writes through a probe plugin, AUDIT
       of what we write, ACadSharp as a side check in scratch only.
-  - [ ] W1 Bits and R2000 (AC1015): bit codes, CRC, header, section locator, header variables, classes, tables, blocks,
+  - [ ] W1 (running) Bits and R2000 (AC1015): bit codes, CRC, header, section locator, header variables, classes, tables, blocks,
         the common entities and objects, the handle map (L)
   - [ ] W2 R2004, R2010, R2013, R2018 (AC1018-AC1032): pages, LZ77 compression, the encrypted header, the object stream
         of 2010 on (L)
