@@ -116,7 +116,7 @@ namespace GeometryHelper.Dxf.Viewer
         /// font the big font's letter of the text's bytes in its code page, a byte that opens a pair taken with the next; else
         /// the question mark of the font, or of the big font. A space the font has not moves the pen by its A or its height.
         /// </summary>
-        private static ShxGlyph Pick(CadFontFace face, string line, ref int i, out ShxFont from)
+        internal static ShxGlyph Pick(CadFontFace face, string line, ref int i, out ShxFont from)
         {
             int c = line[i];
 

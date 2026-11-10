@@ -275,7 +275,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         [Fact]
-        public void ATextOnTheRightEndsWithItsInk_AndOneEndingInASpaceWithItsLastPen()
+        public void ATextOnTheRightEndsWithItsInk_AndSoDoesALineOfAnMTextEndingInASpace()
         {
             _folder.Write("test.shx", ShxFiles.Unifont());
             Action<DxfDBText> right = t =>
@@ -289,11 +289,13 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             inked.Fonts = Fonts();
             spaced.Fonts = Fonts();
 
-            // Inked to 2.5: the last line on 10. A line with a space after it ends at its last pen, 4 + 2.5: its second line
-            // at 10 - 6.5 + 2.5; the line under it, of no space after, ends with its ink on 10.
+            // Inked to 2.5: the last line on 10. A line of an MTEXT with a space after it ends with its ink on 10 as well, the
+            // space not counted, as AutoCAD sets it; and so does the line under it.
             Point(10, 0, Shown(inked).Strokes[1], 0);
-            Assert.Equal(6.0, Shown(spaced).Strokes[1][0], 9);
-            Assert.Equal(10.0, Shown(spaced).Strokes[2][0], 9);
+            DisplayText2[] parts = Shown(spaced).Parts.OfType<DisplayText2>().ToArray();
+            Assert.Equal(2, parts.Length);
+            Assert.Equal(10.0, parts[0].Strokes[1][0], 9);
+            Assert.Equal(10.0, parts[1].Strokes[0][0], 9);
         }
 
         [Fact]
@@ -344,7 +346,9 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             DisplayText2 shown = Shown(document);
 
             Assert.Equal("test.shx", shown.FontName);
-            Assert.Single(shown.Strokes);
+            DisplayText2 part = Assert.IsType<DisplayText2>(Assert.Single(shown.Parts));
+            Assert.Equal("test.shx", part.FontName);
+            Assert.Single(part.Strokes);
         }
 
         [Fact]
