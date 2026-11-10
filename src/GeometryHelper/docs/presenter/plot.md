@@ -218,6 +218,35 @@ writes the [`CadImageJob`](xref:GeometryHelper.Dxf.Viewer.CadImageJob) the comma
 at 1 920 by 1 080 showing the extents where there is none. A view of 1 920 by 1 080 of a drawing of 100 000 entities is
 written as a PNG of 1.2 MB in 0.25 s (.NET Framework 4.8; 0.20 s on .NET 10).
 
+## EXPORT and -EXPORT
+
+EXPORT asks for the file in the window's Export Data dialog, which lists the types AutoCAD 2021's help gives for it: 3D
+DWF, 3D DWFx, ACIS, Bitmap, Block, DXX Extract, Encapsulated PS, IGES, Lithography, Metafile, V7 DGN and V8 DGN
+([`CadExportJob.ExportFileTypes`](xref:GeometryHelper.Dxf.Viewer.CadExportJob)). Bitmap goes on as BMPOUT does, with
+`Select objects or <all objects and viewports>:`. The presenter has no writer for the other types, so EXPORT refuses them
+and writes nothing: `Metafile (*.wmf) has no writer in the presenter: nothing was exported.`, with a pointer to PNGOUT,
+JPGOUT and BMPOUT, PLOT and -EXPORT, and SAVEAS. AutoCAD's EXPORT lists no DXF, PNG, JPG or PDF, and neither does this
+one. Bitmap is offered first; after that, the type last chosen is offered for the rest of the session. With FILEDIA 0, or
+with no window, EXPORT asks `Enter file name <C:\Plans\plan-level2.bmp>:`. A name ending in the extension of a listed type
+takes that type, as `plan.dgn` takes V7 DGN; any other name has the extension of the type last chosen added.
+
+-EXPORT asks AutoCAD 2021's prompts, as its console writes them:
+
+```text
+Command: -EXPORT
+Enter file format [Dwf/dwfX/Pdf] <dwfX>P
+Enter plot area [Display/Extents/Window] <Display>: E
+Detailed plot configuration? [Yes/No] <No>:
+```
+
+On a layout the area is asked as `Enter plot area [Current layout/All layouts] <Current Layout>:`. Window asks
+`Specify first corner:` and `Specify opposite corner:`. Yes at the detailed configuration asks the paper size, its units,
+the orientation, the scale, the plot styles, the style table and the lineweights, in -PLOT's words. The file is then asked
+in the window's Save As PDF dialog, or with FILEDIA 0 as `Enter file name <C:\Plans\plan-level2-Model.pdf>:`. -PLOT's
+PDF writer writes it from the page setup of the space, with the area and the answers given. The format answered becomes
+the default of the next -EXPORT, as AutoCAD keeps EXPORTEPLOTFORMAT. Dwf and dwfX have no writer, and neither does All
+layouts, since the writer makes one sheet; -EXPORT refuses all three and writes nothing.
+
 ## See also
 
 - [Editing as AutoCAD does](editing.md): the command line and the undo steps.

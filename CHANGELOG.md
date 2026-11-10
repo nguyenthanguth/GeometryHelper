@@ -6,6 +6,17 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** EXPORT and -EXPORT in the presenter, as AutoCAD 2021 has them. EXPORT's Export Data dialog lists AutoCAD's
+types: 3D DWF, 3D DWFx, ACIS, Bitmap, Block, DXX Extract, Encapsulated PS, IGES, Lithography, Metafile, V7 DGN and V8 DGN.
+Bitmap is written as BMPOUT writes it. The other types have no writer and are refused, with nothing written:
+`Metafile (*.wmf) has no writer in the presenter: nothing was exported.` -EXPORT asks
+`Enter file format [Dwf/dwfX/Pdf] <dwfX>`, then `Enter plot area [Display/Extents/Window] <Display>:` (on a layout
+`[Current layout/All layouts]`), then `Detailed plot configuration? [Yes/No] <No>:`, word for word as AutoCAD 2021's
+console asks them. It then asks for the file in a Save As PDF dialog, or on the command line with FILEDIA 0, and writes
+the PDF with -PLOT's writer. Dwf, dwfX and All layouts are refused. The format answered becomes the next default. The
+file dialogs go through `MainViewModel.AskExportFile` and a [`CadExportJob`](xref:GeometryHelper.Dxf.Viewer.CadExportJob),
+and Other Formats under Export in the application menu, greyed until now, runs EXPORT. The registry holds 175 commands.
+
 **NEW.** The presenter's command line searches the drawing's content, as AutoCAD 2021's Search Content: below the
 commands and system variables, under a rule, the AutoComplete list holds the blocks, layers, hatch patterns, text styles
 and dimension styles whose names begin with the letters typed, then those with the letters inside, each kind by name and

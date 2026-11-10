@@ -210,7 +210,7 @@ list at the right; a click on the item runs the first entry of its list.
 | New | Drawing (NEW); Drawing from a model, where a host makes them |
 | Open | Drawing (the Open dialog, Ctrl+O) |
 | Save As | Drawing (SAVEAS); Drawing Template and Other Formats greyed |
-| Export | PDF (PLOT, to GeometryHelper PDF), PNG, JPG and BMP (PNGOUT, JPGOUT, BMPOUT), Block or objects to a DXF (WBLOCK); Other Formats greyed |
+| Export | PDF (PLOT, to GeometryHelper PDF), PNG, JPG and BMP (PNGOUT, JPGOUT, BMPOUT), Block or objects to a DXF (WBLOCK), Other Formats (EXPORT) |
 | Print | Plot (PLOT), Plot Preview (PREVIEW), Page Setup (PAGESETUP); Batch Plot and Manage Plot Styles greyed |
 | Close | Current Drawing (CLOSE), All Drawings |
 

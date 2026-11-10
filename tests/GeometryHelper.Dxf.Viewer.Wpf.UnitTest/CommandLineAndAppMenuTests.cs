@@ -813,7 +813,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             AppMenuViewModel menu = Opened().CreateAppMenu();
             AppMenuItemViewModel export = menu.Items.Single(i => i.Key == "export");
             Assert.Equal(new[] { "PDF", "PNG", "JPG", "BMP", "Block or objects to a DXF", "Other Formats" }, export.Items.Select(i => i.Name));
-            Assert.Equal(new[] { true, true, true, true, true, false }, export.Items.Select(i => i.IsEnabled));
+            Assert.Equal(new[] { true, true, true, true, true, true }, export.Items.Select(i => i.IsEnabled));
             Assert.Equal(new[] { "Plot", "Batch Plot", "Plot Preview", "Page Setup", "Manage Plot Styles" }, menu.Items.Single(i => i.Key == "print").Items.Select(i => i.Name));
             Assert.Equal(new[] { true, false, true, true, false }, menu.Items.Single(i => i.Key == "print").Items.Select(i => i.IsEnabled));
             Assert.Equal(new[] { "Drawing", "Drawing Template", "Other Formats" }, menu.Items.Single(i => i.Key == "saveas").Items.Select(i => i.Name));
@@ -865,9 +865,17 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             menu.Choose(export);
             Assert.NotNull(shown);
 
-            // An entry not built does nothing.
+            // Other Formats runs EXPORT, its Export Data dialog through the function the workspace sets.
+            CadExportJob asked2 = null;
+            model.AskExportFile = job =>
+            {
+                asked2 = job;
+                job.FileName = null;
+            };
             menu.Choose(export.Items[5]);
-            Assert.Equal(3, closed);
+            Assert.Equal(4, closed);
+            Assert.Contains("Command: EXPORT", model.History);
+            Assert.Equal("Export Data", asked2.Title);
         }
 
         [Fact]

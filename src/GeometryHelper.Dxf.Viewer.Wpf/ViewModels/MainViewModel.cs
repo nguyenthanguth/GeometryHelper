@@ -1506,6 +1506,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 case "BMPOUT":
                     OnImageFileRequested(e);
                     break;
+                case "EXPORT":
+                case "-EXPORT":
+                    OnExportFileRequested(e);
+                    break;
                 case "QSELECT":
                     OnQuickSelectRequested(e);
                     break;

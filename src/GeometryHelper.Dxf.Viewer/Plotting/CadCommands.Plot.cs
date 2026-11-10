@@ -244,35 +244,9 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>The prompts of -PLOT's detailed configuration after the device, each setting what it asks.</summary>
         private static IEnumerable<CadPrompt> PlotDetails(CadCommandContext c, CadSpace space, CadPlotSettings settings)
         {
-            while (true)
+            foreach (CadPrompt prompt in PlotPaperSize(c, settings))
             {
-                yield return CadPrompt.ForKeywordOrText("Enter paper size or", new[] { "?" }, settings.Paper.Label);
-
-                if (c.Input.Is("?"))
-                {
-                    foreach (CadPaper each in settings.IsRaster ? CadPaper.PixelSizes : CadPaper.Standard)
-                    {
-                        c.Write(each.Label);
-                    }
-
-                    continue;
-                }
-
-                if (c.Input.Kind == CadInputKind.Text)
-                {
-                    // A raster device takes an image's size, the listed ones or the user's own "2480 x 1754".
-                    CadPaper paper = settings.IsRaster ? PixelsNamed(c.Input.Text.Trim()) : PaperNamed(c.Input.Text.Trim());
-
-                    if (paper == null)
-                    {
-                        c.Write("Paper size \"" + c.Input.Text.Trim() + "\" not found.");
-                        continue;
-                    }
-
-                    settings.Paper = paper;
-                }
-
-                break;
+                yield return prompt;
             }
 
             // An image is measured in pixels alone, as AutoCAD's raster devices are.
@@ -309,29 +283,9 @@ namespace GeometryHelper.Dxf.Viewer
 
             double unit = inches ? 25.4 : 1.0;
 
-            while (true)
+            foreach (CadPrompt prompt in PlotScale(c, settings, unit, units))
             {
-                string scale = settings.FitToPaper ? "Fit" : Number(settings.PaperUnits / unit) + "=" + Number(settings.DrawingUnits);
-                yield return CadPrompt.ForKeywordOrText("Enter plot scale (Plotted " + units + "=Drawing Units) or", new[] { "Fit" }, scale);
-
-                if (c.Input.Is("Fit"))
-                {
-                    settings.FitToPaper = true;
-                }
-                else if (c.Input.Kind == CadInputKind.Text)
-                {
-                    if (!TryRatio(c.Input.Text, out double paper, out double drawing))
-                    {
-                        c.Write("Requires a scale, as 1=20, or Fit.");
-                        continue;
-                    }
-
-                    settings.FitToPaper = false;
-                    settings.PaperUnits = paper * unit;
-                    settings.DrawingUnits = drawing;
-                }
-
-                break;
+                yield return prompt;
             }
 
             while (true)
@@ -359,6 +313,94 @@ namespace GeometryHelper.Dxf.Viewer
                 break;
             }
 
+            foreach (CadPrompt prompt in PlotStyles(c, settings))
+            {
+                yield return prompt;
+            }
+
+            if (space.IsModel)
+            {
+                // A 2D plot is as displayed whatever is answered, as AutoCAD plots 2D Wireframe.
+                yield return CadPrompt.ForKeyword("Enter shade plot setting", new[] { "As displayed", "legacy Wireframe", "legacy Hidden", "Visual styles", "Rendered" }, "As displayed");
+            }
+            else
+            {
+                yield return CadPrompt.ForKeyword("Scale lineweights with plot scale?", PlotYesNo, settings.ScaleLineweights ? "Yes" : "No");
+                settings.ScaleLineweights = c.Input.IsNone ? settings.ScaleLineweights : c.Input.Is("Yes");
+
+                // Paper space plots after its viewports and shows its objects, whatever is answered.
+                yield return CadPrompt.ForKeyword("Plot paper space first?", PlotYesNo, "No");
+                yield return CadPrompt.ForKeyword("Hide paperspace objects?", PlotYesNo, "No");
+            }
+        }
+
+        /// <summary>"Enter paper size or [?]", a sheet for the PDF device, an image's size for a raster one.</summary>
+        private static IEnumerable<CadPrompt> PlotPaperSize(CadCommandContext c, CadPlotSettings settings)
+        {
+            while (true)
+            {
+                yield return CadPrompt.ForKeywordOrText("Enter paper size or", new[] { "?" }, settings.Paper.Label);
+
+                if (c.Input.Is("?"))
+                {
+                    foreach (CadPaper each in settings.IsRaster ? CadPaper.PixelSizes : CadPaper.Standard)
+                    {
+                        c.Write(each.Label);
+                    }
+
+                    continue;
+                }
+
+                if (c.Input.Kind == CadInputKind.Text)
+                {
+                    // A raster device takes an image's size, the listed ones or the user's own "2480 x 1754".
+                    CadPaper paper = settings.IsRaster ? PixelsNamed(c.Input.Text.Trim()) : PaperNamed(c.Input.Text.Trim());
+
+                    if (paper == null)
+                    {
+                        c.Write("Paper size \"" + c.Input.Text.Trim() + "\" not found.");
+                        continue;
+                    }
+
+                    settings.Paper = paper;
+                }
+
+                break;
+            }
+        }
+
+        /// <summary>"Enter plot scale (Plotted Millimeters=Drawing Units) or [Fit]", in the paper units given.</summary>
+        private static IEnumerable<CadPrompt> PlotScale(CadCommandContext c, CadPlotSettings settings, double unit, string units)
+        {
+            while (true)
+            {
+                string scale =settings.FitToPaper ? "Fit" : Number(settings.PaperUnits / unit) + "=" + Number(settings.DrawingUnits);
+                yield return CadPrompt.ForKeywordOrText("Enter plot scale (Plotted " + units + "=Drawing Units) or", new[] { "Fit" }, scale);
+
+                if (c.Input.Is("Fit"))
+                {
+                    settings.FitToPaper = true;
+                }
+                else if (c.Input.Kind == CadInputKind.Text)
+                {
+                    if (!TryRatio(c.Input.Text, out double paper, out double drawing))
+                    {
+                        c.Write("Requires a scale, as 1=20, or Fit.");
+                        continue;
+                    }
+
+                    settings.FitToPaper = false;
+                    settings.PaperUnits = paper * unit;
+                    settings.DrawingUnits = drawing;
+                }
+
+                break;
+            }
+        }
+
+        /// <summary>"Plot with plot styles?", "Enter plot style table name (enter . for none) or [?]" and "Plot with lineweights?".</summary>
+        private static IEnumerable<CadPrompt> PlotStyles(CadCommandContext c, CadPlotSettings settings)
+        {
             yield return CadPrompt.ForKeyword("Plot with plot styles?", PlotYesNo, settings.PlotWithPlotStyles ? "Yes" : "No");
             settings.PlotWithPlotStyles = c.Input.IsNone ? settings.PlotWithPlotStyles : c.Input.Is("Yes");
 
@@ -403,21 +445,6 @@ namespace GeometryHelper.Dxf.Viewer
 
             yield return CadPrompt.ForKeyword("Plot with lineweights?", PlotYesNo, settings.PlotLineweights ? "Yes" : "No");
             settings.PlotLineweights = c.Input.IsNone ? settings.PlotLineweights : c.Input.Is("Yes");
-
-            if (space.IsModel)
-            {
-                // A 2D plot is as displayed whatever is answered, as AutoCAD plots 2D Wireframe.
-                yield return CadPrompt.ForKeyword("Enter shade plot setting", new[] { "As displayed", "legacy Wireframe", "legacy Hidden", "Visual styles", "Rendered" }, "As displayed");
-            }
-            else
-            {
-                yield return CadPrompt.ForKeyword("Scale lineweights with plot scale?", PlotYesNo, settings.ScaleLineweights ? "Yes" : "No");
-                settings.ScaleLineweights = c.Input.IsNone ? settings.ScaleLineweights : c.Input.Is("Yes");
-
-                // Paper space plots after its viewports and shows its objects, whatever is answered.
-                yield return CadPrompt.ForKeyword("Plot paper space first?", PlotYesNo, "No");
-                yield return CadPrompt.ForKeyword("Hide paperspace objects?", PlotYesNo, "No");
-            }
         }
 
         private static CadSpace SpaceNamed(CadDocument document, string name)
