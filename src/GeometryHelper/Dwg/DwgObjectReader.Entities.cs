@@ -185,6 +185,13 @@ namespace GeometryHelper.Dwg
                 fitPoints.Add(new GeoPoint3(point[0], point[1], point[2]));
             }
 
+            if (R2013Plus && (flags & 1) != 0)
+            {
+                // From R2013 AutoCAD keeps a periodic spline clamped and marked closed alone, and writes a closed one to
+                // DXF as periodic too.
+                flags |= 2;
+            }
+
             bool startGiven = false;
             bool endGiven = false;
 

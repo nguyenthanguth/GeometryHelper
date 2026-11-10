@@ -247,7 +247,7 @@ namespace GeometryHelper.Dwg
         /// <summary>BLL: a bit long long. Three bits give the count of bytes that follow, low byte first.</summary>
         public long BitLongLong()
         {
-            int count = Bits3();
+            int count = (int)Bits(3);
             long value = 0;
 
             for (int i = 0; i < count; i++)

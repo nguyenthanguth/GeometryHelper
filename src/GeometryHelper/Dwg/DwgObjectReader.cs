@@ -127,6 +127,9 @@ namespace GeometryHelper.Dwg
             { 0x4E, "HATCH" }, { 0x4F, "XRECORD" }, { 0x50, "ACDBPLACEHOLDER" }, { 0x51, "VBA_PROJECT" }, { 0x52, "LAYOUT" },
         };
 
+        /// <summary>AutoCAD's greys of the colour indexes 250 to 255.</summary>
+        private static readonly int[] Greys = { 51, 80, 105, 130, 190, 255 };
+
         private readonly byte[] _file;
         private readonly int _version;
         private readonly Dictionary<int, DwgClass> _classes = new Dictionary<int, DwgClass>();
@@ -471,6 +474,49 @@ namespace GeometryHelper.Dwg
         /// colour in the low three bytes, 0xC3 an index in the low byte), and a byte saying a colour name and a book name
         /// follow as texts.
         /// </summary>
+        /// <summary>
+        /// The colour index nearest a true colour, by the squared distance of red, green and blue, the lower index on a tie:
+        /// the index DXF writes with a true colour, which the file does not hold. The palette is the library's, but for the
+        /// greys 250 to 255, which AutoCAD has as 51, 80, 105, 130, 190 and 255.
+        /// </summary>
+        private static int NearestIndex(int rgb)
+        {
+            int nearest = 1;
+            long best = long.MaxValue;
+
+            for (int i = 1; i <= 255; i++)
+            {
+                int r;
+                int g;
+                int b;
+
+                if (i >= 250)
+                {
+                    r = g = b = Greys[i - 250];
+                }
+                else
+                {
+                    GeometryHelper.Dxf.DxfColor palette = GeometryHelper.Dxf.DxfColor.OfIndex(i);
+                    r = palette.Red;
+                    g = palette.Green;
+                    b = palette.Blue;
+                }
+
+                long dr = r - ((rgb >> 16) & 0xFF);
+                long dg = g - ((rgb >> 8) & 0xFF);
+                long db = b - (rgb & 0xFF);
+                long distance = (dr * dr) + (dg * dg) + (db * db);
+
+                if (distance < best)
+                {
+                    best = distance;
+                    nearest = i;
+                }
+            }
+
+            return nearest;
+        }
+
         private DwgColour ReadColour()
         {
             var colour = new DwgColour { Index = _data.BitShort() };
@@ -488,9 +534,9 @@ namespace GeometryHelper.Dwg
                 case 0xC0: colour.Index = 256; break;
                 case 0xC1: colour.Index = 0; break;
                 case 0xC2:
-                    // The index a true colour is written with in DXF is the nearest of the palette, where the file gives none.
+                    // DXF writes a true colour with the nearest index of the palette; the index the file holds beside it is not that.
                     colour.Rgb = rgb & 0xFFFFFF;
-                    colour.Index = colour.Index > 0 && colour.Index < 256 ? colour.Index : GeometryHelper.Dxf.DxfColor.OfRgb(colour.Rgb, null).ColorIndex;
+                    colour.Index = NearestIndex(colour.Rgb);
                     break;
                 case 0xC3: colour.Index = rgb & 0xFF; break;
             }
