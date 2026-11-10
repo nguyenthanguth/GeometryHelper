@@ -27,7 +27,8 @@ namespace GeometryHelper.UnitTest.Dwg
     /// </para>
     /// <para>
     /// <c>$ACADMAINTVER</c>, <c>$HANDSEED</c> and the times (<c>$TDCREATE</c>, <c>$TDUPDATE</c>, <c>$TDINDWG</c>,
-    /// <c>$TDUSRTIMER</c>) are those of the later save; <c>$CMLSTYLE</c> differs in case.
+    /// <c>$TDUSRTIMER</c>) are those of the later save; <c>$CMLSTYLE</c> differs in case. From R2004 a class counts its
+    /// objects (group 91), and AutoCAD makes a few objects as it reads a drawing, so the counts of the key may be higher.
     /// </para>
     /// <para>
     /// A true colour does not exist in R2000: AutoCAD keeps it as round-trip data, extended data that starts with
@@ -327,6 +328,7 @@ namespace GeometryHelper.UnitTest.Dwg
                     else if (same && v1 != v2)
                     {
                         same = (k == "H:$CMLSTYLE" && string.Equals(v1, v2, StringComparison.OrdinalIgnoreCase))
+                            || (a.Type == "CLASS" && code == 91)
                             || Letters(v1) == Letters(v2)
                             || (long.TryParse(v1, NumberStyles.Integer, CultureInfo.InvariantCulture, out long m)
                                 && long.TryParse(v2, NumberStyles.Integer, CultureInfo.InvariantCulture, out long n) && m == n);

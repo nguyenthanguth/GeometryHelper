@@ -70,9 +70,10 @@ namespace GeometryHelper.Dwg
         /// <summary>
         /// A long text in pieces of at most <paramref name="size"/> bytes: every piece but the last under
         /// <paramref name="pieceCode"/>, the last under <paramref name="lastCode"/>. No piece ends between a caret and the
-        /// character it marks, nor, where <paramref name="doubleByte"/> is true, between the two bytes of a character.
+        /// character it marks, nor, where <paramref name="doubleByte"/> is true, between the two bytes of a character, nor,
+        /// where <paramref name="utf8"/> is true, inside a character of UTF-8.
         /// </summary>
-        public void WriteChunks(int pieceCode, int lastCode, byte[] text, int size, bool doubleByte)
+        public void WriteChunks(int pieceCode, int lastCode, byte[] text, int size, bool doubleByte, bool utf8 = false)
         {
             byte[] escaped = Escape(text);
             int from = 0;
@@ -83,7 +84,9 @@ namespace GeometryHelper.Dwg
 
                 while (true)
                 {
-                    int step = escaped[to] == (byte)'^' || (doubleByte && escaped[to] > 0x80) ? 2 : 1;
+                    byte b = escaped[to];
+                    int step = b == (byte)'^' || (doubleByte && b > 0x80) ? 2
+                        : !utf8 || b < 0xC0 ? 1 : b < 0xE0 ? 2 : b < 0xF0 ? 3 : 4;
 
                     if (to + step - from > size)
                     {

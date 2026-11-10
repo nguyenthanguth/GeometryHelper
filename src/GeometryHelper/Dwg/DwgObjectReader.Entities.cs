@@ -108,6 +108,21 @@ namespace GeometryHelper.Dwg
         private void ReadSpline()
         {
             int scenario = _data.BitLong();
+            DxfKnotParameterizationEnum parameterization = DxfKnotParameterizationEnum.Chord;
+
+            if (R2013Plus)
+            {
+                // From R2013 the flags and the knot parameterisation decide whether the spline is kept by its fit points.
+                int splineFlags = _data.BitLong();
+                int knotKind = _data.BitLong();
+                scenario = knotKind == 15 || (splineFlags & 8) == 0 ? 1 : 2;
+
+                if (knotKind == 1 || knotKind == 2)
+                {
+                    parameterization = (DxfKnotParameterizationEnum)knotKind;
+                }
+            }
+
             int degree = _data.BitLong();
             int flags = 0;
             int knots = 0;
@@ -184,7 +199,7 @@ namespace GeometryHelper.Dwg
                 flags |= 1024 | 32;
 
                 if (fitPoints.Count >= 2 && Finite(fitPoints) && DxfNurbsEdit.InterpolateCubic(fitPoints, startGiven ? start : default(GeoVector3),
-                    endGiven ? end : default(GeoVector3), DxfKnotParameterizationEnum.Chord, out List<GeoPoint3> kept, out List<double> fitted, out List<GeoPoint3> points))
+                    endGiven ? end : default(GeoVector3), parameterization, out List<GeoPoint3> kept, out List<double> fitted, out List<GeoPoint3> points))
                 {
                     fitPoints = kept;
                     knotValues = fitted;
@@ -259,8 +274,8 @@ namespace GeometryHelper.Dwg
             return true;
         }
 
-        /// <summary>A TEXT (<paramref name="kind"/> 0), an ATTRIB (1) or an ATTDEF (2).</summary>
-        private void ReadText(int kind)
+        /// <summary>A TEXT (<paramref name="kind"/> 0), an ATTRIB (1) or an ATTDEF (2); false for an attribute of several lines, which is not read yet.</summary>
+        private bool ReadText(int kind)
         {
             int flags = _data.RawChar();
             double elevation = (flags & 1) == 0 ? _data.RawDouble() : 0.0;
@@ -272,7 +287,7 @@ namespace GeometryHelper.Dwg
             double rotation = (flags & 8) == 0 ? _data.RawDouble() : 0.0;
             double height = _data.RawDouble();
             double widthFactor = (flags & 0x10) == 0 ? _data.RawDouble() : 1.0;
-            byte[] text = _data.Text();
+            byte[] text = T();
             int generation = (flags & 0x20) == 0 ? _data.BitShort() : 0;
             int horizontal = (flags & 0x40) == 0 ? _data.BitShort() : 0;
             int vertical = (flags & 0x80) == 0 ? _data.BitShort() : 0;
@@ -280,17 +295,38 @@ namespace GeometryHelper.Dwg
             byte[] prompt = null;
             int fieldLength = 0;
             int attributeFlags = 0;
+            int version = 0;
+            int locked = 0;
 
             if (kind != 0)
             {
-                tag = _data.Text();
+                version = R2010Plus ? _data.RawChar() : 0;
+
+                if (R2018Plus)
+                {
+                    // An attribute of several lines holds an MTEXT of its own, which is not read yet.
+                    int attributeType = _data.RawChar();
+
+                    if (attributeType == 2 || attributeType == 4)
+                    {
+                        return false;
+                    }
+                }
+
+                tag = T();
                 fieldLength = _data.BitShort();
                 attributeFlags = _data.RawChar();
+                locked = R2007Plus && _data.Bit() ? 1 : 0;
             }
 
             if (kind == 2)
             {
-                prompt = _data.Text();
+                if (R2010Plus)
+                {
+                    _data.RawChar();
+                }
+
+                prompt = T();
             }
 
             ulong style = H();
@@ -322,23 +358,32 @@ namespace GeometryHelper.Dwg
             {
                 _object.Add(100, "AcDbText");
                 AddNonZero(73, vertical);
-                return;
+                return true;
+            }
+
+            _object.Add(100, kind == 2 ? "AcDbAttributeDefinition" : "AcDbAttribute");
+
+            if (R2010Plus)
+            {
+                _object.Add(280, version);
             }
 
             if (kind == 2)
             {
-                _object.Add(100, "AcDbAttributeDefinition");
                 _object.Add(3, prompt);
-            }
-            else
-            {
-                _object.Add(100, "AcDbAttribute");
             }
 
             _object.Add(2, tag);
             _object.Add(70, attributeFlags);
             AddNonZero(73, fieldLength);
             AddNonZero(74, vertical);
+
+            if (R2007Plus)
+            {
+                _object.Add(280, locked);
+            }
+
+            return true;
         }
 
         private void ReadMText()
@@ -347,19 +392,49 @@ namespace GeometryHelper.Dwg
             double[] normal = _data.Point3();
             double[] direction = _data.Point3();
             double width = _data.BitDouble();
+            double rectangleHeight = R2007Plus ? _data.BitDouble() : 0.0;
             double height = _data.BitDouble();
             int attachment = _data.BitShort();
             int flow = _data.BitShort();
             _data.BitDouble();
             _data.BitDouble();
-            byte[] text = _data.Text();
+            byte[] text = T();
             int spacingStyle = _data.BitShort();
             double spacing = _data.BitDouble();
             ulong style = H();
+            int fill = 0;
+            double fillScale = 0.0;
+            DwgColour fillColour = null;
+            int fillTransparency = 0;
+
+            if (R2004Plus)
+            {
+                _data.Bit();
+                fill = _data.BitLong();
+
+                if ((fill & 1) != 0 || (R2018Plus && (fill & 0x10) != 0))
+                {
+                    fillScale = _data.BitDouble();
+                    fillColour = ReadColour();
+                    fillTransparency = _data.BitLong();
+                }
+            }
+
+            if (R2018Plus)
+            {
+                ReadMTextColumns();
+            }
+
             _object.Add(100, "AcDbMText");
             _object.AddPoint(10, insertion);
             _object.Add(40, height);
             _object.Add(41, width);
+
+            if (R2007Plus)
+            {
+                _object.Add(46, rectangleHeight);
+            }
+
             _object.Add(71, attachment);
             _object.Add(72, flow);
             _object.Add(LongText, text);
@@ -373,6 +448,63 @@ namespace GeometryHelper.Dwg
             AddExtrusion(normal);
             _object.Add(73, spacingStyle);
             _object.Add(44, spacing);
+
+            if (fill != 0)
+            {
+                _object.Add(90, fill);
+
+                if (fillColour != null)
+                {
+                    AddColour(_object.Body, fillColour, false, 63, 421);
+                    _object.Add(45, fillScale);
+                    _object.Add(441, fillTransparency);
+                }
+            }
+        }
+
+        /// <summary>
+        /// The columns of an MTEXT of R2018, read past: a bit, where it is set a version, a flag, the handle of an
+        /// application, the attachment, two points, four numbers and the kind of columns, with their sizes and heights.
+        /// </summary>
+        private void ReadMTextColumns()
+        {
+            if (!_data.Bit())
+            {
+                return;
+            }
+
+            _data.BitShort();
+            _data.Bit();
+            H();
+            _data.BitLong();
+            _data.Point3();
+            _data.Point3();
+
+            for (int i = 0; i < 4; i++)
+            {
+                _data.BitDouble();
+            }
+
+            int kind = _data.BitShort();
+
+            if (kind == 0)
+            {
+                return;
+            }
+
+            int count = Count(_data.BitLong());
+            _data.BitDouble();
+            _data.BitDouble();
+            bool autoHeight = _data.Bit();
+            _data.Bit();
+
+            if (!autoHeight && kind == 2)
+            {
+                for (int i = 0; i < count; i++)
+                {
+                    _data.BitDouble();
+                }
+            }
         }
 
         private void ReadInsert(bool array)
@@ -401,6 +533,7 @@ namespace GeometryHelper.Dwg
             double rotation = _data.BitDouble();
             double[] extrusion = _data.Point3();
             bool attributes = _data.Bit();
+            int owned = R2004Plus && attributes ? Count(_data.BitLong()) : 0;
             int columns = 1;
             int rows = 1;
             double columnSpacing = 0.0;
@@ -418,8 +551,7 @@ namespace GeometryHelper.Dwg
 
             if (attributes)
             {
-                _object.First = H();
-                _object.Last = H();
+                ReadOwnedHandles(owned);
                 _object.SeqEnd = H();
             }
 
@@ -508,11 +640,35 @@ namespace GeometryHelper.Dwg
             }
         }
 
+        /// <summary>The entities a polyline owns: before R2004 its first and last vertex, from R2004 a count in the data and that many handles; then its SEQEND.</summary>
         private void ReadOwned()
         {
-            _object.First = H();
-            _object.Last = H();
+            ReadOwnedHandles(R2004Plus ? Count(_data.BitLong()) : 0);
             _object.SeqEnd = H();
+        }
+
+        /// <summary>Before R2004 the first and the last owned entity, which lead one to the next; from R2004 the <paramref name="count"/> owned entities.</summary>
+        private void ReadOwnedHandles(int count)
+        {
+            if (!R2004Plus)
+            {
+                _object.First = H();
+                _object.Last = H();
+                return;
+            }
+
+            _object.Owned = new List<ulong>(Math.Min(count, 1024));
+
+            for (int i = 0; i < count; i++)
+            {
+                _object.Owned.Add(H());
+            }
+
+            if (count > 0)
+            {
+                _object.First = _object.Owned[0];
+                _object.Last = _object.Owned[count - 1];
+            }
         }
 
         private void ReadPolyline2D()
@@ -706,11 +862,12 @@ namespace GeometryHelper.Dwg
 
         private void ReadDimension(int type)
         {
+            int version = R2010Plus ? _data.RawChar() : 0;
             double[] normal = _data.Point3();
             double[] middle = _data.RawPoint2();
             double elevation = _data.BitDouble();
             int flags = _data.RawChar();
-            byte[] text = _data.Text();
+            byte[] text = T();
             double textRotation = _data.BitDouble();
             double horizontal = _data.BitDouble();
             _data.Point3();
@@ -719,6 +876,16 @@ namespace GeometryHelper.Dwg
             int spacingStyle = _data.BitShort();
             double spacing = _data.BitDouble();
             double measurement = _data.BitDouble();
+            var flips = new int[3];
+
+            if (R2007Plus)
+            {
+                for (int i = 0; i < 3; i++)
+                {
+                    flips[i] = _data.Bit() ? 1 : 0;
+                }
+            }
+
             _data.RawPoint2();
 
             // The points of the kind, under their DXF codes 10 and 13 to 16; an angle of 50 or 52 and the leader length.
@@ -792,6 +959,12 @@ namespace GeometryHelper.Dwg
             ulong style = H();
             ulong block = H();
             _object.Add(100, "AcDbDimension");
+
+            if (R2010Plus)
+            {
+                _object.Add(280, version);
+            }
+
             _object.Add(2, new DwgName(block));
             _object.AddPoint(10, points[10]);
             _object.AddPoint(11, new[] { middle[0], middle[1], elevation });
@@ -811,6 +984,14 @@ namespace GeometryHelper.Dwg
             }
 
             _object.Add(42, measurement);
+
+            if (R2007Plus)
+            {
+                _object.Add(73, flips[0]);
+                _object.Add(74, flips[1]);
+                _object.Add(75, flips[2]);
+            }
+
             AddNonZero(53, Degrees(textRotation));
             AddNonZero(51, Degrees(horizontal));
             _object.Add(3, new DwgName(style, "Standard"));

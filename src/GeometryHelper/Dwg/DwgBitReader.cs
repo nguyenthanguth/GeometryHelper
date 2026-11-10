@@ -29,6 +29,58 @@ namespace GeometryHelper.Dwg
             _position = Math.Max(0, Math.Min(startBit, _end));
         }
 
+        /// <summary>
+        /// Finds the string stream of data from R2007 (of an object, of the header variables, of the classes) whose flag
+        /// stands at bit <paramref name="flagAt"/>, the last before the handles: where the flag is set, the 16 bits before it
+        /// give the size of the stream in bits, with 16 bits more before them where the size has its high bit set, and the
+        /// texts end there. Returns the bit where the data before the texts end, which is to be no less than
+        /// <paramref name="start"/>; <paramref name="strings"/> is null where there are none.
+        /// </summary>
+        public static long StringStream(byte[] bytes, long start, long flagAt, out DwgBitReader strings)
+        {
+            strings = null;
+
+            if (flagAt < start)
+            {
+                throw new FormatException("The DWG data have no room for the flag of their texts.");
+            }
+
+            if (!new DwgBitReader(bytes, flagAt, flagAt + 1).Bit())
+            {
+                return flagAt;
+            }
+
+            long at = flagAt - 16;
+
+            if (at < start)
+            {
+                throw new FormatException("The DWG data have no room for the size of their texts.");
+            }
+
+            long size = new DwgBitReader(bytes, at, flagAt).RawShort() & 0xFFFF;
+
+            if ((size & 0x8000) != 0)
+            {
+                long low = at;
+                at -= 16;
+
+                if (at < start)
+                {
+                    throw new FormatException("The DWG data have no room for the size of their texts.");
+                }
+
+                size = (size & 0x7FFF) | ((long)(new DwgBitReader(bytes, at, low).RawShort() & 0xFFFF) << 15);
+            }
+
+            if (at - size < start)
+            {
+                throw new FormatException("The texts of the DWG data run past their start.");
+            }
+
+            strings = new DwgBitReader(bytes, at - size, at);
+            return at - size;
+        }
+
         /// <summary>The bytes being read.</summary>
         public byte[] Data => _data;
 
@@ -379,6 +431,44 @@ namespace GeometryHelper.Dwg
             var cut = new byte[end];
             Array.Copy(text, cut, end);
             return cut;
+        }
+
+        /// <summary>
+        /// TU from R2007: a bit short giving the count of UTF-16 characters, then the characters, two bytes each, low byte
+        /// first. The text is returned as UTF-8, up to the first zero character; a lone half of a pair becomes U+FFFD.
+        /// </summary>
+        public byte[] TextUnicode() => Utf16(BitShort());
+
+        /// <summary>The text of an XRECORD or of extended data from R2007: a raw short giving the count of UTF-16 characters, then the characters; as <see cref="TextUnicode"/>.</summary>
+        public byte[] TextUnicodeRaw() => Utf16(RawShort() & 0xFFFF);
+
+        private byte[] Utf16(int count)
+        {
+            if (count <= 0)
+            {
+                return new byte[0];
+            }
+
+            byte[] bytes = Bytes(checked(count * 2));
+            int length = 0;
+
+            while (length < count && (bytes[2 * length] | bytes[(2 * length) + 1]) != 0)
+            {
+                length++;
+            }
+
+            return System.Text.Encoding.UTF8.GetBytes(System.Text.Encoding.Unicode.GetString(bytes, 0, length * 2));
+        }
+
+        /// <summary>OT from R2010: two bits, then 00 one byte, 01 one byte above 0x1F0, 10 or 11 a raw short.</summary>
+        public int ObjectType()
+        {
+            switch (Bits2())
+            {
+                case 0: return RawChar();
+                case 1: return 0x1F0 + RawChar();
+                default: return RawShort() & 0xFFFF;
+            }
         }
 
         /// <summary>BT from R2000: a bit, set for a thickness of 0, else a bit double follows.</summary>

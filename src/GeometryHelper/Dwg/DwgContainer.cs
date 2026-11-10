@@ -11,7 +11,7 @@ namespace GeometryHelper.Dwg
     /// the versions, R2000 (AC1015) is read, whose sections lie in the file as they are, found through the section
     /// locator records of the file header.
     /// </summary>
-    internal sealed class DwgContainer
+    internal sealed partial class DwgContainer
     {
         private static readonly byte[] HeaderStart = { 0xCF, 0x7B, 0x1F, 0x23, 0xFD, 0xDE, 0x38, 0xA9, 0x5F, 0x7C, 0x68, 0xB8, 0x4E, 0x6D, 0x33, 0x5F };
         private static readonly byte[] HeaderEnd = { 0x30, 0x84, 0xE0, 0xDC, 0x02, 0x21, 0xC7, 0x56, 0xA0, 0x83, 0x97, 0x47, 0xB1, 0x92, 0xCC, 0xA0 };
@@ -119,12 +119,25 @@ namespace GeometryHelper.Dwg
                 throw new FormatException("The data is not a DWG file: it does not start with a version such as AC1015.");
             }
 
-            if (version != "AC1015")
+            switch (version)
             {
-                throw new NotSupportedException("The DWG version " + version + " (" + ReleaseOf(version) + ") is not read yet; DWG files of AC1015 (AutoCAD 2000, 2000i and 2002) are.");
+                case "AC1015":
+                    return ReadR15(file, version);
+                case "AC1018":
+                case "AC1024":
+                case "AC1027":
+                case "AC1032":
+                    return ReadR18(file, version);
+                default:
+                    throw new NotSupportedException("The DWG version " + version + " (" + ReleaseOf(version) + ") is not read yet; DWG files of "
+                        + "AC1015 (AutoCAD 2000), AC1018 (AutoCAD 2004), AC1024 (AutoCAD 2010), AC1027 (AutoCAD 2013) and AC1032 (AutoCAD 2018) are.");
             }
+        }
 
-            return ReadR15(file, version);
+        /// <summary>The number of a version, such as 1018 for AC1018, for comparing versions; 0 where it is not of that form.</summary>
+        public static int NumberOf(string version)
+        {
+            return version != null && version.Length == 6 && int.TryParse(version.Substring(2), NumberStyles.None, CultureInfo.InvariantCulture, out int number) ? number : 0;
         }
 
         private static DwgContainer ReadR15(byte[] file, string version)
@@ -184,7 +197,7 @@ namespace GeometryHelper.Dwg
                 CodePage = codePage >= 0 && codePage < CodePageNames.Length ? CodePageNames[codePage] : "ANSI_1252",
                 Header = Section(file, seekers[0], sizes[0], HeaderStart, HeaderEnd, "header variables"),
                 Classes = Section(file, seekers[1], sizes[1], ClassesStart, ClassesEnd, "classes"),
-                ObjectMap = ReadObjectMap(file, seekers[2], sizes[2]),
+                ObjectMap = ReadObjectMap(file, seekers[2], sizes[2], file.LongLength),
                 Objects = file,
                 Measurement = -1,
             };
@@ -237,9 +250,10 @@ namespace GeometryHelper.Dwg
         /// The object map of R13 to R2000: pages of at most 2032 bytes, each its size as a big-endian short (the size
         /// counts itself), then pairs of modular chars, the step from the last handle and the step from the last offset,
         /// then the check sum of the page as a big-endian short. Both steps start again from 0 in every page; a page of
-        /// size 2 ends the map.
+        /// size 2 ends the map. Every offset is to lie inside the <paramref name="objects"/> bytes the objects are in. From
+        /// R2004 on the map is a section of its own, the same in form.
         /// </summary>
-        private static List<KeyValuePair<ulong, long>> ReadObjectMap(byte[] file, long seeker, long size)
+        private static List<KeyValuePair<ulong, long>> ReadObjectMap(byte[] file, long seeker, long size, long objects)
         {
             var map = new List<KeyValuePair<ulong, long>>();
             long at = seeker;
@@ -275,7 +289,7 @@ namespace GeometryHelper.Dwg
                     handle += (ulong)reader.ModularChar(false);
                     offset += reader.ModularChar();
 
-                    if (offset <= 0 || offset >= file.LongLength)
+                    if (offset <= 0 || offset >= objects)
                     {
                         throw new FormatException("The DWG object map places the object " + handle.ToString("X", CultureInfo.InvariantCulture) + " outside the file.");
                     }
