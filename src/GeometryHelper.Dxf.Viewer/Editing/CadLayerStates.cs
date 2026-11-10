@@ -343,7 +343,7 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         /// <remarks>
         /// A named view's snapshot, a hidden state AutoCAD 2021 saves with the mask 0x8200, is restored in every property, as
-        /// AutoCAD restores a view's layers, and not marked.
+        /// AutoCAD restores a view's layers, and marked as AutoCAD 2021 marked it, 98816 (0x18200).
         /// </remarks>
         /// <returns>The names of the layers changed, in ordinal order.</returns>
         internal static List<string> Restore(DxfDatabase database, string name, bool turnOffMissing)
@@ -358,8 +358,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             IReadOnlyList<DxfTypedValue> data = record.Data;
             int mask = MaskOf(data);
-            bool hidden = (mask & Hidden) != 0;
-            mask = hidden ? All : mask;
+            mask = (mask & Hidden) != 0 ? All : mask;
             var named = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             string current = Text(data, 302);
             List<KeyValuePair<string, List<DxfTypedValue>>> layers = Layers(database, data);
@@ -406,11 +405,7 @@ namespace GeometryHelper.Dxf.Viewer
                 }
             }
 
-            if (!hidden)
-            {
-                MarkRestored(database, record);
-            }
-
+            MarkRestored(database, record);
             return changed.ToList();
         }
 

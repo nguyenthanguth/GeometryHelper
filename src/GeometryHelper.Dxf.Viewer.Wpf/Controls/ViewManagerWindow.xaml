@@ -110,9 +110,9 @@
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="80" />
+                            <ColumnDefinition Width="96" />
                             <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="80" />
+                            <ColumnDefinition Width="96" />
                         </Grid.ColumnDefinitions>
                         <TextBlock Text="Name:" Foreground="{StaticResource GhTextMuted}" VerticalAlignment="Center" Margin="0,0,6,0" />
                         <TextBox Grid.Column="1" Style="{StaticResource BlockBox}" Text="{Binding ViewName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="View name" />

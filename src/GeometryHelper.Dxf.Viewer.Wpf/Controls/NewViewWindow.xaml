@@ -63,7 +63,7 @@
                 </StackPanel>
             </Border>
 
-            <StackPanel Margin="16,12">
+            <StackPanel Margin="16,10">
                 <HeaderedContentControl Style="{StaticResource BlockGroup}" Header="Boundary" Margin="0">
                     <StackPanel>
                         <RadioButton Style="{StaticResource BlockRadio}" GroupName="Boundary" Content="Current display" IsChecked="{Binding CurrentDisplay, Mode=TwoWay}" Margin="0,0,0,6" />
@@ -114,7 +114,17 @@
                     </StackPanel>
                 </HeaderedContentControl>
 
-                <TextBlock Margin="0,6,0,0" Foreground="{StaticResource GhError}" TextWrapping="Wrap" Text="{Binding Message}" />
+                <TextBlock Margin="0,6,0,0" Foreground="{StaticResource GhError}" TextWrapping="Wrap" Text="{Binding Message}">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Style.Triggers>
+                                <Trigger Property="Text" Value="">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
                 <TextBlock Margin="0,6,0,0" Foreground="{StaticResource GhTextMuted}" TextWrapping="Wrap"
                            Text="Define window hides the dialog and asks &quot;Specify first corner:&quot; then &quot;Specify opposite corner:&quot; on the command line. Shot Properties, live section, visual style and background are 3D and stay greyed. The name must be new; a used name asks to redefine the view." />
             </StackPanel>

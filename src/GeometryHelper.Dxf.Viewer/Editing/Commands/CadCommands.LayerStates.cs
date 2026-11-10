@@ -329,8 +329,8 @@ namespace GeometryHelper.Dxf.Viewer
 
                 if (found == null)
                 {
-                    c.Write("Cannot find layer state \"" + name + "\".");
-                    yield break;
+                    c.Write("Unknown layer state name.");
+                    continue;
                 }
 
                 result.Value = found;

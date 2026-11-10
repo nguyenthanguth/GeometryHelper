@@ -213,6 +213,16 @@ erasing a viewport takes its overrides out of the layers. The layers frozen in a
 `viewport.FreezeLayersInViewport(layers)`, `ThawLayersInViewport` and `GetFrozenLayers()` (group 331), and
 `layer.ViewportVisibilityDefault` freezes a layer in the viewports made from now on (flag 2 of group 70).
 
+### Named views
+
+`db.ViewTable` holds the named views as AutoCAD's `ViewTable`, each a
+[`DxfViewTableRecord`](xref:GeometryHelper.Dxf.DxfViewTableRecord): `db.ViewTable.Add(new DxfViewTableRecord { Name =
+"Stair core", CenterPoint = new GeoPoint2(18450, 6200), Height = 9000, Width = 14400 })` writes it as AutoCAD 2021's
+-VIEW Window writes one, looking down Z with a lens of 50; `IsPaperspaceView` marks a layout view (flag 1 of group 70),
+and `LayerState` names the layer state its layer snapshot is kept in, `ACAD_VIEWS_Stair core` as AutoCAD 2021 names it,
+the group 302 of the XRECORD ADSK_XREC_VTRVIEWINFO of its extension dictionary. Setting a value it has changes no byte;
+`Name` renames it, and `Erase` takes it out with its extension dictionary.
+
 ### Layer states and filters
 
 The layer states and layer filters a drawing keeps in the layer table's extension dictionary are read and listed:

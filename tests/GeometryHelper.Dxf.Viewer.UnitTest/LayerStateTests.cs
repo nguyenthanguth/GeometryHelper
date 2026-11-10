@@ -105,7 +105,9 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Run(session, "Name", "Plan");
             Assert.Equal("Enter new layer state name:", session.PromptText);
             Run(session, "Plan2", "Delete", "nothing");
-            Assert.Contains("Cannot find layer state \"nothing\".", session.History);
+            Assert.Equal("Enter name of layer state to delete or [?]:", session.PromptText);
+            Run(session, Enter);
+            Assert.Contains("Unknown layer state name.", session.History);
             Assert.Equal("Enter an option [?/Save/Restore/Edit/Name/Delete/Import/EXport]:", session.PromptText);
             Assert.Equal(new[] { "Plan2" }, document.Database.LayerStateManager.GetLayerStateNames());
             Run(session, "Delete", "Plan2", Enter, Enter);

@@ -69,6 +69,9 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Equal(150.0, session.View.CenterY, 6);
             Assert.False(document.Database.LayerTable["A"].IsOff);
 
+            // Marked as restored last, as AutoCAD 2021 marked a view's snapshot it restored: 0x8200 with 0x10000, 98816.
+            Assert.Equal("98816", ((DxfXrecord)document.Database.LayerStateManager.LayerStatesDictionary.GetAt("ACAD_VIEWS_V1")).Data[0].Value);
+
             Run(session, "-VIEW", "D", "V*");
             Assert.Empty(document.Database.ViewTable.Cast<DxfViewTableRecord>());
             Assert.Empty(document.Database.LayerStateManager.GetLayerStateNames());
