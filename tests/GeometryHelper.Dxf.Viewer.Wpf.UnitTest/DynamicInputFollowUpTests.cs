@@ -272,6 +272,35 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
         }
 
         [Fact]
+        public void TheAngleField_CountsFromTheXAxis_AtRotatesNewAngleAfterAReference_AndAfterAPolylineArc()
+        {
+            using (var folder = new TestFolder())
+            {
+                // ROTATE's Reference turns "to a new, absolute angle": with a reference of 30, the cursor straight above the
+                // base point shows 90, not 60.
+                MainViewModel model = Room(folder);
+                Run(model, "ROTATE|ALL||1000,1000|R|30");
+
+                Assert.Equal("Specify the new angle", model.Session.Prompt.Message);
+                Cursor(model, 1000, 1500);
+
+                Assert.True(model.IsDynamicInputAngle);
+                Assert.Equal("90.0", model.DynamicInputSecond);
+
+                // PLINE's line after an arc segment: the angle from the X axis, not from the arc's tangent.
+                model.Escape();
+                Run(model, "PLINE|0,0|A|1000,1000|L");
+
+                Assert.Equal("Specify next point", model.Session.Prompt.Message);
+                Cursor(model, 1300, 1400);
+
+                Assert.True(model.IsDynamicInputPolar);
+                Assert.Equal("500.00", model.DynamicInputFirst);
+                Assert.Equal("53.1", model.DynamicInputSecond);
+            }
+        }
+
+        [Fact]
         public void Circle3P_TanTypedIntoTheFields_StillAsksForTheObjectTouched()
         {
             using (var folder = new TestFolder())
