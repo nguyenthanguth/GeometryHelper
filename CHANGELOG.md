@@ -11,7 +11,10 @@ line, extension lines, angle arc or dashed base line drawn under them. That is e
 second point of LINE, PLINE, ARC, CIRCLE's 2P, ELLIPSE's axis, POLYGON's edge, XLINE, RAY, MOVE, COPY, STRETCH, OFFSET
 by two points and a grip stretched or moved, a distance asked from a base point and an angle asked from one. The length
 sits beside the middle of the rubber band, 8 pixels off it on one side, and the angle 50 pixels along the band from the
-base point, 8 pixels off it on the other, so that neither covers the band. Typing, Tab to lock and a held value holding
+base point, 8 pixels off it on the other, so that neither covers the band. The prompt's box never hides a field: where
+it would, the length goes to the band's other side or the box moves up or down clear of the fields, whichever moves less.
+With the cursor by the canvas's right edge the box stands left of it, and over a band rising 11 degrees it covered the
+length, now set below the band. Typing, Tab to lock and a held value holding
 the band work as before: 300 locked at a line from (1 000, 1 000) with the cursor at (1 300, 1 400) still ends it at
 (1 180, 1 240). RECTANG's X and Y fields and the X and Y of pointer input are unchanged.
 

@@ -54,6 +54,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private AppMenuViewModel _appMenu;
         private MainViewModel _model;
         private Point _dynamicAt;
+        private bool _fieldsPlaced;
+        private Rect _lengthOtherSide;
         private DateTime _lastAutosave = DateTime.UtcNow;
 
         /// <summary>Makes the workspace.</summary>
@@ -853,7 +855,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>
         /// Puts the box of dynamic input 18 px right of the cursor and 14 px below it, as AutoCAD's tooltip, or on the other side
-        /// of it where it would leave the canvas, and draws the dimensional input. While the AutoComplete list
+        /// of it where it would leave the canvas, and places the dimensional input, the box kept off its fields. While the AutoComplete list
         /// or the options menu is open under the box, the box stays where it is, so that the pointer can reach a row.
         /// </summary>
         private void PlaceDynamicInput(double x, double y)
@@ -897,6 +899,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
             Canvas.SetLeft(DynamicInputBox, left);
             Canvas.SetTop(DynamicInputBox, top);
+            KeepFieldsClear(left, top);
         }
 
         /// <summary>
@@ -908,6 +911,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private void PlaceDimensionalInput(CadView view, double scale, Point cursor)
         {
             CadPrompt prompt = _model.Session?.Prompt;
+            _fieldsPlaced = false;
 
             if (!_model.IsDynamicInputDimensional || prompt?.BasePoint == null)
             {
@@ -930,9 +934,77 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             var normal = new Vector(along.Y, -along.X);
             const double Gap = 8.0;
             const double Near = 50.0;
-            Beside(LengthField, origin + band / 2.0, normal, Gap);
-            Beside(AngleField, origin + along * Near, -normal, Gap);
+            Put(LengthField, Beside(LengthField, origin + band / 2.0, normal, Gap));
+            Put(AngleField, Beside(AngleField, origin + along * Near, -normal, Gap));
+            _lengthOtherSide = Beside(LengthField, origin + band / 2.0, -normal, Gap);
+            _fieldsPlaced = true;
         }
+
+        /// <summary>
+        /// The box of the prompt kept off the fields of dimensional input, which it would hide: of the length moved to the band's
+        /// other side and the box moved up or down clear of the fields, inside the canvas, the one that moves a box the least.
+        /// </summary>
+        private void KeepFieldsClear(double left, double top)
+        {
+            if (!_fieldsPlaced)
+            {
+                return;
+            }
+
+            Rect length = _model.IsDynamicInputLength ? Placed(LengthField) : Rect.Empty;
+            Rect angle = _model.IsDynamicInputAngle ? Placed(AngleField) : Rect.Empty;
+            double width = DynamicInputBox.ActualWidth;
+            double height = DynamicInputBox.ActualHeight;
+            const double Clear = 2.0;
+            bool Hides(Rect box, Rect field) => !field.IsEmpty && new Rect(box.X - Clear, box.Y - Clear, box.Width + 2.0 * Clear, box.Height + 2.0 * Clear).IntersectsWith(field);
+            var at = new Rect(left, top, width, height);
+
+            if (!Hides(at, length) && !Hides(at, angle))
+            {
+                return;
+            }
+
+            double least = double.MaxValue;
+            double bestTop = top;
+            bool flip = false;
+
+            if (!length.IsEmpty && !Hides(at, angle) && !Hides(at, _lengthOtherSide) && !_lengthOtherSide.IntersectsWith(angle))
+            {
+                least = (_lengthOtherSide.TopLeft - length.TopLeft).Length;
+                flip = true;
+            }
+
+            foreach (Rect field in new[] { length, angle })
+            {
+                if (field.IsEmpty)
+                {
+                    continue;
+                }
+
+                foreach (double y in new[] { field.Top - Clear - height, field.Bottom + Clear })
+                {
+                    var moved = new Rect(left, y, width, height);
+
+                    if (y >= 0.0 && y + height <= CanvasView.ActualHeight && !Hides(moved, length) && !Hides(moved, angle) && Math.Abs(y - top) < least)
+                    {
+                        least = Math.Abs(y - top);
+                        bestTop = y;
+                        flip = false;
+                    }
+                }
+            }
+
+            if (flip)
+            {
+                Put(LengthField, _lengthOtherSide);
+            }
+            else
+            {
+                Canvas.SetTop(DynamicInputBox, bestTop);
+            }
+        }
+
+        private static Rect Placed(FrameworkElement field) => new Rect(Canvas.GetLeft(field), Canvas.GetTop(field), field.ActualWidth, field.ActualHeight);
 
         /// <summary>A number typed into a field of dynamic input, or locked by Tab: the dimensions and the preview are drawn again at the point it holds.</summary>
         private void HoldAgain()
@@ -953,14 +1025,19 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             Canvas.SetTop(DynamicInputBox, Math.Max(0.0, Math.Min(top, CanvasView.ActualHeight - DynamicInputBox.ActualHeight)));
         }
 
-        /// <summary>A field put off a point of the rubber band towards one side, its nearest edge the gap from the point.</summary>
-        private static void Beside(FrameworkElement field, Point at, Vector side, double gap)
+        /// <summary>Where a field goes off a point of the rubber band towards one side, its nearest edge the gap from the point.</summary>
+        private static Rect Beside(FrameworkElement field, Point at, Vector side, double gap)
         {
             field.UpdateLayout();
             double reach = (Math.Abs(side.X) * field.ActualWidth + Math.Abs(side.Y) * field.ActualHeight) / 2.0;
             Point centre = at + side * (gap + reach);
-            Canvas.SetLeft(field, centre.X - field.ActualWidth / 2.0);
-            Canvas.SetTop(field, centre.Y - field.ActualHeight / 2.0);
+            return new Rect(centre.X - field.ActualWidth / 2.0, centre.Y - field.ActualHeight / 2.0, field.ActualWidth, field.ActualHeight);
+        }
+
+        private static void Put(FrameworkElement field, Rect at)
+        {
+            Canvas.SetLeft(field, at.X);
+            Canvas.SetTop(field, at.Y);
         }
 
         /// <summary>A row of the options menu of dynamic input clicked: the prompt takes its keyword.</summary>

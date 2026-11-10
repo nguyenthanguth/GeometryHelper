@@ -284,6 +284,51 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             }
         }
 
+        [Fact]
+        public void ANearlyFlatBandEndingByTheRightEdge_TheBoxFlippedLeftOfTheCursor_HidesNeitherField()
+        {
+            using (var folder = new TestFolder())
+            {
+                string room = folder.Write("room.dxf", TestFiles.Room(out _, out _));
+
+                OnSta(() =>
+                {
+                    _ = PackUriHelper.UriSchemePack;
+                    var model = new MainViewModel();
+                    Assert.True(model.Open(room));
+                    var workspace = new CadWorkspace { DataContext = model };
+                    model.Execute("LINE");
+                    Lay(workspace);
+                    CadCanvas canvas = workspace.DrawingCanvas;
+                    double scale = canvas.PixelWidth / canvas.ActualWidth;
+
+                    // The cursor 30 units in from the right edge, the base point 300 to its left and 60 lower: a band rising 11 degrees,
+                    // its middle 30 below the cursor, where the length stands and the box flipped left of the cursor would cover it.
+                    var cursorAt = new Point(canvas.ActualWidth - 30.0, canvas.ActualHeight / 2.0);
+                    var baseAt = new Point(cursorAt.X - 300.0, cursorAt.Y + 60.0);
+                    canvas.View.ScreenToDrawing(baseAt.X * scale, baseAt.Y * scale, out double bx, out double by);
+                    canvas.View.ScreenToDrawing(cursorAt.X * scale, cursorAt.Y * scale, out double cx, out double cy);
+                    model.Execute(string.Format(System.Globalization.CultureInfo.InvariantCulture, "{0:0.###},{1:0.###}", bx, by));
+                    Lay(workspace);
+                    canvas.MoveCursorTo(cx, cy);
+                    Lay(workspace);
+
+                    Assert.True(model.IsDynamicInputPolar);
+                    Rect prompt = Box(workspace.DynamicInputBox, canvas);
+                    Rect length = Box(workspace.LengthField, canvas);
+                    Rect angle = Box(workspace.AngleField, canvas);
+
+                    // The box no longer fits right of the cursor: it stands left of it, over the band's right half.
+                    Assert.True(prompt.Right < cursorAt.X, prompt + " " + cursorAt);
+                    Assert.False(prompt.IntersectsWith(length), prompt + " " + length);
+                    Assert.False(prompt.IntersectsWith(angle), prompt + " " + angle);
+                    Assert.False(length.IntersectsWith(angle), length + " " + angle);
+
+                    canvas.Dispose();
+                });
+            }
+        }
+
         private static void Lay(CadWorkspace workspace)
         {
             for (int pass = 0; pass < 2; pass++)
