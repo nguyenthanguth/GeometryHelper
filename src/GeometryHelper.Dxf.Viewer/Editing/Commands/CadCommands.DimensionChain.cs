@@ -113,14 +113,24 @@ namespace GeometryHelper.Dxf.Viewer
                     continue;
                 }
 
-                yield return chain.Ordinate
+                double spacing = baseline ? style.Dimdli * (style.Dimscale > 0.0 ? style.Dimscale : 1.0) : 0.0;
+                Chain from = chain;
+
+                // The dimension the point at the cursor would add to the row, as it is added.
+                CadPreview shown = DimPreview(c, input =>
+                {
+                    Chain after = ChainNext(from, spacing, input.Point);
+                    return from.Ordinate ? OrdinateMade(c, style, from.AlongX, from.Origin, from.Turn, input.Point, after.LeaderEnd, null, null, out _, out _)
+                        : from.Angular ? AngularDimensionMade(c, style, from.Vertex, from.Origin, input.Point, after.Radius, out _, out _)
+                        : LinearDimensionMade(c, style, from.Angle, from.Origin, input.Point, after.Line, out _, out _);
+                });
+                yield return (chain.Ordinate
                     ? CadPrompt.ForPoint("Specify feature location", null, new[] { "Select", "Undo" }, "Select")
-                    : CadPrompt.ForPoint("Specify a second extension line origin", chain.Origin, new[] { "Select", "Undo" }, "Select");
+                    : CadPrompt.ForPoint("Specify a second extension line origin", chain.Origin, new[] { "Select", "Undo" }, "Select")).Previewing(shown);
 
                 if (c.Input.IsPoint)
                 {
-                    Chain next = chain.Copy();
-                    double spacing = baseline ? style.Dimdli * (style.Dimscale > 0.0 ? style.Dimscale : 1.0) : 0.0;
+                    Chain next = ChainNext(chain, spacing, c.Input.Point);
                     string handle;
 
                     // AutoCAD 2021 ties the new dimension's second point to what it was snapped to, and its first to what the
@@ -129,24 +139,14 @@ namespace GeometryHelper.Dxf.Viewer
 
                     if (chain.Ordinate)
                     {
-                        // Continued or based alike, an ordinate dimension measures from the same origin, its leader ending level with the last's.
-                        GeoVector2 square = chain.AlongX ? new GeoVector2(-Math.Sin(chain.Turn), Math.Cos(chain.Turn)) : new GeoVector2(Math.Cos(chain.Turn), Math.Sin(chain.Turn));
-                        GeoPoint2 feature = c.Input.Point;
-                        double across = (chain.LeaderEnd - feature).X * square.X + (chain.LeaderEnd - feature).Y * square.Y;
-                        next.LeaderEnd = feature + square * across;
-                        handle = OrdinateDimension(c, style, chain.AlongX, chain.Origin, chain.Turn, feature, next.LeaderEnd, null, null, true);
+                        handle = OrdinateDimension(c, style, chain.AlongX, chain.Origin, chain.Turn, c.Input.Point, next.LeaderEnd, null, null, true);
                     }
                     else if (chain.Angular)
                     {
-                        next.Radius = chain.Radius + spacing;
                         handle = AngularDimension(c, style, chain.Vertex, chain.Origin, c.Input.Point, next.Radius, true);
                     }
                     else
                     {
-                        var along = new GeoVector2(Math.Cos(chain.Angle), Math.Sin(chain.Angle));
-                        var square = new GeoVector2(-along.Y, along.X);
-                        double side = (chain.Line - chain.Origin).X * square.X + (chain.Line - chain.Origin).Y * square.Y;
-                        next.Line = chain.Line + square * (side < 0.0 ? -spacing : spacing);
                         handle = LinearDimension(c, style, chain.Angle, chain.Origin, c.Input.Point, next.Line, true);
                     }
 
@@ -187,6 +187,36 @@ namespace GeometryHelper.Dxf.Viewer
                     yield break;
                 }
             }
+        }
+
+        /// <summary>
+        /// The row after a dimension to a point: an ordinate one's leader ending level with the last's, an angular one's arc and
+        /// a linear one's line the spacing farther out (nought for a continued row).
+        /// </summary>
+        private static Chain ChainNext(Chain chain, double spacing, GeoPoint2 point)
+        {
+            Chain next = chain.Copy();
+
+            if (chain.Ordinate)
+            {
+                // Continued or based alike, an ordinate dimension measures from the same origin, its leader ending level with the last's.
+                GeoVector2 square = chain.AlongX ? new GeoVector2(-Math.Sin(chain.Turn), Math.Cos(chain.Turn)) : new GeoVector2(Math.Cos(chain.Turn), Math.Sin(chain.Turn));
+                double across = (chain.LeaderEnd - point).X * square.X + (chain.LeaderEnd - point).Y * square.Y;
+                next.LeaderEnd = point + square * across;
+            }
+            else if (chain.Angular)
+            {
+                next.Radius = chain.Radius + spacing;
+            }
+            else
+            {
+                var along = new GeoVector2(Math.Cos(chain.Angle), Math.Sin(chain.Angle));
+                var square = new GeoVector2(-along.Y, along.X);
+                double side = (chain.Line - chain.Origin).X * square.X + (chain.Line - chain.Origin).Y * square.Y;
+                next.Line = chain.Line + square * (side < 0.0 ? -spacing : spacing);
+            }
+
+            return next;
         }
 
         /// <summary>Whether a dimension is one a row goes on from: a linear (rotated or aligned) or an angular one.</summary>
@@ -323,10 +353,9 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         private static string LinearDimension(CadCommandContext c, DxfDimStyleTableRecord style, double angle, GeoPoint2 p1, GeoPoint2 p2, GeoPoint2 onLine, bool echo)
         {
-            var along = new GeoVector2(Math.Cos(angle), Math.Sin(angle));
-            double measured = Math.Abs((p2 - p1).X * along.X + (p2 - p1).Y * along.Y);
+            List<DxfEntity> picture = LinearDimensionMade(c, style, angle, p1, p2, onLine, out DxfDimension made, out string words);
 
-            if (measured <= c.Session.Tolerance.EqualPoint)
+            if (picture == null)
             {
                 if (echo)
                 {
@@ -336,18 +365,33 @@ namespace GeometryHelper.Dxf.Viewer
                 return null;
             }
 
-            GeoPoint2 q1 = Foot(p1, onLine, along, 0.0);
-            GeoPoint2 q2 = Foot(p2, onLine, along, 0.0);
-            var made = new DxfRotatedDimension(angle, P3(p1), P3(p2), P3(q2), string.Empty, null);
-            string words = Words(style, made, measured, null, string.Empty);
-
             if (echo)
             {
                 c.Write("Dimension text = " + words);
             }
 
+            return AddedHandle(Place(c, style, TextHeight(c, style), made, picture));
+        }
+
+        /// <summary>The picture of the rotated dimension <see cref="LinearDimension"/> makes, and the dimension; null where it measures nothing.</summary>
+        private static List<DxfEntity> LinearDimensionMade(CadCommandContext c, DxfDimStyleTableRecord style, double angle, GeoPoint2 p1, GeoPoint2 p2, GeoPoint2 onLine, out DxfDimension made, out string words)
+        {
+            var along = new GeoVector2(Math.Cos(angle), Math.Sin(angle));
+            double measured = Math.Abs((p2 - p1).X * along.X + (p2 - p1).Y * along.Y);
+            made = null;
+            words = null;
+
+            if (measured <= c.Session.Tolerance.EqualPoint)
+            {
+                return null;
+            }
+
+            GeoPoint2 q1 = Foot(p1, onLine, along, 0.0);
+            GeoPoint2 q2 = Foot(p2, onLine, along, 0.0);
+            made = new DxfRotatedDimension(angle, P3(p1), P3(p2), P3(q2), string.Empty, null);
+            words = Words(style, made, measured, null, string.Empty);
             double textHeight = TextHeight(c, style);
-            return AddedHandle(Place(c, style, textHeight, made, Linear(style, textHeight, p1, p2, q1, q2, words)));
+            return Linear(style, textHeight, p1, p2, q1, q2, words);
         }
 
         /// <summary>
@@ -356,13 +400,34 @@ namespace GeometryHelper.Dxf.Viewer
         /// </summary>
         private static string AngularDimension(CadCommandContext c, DxfDimStyleTableRecord style, GeoPoint2 vertex, GeoPoint2 a, GeoPoint2 b, double radius, bool echo)
         {
-            if ((a - vertex).Length <= c.Session.Tolerance.EqualPoint || (b - vertex).Length <= c.Session.Tolerance.EqualPoint || radius <= c.Session.Tolerance.EqualPoint)
+            List<DxfEntity> picture = AngularDimensionMade(c, style, vertex, a, b, radius, out DxfDimension made, out string words);
+
+            if (picture == null)
             {
                 if (echo)
                 {
                     c.Write("*Invalid* The angle measures nothing.");
                 }
 
+                return null;
+            }
+
+            if (echo)
+            {
+                c.Write("Dimension text = " + words);
+            }
+
+            return AddedHandle(Place(c, style, TextHeight(c, style), made, picture));
+        }
+
+        /// <summary>The picture of the angular dimension <see cref="AngularDimension"/> makes, and the dimension; null where it measures nothing.</summary>
+        private static List<DxfEntity> AngularDimensionMade(CadCommandContext c, DxfDimStyleTableRecord style, GeoPoint2 vertex, GeoPoint2 a, GeoPoint2 b, double radius, out DxfDimension made, out string words)
+        {
+            made = null;
+            words = null;
+
+            if ((a - vertex).Length <= c.Session.Tolerance.EqualPoint || (b - vertex).Length <= c.Session.Tolerance.EqualPoint || radius <= c.Session.Tolerance.EqualPoint)
+            {
                 return null;
             }
 
@@ -378,24 +443,13 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (sweep <= c.Session.Tolerance.EqualAngleRad / 1000.0)
             {
-                if (echo)
-                {
-                    c.Write("*Invalid* The angle measures nothing.");
-                }
-
                 return null;
             }
 
-            var made = new DxfPoint3AngularDimension(P3(vertex), P3(a), P3(b), P3(arc), string.Empty, null);
-            string words = Words(style, made, sweep, null, string.Empty);
-
-            if (echo)
-            {
-                c.Write("Dimension text = " + words);
-            }
-
+            made = new DxfPoint3AngularDimension(P3(vertex), P3(a), P3(b), P3(arc), string.Empty, null);
+            words = Words(style, made, sweep, null, string.Empty);
             double textHeight = TextHeight(c, style);
-            return AddedHandle(Place(c, style, textHeight, made, Angular(style, textHeight, vertex, radius, from, sweep, near, far, words)));
+            return Angular(style, textHeight, vertex, radius, from, sweep, near, far, words);
         }
 
         /// <summary>

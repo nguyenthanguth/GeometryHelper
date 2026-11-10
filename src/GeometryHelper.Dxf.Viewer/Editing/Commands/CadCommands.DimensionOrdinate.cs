@@ -57,7 +57,19 @@ namespace GeometryHelper.Dxf.Viewer
 
             while (true)
             {
-                yield return CadPrompt.ForPoint("Specify leader endpoint", feature, new[] { "Xdatum", "Ydatum", "Mtext", "Text", "Angle" });
+                // The dimension the leader's end at the cursor would make, along the axis the leader's way chooses unless one was.
+                string words = text;
+                bool? chosen = xDatum;
+                double? turned = turn;
+                yield return CadPrompt.ForPoint("Specify leader endpoint", feature, new[] { "Xdatum", "Ydatum", "Mtext", "Text", "Angle" })
+                    .Previewing(DimPreview(c, input =>
+                    {
+                        CadUcs system = c.Session.Ucs;
+                        GeoVector2 way = system.ToUcs(input.Point - feature);
+
+                        return (input.Point - feature).Length <= c.Session.Tolerance.EqualPoint ? null
+                            : OrdinateMade(c, style, chosen ?? Math.Abs(way.Y) > Math.Abs(way.X), new GeoPoint2(system.Origin.X, system.Origin.Y), system.Angle, feature, input.Point, words, turned, out _, out _);
+                    }));
 
                 if (c.Input.Is("Xdatum") || c.Input.Is("Ydatum"))
                 {
@@ -122,7 +134,23 @@ namespace GeometryHelper.Dxf.Viewer
                 return null;
             }
 
-            var made = new DxfOrdinateDimension(xDatum, P3(feature), P3(end), text ?? string.Empty, null) { Origin = P3(origin) };
+            List<DxfEntity> picture = OrdinateMade(c, style, xDatum, origin, turn, feature, end, text, textAngle, out DxfOrdinateDimension made, out string words);
+
+            if (echo)
+            {
+                c.Write("Dimension text = " + words);
+            }
+
+            return AddedHandle(Place(c, style, TextHeight(c, style), made, picture));
+        }
+
+        /// <summary>
+        /// The picture of an ordinate dimension and the dimension, as <see cref="OrdinateDimension"/> adds them and the prompt
+        /// of the leader's end previews them.
+        /// </summary>
+        private static List<DxfEntity> OrdinateMade(CadCommandContext c, DxfDimStyleTableRecord style, bool xDatum, GeoPoint2 origin, double turn, GeoPoint2 feature, GeoPoint2 end, string text, double? textAngle, out DxfOrdinateDimension made, out string words)
+        {
+            made = new DxfOrdinateDimension(xDatum, P3(feature), P3(end), text ?? string.Empty, null) { Origin = P3(origin) };
 
             if (turn != 0.0)
             {
@@ -131,15 +159,9 @@ namespace GeometryHelper.Dxf.Viewer
 
             var axis = xDatum ? new GeoVector2(Math.Cos(turn), Math.Sin(turn)) : new GeoVector2(-Math.Sin(turn), Math.Cos(turn));
             double measured = Math.Abs((feature - origin).X * axis.X + (feature - origin).Y * axis.Y);
-            string words = Words(style, made, measured, text, string.Empty);
-
-            if (echo)
-            {
-                c.Write("Dimension text = " + words);
-            }
-
+            words = Words(style, made, measured, text, string.Empty);
             double textHeight = TextHeight(c, style);
-            return AddedHandle(Place(c, style, textHeight, made, WithTextAngle(made, Ordinate(style, textHeight, origin, feature, end, xDatum, turn, words), textAngle)));
+            return WithTextAngle(made, Ordinate(style, textHeight, origin, feature, end, xDatum, turn, words), textAngle);
         }
 
         /// <summary>

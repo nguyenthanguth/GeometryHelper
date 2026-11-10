@@ -448,6 +448,60 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         [Fact]
+        public void LinearAndAlignedDimensions_PreviewTheWholeDimensionAtTheCursor()
+        {
+            CadCommandSession session = Started("DIMLINEAR", P(0, 0), P(100, 30));
+            Assert.StartsWith("Specify dimension line location", session.PromptText);
+            Assert.Contains(PreviewMakes(session, P(50, 60)), s => s.StartsWith("DisplayText2 100", StringComparison.Ordinal));
+
+            Run(session, "DIMLINEAR", P(0, 0), P(100, 30), "V");
+            PreviewMakes(session, P(150, 10));
+
+            Run(session, "DIMALIGNED", P(0, 0), P(100, 30));
+            PreviewMakes(session, P(40, 60));
+        }
+
+        [Fact]
+        public void RadiusDiameterAndAngularDimensions_PreviewTheWholeDimension()
+        {
+            CadCommandSession session = Started("CIRCLE", P(0, 0), "20");
+            string circle = All<DxfCircle>(session.Document.ModelSpace).Single().Handle;
+
+            Run(session, "DIMRADIUS", new[] { circle });
+            PreviewMakes(session, P(30, 30));
+
+            Run(session, "DIMDIAMETER", new[] { circle });
+            PreviewMakes(session, P(-30, 10));
+
+            Run(session, "DIMANGULAR", Enter, P(0, 0), P(50, 0), P(0, 50));
+            Assert.StartsWith("Specify dimension arc line location", session.PromptText);
+            PreviewMakes(session, P(20, 20));
+        }
+
+        [Fact]
+        public void OrdinateContinuedAndBaselineDimensions_PreviewTheNextDimension()
+        {
+            CadCommandSession session = Started("DIMORDINATE", P(40, 20));
+            PreviewMakes(session, P(40, 60));
+
+            Run(session, "DIMLINEAR", P(0, 0), P(100, 0), P(50, 20), "DIMCONTINUE");
+            Assert.StartsWith("Specify a second extension line origin", session.PromptText);
+            PreviewMakes(session, P(160, 0), Esc);
+
+            Run(session, "DIMBASELINE");
+            PreviewMakes(session, P(220, 0), Esc);
+        }
+
+        [Fact]
+        public void MText_PreviewsTheFrameOfTheText()
+        {
+            CadCommandSession session = Started("MTEXT", P(10, 10));
+            Assert.StartsWith("Specify opposite corner", session.PromptText);
+
+            Assert.Equal("DisplayPolyline2 closed 10.000000 10.000000 60.000000 10.000000 60.000000 40.000000 10.000000 40.000000", Assert.Single(Shapes(session.Prompt.Preview.Items(P(60, 40)))));
+        }
+
+        [Fact]
         public void Revcloud_PreviewsTheCloudOfTheRectangleAndOfThePolygonSoFar()
         {
             CadCommandSession session = Started("REVCLOUD", "R", P(0, 0));

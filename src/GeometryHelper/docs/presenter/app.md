@@ -135,6 +135,15 @@ The function keys, Delete and the Ctrl keys of [the defaults](editing.md#aliases
 
 While MOVE, COPY, ROTATE, SCALE or MIRROR waits for its second point, a dashed ghost of the objects follows the cursor; an
 XLINE or a RAY among them is drawn across the view as the canvas draws it, moved, turned, scaled or mirrored with the rest.
+ROTATE and SCALE move it by a Reference too, and an array shows every copy while its options are offered.
+
+While a prompt waits for the point that finishes an object, the canvas draws the object that point would make, as
+AutoCAD 2021 drags it, in the colour of the current layer: RECTANG asking its other corner, the cursor 30 by 20 from the
+first, draws the rectangle 30 by 20, not a line to the cursor. CIRCLE, ARC, ELLIPSE, POLYGON, DONUT, XLINE, RAY, PLINE
+(each segment with its widths), REVCLOUD, OFFSET (the copy on the cursor's side), STRETCH, the frame of MTEXT and the
+dimensions (DIMLINEAR, DIMALIGNED, DIMRADIUS, DIMDIAMETER, DIMANGULAR, DIMORDINATE, DIMCONTINUE, DIMBASELINE, the whole
+dimension at the cursor) do the same. The preview is made by the code that makes the object, so it is what a click there
+gives; where AutoCAD shows a radius or an angle with it, as CIRCLE does, the rubber band is drawn too.
 
 ### The command line
 

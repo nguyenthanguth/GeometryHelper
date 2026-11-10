@@ -92,6 +92,13 @@ session.Enter();
 A command that fails part way has its edits taken back. Its outcome is `session.LastOutcome`: `Completed`, `Cancelled` or
 `Failed`. A selection of entities on a locked layer is taken without them, and the line says "1 was on a locked layer."
 
+A prompt can carry a preview, `session.Prompt.Preview`, which a window draws under the cursor as AutoCAD 2021 drags the
+object about to be made. `Items(cursor)` gives the display items of what a point picked there would make, made by the
+command's own code; `Moves(cursor)` gives the transformations the copies of `Handles` are drawn under, as ROTATE by a
+Reference or an array's copies; `ShowsBand` says whether the rubber band is drawn with it. RECTANG asking its other
+corner, first corner (0, 0), previews at (30, 20) one closed polyline through (0, 0), (30, 0), (30, 20) and (0, 20), the
+rectangle a pick there adds.
+
 "Select objects:" takes the options of AutoCAD 2021, each by its capital letters:
 
 | Option | Takes |
