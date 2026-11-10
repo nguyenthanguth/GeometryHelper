@@ -148,7 +148,7 @@ the ones wanted.
 - [x] Tests: the Wpf suite's 25 red tests came from its classes loading XAML in parallel (a race inside WPF), so the
       suite runs one test at a time; its picture goes to its own folder, and a view model made in a test keeps its
       settings in a file of the tests (S)
-- [ ] Tests (running): other fixed %TEMP% paths two worktrees can collide on (render and plot outputs of Dxf.Viewer.UnitTest,
+- [x] Tests: other fixed %TEMP% paths two worktrees can collide on (render and plot outputs of Dxf.Viewer.UnitTest,
       Drawing.UnitTest and Drawing.Wpf.UnitTest) move to a folder per run (S)
 - [x] Layer States Manager, View Manager with New View, Drawing Units with Direction Control (designed in v110) (M)
 - [x] Previews follow-ups: TRIM in Standard mode and Shift swapping TRIM and EXTEND; -ARRAY distances without a base point
@@ -156,9 +156,12 @@ the ones wanted.
 - [ ] Previews follow-ups 2: a look by eye in the running app (rounds 2 and 3); -ARRAY row distance by two points; TEXT
       Align box; -ARRAY unit cell as a rectangle only, if AutoCAD shows only that (check); paste preview speed on a large
       clipboard; `ALL` selecting nothing on a minimal hand-written DXF (cause unknown) (S)
-- [ ] Managers follow-ups 2 (running, non-UI parts): an Edit Layer State dialog and a description in New; viewport overrides on restore; layout
-      views listed per layout; the xref rule of GetLayerStateNames for states AutoCAD's Import writes by name; ANGBASE and
-      ANGDIR on typed polar angles; disabled GhComboBox drawn greyed (M)
+- [x] Managers follow-ups 2, non-UI parts: viewport overrides on restore; the xref rule of GetLayerStateNames; ANGBASE and
+      ANGDIR on typed and shown angles; disabled GhComboBox and GhFlatButton greyed; Groups in PURGE and -PURGE (M)
+- [ ] Managers follow-ups 3: an Edit Layer State dialog and a description in New (needs design); ANGBASE/ANGDIR still raw
+      in dimension and ellipse Properties rows, DIMEDIT oblique, -STYLE obliquing, MEASUREGEOM angle, the `<45` override;
+      ATTSYNC by Select on a block with no definitions and its extended data (AutoCAD unchecked: no ATTSYNC in
+      accoreconsole); GhDialogButton dimmed twice when disabled (S)
 - [ ] Command line and Recent: AutoComplete inside a running command; Search Content; an EXPORT command (S)
 - [ ] Dxf.App: an app icon, file association for .dxf (installer or registry), `--tab Home` in screenshot mode
 - [x] Images of an area: PNG and JPG devices in PLOT and -PLOT ("GeometryHelper PNG", "GeometryHelper JPG", as AutoCAD's
@@ -172,7 +175,7 @@ the ones wanted.
 - [ ] Tables: rows grow for wrapped text; Tab in the last cell adds a row; first/second/other row cell styles
 
 - [ ] Ribbon: check drop-downs and the Insert block gallery at 125 % and 150 % display scaling; pin and Esc by hand
-- [ ] Ribbon: disabled buttons barely look greyed (GhFlatButton); Home panels a few pixels wider than their design widths
+- [ ] Ribbon: Home panels a few pixels wider than their design widths
 - [ ] Speed: undo without reloading the whole drawing (2.5 s at 1 000 000 entities): first the cheap wins (pack the undo state in parallel chunks, build the handle index lazily), then a core `DxfDatabase` fork that shares the read bytes (recommended over an in-place journal through the core)
 - [ ] Speed: draw the first display off the UI thread (10–13 s at 1 000 000 entities)
 - [ ] Speed: frame at extents at 1 000 000 entities (0.8–1.1 s, inside Skia); level of detail would change pixels (needs a decision)
