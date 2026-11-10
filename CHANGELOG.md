@@ -23,6 +23,12 @@ AREA and of REVCLOUD's Polygonal. MIRROR's second point 300 right of and 400 abo
 300.00 and 400.00. The corner of a box (RECTANG, ZOOM's window, MTEXT, REVCLOUD's Rectangular) and the location of a
 dimension line or a leader keep X and Y.
 
+**FIXED.** CIRCLE's 3P in the presenter showed one box of text at each of its points, "500.00 < 53.1°" at the second,
+because the prompts also take _tan. Its first point now shows the X and Y fields, and its second and third points the
+length and the angle from the point before, as AutoCAD 2021's pointer input gives a first point and a second or next
+point. A number typed goes into a field and Tab locks it: from (1 000, 0) and (1 000, 400), 600 locked with the cursor at
+(1 600, 0) takes the third point 600 along the band. _tan typed still asks for the object touched.
+
 **CHANGED.** The dynamic input of the presenter shows the length and the angle in their fields alone, with no dimension
 line, extension lines, angle arc or dashed base line drawn under them. That is every prompt with these fields: the
 second point of LINE, PLINE, ARC, CIRCLE's 2P, ELLIPSE's axis, POLYGON's edge, XLINE, RAY, MOVE, COPY, STRETCH, OFFSET

@@ -216,6 +216,77 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             }
         }
 
+        [Fact]
+        public void Circle3P_ShowsXAndYAtItsFirstPoint_AndTheLengthAndTheAngleFromTheLastAtTheSecondAndTheThird()
+        {
+            using (var folder = new TestFolder())
+            {
+                MainViewModel model = Room(folder);
+                model.Execute("CIRCLE");
+                model.Execute("3P");
+                Cursor(model, 1000, 1000);
+
+                // The first point: pointer input, X and Y.
+                Assert.True(model.IsDynamicInputFields);
+                Assert.False(model.IsDynamicInputPolar);
+                Assert.Equal("1 000.00", model.DynamicInputFirst);
+                Assert.Equal("1 000.00", model.DynamicInputSecond);
+
+                // 1000 and Tab, 0 and Enter: the first point at (1 000, 0).
+                model.CommandText = "1000";
+                Assert.True(model.TabDynamicInput());
+                model.CommandText = "0";
+                model.SubmitCommand();
+
+                // The second point: 500 at 53.1 from the first.
+                Assert.Equal("Specify second point on circle", model.Session.Prompt.Message);
+                Cursor(model, 1300, 400);
+
+                Assert.True(model.IsDynamicInputPolar);
+                Assert.Equal("500.00", model.DynamicInputFirst);
+                Assert.Equal("53.1", model.DynamicInputSecond);
+
+                // 400<90 typed: relative to the first, (1 000, 400).
+                model.CommandText = "400<90";
+                model.SubmitCommand();
+
+                // The third point: from the second.
+                Assert.Equal("Specify third point on circle", model.Session.Prompt.Message);
+                Cursor(model, 1600, 0);
+
+                Assert.True(model.IsDynamicInputPolar);
+                Assert.Equal("721.11", model.DynamicInputFirst);
+                Assert.Equal("326.3", model.DynamicInputSecond);
+
+                // 600 locked, the angle the cursor's: through (1 000, 0), (1 000, 400) and 600 along the band to (1 600, 0).
+                model.CommandText = "600";
+                Assert.True(model.TabDynamicInput());
+                model.Enter();
+
+                DxfCircle circle = model.Document.Database.ModelSpace.Cast<DxfEntity>().OfType<DxfCircle>().Last();
+                GeoPoint2 third = new GeoPoint2(1000, 400) + new GeoVector2(600 * 600 / 721.1102550927978, -400 * 600 / 721.1102550927978);
+                Assert.Equal(circle.Radius, (new GeoPoint2(circle.Center.X, circle.Center.Y) - new GeoPoint2(1000, 0)).Length, 6);
+                Assert.Equal(circle.Radius, (new GeoPoint2(circle.Center.X, circle.Center.Y) - new GeoPoint2(1000, 400)).Length, 6);
+                Assert.Equal(circle.Radius, (new GeoPoint2(circle.Center.X, circle.Center.Y) - third).Length, 6);
+            }
+        }
+
+        [Fact]
+        public void Circle3P_TanTypedIntoTheFields_StillAsksForTheObjectTouched()
+        {
+            using (var folder = new TestFolder())
+            {
+                MainViewModel model = Room(folder);
+                model.Execute("CIRCLE");
+                model.Execute("3P");
+                model.CommandText = "_tan";
+                model.SubmitCommand();
+
+                Assert.True(model.IsCommandRunning);
+                Assert.Equal("to", model.Session.Prompt.Message);
+            }
+        }
+
         [Theory]
         [InlineData("RECTANG|1000,1000", "Specify other corner point")]
         [InlineData("ZOOM|W|1000,1000", "Specify opposite corner")]

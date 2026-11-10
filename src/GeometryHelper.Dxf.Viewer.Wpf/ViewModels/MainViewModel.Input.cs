@@ -190,8 +190,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// moves from one to the other (<see cref="TabDynamicInput"/>), a number typed locks its field, and Enter takes the
         /// point from both.
         /// </summary>
-        /// <remarks>A point prompt that also takes text, as ZOOM's takes a scale 2X, keeps the one box: a number typed there is not an X.</remarks>
-        public bool IsDynamicInputFields => IsDynamicInputShown && Session?.Prompt?.Kind == CadPromptKind.Point && !Session.Prompt.AcceptsText;
+        /// <remarks>
+        /// A point prompt that also takes text, as ZOOM's takes a scale 2X, keeps the one box: a number typed there is not an X.
+        /// CIRCLE's 3P points are fields all the same, the text they take being _tan alone, never a number.
+        /// </remarks>
+        public bool IsDynamicInputFields => IsDynamicInputShown && Session?.Prompt?.Kind == CadPromptKind.Point
+            && (!Session.Prompt.AcceptsText || Session.Current?.Name == "CIRCLE");
 
         /// <summary>
         /// Gets whether the two fields are dimensional input, the length and the angle from the base point rather than X and Y:
