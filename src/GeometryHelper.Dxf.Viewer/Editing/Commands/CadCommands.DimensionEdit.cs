@@ -602,9 +602,9 @@ namespace GeometryHelper.Dxf.Viewer
             GeoPoint2 end = left == firstLeft ? q1 : q2;
             List<DxfEntity> picture = dimension.DimBlock?.ToList() ?? new List<DxfEntity>();
             string words = picture.OfType<DxfMText>().FirstOrDefault()?.Contents ?? dimension.DimensionText;
-            double inset = 2.0 * data.Dimasz * scale + WordsWidth(picture, words, height) / 2.0;
+            double inset = 2.0 * data.Dimasz * scale + WordsWidth(data, words, height, out double tall) / 2.0;
             var above = new GeoVector2(-reads.Y, reads.X);
-            dimension.TextPosition = P3(end + reads * (left ? inset : -inset) + above * (Math.Abs(data.Dimgap) * scale + height / 2.0));
+            dimension.TextPosition = P3(end + reads * (left ? inset : -inset) + above * (Math.Abs(data.Dimgap) * scale + tall / 2.0));
         }
 
         /// <summary>The angle words along a direction are turned to, so that they read from the left or from below, as AutoCAD turns them.</summary>

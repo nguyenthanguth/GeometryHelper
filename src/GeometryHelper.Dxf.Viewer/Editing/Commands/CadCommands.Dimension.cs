@@ -648,19 +648,25 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             DxfEntity text = Words(style, default, angle, height, words, scale);
-            double width = WordsWidth(new List<DxfEntity> { text }, words, height);
+            // The words laid out as high as the font measures them, past the height their text is written with.
+            double width = WordsWidth(style, words, height, out height);
             LinearLayout layout = LayOut(style, p1, p2, q1, q2, along, angle, width, height, gap, arrow, beyond, placed);
             bool[] suppressed = { style.Dimse1, style.Dimse2 };
             int side = 0;
+
+            // A point on the dimension line has its extension line too, from DIMEXO to DIMEXE past it, the way the other one runs
+            // (square to the line where neither runs any way), as AutoCAD 2021 draws it.
+            GeoVector2 normal = new GeoVector2(-along.Y, along.X);
+            GeoVector2 other = (q1 - p1).Length > 1E-12 ? (q1 - p1) / (q1 - p1).Length : (q2 - p2).Length > 1E-12 ? (q2 - p2) / (q2 - p2).Length : normal;
 
             foreach (KeyValuePair<GeoPoint2, GeoPoint2> pair in new[] { new KeyValuePair<GeoPoint2, GeoPoint2>(p1, q1), new KeyValuePair<GeoPoint2, GeoPoint2>(p2, q2) })
             {
                 GeoVector2 up = pair.Value - pair.Key;
                 double length = up.Length;
 
-                if (length > offset && !suppressed[side])
+                if (length + beyond > offset && !suppressed[side])
                 {
-                    GeoVector2 unit = up / length;
+                    GeoVector2 unit = length > 1E-12 ? up / length : other;
                     double longer = layout.OverExtension == side + 1 ? layout.Longer : 0.0;
                     picture.Add(Lined(new DxfLine(P3(pair.Key + unit * offset), P3(pair.Value + unit * (beyond + longer))), style.Dimclre, style.Dimlwe));
                 }

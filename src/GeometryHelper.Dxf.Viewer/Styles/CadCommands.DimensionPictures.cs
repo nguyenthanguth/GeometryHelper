@@ -86,7 +86,8 @@ namespace GeometryHelper.Dxf.Viewer
             if (style.Dimgap < 0.0 && index >= 0 && index + 4 < picture.Count && picture.Skip(index + 1).Take(4).All(e => e is DxfLine))
             {
                 double scale = style.Dimscale > 0.0 ? style.Dimscale : 1.0;
-                List<DxfLine> sides = Frame(P2(words.Location), words.Rotation, WordsWidth(picture, words.Contents, words.TextHeight), words.TextHeight, Math.Abs(style.Dimgap) * scale);
+                double width = WordsWidth(style, words.Contents, words.TextHeight, out double tall);
+                List<DxfLine> sides = Frame(P2(words.Location), words.Rotation, width, tall, Math.Abs(style.Dimgap) * scale);
 
                 for (int i = 0; i < 4; i++)
                 {
@@ -159,7 +160,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (move == 0)
             {
-                double half = WordsWidth(picture, words, height) / 2.0;
+                double half = WordsWidth(style, words, height, out _) / 2.0;
                 double t = (at - q1).X * along.X + (at - q1).Y * along.Y;
                 double length = (q2 - q1).Length;
                 double sign = (q2 - q1).X * along.X + (q2 - q1).Y * along.Y >= 0.0 ? 1.0 : -1.0;
@@ -223,28 +224,31 @@ namespace GeometryHelper.Dxf.Viewer
         }
 
         /// <summary>
-        /// How wide the words of a picture are: as its MTEXT measures them, else 0.7 of the height a letter, the codes %%c, %%d
-        /// and %%p a letter each, as the diameter sign, the degree sign and plus-minus they stand for.
+        /// How wide and how high the words of a picture are, as AutoCAD 2021 measures them to lay the picture out: in the font of
+        /// the style's text style (DIMTXSTY), as <see cref="CadDimensionWords"/> measures them; "R20" of arial.ttf 2.5 high is
+        /// 5.965 wide and 2.553 high. Where the font is not measured, <paramref name="tall"/> is the height and the width 0.7
+        /// of the height a letter, the codes %%c, %%d and %%p a letter each, as the diameter sign, the degree sign and
+        /// plus-minus they stand for.
         /// </summary>
-        internal static double WordsWidth(List<DxfEntity> picture, string words, double height)
+        internal static double WordsWidth(DxfDimStyleTableRecord style, string words, double height, out double tall)
         {
-            DxfMText text = picture.OfType<DxfMText>().FirstOrDefault();
-            double width = 0.0;
+            DxfTextStyleTableRecord textStyle;
 
             try
             {
-                width = text?.ActualWidth ?? 0.0;
+                textStyle = style?.Dimtxsty;
             }
-            catch (Exception)
+            catch (Exception exception) when (exception is InvalidOperationException || exception is ArgumentException)
             {
-                width = 0.0;
+                textStyle = null;
             }
 
-            if (width > 0.0 && !double.IsInfinity(width))
+            if (CadDimensionWords.TryMeasure(textStyle, words, height, out double width, out tall))
             {
                 return width;
             }
 
+            tall = height;
             string letters = words ?? string.Empty;
 
             foreach (string code in new[] { "%%c", "%%d", "%%p" })

@@ -500,5 +500,54 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Near(At30(45, 2 * Gap + Height / 2), P2(Words(dimension).Location), 1E-9);
             HasLine(dimension, At30(45 - x, Gap), At30(45 + x, Gap), 1E-9);
         }
+
+        /// <summary><see cref="Metric"/> with its words in arial.ttf, as acadiso.dwt has them, the dimension style's DIMTXSTY Standard.</summary>
+        private static CadCommandSession Arial(Action<DxfDimStyleTableRecord> set)
+        {
+            CadCommandSession session = Metric(set);
+            DxfTextStyleTableRecord standard = session.Document.Database.TextStyleTable["Standard"];
+            standard.FileName = "arial.ttf";
+            session.Document.Database.DimStyleTable["Standard"].Dimtxsty = standard;
+            return session;
+        }
+
+        [Fact]
+        public void TheWordsOfAnArialStyle_AreMeasuredByTheFont_AsAutoCadLaysThePictureOut()
+        {
+            CadCommandSession session = Arial(s => { });
+            Run(session, "DRA", new[] { Circle(session, 20) }, At30(45));
+            DxfDimension dimension = Made(session);
+
+            // AutoCAD 2021: "R20" 5.965 wide and 2.553 high, the words 0.625 + 1.276 off the line, the line run 2.983 + 0.625 past them.
+            Near(new GeoPoint2(38.0204, 24.1467), P2(Words(dimension).Location), 1E-3);
+            HasLine(dimension, new GeoPoint2(42.0954, 24.3038), new GeoPoint2(19.4856, 11.25));
+            Assert.Equal(Height, Words(dimension).TextHeight, 9);
+        }
+
+        [Fact]
+        public void ARadiusOf6InArial_TakesItsWords4Point03WideInside_ARadiusOf5PutsThemOut()
+        {
+            // AutoCAD 2021, DIMATFIT 0: "R6" in the middle of the line from the centre to the back of the arrowhead.
+            CadCommandSession session = Arial(s => s.Dimatfit = 0);
+            Run(session, "DRA", new[] { Circle(session, 6) }, At30(2));
+            DxfDimension dimension = Made(session);
+            Near(new GeoPoint2(0.5648, 2.5217), P2(Words(dimension).Location), 1E-3);
+            HasLine(dimension, P(0, 0), new GeoPoint2(3.0311, 1.75));
+            Assert.Single(Lines(dimension));
+            ArrowAt(dimension, At30(6));
+
+            session = Arial(s => s.Dimatfit = 0);
+            Run(session, "DRA", new[] { Circle(session, 5) }, At30(5.0 / 3.0));
+            Assert.True(Words(Made(session)).Location.DistanceTo(new GeoPoint3(0, 0, 0)) > 5.0);
+        }
+
+        [Fact]
+        public void AnExtensionLineOfNoLength_IsDrawnFromDimexoToDimexePastItsPoint()
+        {
+            // AutoCAD 2021: the second point on the dimension line has its extension line from 0.625 to 1.25 up past it.
+            CadCommandSession session = Metric(s => { });
+            Run(session, "DLI", P(0, 0), P(60, 40), P(30, 40));
+            HasLine(Made(session), P(60, 40.625), P(60, 41.25));
+        }
     }
 }

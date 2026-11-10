@@ -147,7 +147,7 @@ namespace GeometryHelper.Dxf.Viewer
             GeoVector2 shift = new GeoVector2(dimension.DimBlockPosition.X, dimension.DimBlockPosition.Y);
             GeoPoint2 middle = P2(words.Location) + shift;
             double t = (middle - q1).X * along.X + (middle - q1).Y * along.Y;
-            double near = Math.Abs(t) - WordsWidth(picture, words.Contents, height) / 2.0;
+            double near = Math.Abs(t) - WordsWidth(data, words.Contents, height, out _) / 2.0;
 
             if (t <= 0.0 || t >= length || near <= 0.0)
             {

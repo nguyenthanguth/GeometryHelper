@@ -37,7 +37,8 @@ namespace GeometryHelper.Dxf.Viewer
             double along = (location - center).X * u.X + (location - center).Y * u.Y;
             double aligned = Readable(Math.Atan2(u.Y, u.X));
             DxfMText text = (DxfMText)Words(style, default, aligned, height, words, scale);
-            double width = WordsWidth(new List<DxfEntity> { text }, words, height);
+            // The words laid out as high as the font measures them, past the height their text is written with.
+            double width = WordsWidth(style, words, height, out height);
             string nearName = ArrowOf(style, DxfDimArrowFlag.FirstArrow);
             string farName = ArrowOf(style, DxfDimArrowFlag.SecondArrow);
             double trim = CadArrowheads.TakesNoRoom(nearName) ? 0.0 : arrow;
@@ -80,9 +81,9 @@ namespace GeometryHelper.Dxf.Viewer
             }
             else if (!diameter)
             {
-                // The words fit between the centre and the back of the arrowhead with a gap each side; DIMATFIT 2 keeps the
-                // arrowhead in where it and a gap fit.
-                textOut = radius - trim < width + 2.0 * gap;
+                // The words fit where the radius takes them and a gap each side, the arrowhead not counted, as AutoCAD 2021 fits
+                // "R6" 4.03 wide in a radius of 6 and not "R5" in one of 5; DIMATFIT 2 keeps the arrowhead in where it and a gap fit.
+                textOut = radius < width + 2.0 * gap;
                 arrowOut = textOut && !(style.Dimatfit == 2 && radius >= trim + gap);
                 at = !textOut ? (radius - trim) / 2.0 : radius + (arrowOut ? 2.0 * arrow : trim) + words2.Beside;
             }
@@ -430,7 +431,8 @@ namespace GeometryHelper.Dxf.Viewer
             double turn = ChordTurn(radius, arrow);
             double chord = sweep < Math.PI ? 2.0 * radius * Math.Sin(sweep / 2.0) : 2.0 * radius;
             DxfMText text = (DxfMText)Words(style, default, 0.0, height, words, scale);
-            double width = WordsWidth(new List<DxfEntity> { text }, words, height);
+            // The words laid out as high as the font measures them, past the height their text is written with.
+            double width = WordsWidth(style, words, height, out height);
             var round = new RoundWords(style, scale, height, gap, width);
             bool levelInside = style.Dimtih;
             bool onInside = round.On(levelInside);
