@@ -6,6 +6,14 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** Two more rules of the presenter's radius, diameter and angular pictures follow AutoCAD 2021. A diameter's
+words on its line (DIMTAD 0) need their width and a gap each side, and with the arrowheads inside the arrowheads' room
+as well, as a linear dimension's do: "%%c6" 4.357 wide now stands at the centre of a diameter of 6 under DIMATFIT 1,
+DIMTOFL's line through the circle broken a gap clear of it, where it stood outside. An angle's extension lines run from
+DIMEXO off its points to DIMEXE past the arc wherever that is any length, as a linear dimension's: with its points 20
+from the vertex and its arc 20.3 out they run from 20.625 to 21.55, where none were drawn. Checked against 70 new
+pictures AutoCAD drew, all matching to 0.001; the 676 of the earlier rounds still match.
+
 **NEW.** DIMARC (DAR), the presenter's arc length dimension, as AutoCAD 2021 makes it and stored as the library's
 `DxfArcDimension`: Mtext and Text for its words, Angle for theirs, Partial for the length between two points of the arc,
 and Leader, offered past 90 degrees of sweep, for a leader from the words' arc to the arc measured. Below 90 degrees the

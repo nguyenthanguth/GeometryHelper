@@ -735,5 +735,47 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             HasArc(rest, 40, 83.583, 16.421);
             Near(new GeoPoint2(-24.4893, -29.1852), P2(Words(rest).Location), 1E-3);
         }
+
+        [Fact]
+        public void TheExtensionLinesOfAnAngle_RunFromDimexoToDimexePastTheArc_ThoughItPassesCloseToThePoints()
+        {
+            // AutoCAD 2021: points 20 from the vertex, the arc 20.3 out: from 20.625 to 21.55; 19.7 out: from 19.375 to 18.45.
+            CadCommandSession session = Metric(s => { });
+            Run(session, "DAN", Enter, P(0, 0), P(20, 0), Polar(60, 20), Polar(30, 20.3));
+            DxfDimension dimension = Made(session);
+            HasLine(dimension, P(20.625, 0), P(21.55, 0));
+            HasLine(dimension, Polar(60, 20.625), Polar(60, 21.55));
+
+            session = Metric(s => { });
+            Run(session, "DAN", Enter, P(0, 0), P(20, 0), Polar(60, 20), Polar(30, 19.7));
+            dimension = Made(session);
+            HasLine(dimension, P(19.375, 0), P(18.45, 0));
+            HasLine(dimension, Polar(60, 19.375), Polar(60, 18.45));
+        }
+
+        [Fact]
+        public void TheWordsOnTheLineOfADiameter_FitWithAGapEachSide_AndWithTheArrowheadsTakeTheirRoomToo()
+        {
+            // "%%c5", two letters 3.5 wide here: under DIMATFIT 1 they fit a diameter of 5 with a gap each side and stand at
+            // its centre, the arrowheads outside, as AutoCAD 2021 fits "%%c6" 4.357 wide in a diameter of 6.
+            CadCommandSession session = Metric(s => { s.Dimtad = 0; s.Dimatfit = 1; });
+            Run(session, "DDI", new[] { Circle(session, 2.5) }, At30(0.5));
+            DxfDimension dimension = Made(session);
+            Near(At30(0), P2(Words(dimension).Location), 1E-9);
+            Near(At30(5), Back(ArrowAt(dimension, At30(2.5))), 1E-3);
+
+            // DIMTOFL's line through the circle broken about them, a gap clear: from the rim in to 1.75 + 0.625 out.
+            HasLine(dimension, At30(2.5), At30(2.375));
+            HasLine(dimension, At30(-2.5), At30(-2.375));
+            Assert.DoesNotContain(Lines(dimension), l => Same(P2(l.StartPoint), At30(-2.5), 1E-3) && Same(P2(l.EndPoint), At30(2.5), 1E-3));
+
+            // Under DIMATFIT 0, with the arrowheads inside too they take 3.5 + 1.25 + 5 = 9.75, more than a diameter of 8: both
+            // go out, as AutoCAD 2021 moves "%%c9" out of a diameter of 9.
+            session = Metric(s => { s.Dimtad = 0; s.Dimatfit = 0; });
+            Run(session, "DDI", new[] { Circle(session, 4) }, At30(0.5));
+            dimension = Made(session);
+            Assert.True((P2(Words(dimension).Location) - P(0, 0)).Length > 4.0);
+            Near(At30(6.5), Back(ArrowAt(dimension, At30(4))), 1E-3);
+        }
     }
 }

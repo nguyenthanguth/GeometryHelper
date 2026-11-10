@@ -98,9 +98,12 @@ namespace GeometryHelper.Dxf.Viewer
             }
             else
             {
-                double needText = width + 2.0 * gap + (words2.On(false) ? 2.0 * gap : 0.0);
+                // The words take their width and a gap each side; on the line (DIMTAD 0) they take the arrowheads' room as well,
+                // as a linear dimension's do: "%%c6" 4.357 wide fits a diameter of 6 under DIMATFIT 1, but with its arrowheads
+                // under DIMATFIT 0 not even one of 9, as AutoCAD 2021 draws them.
+                double needText = width + 2.0 * gap;
                 double needArrows = CadArrowheads.TakesNoRoom(nearName) && CadArrowheads.TakesNoRoom(farName) ? 0.0 : 2.0 * arrow + 2.0 * gap;
-                bool both = 2.0 * radius >= Math.Max(needText, needArrows);
+                bool both = 2.0 * radius >= (words2.On(false) ? needText + 2.0 * arrow : Math.Max(needText, needArrows));
                 textOut = !both && !(style.Dimatfit == 1 && 2.0 * radius >= needText);
                 arrowOut = !both && !(style.Dimatfit == 2 && 2.0 * radius >= needArrows);
                 at = !textOut ? 0.0 : radius + (arrowOut ? 2.0 * arrow : trim) + words2.Beside;
@@ -139,8 +142,15 @@ namespace GeometryHelper.Dxf.Viewer
             }
             else if (diameter)
             {
-                // Inside with the arrowheads outside: the words at the centre, the line through from rim to rim.
-                wordsAt = words2.Centred(new List<KeyValuePair<GeoPoint2, GeoPoint2>>(), far, chord, center, u, level, ref angle);
+                // Inside with the arrowheads outside: the words at the centre, DIMTOFL's line through from rim to rim, broken
+                // about words on it (DIMTAD 0) as AutoCAD 2021 breaks it, a gap clear of them.
+                var through = new List<KeyValuePair<GeoPoint2, GeoPoint2>>();
+                wordsAt = words2.Centred(through, far, chord, center, u, level, ref angle);
+
+                if (style.Dimtofl)
+                {
+                    lines.AddRange(through);
+                }
             }
             else
             {
@@ -149,7 +159,7 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             // The line the other side of the circle: from the centre, or the far rim, to the rim (DIMTOFL).
-            if (style.Dimtofl && (textOut || (diameter && arrowOut)))
+            if (style.Dimtofl && textOut)
             {
                 GeoPoint2 inner = arrowOut ? chord : chord - u * trim;
                 GeoPoint2 from = diameter ? (farOut ? far : far + u * farTrim) : center;
@@ -468,11 +478,16 @@ namespace GeometryHelper.Dxf.Viewer
                     continue;
                 }
 
-                if (radius > far[i] + offset)
+                // From DIMEXO off the object to DIMEXE past the arc, wherever that is any length, as a linear dimension's: an arc
+                // 20.3 from the vertex through points 20 out has its extension lines from 20.625 to 21.55, as AutoCAD 2021 draws.
+                if (radius >= far[i])
                 {
-                    picture.Add(Lined(new DxfLine(P3(vertex + ray * (far[i] + offset)), P3(vertex + ray * (radius + beyond))), style.Dimclre, style.Dimlwe));
+                    if (radius + beyond > far[i] + offset)
+                    {
+                        picture.Add(Lined(new DxfLine(P3(vertex + ray * (far[i] + offset)), P3(vertex + ray * (radius + beyond))), style.Dimclre, style.Dimlwe));
+                    }
                 }
-                else if (radius < near[i] - offset)
+                else if (radius < near[i] && radius - beyond < near[i] - offset)
                 {
                     picture.Add(Lined(new DxfLine(P3(vertex + ray * (near[i] - offset)), P3(vertex + ray * Math.Max(0.0, radius - beyond))), style.Dimclre, style.Dimlwe));
                 }

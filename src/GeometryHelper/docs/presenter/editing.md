@@ -176,7 +176,10 @@ has its arrowhead outside the rim, its line from the back of it on under the wor
 rim by DIMTOFL, or with DIMTOFL off the centre mark of DIMCEN (centre lines too where DIMCEN is below nought); put 8 from
 the centre, the arrowhead stands inside and the line runs in past the words. Inside a small circle DIMATFIT 3 keeps the
 words where they are put, no nearer the rim than two arrowheads and the gap; 0 to 2 put them in the middle of the line
-where they fit, else outside past the rim. An angle of 60 degrees with its arc 30 from the vertex has its arc from the
+where they fit, else outside past the rim. A diameter's words on its line (DIMTAD 0) take a gap each side and, with
+the arrowheads inside, the arrowheads' room too: "%%c6" 4.357 wide fits a diameter of 6 under DIMATFIT 1, the line
+through the circle broken a gap clear of it. An angle's extension lines run from DIMEXO off its points to DIMEXE past
+the arc wherever that is any length: points 20 out and the arc 20.3 out give lines from 20.625 to 21.55. An angle of 60 degrees with its arc 30 from the vertex has its arc from the
 back of one arrowhead to the back of the other, 4.78 to 55.22 degrees, the arrowheads set along their chords; an angle
 of 8 degrees has its words and arrowheads outside past its first ray, the arc run on and a line along it to the words.
 DIMJUST 1 puts an angle's words next to its second ray, 2 next to its first. Words of an angle moved by DIMTEDIT stand
