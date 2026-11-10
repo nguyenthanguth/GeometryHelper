@@ -347,26 +347,34 @@ namespace GeometryHelper.UnitTest.Dwg
                     objects[data[0] + data[1] + 1] = (byte)(crc >> 8);
                 }
 
-                string what = name + " with an object byte changed at " + string.Join(", ", places);
-                Task read = Task.Run(() =>
-                {
-                    try
-                    {
-                        DxfReader.Read(new MemoryStream(DwgTranscoder.ToDxf(container), false));
-                    }
-                    catch (FormatException)
-                    {
-                    }
-                });
+                TranscodesOrRefuses(container, name + " with an object byte changed at " + string.Join(", ", places));
+            }
+        }
 
+        /// <summary>
+        /// Turns <paramref name="container"/> into DXF and reads that, on another thread, and waits for it: a
+        /// <see cref="FormatException"/> is a refusal; anything else, and a read that does not end, fails the test.
+        /// </summary>
+        private static void TranscodesOrRefuses(DwgContainer container, string what)
+        {
+            Task read = Task.Run(() =>
+            {
                 try
                 {
-                    Assert.True(read.Wait(TimeSpan.FromSeconds(60)), what + " was still being read after 60 seconds.");
+                    DxfReader.Read(new MemoryStream(DwgTranscoder.ToDxf(container), false));
                 }
-                catch (AggregateException fault)
+                catch (FormatException)
                 {
-                    throw new Xunit.Sdk.XunitException(what + " threw " + fault.InnerException);
                 }
+            });
+
+            try
+            {
+                Assert.True(read.Wait(TimeSpan.FromSeconds(60)), what + " was still being read after 60 seconds.");
+            }
+            catch (AggregateException fault)
+            {
+                throw new Xunit.Sdk.XunitException(what + " threw " + fault.InnerException);
             }
         }
     }
