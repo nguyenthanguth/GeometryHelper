@@ -301,9 +301,14 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Null(Group(document, "A7", CadProperties.CustomGroup));
             Assert.Equal("BOX", Row(Group(document, "A7", "Misc"), "Name").Value);
 
+            // AutoCAD 2021 counted a plain INSERT among those reset, and said nothing of a line alone (probe GhDyn1).
             CadCommandSession session = Session(document);
-            Run(session, "RESETBLOCK", new[] { "A7" }, Enter);
-            Assert.Equal("0 blocks reset.", session.History.Last());
+            string before = document.Database.ToText();
+            Run(session, "RESETBLOCK", new[] { "A7", "A1" }, Enter);
+            Assert.Equal("1 block reset.", session.History.Last());
+            Run(session, "RESETBLOCK", new[] { "A1" }, Enter);
+            Assert.DoesNotContain("reset", session.History.Last(), StringComparison.Ordinal);
+            Assert.Equal(before, document.Database.ToText());
             Assert.False(document.CanUndo);
         }
 

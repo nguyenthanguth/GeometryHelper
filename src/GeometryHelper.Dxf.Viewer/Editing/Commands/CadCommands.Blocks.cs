@@ -56,7 +56,8 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// RESETBLOCK: "Select objects:", then every dynamic block reference among them put back to its block's own values, as
-        /// AutoCAD's (<see cref="CadDynamicBlocks.ResetBlock"/>), one undo step, and how many were reset said.
+        /// AutoCAD's (<see cref="CadDynamicBlocks.ResetBlock"/>), one undo step; "2 blocks reset." counts every block reference
+        /// selected, a plain one too, and nothing is said where none was, as AutoCAD 2021 said (probe GhDyn1).
         /// </summary>
         private static IEnumerable<CadPrompt> ResetBlock(CadCommandContext c)
         {
@@ -73,8 +74,12 @@ namespace GeometryHelper.Dxf.Viewer
                 yield break;
             }
 
-            int reset = result.Records.Count;
-            c.Write(reset.ToString(CultureInfo.InvariantCulture) + (reset == 1 ? " block reset." : " blocks reset."));
+            int reset = c.Selected.Count(h => c.Document.FindEntity(h) is DxfBlockReference);
+
+            if (reset > 0)
+            {
+                c.Write(reset.ToString(CultureInfo.InvariantCulture) + (reset == 1 ? " block reset." : " blocks reset."));
+            }
         }
 
         /// <summary>The justifications of a text by AutoCAD's keyword, Left to BR, as -ATTDEF's Justify offers them; Align and Fit are not among them.</summary>
