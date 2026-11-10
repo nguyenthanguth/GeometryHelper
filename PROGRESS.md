@@ -146,7 +146,7 @@ the ones wanted.
 - [ ] Tests (running): the Wpf suite and a parallel run share the global settings file and fail together; give tests
       their own settings path (S)
 - [x] Layer States Manager, View Manager with New View, Drawing Units with Direction Control (designed in v110) (M)
-- [ ] Previews follow-ups: TRIM in Standard mode and Shift swapping TRIM and EXTEND; -ARRAY distances without a base point
+- [ ] Previews follow-ups (running): TRIM in Standard mode and Shift swapping TRIM and EXTEND; -ARRAY distances without a base point
       and polar -ARRAY; the TEXT box by justification; BREAK and the -ARRAY unit cell checked against what AutoCAD shows;
       a look by eye in the running app (S)
 - [ ] Managers follow-ups 2: an Edit Layer State dialog and a description in New; viewport overrides on restore; layout
@@ -157,7 +157,7 @@ the ones wanted.
 - [x] Images of an area: PNG and JPG devices in PLOT and -PLOT ("GeometryHelper PNG", "GeometryHelper JPG", as AutoCAD's
       PublishToWeb PNG/JPG), plot area Window, Extents, Display or Layout, size in pixels (1920 x 1080, 3840 x 2160 or
       typed) in place of a paper (designed in v111)
-- [ ] Dynamic input: dimensional input (length and angle boxes) beyond LINE and PLINE (M)
+- [ ] Dynamic input (running): dimensional input (length and angle boxes) beyond LINE and PLINE (M)
 - [ ] COPYVIEW (not in AutoCAD): the view as an image on the clipboard, also on the canvas right-click menu (optional)
 - [ ] Tables: the cell right-click menu, column letters and row numbers, autofill and width grips, drag-select a range
 - [ ] Tables: rows grow for wrapped text; Tab in the last cell adds a row; first/second/other row cell styles
@@ -174,8 +174,8 @@ the ones wanted.
 - [ ] Dimensions: DIMTVP, DIMTMOVE 1's leader for words moved out by fit, DIMGAP below zero (box round the words);
       DIMTEDIT on a DIMTAD 0 dimension puts the line through the words
 - [ ] Dimensions: DIM offers Jogged and Arc length, edits Mtext in the editor
-- [ ] MTEXT: word wrap at the width, stacked fractions, columns; line spacing 5/3 as AutoCAD (check first)
-- [ ] Clipboard: preview of the objects while PASTECLIP asks for the point
+- [ ] MTEXT (running): word wrap at the width, stacked fractions, columns; line spacing 5/3 as AutoCAD (check first)
+- [ ] Clipboard (running): preview of the objects while PASTECLIP asks for the point
 - [ ] PLOT: print to Windows printers; add named page setups; embed only the glyphs used (smaller PDFs)
 - [ ] Xrefs: XOPEN, a balloon when a file changes, editable xref layers (`NAME|LAYER`), nested xrefs in the palette
 - [ ] Images: IMAGEFRAME in a drawing with no image yet (needs RASTERVARIABLES made in core)
