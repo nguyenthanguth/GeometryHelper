@@ -67,6 +67,18 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 _model?.SetCursor(e.X, e.Y);
                 PlaceDynamicInput(e.X, e.Y);
             };
+            CanvasView.HeldAt = (at, taken) =>
+            {
+                GeoPoint2? held = _model?.HoldDynamicInput(at);
+
+                // A click that takes the point takes the number typed with it.
+                if (taken && held.HasValue)
+                {
+                    _model.CommandText = string.Empty;
+                }
+
+                return held;
+            };
             CanvasView.ViewChanged += (s, e) => _model?.NotifyViewChangedByUser();
             CanvasView.PixelSizeChanged += (s, e) => _model?.SetCanvasSize(CanvasView.PixelWidth, CanvasView.PixelHeight);
             CanvasView.HistoryWritten += (s, e) => _model?.RefreshHistory();
@@ -251,6 +263,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             Key key = e.Key == Key.System ? e.SystemKey : e.Key;
+
+            if (key == Key.LeftShift || key == Key.RightShift)
+            {
+                CanvasView.OnShiftChanged();
+            }
+
             ModifierKeys modifiers = Keyboard.Modifiers;
             bool inEditor = (Keyboard.FocusedElement is TextBox box && box != CommandBox) || Keyboard.FocusedElement is CadMTextEditBox;
 
@@ -319,6 +337,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 // Tab moves between the fields of dynamic input, locking a number typed, as in AutoCAD.
                 e.Handled = true;
+                HoldAgain();
             }
             else if (modifiers == ModifierKeys.None && !(Keyboard.FocusedElement is CadMTextEditBox) && Toggle(key))
             {
@@ -356,6 +375,17 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 }
 
                 e.Handled = true;
+            }
+        }
+
+        /// <inheritdoc/>
+        protected override void OnPreviewKeyUp(KeyEventArgs e)
+        {
+            base.OnPreviewKeyUp(e);
+
+            if (e.Key == Key.LeftShift || e.Key == Key.RightShift)
+            {
+                CanvasView.OnShiftChanged();
             }
         }
 
@@ -790,7 +820,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>
         /// Puts the box of dynamic input 18 px right of the cursor and 14 px below it, as AutoCAD's tooltip, or on the other side
-        /// of it where it would leave the canvas, and draws the dimensional input of LINE and PLINE. While the AutoComplete list
+        /// of it where it would leave the canvas, and draws the dimensional input. While the AutoComplete list
         /// or the options menu is open under the box, the box stays where it is, so that the pointer can reach a row.
         /// </summary>
         private void PlaceDynamicInput(double x, double y)
@@ -807,7 +837,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             view.DrawingToPixel(x, y, out double px, out double py);
             px /= scale;
             py /= scale;
-            PlaceDimensionalInput(view, scale, new Point(px, py));
+            // The dimensions run to the point a field holds, the box stays at the cursor.
+            GeoPoint2 held = _model.HoldDynamicInput(new GeoPoint2(x, y)) ?? new GeoPoint2(x, y);
+            view.DrawingToPixel(held.X, held.Y, out double hx, out double hy);
+            PlaceDimensionalInput(view, scale, new Point(hx / scale, hy / scale));
 
             if (_model.IsSuggestionListAtCursor || _model.IsDynamicInputMenuOpen)
             {
@@ -834,15 +867,16 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>
-        /// The dimensional input of LINE's and PLINE's next point, as AutoCAD draws it: a dimension line 18 px off the rubber
-        /// band with its extension lines and the length in a field at its middle; the X axis of the UCS dashed from the base
-        /// point, the arc of the angle 70 px round it and the angle in a field beyond the arc's middle.
+        /// The dimensional input of a point, a distance or an angle asked from a base point, as AutoCAD draws it: a dimension
+        /// line 18 px off the rubber band with its extension lines and the length in a field at its middle; the X axis of the
+        /// UCS dashed from the base point, the arc of the angle 70 px round it and the angle in a field beyond the arc's
+        /// middle. The view shows the length's part, the angle's or both, as the prompt asks.
         /// </summary>
         private void PlaceDimensionalInput(CadView view, double scale, Point cursor)
         {
             CadPrompt prompt = _model.Session?.Prompt;
 
-            if (!_model.IsDynamicInputPolar || prompt?.BasePoint == null)
+            if (!_model.IsDynamicInputDimensional || prompt?.BasePoint == null)
             {
                 return;
             }
@@ -900,6 +934,16 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             DimensionalArc.Data = arc;
             Centre(LengthField, origin + band / 2.0 + normal * Gap);
             Centre(AngleField, On(start + sweep / 2.0, Radius + 25.0));
+        }
+
+        /// <summary>A number typed into a field of dynamic input, or locked by Tab: the dimensions and the preview are drawn again at the point it holds.</summary>
+        private void HoldAgain()
+        {
+            if (_model != null && _model.IsDynamicInputShown && _model.IsCommandRunning)
+            {
+                PlaceDynamicInput(_dynamicAt.X, _dynamicAt.Y);
+                CanvasView.InvalidateVisual();
+            }
         }
 
         /// <summary>The box held still with its list or menu open: moved back inside the canvas where the list or the menu would leave it.</summary>
@@ -1047,6 +1091,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             {
                 case nameof(MainViewModel.IsDynamicInputShown):
                 case nameof(MainViewModel.IsDynamicInputPolar):
+                case nameof(MainViewModel.IsDynamicInputDimensional):
                 case nameof(MainViewModel.IsSuggestionListAtCursor):
                 case nameof(MainViewModel.IsDynamicInputMenuOpen):
                     // The box opened, or the list or the menu under it: placed again once laid out, so that it stays on the canvas.
@@ -1072,6 +1117,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return;
             }
 
+            CanvasView.Typed = _model.CommandText;
+            HoldAgain();
             _suggest.Stop();
 
             if (_model.CommandText.Length > 0 && !_model.IsSuggestionListOpen)

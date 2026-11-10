@@ -35,7 +35,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// <summary>
     /// Dynamic input (DYN, F12) at the cursor, as AutoCAD 2021's: at the Command prompt what is typed with the AutoComplete
     /// list under it; in a command the prompt with the ↓ of its options menu, the pointer input fields X and Y (relative to the
-    /// base point, as DYNPIFORMAT 0; # typed first for absolute, @ for relative) and the dimensional input of LINE and PLINE,
+    /// base point, as DYNPIFORMAT 0; # typed first for absolute, @ for relative) and the dimensional input of a second point, a distance and an angle,
     /// the length on a dimension line along the rubber band and the angle on an arc. Then the command line shown or hidden
     /// (Ctrl+9), and AutoCAD's Select Color dialog for the Color row of Properties and for the colour of new objects in the
     /// ribbon's colour box.
@@ -50,6 +50,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>The last choice of the colour box of the ribbon's Properties panel, which shows the Select Color dialog for the colour of new objects.</summary>
         public const string MoreColorsOption = "More colors...";
+
+        /// <summary>The commands whose points asked from a base point show the length and the angle, as AutoCAD's dimensional input.</summary>
+        private static readonly string[] DimensionalCommands = { "LINE", "PLINE", "ARC", "CIRCLE", "ELLIPSE", "POLYGON", "XLINE", "RAY", "MOVE", "COPY", "STRETCH", "OFFSET" };
 
         private static readonly string[] CurrentColorNames = { "ByLayer", "ByBlock", "Red", "Yellow", "Green", "Cyan", "Blue", "Magenta", "White" };
 
@@ -174,7 +177,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>
-        /// Gets whether dynamic input shows two fields, as AutoCAD's while a point is asked: at LINE's and PLINE's next point the
+        /// Gets whether dynamic input shows two fields, as AutoCAD's while a point is asked: at a second point, as LINE's next, the
         /// length and the angle from the base point (<see cref="IsDynamicInputPolar"/>); at another point with a base point the X
         /// and the Y from it, RECTANG's other corner 1 200 by 800 from the first; with none the X and the Y of the cursor. Tab
         /// moves from one to the other (<see cref="TabDynamicInput"/>), a number typed locks its field, and Enter takes the
@@ -185,11 +188,31 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         /// <summary>
         /// Gets whether the two fields are dimensional input, the length and the angle from the base point rather than X and Y:
-        /// at the next point of LINE and PLINE, where the canvas draws the length on a dimension line along the rubber band and
-        /// the angle on an arc from the X axis.
+        /// as AutoCAD's while a second point is asked: at a point with a base point of LINE, PLINE, ARC, CIRCLE, ELLIPSE,
+        /// POLYGON, XLINE, RAY, MOVE, COPY, STRETCH and OFFSET, and of a grip edit, where the canvas draws the length on a
+        /// dimension line along the rubber band and the angle on an arc from the X axis. RECTANG's other corner keeps X and Y,
+        /// its two sizes.
         /// </summary>
-        public bool IsDynamicInputPolar => IsDynamicInputFields && Session.Prompt.BasePoint.HasValue && Session.Prompt.Message == "Specify next point"
-            && (Session.Current?.Name == "LINE" || Session.Current?.Name == "PLINE");
+        public bool IsDynamicInputPolar => IsDynamicInputFields && Session.Prompt.BasePoint.HasValue
+            && (Session.IsGripEditing || Array.IndexOf(DimensionalCommands, Session.Current?.Name) >= 0);
+
+        /// <summary>
+        /// Gets whether the canvas shows the length in a field on a dimension line along the rubber band: with the angle
+        /// (<see cref="IsDynamicInputPolar"/>), or alone while a distance is asked from a base point, as CIRCLE's radius 250
+        /// from its centre, POLYGON's radius and ELLIPSE's other axis. A number typed goes into the field, and Enter takes it
+        /// as the command line does. A scale factor has no field, as in AutoCAD: it is no length of the drawing.
+        /// </summary>
+        public bool IsDynamicInputLength => IsDynamicInputPolar || Alone(CadPromptKind.Distance);
+
+        /// <summary>
+        /// Gets whether the canvas shows the angle in a field on an arc from the X axis: with the length
+        /// (<see cref="IsDynamicInputPolar"/>), or alone while an angle is asked from a base point, as ROTATE's 30° about its
+        /// base point.
+        /// </summary>
+        public bool IsDynamicInputAngle => IsDynamicInputPolar || Alone(CadPromptKind.Angle);
+
+        /// <summary>Gets whether the canvas shows dimensional input, the length (<see cref="IsDynamicInputLength"/>), the angle (<see cref="IsDynamicInputAngle"/>) or both, and the box at the cursor no value of its own.</summary>
+        public bool IsDynamicInputDimensional => IsDynamicInputLength || IsDynamicInputAngle;
 
         /// <summary>
         /// Gets what the first field shows, the distance or the X: what is typed into it, else the value locked by Tab, else the
@@ -209,10 +232,10 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         public bool IsDynamicInputSecondLocked => FieldLocked(true);
 
         /// <summary>Gets whether what is typed goes into the first field.</summary>
-        public bool IsDynamicInputFirstActive => IsDynamicInputFields && !SecondTyped();
+        public bool IsDynamicInputFirstActive => (IsDynamicInputFields && !SecondTyped()) || Alone(CadPromptKind.Distance);
 
         /// <summary>Gets whether what is typed goes into the second field: after Tab, or after the comma or the &lt; of a coordinate typed whole.</summary>
-        public bool IsDynamicInputSecondActive => IsDynamicInputFields && SecondTyped();
+        public bool IsDynamicInputSecondActive => (IsDynamicInputFields && SecondTyped()) || Alone(CadPromptKind.Angle);
 
         /// <summary>
         /// Gets or sets the colour of new objects, the drawing's $CECOLOR, as the colour box of the ribbon's Properties panel
@@ -388,6 +411,40 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>
+        /// The point the fields of dynamic input hold the cursor to, which the canvas previews and a click takes, as AutoCAD's
+        /// locked fields constrain the cursor: a length of 300 locked by Tab or typed holds it 300 from the base point towards
+        /// the cursor, an angle of 45 on the line at 45° at the cursor's distance, an X or a Y on that X or Y. It is the point
+        /// Enter would take with the cursor there.
+        /// </summary>
+        /// <param name="cursor">The cursor, snapped where a snap holds it, in world coordinates.</param>
+        /// <returns>The point held; null while no field holds a number, when the cursor is free.</returns>
+        public GeoPoint2? HoldDynamicInput(GeoPoint2 cursor)
+        {
+            string typed = Bare(CommandText.Trim());
+            bool length = Alone(CadPromptKind.Distance);
+
+            if (length || Alone(CadPromptKind.Angle))
+            {
+                return IsNumber(typed) ? FieldPoint(length ? typed : null, length ? null : typed, true, false, cursor) : (GeoPoint2?)null;
+            }
+
+            if (!IsDynamicInputFields || (typed.Length > 0 && !IsNumber(typed)))
+            {
+                return null;
+            }
+
+            string first = typed.Length > 0 && !_secondActive ? typed : _lockedFirst;
+            string second = typed.Length > 0 && _secondActive ? typed : _lockedSecond;
+
+            if (first == null && second == null)
+            {
+                return null;
+            }
+
+            return FieldPoint(first, second, IsDynamicInputPolar, _absolute || CommandText.TrimStart().StartsWith("#", StringComparison.Ordinal), cursor);
+        }
+
+        /// <summary>
         /// Gets or sets what shows AutoCAD's Select Color dialog for the Color row of Properties (its "Select Color..."), as the
         /// window shows <see cref="SelectColorWindow"/>: given the dialog's logic, it says whether OK was pressed. Null for
         /// none, when the choice says so on the command line.
@@ -467,6 +524,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             Raise(nameof(DynamicInputValue));
             Raise(nameof(IsDynamicInputFields));
             Raise(nameof(IsDynamicInputPolar));
+            Raise(nameof(IsDynamicInputLength));
+            Raise(nameof(IsDynamicInputAngle));
+            Raise(nameof(IsDynamicInputDimensional));
             Raise(nameof(DynamicInputFirst));
             Raise(nameof(DynamicInputSecond));
             Raise(nameof(IsDynamicInputFirstLocked));
@@ -555,33 +615,45 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return true;
             }
 
+            Session.Feed(FieldPoint(first, second, polar, absolute, _cursorAt));
+            SyncHistory();
+            RunAfterCommand();
+            return true;
+        }
+
+        /// <summary>The point the two fields give with the cursor at a place: a field with no number takes the cursor's value.</summary>
+        private GeoPoint2 FieldPoint(string first, string second, bool polar, bool absolute, GeoPoint2 at)
+        {
             // The fields are in the current UCS, the point fed in the world's.
-            GeoPoint2 point;
+            GeoPoint2? basePoint = Session.Prompt.BasePoint;
             CadUcs ucs = Ucs;
 
             if (polar && !absolute)
             {
                 GeoPoint2 from = basePoint.Value;
-                double length = first != null ? Number(first) : (_cursorAt - from).Length;
+                double length = first != null ? Number(first) : (at - from).Length;
+
+                if (second == null)
+                {
+                    // The length alone: towards the cursor.
+                    GeoVector2 towards = at - from;
+                    double far = towards.Length;
+                    return far > 0.0 ? from + new GeoVector2(towards.X * length / far, towards.Y * length / far) : from;
+                }
+
                 double angle = Number(second) * Math.PI / 180.0;
-                point = from + ucs.ToWorld(new GeoVector2(length * Math.Cos(angle), length * Math.Sin(angle)));
-            }
-            else if (basePoint.HasValue && !absolute)
-            {
-                // Relative, as DYNPIFORMAT 0: the X and the Y from the base point, the one not typed the cursor's.
-                GeoVector2 way = ucs.ToUcs(_cursorAt - basePoint.Value);
-                point = basePoint.Value + ucs.ToWorld(new GeoVector2(first != null ? Number(first) : way.X, second != null ? Number(second) : way.Y));
-            }
-            else
-            {
-                GeoPoint2 cursor = ucs.ToUcs(_cursorAt);
-                point = ucs.ToWorld(new GeoPoint2(first != null ? Number(first) : cursor.X, second != null ? Number(second) : cursor.Y));
+                return from + ucs.ToWorld(new GeoVector2(length * Math.Cos(angle), length * Math.Sin(angle)));
             }
 
-            Session.Feed(point);
-            SyncHistory();
-            RunAfterCommand();
-            return true;
+            if (basePoint.HasValue && !absolute)
+            {
+                // Relative, as DYNPIFORMAT 0: the X and the Y from the base point, the one not typed the cursor's.
+                GeoVector2 way = ucs.ToUcs(at - basePoint.Value);
+                return basePoint.Value + ucs.ToWorld(new GeoVector2(first != null ? Number(first) : way.X, second != null ? Number(second) : way.Y));
+            }
+
+            GeoPoint2 cursor = ucs.ToUcs(at);
+            return ucs.ToWorld(new GeoPoint2(first != null ? Number(first) : cursor.X, second != null ? Number(second) : cursor.Y));
         }
 
         /// <summary>
@@ -622,6 +694,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>The text of a field: typed, locked or the cursor's.</summary>
         private string FieldText(bool second)
         {
+            if (Alone(second ? CadPromptKind.Angle : CadPromptKind.Distance))
+            {
+                return CommandText.Length > 0 ? CommandText : Measured(second, Session.Prompt.BasePoint.Value);
+            }
+
             if (!IsDynamicInputFields)
             {
                 return string.Empty;
@@ -652,16 +729,23 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return _settings.FormatNumber(second ? shown.Y : shown.X, _settings.CoordinateDecimals);
             }
 
+            if (IsDynamicInputPolar)
+            {
+                return Measured(second, from.Value);
+            }
+
             GeoVector2 way = Ucs.ToUcs(_cursorAt - from.Value);
+            return _settings.FormatNumber(second ? way.Y : way.X, _settings.CoordinateDecimals);
+        }
+
+        /// <summary>The length to the cursor from a point, or its angle from the X axis of the UCS in degrees, 0 to 360, as a field shows it.</summary>
+        private string Measured(bool angle, GeoPoint2 from)
+        {
+            GeoVector2 way = Ucs.ToUcs(_cursorAt - from);
             double dx = way.X;
             double dy = way.Y;
 
-            if (!IsDynamicInputPolar)
-            {
-                return _settings.FormatNumber(second ? dy : dx, _settings.CoordinateDecimals);
-            }
-
-            if (!second)
+            if (!angle)
             {
                 return _settings.FormatNumber(Math.Sqrt(dx * dx + dy * dy), _settings.CoordinateDecimals);
             }
@@ -672,6 +756,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         private bool FieldLocked(bool second)
         {
+            if (Alone(second ? CadPromptKind.Angle : CadPromptKind.Distance))
+            {
+                return CommandText.Length > 0;
+            }
+
             if (!IsDynamicInputFields)
             {
                 return false;
@@ -683,6 +772,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
 
             return (CommandText.Length > 0 && second == _secondActive) || (second ? _lockedSecond : _lockedFirst) != null;
+        }
+
+        /// <summary>Whether the prompt asks a distance or an angle from a base point, shown in the one field of its kind on the canvas; a scale factor is not.</summary>
+        private bool Alone(CadPromptKind kind)
+        {
+            CadPrompt prompt = IsDynamicInputShown && IsCommandRunning ? Session.Prompt : null;
+            return prompt != null && prompt.Kind == kind && prompt.BasePoint.HasValue && prompt.Message != "Specify scale factor";
         }
 
         private bool SecondTyped() => Parted(out _, out _) || _secondActive;

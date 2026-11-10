@@ -170,6 +170,39 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         [Fact]
+        public void PasteAskingItsPoint_PreviewsTheObjectsAtTheCursor_BeforeTheDrawingHasTheirBlockOrLayer()
+        {
+            var clipboard = new CadMemoryClipboard();
+            Run(Session(Plan(), clipboard), "COPYCLIP", new[] { "A1", "A7" }, Enter);
+
+            CadDocument blank = Blank();
+            CadCommandSession session = Run(Session(blank, clipboard), "PASTECLIP");
+            Assert.StartsWith("Specify insertion point", session.PromptText);
+            int history = session.History.Count;
+            Assert.True(session.Prompt.Preview.Items(P(300, 200)).Count > 1);
+
+            // Nothing came into the drawing or the history for the preview: the block and the layer come with the paste.
+            Assert.Equal(history, session.History.Count);
+            Assert.False(blank.IsModified);
+            Assert.False(blank.Database.BlockTable.Has("BOX"));
+            PreviewTests.PreviewMakes(session, P(300, 200));
+            Assert.True(blank.Database.BlockTable.Has("BOX"));
+
+            Run(session, "PASTEBLOCK");
+            PreviewTests.PreviewMakes(session, P(-40, 70));
+        }
+
+        [Fact]
+        public void TextOfAnotherAppAskingItsPoint_PreviewsTheMTextAtTheCursor()
+        {
+            var clipboard = new CadMemoryClipboard();
+            clipboard.SetData(new CadClipboardData(null, "Steel S355\r\nBolts"));
+            CadCommandSession session = Run(Session(Blank(), clipboard), "PASTECLIP");
+
+            PreviewTests.PreviewMakes(session, P(10, 20));
+        }
+
+        [Fact]
         public void PasteWithNothingOnTheClipboard_SaysSo_AndChangesNothing()
         {
             CadDocument document = Plan();

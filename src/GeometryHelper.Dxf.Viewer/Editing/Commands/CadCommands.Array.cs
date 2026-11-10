@@ -461,13 +461,25 @@ namespace GeometryHelper.Dxf.Viewer
                 GeoPoint2 centre = c.Input.Point;
                 yield return CadPrompt.ForInteger("Enter the number of items in the array");
                 int items = c.Input.Kind == CadInputKind.Number ? (int)c.Input.Number : 0;
-                yield return CadPrompt.ForAngle("Specify the angle to fill (+=ccw, -=cw)", null, null, "360");
+
+                // The copies the angle to the cursor from the centre would make, turned as they are unless No is answered after.
+                CadPrompt filling = CadPrompt.ForAngle("Specify the angle to fill (+=ccw, -=cw)", centre, null, "360");
+                yield return items < 2 ? filling : filling.Previewing(CadPreview.Moving(c, c.Selected, input => PolarMoves(centre, basePoint, items, StepOf(items, input.Number), 1, 0.0, true).ConvertAll(CadPreview.Flat), true));
                 double fill = c.Input.Kind == CadInputKind.Number ? c.Input.Number : 2.0 * Math.PI;
                 double step;
 
                 if (items <= 0)
                 {
-                    yield return CadPrompt.ForAngle("Angle between items");
+                    yield return CadPrompt.ForAngle("Angle between items", centre).Previewing(CadPreview.Moving(c, c.Selected, input =>
+                    {
+                        if (Math.Abs(input.Number) <= Tolerance.Default.EqualAngleRad)
+                        {
+                            return null;
+                        }
+
+                        double between = input.Number * Math.Sign(fill == 0.0 ? 1.0 : fill);
+                        return PolarMoves(centre, basePoint, Between(fill, between), between, 1, 0.0, true).ConvertAll(CadPreview.Flat);
+                    }, true));
 
                     if (c.Input.Kind != CadInputKind.Number || Math.Abs(c.Input.Number) <= Tolerance.Default.EqualAngleRad)
                     {
@@ -476,8 +488,7 @@ namespace GeometryHelper.Dxf.Viewer
                     }
 
                     step = c.Input.Number * Math.Sign(fill == 0.0 ? 1.0 : fill);
-                    bool whole = Math.Abs(Math.Abs(fill) - 2.0 * Math.PI) <= Tolerance.Default.EqualAngleRad;
-                    items = (int)Math.Floor(Math.Abs(fill / step) + 1E-9) + (whole ? 0 : 1);
+                    items = Between(fill, step);
                 }
                 else
                 {
@@ -490,7 +501,8 @@ namespace GeometryHelper.Dxf.Viewer
                     yield break;
                 }
 
-                yield return CadPrompt.ForKeyword("Rotate arrayed objects?", new[] { "Yes", "No" }, "Y");
+                List<Affine2> turned = PolarMoves(centre, basePoint, items, step, 1, 0.0, true).ConvertAll(CadPreview.Flat);
+                yield return CadPrompt.ForKeyword("Rotate arrayed objects?", new[] { "Yes", "No" }, "Y").Previewing(CadPreview.Moving(c, c.Selected, input => turned));
                 Copies(c, c.Selected, PolarMoves(centre, basePoint, items, step, 1, 0.0, !c.Input.Is("No")));
                 yield break;
             }
@@ -529,7 +541,8 @@ namespace GeometryHelper.Dxf.Viewer
                 {
                     GeoPoint2 corner = c.Input.Point;
 
-                    // The copies the unit cell to the cursor would make, as the array is made of it.
+                    // The copies the unit cell to the cursor would make, as the array is made of it. AutoCAD's help
+                    // for -ARRAY describes no preview at this prompt; the copies are kept as at the other prompts.
                     yield return CadPrompt.ForPoint("Specify opposite corner", corner).Previewing(CadPreview.Moving(c, c.Selected, input =>
                     {
                         GeoVector2 drawn = c.Session.Ucs.ToUcs(input.Point - corner);
@@ -555,14 +568,25 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (columns > 1 && !cell)
             {
-                yield return CadPrompt.ForDistance("Specify the distance between columns (|||)");
+                yield return CadPrompt.ForPoint("Specify the distance between columns (|||)", null, null, null, true);
 
-                if (c.Input.Kind != CadInputKind.Number)
+                if (c.Input.IsPoint)
+                {
+                    // The distance shown by two points: the copies it would make to the cursor, the rows as far apart as typed.
+                    double typed = up;
+                    yield return CadPrompt.ForDistance("Specify second point", c.Input.Point).Previewing(CadPreview.Moving(c, c.Selected, input => RectangularMoves(c, rows, columns, input.Number, typed).ConvertAll(CadPreview.Flat), true));
+
+                    if (c.Input.Kind != CadInputKind.Number)
+                    {
+                        yield break;
+                    }
+
+                    across = c.Input.Number;
+                }
+                else if (c.Input.Kind != CadInputKind.Text || !CadUnits.TryLength(c.Input.Text, c.Session.Document.Database.Lunits, out across))
                 {
                     yield break;
                 }
-
-                across = c.Input.Number;
             }
 
             Copies(c, c.Selected, RectangularMoves(c, rows, columns, across, up));
@@ -591,6 +615,13 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             return moves;
+        }
+
+        /// <summary>The items of a polar array filling an angle a given angle apart: a whole turn by 60 degrees has six, a half turn seven.</summary>
+        private static int Between(double fill, double step)
+        {
+            bool whole = Math.Abs(Math.Abs(fill) - 2.0 * Math.PI) <= Tolerance.Default.EqualAngleRad;
+            return (int)Math.Floor(Math.Abs(fill / step) + 1E-9) + (whole ? 0 : 1);
         }
 
         /// <summary>The angle a polar array fills: a whole turn its items share evenly, else as far as its last item.</summary>
