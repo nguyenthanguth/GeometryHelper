@@ -88,6 +88,7 @@ namespace GeometryHelper.Dxf.Viewer
         private SortedDictionary<string, int> _uses = new SortedDictionary<string, int>(StringComparer.OrdinalIgnoreCase);
         private List<GlobalAutoCorrection> _corrections = new List<GlobalAutoCorrection>();
         private List<GlobalRecentFile> _recent = new List<GlobalRecentFile>();
+        private List<string> _recentCommands = new List<string>();
 
         // ---- Input settings
 
@@ -124,6 +125,34 @@ namespace GeometryHelper.Dxf.Viewer
         /// <see cref="RecentFilesShown"/> of these, and every pinned file where more are pinned.
         /// </summary>
         public IReadOnlyList<GlobalRecentFile> RecentFiles => _recent;
+
+        /// <summary>
+        /// Gets the commands run last, the newest first, each once, <see cref="RecentCommandsKept"/> at most, by name in
+        /// capitals: the command line menu's Recent Commands, kept from one session to the next as AutoCAD keeps them.
+        /// </summary>
+        public IReadOnlyList<string> RecentCommands => _recentCommands;
+
+        /// <summary>How many commands Recent Commands keeps: 20, as AutoCAD's.</summary>
+        public const int RecentCommandsKept = 20;
+
+        /// <summary>Puts a command first in <see cref="RecentCommands"/>, once, the oldest past <see cref="RecentCommandsKept"/> dropped.</summary>
+        /// <param name="name">The command's name, as LINE.</param>
+        public void NoteRecentCommand(string name)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                return;
+            }
+
+            string key = name.Trim().ToUpperInvariant();
+            _recentCommands.Remove(key);
+            _recentCommands.Insert(0, key);
+
+            if (_recentCommands.Count > RecentCommandsKept)
+            {
+                _recentCommands.RemoveRange(RecentCommandsKept, _recentCommands.Count - RecentCommandsKept);
+            }
+        }
 
         /// <summary>Counts a use of a command.</summary>
         /// <param name="name">The command's name, as LINE.</param>
@@ -236,9 +265,25 @@ namespace GeometryHelper.Dxf.Viewer
             return true;
         }
 
+        /// <summary>Takes a file off the recent files, pinned or not, as a file chosen there and no longer found is.</summary>
+        /// <param name="path">The path of the file.</param>
+        /// <returns>False where the file is not in the list.</returns>
+        public bool RemoveRecentFile(string path)
+        {
+            int index = IndexOfRecent(path);
+
+            if (index < 0)
+            {
+                return false;
+            }
+
+            _recent.RemoveAt(index);
+            return true;
+        }
+
         /// <summary>
-        /// Takes the records of other settings: the command uses, the misspellings and the recent files, as Global settings'
-        /// Reset keeps them while putting every setting back to its default.
+        /// Takes the records of other settings: the command uses, the misspellings, the recent files and the recent commands,
+        /// as Global settings' Reset keeps them while putting every setting back to its default.
         /// </summary>
         /// <param name="other">The settings whose records are taken.</param>
         /// <exception cref="ArgumentNullException">Thrown when the settings are null.</exception>
@@ -252,6 +297,7 @@ namespace GeometryHelper.Dxf.Viewer
             copy._uses = new SortedDictionary<string, int>(_uses, StringComparer.OrdinalIgnoreCase);
             copy._corrections = new List<GlobalAutoCorrection>(_corrections);
             copy._recent = new List<GlobalRecentFile>(_recent);
+            copy._recentCommands = new List<string>(_recentCommands);
         }
 
         private int IndexOfRecent(string path)
@@ -311,9 +357,17 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             w.CloseList();
+            w.OpenList("recentCommands");
+
+            foreach (string command in _recentCommands)
+            {
+                w.Value(null, command);
+            }
+
+            w.CloseList();
         }
 
-        /// <summary>Reads the command uses, the misspellings and the recent files; an entry that does not read is left out with a Warn.</summary>
+        /// <summary>Reads the command uses, the misspellings, the recent files and the recent commands; an entry that does not read is left out with a Warn.</summary>
         private void ReadRecords(XElement root, string path)
         {
             foreach (XElement use in root.Element("commandUses")?.Elements() ?? Enumerable.Empty<XElement>())
@@ -366,6 +420,16 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             OrderRecent();
+
+            foreach (XElement item in root.Element("recentCommands")?.Elements() ?? Enumerable.Empty<XElement>())
+            {
+                string command = item.Value.Trim().ToUpperInvariant();
+
+                if (command.Length > 0 && !_recentCommands.Contains(command) && _recentCommands.Count < RecentCommandsKept)
+                {
+                    _recentCommands.Add(command);
+                }
+            }
         }
     }
 }
