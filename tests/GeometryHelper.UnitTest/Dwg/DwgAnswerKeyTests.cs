@@ -97,6 +97,8 @@ namespace GeometryHelper.UnitTest.Dwg
         [InlineData("mline_AC1032")]
         [InlineData("solids_AC1015")]
         [InlineData("solids_AC1032")]
+        [InlineData("meshes_AC1015")]
+        [InlineData("meshes_AC1032")]
         public void ADrawingOfTheTypesOfW4_ReadFromItsDwg_IsTheDxfAutoCadWroteOfIt(string drawing)
         {
             // Made by probe GhDwg4 in all six versions; the repository holds the oldest and the newest of each.
@@ -193,6 +195,27 @@ namespace GeometryHelper.UnitTest.Dwg
             Assert.Equal(3, database.ModelSpace.OfType<DxfUnknownEntity>().Count(e => e.DxfName == "MLINE"));
             DwgAnswerKey.Record style = Assert.Single(records, r => r.Type == "MLINESTYLE" && r.Groups.Any(g => g.Key == 2 && g.Value == "GH3"));
             Assert.Equal(new[] { "Continuous", "BYLAYER", "BYBLOCK" }, style.Groups.Where(g => g.Key == 6).Select(g => g.Value));
+        }
+
+        [Fact]
+        public void ACircleOfAColourOfABook_IsRead_WithTheColourItsBookGives()
+        {
+            // Before, the entity was left out as broken: a colour of a book sets 0x8000 too, but keeps no true colour there.
+            DxfDatabase database = DwgReader.Open(new MemoryStream(DwgAnswerKey.Dwg("meshes_AC1032"), false));
+
+            DxfCircle circle = Assert.Single(database.ModelSpace.OfType<DxfCircle>(), c => Math.Abs(c.Radius - 5.0) < 1E-9 && Math.Abs(c.Center.X - 200.0) < 1E-9);
+            Assert.Contains("PANTONE Yellow 012 C", circle.Color.ColorName);
+            Assert.DoesNotContain(_written, line => line.Level == GeometryHelperLogLevel.Warn);
+        }
+
+        [Fact]
+        public void AnAttributeOfSeveralLinesOfR2018_IsRead_WithItsMText()
+        {
+            DxfDatabase database = DwgReader.Open(new MemoryStream(DwgAnswerKey.Dwg("meshes_AC1032"), false));
+
+            DxfAttributeReference note = database.ModelSpace.OfType<DxfBlockReference>().SelectMany(b => b.AttributeCollection).Single(a => a.Tag == "NOTE");
+            Assert.True(note.IsMTextAttribute);
+            Assert.Equal("line one\\Pline two", note.MTextAttribute.Contents);
         }
 
         [Fact]

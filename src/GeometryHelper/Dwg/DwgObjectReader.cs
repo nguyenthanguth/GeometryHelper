@@ -423,7 +423,20 @@ namespace GeometryHelper.Dwg
                 _object.Common.Add(new DwgGroup(347, materialHandle));
             }
 
-            AddColour(_object.Common, colour, true);
+            if (colour.HasBook)
+            {
+                // The index, the true colour and the name are those of the DBCOLOR the handle leads to; the transcoder writes them.
+                _object.Common.Add(new DwgGroup(62, new DwgBookColour(colour.Book, colour.Index)));
+
+                if (colour.Transparency != -1)
+                {
+                    _object.Common.Add(new DwgGroup(440, colour.Transparency));
+                }
+            }
+            else
+            {
+                AddColour(_object.Common, colour, true);
+            }
 
             if (linetypeScale != 1.0)
             {
@@ -450,13 +463,13 @@ namespace GeometryHelper.Dwg
         {
             int value = _data.BitShort() & 0xFFFF;
             var colour = new DwgColour { Index = value & 0x1FF };
+            colour.HasBook = (value & 0x4000) != 0;
 
-            if ((value & 0x8000) != 0)
+            // A colour of a book sets 0x8000 too, but its true colour is in its DBCOLOR, not here.
+            if ((value & 0x8000) != 0 && !colour.HasBook)
             {
                 colour.Rgb = _data.BitLong() & 0xFFFFFF;
             }
-
-            colour.HasBook = (value & 0x4000) != 0;
 
             if ((value & 0x2000) != 0)
             {
@@ -779,6 +792,7 @@ namespace GeometryHelper.Dwg
                 case "WIPEOUT": ReadRasterImage("AcDbWipeout"); return true;
                 case "IMAGEDEF": ReadImageDefinition(); return true;
                 case "IMAGEDEF_REACTOR": ReadImageDefinitionReactor(); return true;
+                case "DBCOLOR": ReadBookColour(); return true;
                 default: return false;
             }
         }

@@ -372,6 +372,21 @@ namespace GeometryHelper.Dwg
                     _dxf.Write(group.Code, found);
                 }
             }
+            else if (group.Value is DwgBookColour book)
+            {
+                DwgColour colour = Find(book.Book)?.BookColour;
+                _dxf.Write(62, colour?.Index ?? book.Index);
+
+                if (colour != null && colour.Rgb >= 0)
+                {
+                    _dxf.Write(420, colour.Rgb);
+                }
+
+                if (colour?.Name != null && colour.Name.Length > 0)
+                {
+                    _dxf.WriteValue(430, colour.BookName != null && colour.BookName.Length > 0 ? JoinBook(colour.BookName, colour.Name) : colour.Name);
+                }
+            }
             else if (group.Value is DwgLinetypeIndex linetype)
             {
                 // The records of the table follow ByBlock and ByLayer, which the control lists first.
@@ -640,6 +655,16 @@ namespace GeometryHelper.Dwg
             {
                 WriteEntity(end, entity.Handle, paper, true);
             }
+        }
+
+        /// <summary>The name DXF gives a colour of a book: the book, a dollar sign, the colour.</summary>
+        private static byte[] JoinBook(byte[] book, byte[] name)
+        {
+            var joined = new byte[book.Length + 1 + name.Length];
+            Array.Copy(book, joined, book.Length);
+            joined[book.Length] = (byte)'$';
+            Array.Copy(name, 0, joined, book.Length + 1, name.Length);
+            return joined;
         }
 
         /// <summary>A run of bytes as DXF writes it: its length under <paramref name="sizeCode"/>, then pieces of 127 bytes in hex under 310.</summary>

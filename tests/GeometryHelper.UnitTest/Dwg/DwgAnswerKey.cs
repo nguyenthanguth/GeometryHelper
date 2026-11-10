@@ -295,6 +295,15 @@ namespace GeometryHelper.UnitTest.Dwg
 
                 List<KeyValuePair<int, string>> groups = WithoutRoundTrip(a, b, got, roundTrip);
 
+                if (a.Type == "DBCOLOR")
+                {
+                    // The extended data DBColXD, the index, true colour and name of a colour of a book for releases that do
+                    // not know it: AutoCAD takes it away from an R2000 file as it reads it, and writing R2004 to R2013 adds a
+                    // second copy. Compared without it.
+                    a.Groups = WithoutBookData(a.Groups);
+                    groups = WithoutBookData(groups);
+                }
+
                 if (a.Type == "XRECORD" && groups.Count > a.Groups.Count && a.Owner != null && key.TryGetValue("X:" + a.Owner.ToUpperInvariant(), out Record holder)
                     && holder.Groups.Any(g => g.Key == 3 && g.Value == "ACAD_XREC_ROUNDTRIP"))
                 {
@@ -516,6 +525,13 @@ namespace GeometryHelper.UnitTest.Dwg
             }
 
             return groups;
+        }
+
+        /// <summary>The groups without the extended data of ACAD that starts with DBColXD, to their end.</summary>
+        private static List<KeyValuePair<int, string>> WithoutBookData(List<KeyValuePair<int, string>> groups)
+        {
+            int at = groups.FindIndex(g => g.Key == 1001 && g.Value == "ACAD");
+            return at >= 0 && at + 1 < groups.Count && groups[at + 1].Value == "DBColXD" ? groups.GetRange(0, at) : groups;
         }
 
         /// <summary>Whether the owners of a record lead to a record that is not there or is of a type the reader does not read.</summary>

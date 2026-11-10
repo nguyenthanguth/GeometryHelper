@@ -325,19 +325,22 @@ namespace GeometryHelper.Dwg
             int version = 0;
             int locked = 0;
 
+            ulong style = 0;
+            List<DwgGroup> embedded = null;
+            int attributeType = 0;
+            int reallyLocked = 0;
+
             if (kind != 0)
             {
                 version = R2010Plus ? _data.RawChar() : 0;
+                attributeType = R2018Plus ? _data.RawChar() : 0;
 
-                if (R2018Plus)
+                if (attributeType == 2 || attributeType == 4)
                 {
-                    // An attribute of several lines holds an MTEXT of its own, which is not read yet.
-                    int attributeType = _data.RawChar();
-
-                    if (attributeType == 2 || attributeType == 4)
-                    {
-                        return false;
-                    }
+                    // From R2018 an attribute of several lines holds an MTEXT of its own, its common entity data and all;
+                    // the handles of the text come first.
+                    style = H();
+                    embedded = ReadEmbeddedMText(out reallyLocked);
                 }
 
                 tag = T();
@@ -356,7 +359,11 @@ namespace GeometryHelper.Dwg
                 prompt = T();
             }
 
-            ulong style = H();
+            if (embedded == null)
+            {
+                style = H();
+            }
+
             _object.Add(100, "AcDbText");
             AddNonZero(39, thickness);
             _object.AddPoint(10, new[] { insertion[0], insertion[1], elevation });
@@ -410,7 +417,102 @@ namespace GeometryHelper.Dwg
                 _object.Add(280, locked);
             }
 
+            if (embedded != null)
+            {
+                _object.Add(71, attributeType);
+                _object.Add(72, reallyLocked);
+                _object.AddPoint(11, new[] { alignment[0], alignment[1], elevation });
+                _object.Add(101, "Embedded Object");
+                _object.Body.AddRange(embedded);
+            }
+
             return true;
+        }
+
+        /// <summary>
+        /// The MTEXT of an attribute of several lines (R2018): its common entity data, read past as the file has it, and its
+        /// own data, whose groups DXF writes after <c>101 Embedded Object</c>; then the annotative data, whose last value
+        /// DXF writes as 72 of the attribute.
+        /// </summary>
+        private List<DwgGroup> ReadEmbeddedMText(out int reallyLocked)
+        {
+            if (_data.Bits2() == 0)
+            {
+                H();
+            }
+
+            int reactors = Count(_data.BitLong());
+            bool noDictionary = ReadDictionaryFlags();
+
+            for (int i = 0; i < reactors; i++)
+            {
+                H();
+            }
+
+            if (!noDictionary)
+            {
+                H();
+            }
+
+            if (ReadEntityColour().HasBook)
+            {
+                H();
+            }
+
+            _data.BitDouble();
+            H();
+
+            if (_data.Bits2() == 3)
+            {
+                H();
+            }
+
+            if (_data.Bits2() == 3)
+            {
+                H();
+            }
+
+            _data.RawChar();
+
+            if (_data.Bits2() == 3)
+            {
+                H();
+            }
+
+            for (int i = 0; i < 3; i++)
+            {
+                if (_data.Bit())
+                {
+                    H();
+                }
+            }
+
+            _data.BitShort();
+            _data.RawChar();
+
+            // The groups of the MTEXT as its own record has them, but its subclass.
+            List<DwgGroup> body = _object.Body;
+            _object.Body = new List<DwgGroup>();
+            ReadMText();
+            List<DwgGroup> groups = _object.Body;
+            _object.Body = body;
+            groups.RemoveAll(group => group.Code == 100);
+            reallyLocked = 0;
+            int annotative = _data.BitShort();
+
+            if (annotative > 0)
+            {
+                if (annotative * 8L > _data.Remaining)
+                {
+                    throw new FormatException("The annotative data of the attribute run past its end.");
+                }
+
+                _data.Bytes(annotative);
+                H();
+                reallyLocked = _data.BitShort();
+            }
+
+            return groups;
         }
 
         private void ReadMText()

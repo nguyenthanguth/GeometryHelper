@@ -51,6 +51,26 @@ namespace GeometryHelper.Dwg
     }
 
     /// <summary>
+    /// The colour of an entity that is a colour of a book: the transcoder writes the index, the true colour and the name
+    /// (62, 420, 430) of the DBCOLOR object it names, or the index alone where that object is not there.
+    /// </summary>
+    internal sealed class DwgBookColour
+    {
+        /// <summary>The handle of the DBCOLOR object.</summary>
+        public readonly ulong Book;
+
+        /// <summary>The colour index the entity holds beside it.</summary>
+        public readonly int Index;
+
+        /// <summary>A colour of the book at <paramref name="book"/>, <paramref name="index"/> where the book is not there.</summary>
+        public DwgBookColour(ulong book, int index)
+        {
+            Book = book;
+            Index = index;
+        }
+    }
+
+    /// <summary>
     /// A linetype given by its place among the records of the linetype table, as an MLINESTYLE before R2018 gives the
     /// linetype of an element; the transcoder writes its name.
     /// </summary>
@@ -209,6 +229,9 @@ namespace GeometryHelper.Dwg
 
         /// <summary>Of a block header: the groups of the BLOCK entity that the header keeps (base point, path of the reference).</summary>
         public List<DwgGroup> BlockBody;
+
+        /// <summary>Of a DBCOLOR from R2004: its colour; null for another type.</summary>
+        public DwgColour BookColour;
 
         /// <summary>Of an entity: the picture of it kept for programs that cannot draw it (proxy graphics); null for none.</summary>
         public byte[] ProxyGraphics;

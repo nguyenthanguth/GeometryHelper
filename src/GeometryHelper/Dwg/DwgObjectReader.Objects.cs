@@ -60,6 +60,24 @@ namespace GeometryHelper.Dwg
             _object.Add(330, _object.Owner);
         }
 
+        /// <summary>
+        /// A DBCOLOR, a colour of a book: from R2004 a CMC colour with its name and its book, which DXF writes as 62, 420
+        /// and 430; before R2004 an index, which DXF does not write.
+        /// </summary>
+        private void ReadBookColour()
+        {
+            _object.Add(100, "AcDbColor");
+
+            if (!R2004Plus)
+            {
+                _data.BitShort();
+                return;
+            }
+
+            _object.BookColour = ReadColour();
+            AddColour(_object.Body, _object.BookColour, false);
+        }
+
         private void ReadDictionaryVariable()
         {
             int schema = _data.RawChar();
