@@ -189,7 +189,12 @@ the ones wanted.
       headless); DIM edits Mtext in the editor; parked: angles whose arc runs through their points (56 pictures, float
       side choice), radius 3 circles under DIMTMOVE 1/2 with the point inside (28 pictures); DIMTEDIT Left/Right and
       DIMTOH on slanted lines unprobed (M)
-- [ ] MTEXT (running): word wrap at the width, stacked fractions, columns; line spacing 5/3 as AutoCAD (check first)
+- [x] MTEXT: word wrap at the width, stacked fractions, columns; line spacing 5/3 as AutoCAD (check first)
+- [ ] MTEXT follow-ups: the in-place editor wraps and spaces lines as the drawn MTEXT (it keeps one line per paragraph,
+      pitch 1.25); paragraph, column and tab dialogs and ribbon controls (need design); triangle width/height grips;
+      parked: `\pxsm2` with tall runs (0.048 h), flow direction 3, `\pxsa` first line, `\M+` codes, mask with a taller
+      defined height, manual columns at bottom or middle attachment, column grips; EXPLODE keeping run fonts and colours;
+      TEXT draws %%U/%%O/%%K lines; warm display cost of 10 000 MTEXTs 290 -> 430 ms (a per-entity cache?) (M)
 - [x] Clipboard: preview of the objects while PASTECLIP asks for the point
 - [ ] PLOT: print to Windows printers; add named page setups; embed only the glyphs used (smaller PDFs)
 - [ ] Xrefs: XOPEN, a balloon when a file changes, editable xref layers (`NAME|LAYER`), nested xrefs in the palette
