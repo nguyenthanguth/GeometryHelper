@@ -194,7 +194,7 @@
         </Setter>
     </Style>
 
-    <!-- A button of a dialog: outlined, on the input colour. -->
+    <!-- A button of a dialog: outlined, on the input colour; disabled, its words dimmed once, as GhFlatButton dims them. -->
     <Style x:Key="GhDialogButton" TargetType="Button" BasedOn="{StaticResource GhFlatButton}">
         <Setter Property="Background" Value="{StaticResource GhInput}" />
         <Setter Property="BorderBrush" Value="{StaticResource GhBorder}" />
@@ -202,11 +202,6 @@
         <Setter Property="FontSize" Value="{StaticResource GhFontSize}" />
         <Setter Property="FontWeight" Value="Normal" />
         <Setter Property="Padding" Value="12,5" />
-        <Style.Triggers>
-            <Trigger Property="IsEnabled" Value="False">
-                <Setter Property="Foreground" Value="{StaticResource GhTextMuted}" />
-            </Trigger>
-        </Style.Triggers>
     </Style>
 
     <!-- The Close button of a dialog's footer: filled orange-red, white semibold text, no border, corners of 4; lighter under

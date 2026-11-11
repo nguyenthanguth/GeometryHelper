@@ -156,7 +156,17 @@ namespace GeometryHelper.Dxf.Viewer
                     "Text rotation",
                     (d, a) => a(d.TextRotation),
                     (DxfDatabase db, string t, out Action<DxfDimension> w) =>
-                        Real(t, false, false, (d, v) => d.TextRotation = Turn(v), out w, "Text rotation")
+                        Real(
+                            t,
+                            false,
+                            false,
+                            (d, v) =>
+                                d.TextRotation = Turn(
+                                    CadUnits.ToDirection(v * Math.PI / 180.0, db.Angbase, db.Angdir) * 180.0 / Math.PI
+                                ),
+                            out w,
+                            "Text rotation"
+                        )
                 ),
                 new DimensionRow(
                     "Text",
@@ -258,7 +268,16 @@ namespace GeometryHelper.Dxf.Viewer
                 rows.Add(
                     new CadPropertyRow(
                         row.Label,
-                        Read(() => row.Read(dimension, f.Plain), string.Empty),
+                        // The words' rotation is a direction, counted from ANGBASE as DIMEDIT Rotate takes it; the angle
+                        // an angular dimension measures is not.
+                        Read(
+                            () =>
+                                row.Read(
+                                    dimension,
+                                    row.Label == "Text rotation" ? f.Angle : (Func<double, string>)f.Plain
+                                ),
+                            string.Empty
+                        ),
                         row.Parse == null,
                         choices
                     )

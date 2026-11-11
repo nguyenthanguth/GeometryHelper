@@ -53,6 +53,44 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>Gets the box that holds the item.</summary>
         public abstract DisplayBox Bounds { get; }
 
+        /// <summary>
+        /// A copy of the item moved along X and Y, as the entity it came from would be drawn moved so; null for an item that
+        /// is drawn anew rather than moved, as a text or an image.
+        /// </summary>
+        internal virtual DisplayItem2 Moved(double dx, double dy) => null;
+
+        /// <summary>The numbers of X and Y in turn moved along X and Y.</summary>
+        internal static double[] Moved(IReadOnlyList<double> xy, double dx, double dy)
+        {
+            var moved = new double[xy.Count];
+
+            for (int i = 0; i + 1 < moved.Length; i += 2)
+            {
+                moved[i] = xy[i] + dx;
+                moved[i + 1] = xy[i + 1] + dy;
+            }
+
+            return moved;
+        }
+
+        /// <summary>Loops moved along X and Y; none kept as none.</summary>
+        internal static IReadOnlyList<double[]> Moved(IReadOnlyList<double[]> rings, double dx, double dy)
+        {
+            if (rings.Count == 0)
+            {
+                return rings;
+            }
+
+            var moved = new double[rings.Count][];
+
+            for (int i = 0; i < moved.Length; i++)
+            {
+                moved[i] = Moved(rings[i], dx, dy);
+            }
+
+            return moved;
+        }
+
         /// <summary>Gets the distance from a point to the item, the shortest to any part that is drawn; the distance to the nearest edge for a fill, nought inside it.</summary>
         /// <param name="x">The X of the point.</param>
         /// <param name="y">The Y of the point.</param>
@@ -171,6 +209,9 @@ namespace GeometryHelper.Dxf.Viewer
         /// <inheritdoc/>
         public override DisplayBox Bounds => _bounds;
 
+        internal override DisplayItem2 Moved(double dx, double dy) =>
+            new DisplayPolyline2(Moved(_xy, dx, dy), Closed, Style, Handle, Layer) { IsSampled = IsSampled };
+
         /// <inheritdoc/>
         public override double DistanceTo(double x, double y)
         {
@@ -269,6 +310,9 @@ namespace GeometryHelper.Dxf.Viewer
         /// <inheritdoc/>
         public override DisplayBox Bounds => _bounds;
 
+        internal override DisplayItem2 Moved(double dx, double dy) =>
+            new DisplaySegments2(Moved(_xy, dx, dy), Style, Handle, Layer) { Rings = Moved(Rings, dx, dy) };
+
         /// <inheritdoc/>
         public override double DistanceTo(double x, double y)
         {
@@ -363,6 +407,9 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>Gets whether it runs both ways, as an XLINE; false for a RAY.</summary>
         public bool IsBothWays { get; }
+
+        internal override DisplayItem2 Moved(double dx, double dy) =>
+            new DisplayRay2(X + dx, Y + dy, Dx, Dy, IsBothWays, Style, Handle, Layer);
 
         /// <summary>
         /// Gets the box the line reaches: without end along each axis it runs along, its base point's along one it runs
@@ -504,6 +551,9 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>Gets whether the arc is a whole circle.</summary>
         public bool IsCircle => Math.Abs(Sweep) >= 2.0 * Math.PI - 1E-12;
+
+        internal override DisplayItem2 Moved(double dx, double dy) =>
+            new DisplayArc2(Cx + dx, Cy + dy, Radius, Start, Sweep, Style, Handle, Layer);
 
         /// <inheritdoc/>
         public override DisplayBox Bounds => _bounds;
@@ -662,6 +712,9 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <inheritdoc/>
         public override DisplayBox Bounds => _bounds;
+
+        internal override DisplayItem2 Moved(double dx, double dy) =>
+            new DisplayFill2(Moved(_rings, dx, dy), IsMask, Style, Handle, Layer);
 
         /// <inheritdoc/>
         public override double DistanceTo(double x, double y)

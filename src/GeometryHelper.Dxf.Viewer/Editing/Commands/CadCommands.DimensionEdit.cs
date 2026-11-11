@@ -20,8 +20,9 @@ namespace GeometryHelper.Dxf.Viewer
         /// <summary>
         /// DIMEDIT: Home puts the words of the dimensions selected back where their style puts them, level with the line; New
         /// gives them a text (&lt;&gt; for the measurement); Rotate turns their words to an angle (0 for the style's); Oblique
-        /// slants the extension lines of the linear ones to an angle from the x axis, as for an isometric view, and keeps it as
-        /// AutoCAD keeps it, from the dimension line: 30 for a dimension rotated 30 slanted to 60.
+        /// slants the extension lines of the linear ones to a direction, counted as the drawing counts angles, as for an
+        /// isometric view, and keeps it as AutoCAD keeps it, from the dimension line: 30 for a dimension rotated 30 slanted to
+        /// 60; with angles counted from north, clockwise, 30 slants them 60 degrees from the X axis, as AutoCAD 2021 does.
         /// </summary>
         private static IEnumerable<CadPrompt> DimEdit(CadCommandContext c)
         {
@@ -65,7 +66,7 @@ namespace GeometryHelper.Dxf.Viewer
 
             if (kind == "Oblique")
             {
-                yield return CadPrompt.ForAngle("Enter obliquing angle (press ENTER for none)").Plain();
+                yield return CadPrompt.ForAngle("Enter obliquing angle (press ENTER for none)");
 
                 if (c.Input.Kind == CadInputKind.Number)
                 {

@@ -184,11 +184,11 @@ namespace GeometryHelper.Dxf.Viewer
                                     : "Radius ratio is a number above nought and up to 1.";
                             return true;
                         case "Start angle":
-                            write = e => ((DxfEllipse)e).StartAngle = Turn(v);
+                            write = e => ((DxfEllipse)e).StartAngle = Direction(db, v);
                             error = number ? null : notNumber;
                             return true;
                         case "End angle":
-                            write = e => ((DxfEllipse)e).EndAngle = Turn(v);
+                            write = e => ((DxfEllipse)e).EndAngle = Direction(db, v);
                             error = number ? null : notNumber;
                             return true;
                     }

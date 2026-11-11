@@ -707,7 +707,7 @@ namespace GeometryHelper.Dxf.Viewer
                 }
                 else if (
                     c.Input.Kind != CadInputKind.Text
-                    || !double.TryParse(c.Input.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out up)
+                    || !CadUnits.TryLength(c.Input.Text, c.Session.Document.Database.Lunits, out up)
                 )
                 {
                     c.Write("Requires a distance or two points.");
