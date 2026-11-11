@@ -6,6 +6,11 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**FIXED.** A [`DxfViewport`](xref:GeometryHelper.Dxf.DxfViewport) made in code and appended to a layout has the layers
+frozen in new viewports (`ViewportVisibilityDefault`, New VP Freeze) frozen in it at once, as AutoCAD 2021's
+`AppendEntity` freezes them: its API, given layer GHB so marked, made a viewport with [GHB] frozen at birth, and left the
+layout's own viewport 1 with none. Only the presenter's MVIEW froze them before. A copy keeps its original's.
+
 **NEW.** "Isolate Selected Layers" in the shortcut menu of the presenter's Layer Properties Manager turns off every layer
 but those chosen, one undo step: of the layers 0, WALLS and COLUMNS, COLUMNS chosen leaves 0 and WALLS off. The item was
 grey. "Rename Layer" stays grey, since renaming in the list needs a name cell that can be typed in, which waits for a

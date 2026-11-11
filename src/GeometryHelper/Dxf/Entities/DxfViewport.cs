@@ -1550,6 +1550,35 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
+        /// Freezes in a viewport made in code, once appended, the layers frozen in new viewports
+        /// (<see cref="DxfLayerTableRecord.ViewportVisibilityDefault"/>, New VP Freeze), as AutoCAD 2021's <c>AppendEntity</c>
+        /// freezes them: a viewport appended to a layout whose drawing has layer B so marked has B among its frozen layers at
+        /// once. A copy keeps the layers its original froze.
+        /// </summary>
+        internal override void Appended(bool madeInCode)
+        {
+            if (!madeInCode)
+            {
+                return;
+            }
+
+            var frozen = new List<DxfLayerTableRecord>();
+
+            foreach (DxfLayerTableRecord layer in Item.File.Database.LayerTable)
+            {
+                if (layer.ViewportVisibilityDefault)
+                {
+                    frozen.Add(layer);
+                }
+            }
+
+            if (frozen.Count > 0)
+            {
+                FreezeLayersInViewport(frozen);
+            }
+        }
+
+        /// <summary>
         /// Makes a viewport just appended to a layout the one that shows the sheet itself, as AutoCAD's <c>Initialize</c> of a
         /// layout makes it: its id 1, its status 1 and AutoCAD's flags of it, 557 088 (0x80000 adaptive grid, 0x8000 always
         /// enabled, 0x20 the icon of the user coordinate system shown), as ezdxf writes them.
