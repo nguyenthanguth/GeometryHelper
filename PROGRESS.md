@@ -237,7 +237,11 @@ the ones wanted.
       TEXT draws %%U/%%O/%%K lines; warm display cost of 10 000 MTEXTs 290 -> 430 ms (a per-entity cache?) (M)
 - [x] Clipboard: preview of the objects while PASTECLIP asks for the point
 - [ ] PLOT: print to Windows printers; add named page setups; embed only the glyphs used (smaller PDFs)
-- [ ] Xrefs (running): XOPEN, a balloon when a file changes, editable xref layers (`NAME|LAYER`), nested xrefs in the palette
+- [x] Xrefs: XOPEN; editable xref layers with AutoCAD's override bits (AcXRefLayerPropertyOverride); nested xrefs in the
+      palette (list and tree); a changed referenced file said on the command line
+- [ ] Xrefs follow-ups: XATTACH writes the `NAME|LAYER` records as AutoCAD does (DECIDED by recommendation: yes; needs a
+      core flags setter); the change balloon in the status bar (needs design); Transparency, Plot and Description editors
+      for xref layers; VISRETAIN 0; check the palette's "Nested"/"Orphaned" words against Autodesk's help (S)
 - [ ] Images: IMAGEFRAME in a drawing with no image yet (needs RASTERVARIABLES made in core)
 - [ ] Managers: previews of table and multileader styles and a Groups kind in PURGE; check BATTMAN's block change, ATTDIA Cancel and Object Grouping Cancel against AutoCAD (S)
 - [ ] Selection: QSELECT's "select objects" button
