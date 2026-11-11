@@ -67,8 +67,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         }
 
         /// <summary>
-        /// The right-click menu of the drawing shown while no command runs: Reset Block, which runs RESETBLOCK on the
-        /// selection, where it holds a dynamic block reference; null where it holds none.
+        /// The right-click menu of the drawing shown while no command runs: the menu of the cells of a table where cells are
+        /// selected (<see cref="TableCellViewModel.Menu"/>); else Reset Block, which runs RESETBLOCK on the selection, where it
+        /// holds a dynamic block reference, and Table Indicator Color where it holds a table; null where it holds neither.
         /// </summary>
         /// <returns>The items; null for no menu.</returns>
         public IReadOnlyList<CadMenuItemViewModel> ShortcutMenu()
@@ -78,20 +79,34 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 return null;
             }
 
+            if (_tableCell != null)
+            {
+                return _tableCell.Menu();
+            }
+
             CadDocument document = _current.Document;
             bool dynamic = document.Selection.Handles.Any(h =>
                 document.FindEntity(h) is DxfBlockReference insert && IsDynamic(insert)
             );
-            return dynamic
-                ? new[]
-                {
+            var items = new List<CadMenuItemViewModel>();
+
+            if (dynamic)
+            {
+                items.Add(
                     new CadMenuItemViewModel(
                         "Reset Block",
                         () => StartCommand("RESETBLOCK"),
                         toolTip: "Resets the selected dynamic block references to their default values (RESETBLOCK)"
-                    ),
-                }
-                : null;
+                    )
+                );
+            }
+
+            if (TableSelected())
+            {
+                items.Add(new CadMenuItemViewModel("Table Indicator Color…", PickTableIndicatorColor));
+            }
+
+            return items.Count == 0 ? null : items;
         }
 
         /// <summary>Whether a block reference places a dynamic block; false where that cannot be read.</summary>

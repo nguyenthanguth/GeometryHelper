@@ -330,6 +330,15 @@
                                 Visibility="Hidden"
                                 VerticalAlignment="Center"
                             />
+                            <TextBlock
+                                x:Name="Gesture"
+                                DockPanel.Dock="Right"
+                                Margin="24,0,0,0"
+                                FontSize="10"
+                                Foreground="{StaticResource GhTextMuted}"
+                                Text="{TemplateBinding InputGestureText}"
+                                VerticalAlignment="Center"
+                            />
                             <ContentPresenter
                                 ContentSource="Header"
                                 VerticalAlignment="Center"
@@ -340,6 +349,9 @@
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsChecked" Value="True">
                             <Setter TargetName="Tick" Property="Visibility" Value="Visible" />
+                        </Trigger>
+                        <Trigger Property="InputGestureText" Value="">
+                            <Setter TargetName="Gesture" Property="Visibility" Value="Collapsed" />
                         </Trigger>
                         <Trigger Property="IsHighlighted" Value="True">
                             <Setter TargetName="Row" Property="Background" Value="{StaticResource GhSelected}" />

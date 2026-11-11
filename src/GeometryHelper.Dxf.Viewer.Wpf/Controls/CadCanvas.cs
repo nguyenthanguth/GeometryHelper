@@ -108,7 +108,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// view has been still for 80 milliseconds.
     /// </para>
     /// </summary>
-    public sealed class CadCanvas : FrameworkElement, IDisposable
+    public sealed partial class CadCanvas : FrameworkElement, IDisposable
     {
         /// <summary>Identifies the <see cref="Document"/> property.</summary>
         public static readonly DependencyProperty DocumentProperty = DependencyProperty.Register(
@@ -274,7 +274,6 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         private static readonly Brush CellFill = Frozen(new SolidColorBrush(Color.FromArgb(46, 0x3D, 0x9B, 0xFF)));
         private static readonly Pen CellPen = Frozen(new Pen(Solid(0x3D9BFF), 3.0));
         private static readonly Brush CellBrush = Solid(0x3D9BFF);
-        private static readonly Brush BandFill = Solid(0x5B6573);
         private static readonly Brush BandHot = Frozen(new SolidColorBrush(Color.FromArgb(153, 0xD2, 0x99, 0x22)));
         private static readonly Pen CrossPenLight = Frozen(new Pen(Solid(0xE6E9ED), 1.0));
         private static readonly Pen CrossPenDark = Frozen(new Pen(Solid(0x1A1A1A), 1.0));
@@ -1187,7 +1186,13 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <returns>Whether there was one to stop.</returns>
         public bool CancelGesture()
         {
-            bool any = _boxFrom.HasValue || _cycler.IsArmed || (_hot.Count > 0 && !_gripEditing);
+            bool any =
+                _boxFrom.HasValue
+                || _cycler.IsArmed
+                || (_hot.Count > 0 && !_gripEditing)
+                || _tableDrag != null
+                || _cellPress.HasValue;
+            CancelTableGesture();
             _cycler.Disarm();
             _boxFrom = null;
             _lasso = null;
@@ -1272,6 +1277,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 DrawActiveFrame(drawingContext);
                 DrawGrips(drawingContext, work, scale);
                 DrawCells(drawingContext, work, scale);
+                DrawTableDrag(drawingContext, work, scale);
                 DrawMark(drawingContext, work, scale);
                 DrawPrompt(drawingContext, work, scale);
                 DrawBand(drawingContext, work, scale);
@@ -1347,7 +1353,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             Focus();
             Point p = PositionOf(e);
 
-            if (e.ChangedButton == MouseButton.Middle)
+            if (TableMouseDown(e.ChangedButton, p))
+            {
+                e.Handled = true;
+            }
+            else if (e.ChangedButton == MouseButton.Middle)
             {
                 if (e.ClickCount == 2)
                 {
@@ -1468,6 +1478,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     _boxing = false;
                     _pressOnObject = IsObjectAt(p);
                     CaptureMouse();
+                    PressInCell(p);
                 }
 
                 e.Handled = true;
@@ -1479,6 +1490,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         {
             base.OnMouseMove(e);
             Point at = PositionOf(e);
+
+            if (TableMouseMove(at))
+            {
+                return;
+            }
+
             Track(at);
 
             // Through a viewport the cursor is an arrow off its frame, as AutoCAD's.
@@ -1500,7 +1517,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             base.OnMouseUp(e);
             Point at = PositionOf(e);
 
-            if (e.ChangedButton == MouseButton.Middle && _panFrom.HasValue)
+            if (e.ChangedButton == MouseButton.Left && TableMouseUp(at))
+            {
+                e.Handled = true;
+            }
+            else if (e.ChangedButton == MouseButton.Middle && _panFrom.HasValue)
             {
                 _panFrom = null;
                 Cursor = IdleCursor;
@@ -3739,58 +3760,6 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             }
         }
 
-        /// <summary>
-        /// The cells of a table selected, as AutoCAD 2021 draws them: the range in the accent, filled lightly, a grip at the middle
-        /// of each of its sides, and the table's column letters above it and row numbers left of it, those of the range in amber.
-        /// </summary>
-        private void DrawCells(DrawingContext dc, CadView view, double scale)
-        {
-            GeoPoint2[][] outline = CellOutline?.Invoke();
-
-            if (outline == null || outline.Length < 2)
-            {
-                return;
-            }
-
-            Point[] range = Array.ConvertAll(outline[0], p => ToScreen(view, p, scale));
-            Point[] table = Array.ConvertAll(outline[1], p => ToScreen(view, p, scale));
-            dc.DrawGeometry(CellFill, CellPen, Polygon(range));
-            double half = GripSize / 2.0;
-
-            for (int k = 0; k < 4; k++)
-            {
-                Point a = range[k],
-                    b = range[(k + 1) % 4];
-                dc.DrawRectangle(
-                    CellBrush,
-                    null,
-                    new Rect((a.X + b.X) / 2.0 - half, (a.Y + b.Y) / 2.0 - half, GripSize, GripSize)
-                );
-            }
-
-            // The bands of column letters over the table and row numbers left of it, the range's part in amber.
-            Vector across = table[1] - table[0];
-            Vector down = table[3] - table[0];
-
-            if (across.Length < 1.0 || down.Length < 1.0)
-            {
-                return;
-            }
-
-            Vector up = down / down.Length * -16.0;
-            Vector left = across / across.Length * -22.0;
-            dc.DrawGeometry(BandFill, null, Polygon(new[] { table[0] + up, table[1] + up, table[1], table[0] }));
-            dc.DrawGeometry(BandFill, null, Polygon(new[] { table[0] + left, table[0], table[3], table[3] + left }));
-            // A corner of the range carried onto the table's top (or left) edge.
-            Point Along(Point p, Vector axis) => table[0] + axis * ((p - table[0]) * axis / axis.LengthSquared);
-            Point c0 = Along(range[0], across),
-                c1 = Along(range[1], across);
-            Point w0 = Along(range[0], down),
-                w3 = Along(range[3], down);
-            dc.DrawGeometry(BandHot, null, Polygon(new[] { c0 + up, c1 + up, c1, c0 }));
-            dc.DrawGeometry(BandHot, null, Polygon(new[] { w0 + left, w0, w3, w3 + left }));
-        }
-
         /// <summary>Whether a point of the canvas falls in one cell of a table of the space shown, the pick box about it in that cell too, away from its lines.</summary>
         private bool InsideCell(Point p)
         {
@@ -3864,6 +3833,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     continue;
                 }
 
+                if (DrawTableGrip(dc, view, scale, _grips[i].Grip, at, hot))
+                {
+                    continue;
+                }
+
                 dc.DrawRectangle(
                     hot ? HotGripBrush : GripBrush,
                     null,
@@ -3905,6 +3879,11 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// </summary>
         private static string GripTip(CadDocument document, GripAt grip)
         {
+            if (grip.Grip.Kind == CadGripKind.TableBreak)
+            {
+                return "Table breaking: not offered";
+            }
+
             if (grip.Grip.Custom == null || !(document?.FindEntity(grip.Handle) is DxfBlockReference insert))
             {
                 return null;

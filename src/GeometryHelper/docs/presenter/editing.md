@@ -410,6 +410,28 @@ plates both sides" in ghsimplex in a column 30 wide takes six lines and makes it
 out, and the row keeps 45.43 when the words are made short again. A cell written in a table of 100 rows of 20 columns
 is written and drawn in about 50 ms.
 
+While cells are selected the table is framed by its column letters (A, B ... Z, AA) and row numbers, those of the
+selection on amber, as AutoCAD 2021 draws them with TABLEINDICATOR 1; TABLEINDICATOR 0 hides them, and the variable is
+kept on the machine, as AutoCAD keeps it in the registry. Their fill is Table Indicator Color, on the right-click menu of
+a whole table and in Global settings › Appearance. A press in a cell dragged across others selects the range from it to
+the cell under the cursor, held at the table's edge off it and grown to every merged block it meets, so that a range
+touching the title takes every column. The cells carry a grip at the middle of each side and the autofill diamond at
+their bottom right corner. An edge grip moves that line of the table: the column left of it (or the row above it)
+changes alone and the table grows or shrinks with it; no column goes narrower than AutoCAD's minimum, its two margins and
+its tallest text (9 in Standard), nor a row lower than its text needs. The autofill diamond dragged down, up, right or
+left fills the cells passed over from the selection ([`CadTableDrag`](xref:GeometryHelper.Dxf.Viewer.CadTableDrag)),
+showing their coming values and the last one in a tip: a 1 dragged three cells down gives 2, 3 and 4, and dragged up
+counts back, as AutoCAD 2021 fills them; a right click while dragging chooses Fill Series, Fill Series Without
+Formatting, Copy Cells, Copy Cells Without Formatting or Fill Formatting Only. A whole table selected has its move grip at
+the top left, a column grip at each line between columns, which moves the line with the table's width kept (with Ctrl
+the column left of it alone changes and the table follows), stretch grips for its width, its height and both, and the
+table breaking grip, drawn grey and not offered. A line dragged shows the new line dashed and "C width = 38.0000", or
+with dynamic input a field over the table that takes a width typed; Esc drops it, and each drag is one undo step
+(Autofill, Column Width, Row Height, Table Size). The right-click menu of cells is AutoCAD's: Background Fill…,
+Alignment, Remove All Property Overrides, Edit Text, Delete All Contents, Columns and Rows (Insert, Delete, Size
+Equally), Merge, Unmerge and Properties work; Cut, Copy, Paste, Cell Style, Borders…, Locking, Data Format…, Match
+Cell, Data Link…, Insert, Manage Content…, Resize and Quick Properties are grey.
+
 MLEADERSTYLE (MLS), and the last item of the multileader style box of the Annotate tab, show the Multileader Style
 Manager ([`CadMLeaderStyleEditor`](xref:GeometryHelper.Dxf.Viewer.CadMLeaderStyleEditor)): Set Current, New…, Modify…
 and Delete, which is refused for Standard, the current style and a style a multileader is drawn in. A drawing of no
@@ -649,7 +671,7 @@ and set where the presenter keeps it, listed in [`CadCommandRegistry.Variables`]
 |---|---|---|
 | the header of the drawing, written as AutoCAD writes it | CLAYER, CECOLOR, CELTYPE, CELWEIGHT, CELTSCALE, LTSCALE, PSLTSCALE, MSLTSCALE, DIMSCALE, DIMASSOC, CMLEADERSTYLE, MLEADERSCALE, TEXTSIZE, TEXTSTYLE, FILLETRAD, CHAMFERA, CHAMFERB, PDMODE, PDSIZE, MIRRTEXT, SORTENTS, IMAGEFRAME, CANNOSCALE, INSBASE, LIMMIN, LIMMAX | one undo step |
 | the document or the session | PICKSTYLE, SELECTIONCYCLING, PICKFIRST, PICKADD, ATTREQ, ATTDIA, FILEDIA, CMDDIA, PEDITACCEPT, PLINETYPE, REVCLOUDAPPROXARCLEN, REVCLOUDARCVARIANCE, REVCLOUDCREATEMODE, OFFSETDIST, TILEMODE (the space shown) | at once, no undo step |
-| the window: the status bar, the snaps and Global settings | OSMODE, POLARANG, POLARMODE, POLARADDANG, POLARDIST, SNAPTYPE, GRIDSTYLE, AUTOSNAP, DYNMODE, PICKBOX, APERTURE | at once, no undo step; kept in the settings file |
+| the window: the status bar, the snaps and Global settings | OSMODE, POLARANG, POLARMODE, POLARADDANG, POLARDIST, SNAPTYPE, GRIDSTYLE, AUTOSNAP, DYNMODE, PICKBOX, APERTURE, TABLEINDICATOR | at once, no undo step; kept in the settings file |
 | the window's toggles and snap of the drawing shown | ORTHOMODE, SNAPMODE, GRIDMODE, LWDISPLAY, SNAPUNIT, GRIDUNIT, GRIDDISPLAY, SNAPBASE, SNAPANG, GRIDMAJOR, SNAPSTYL, SNAPISOPAIR | at once, no undo step; written into the drawing, as AutoCAD saves them there |
 | read only | DIMSTYLE, EXTMIN, EXTMAX, UCSNAME, UCSORG, DWGNAME, DWGPREFIX, DATE, CDATE | |
 

@@ -127,9 +127,12 @@ namespace GeometryHelper.Dxf.Viewer
                 throw new ArgumentNullException(nameof(range));
             }
 
-            IReadOnlyList<GeoPoint3> first = table.GetCellExtents(range.TopRow, range.LeftColumn, true);
-            IReadOnlyList<GeoPoint3> last = table.GetCellExtents(range.BottomRow, range.RightColumn, true);
-            return new[] { P(first[0]), P(last[1]), P(last[2]), P(first[3]) };
+            // Each corner from the cell at that corner of the range, so that a range of several rows is a rectangle.
+            IReadOnlyList<GeoPoint3> topLeft = table.GetCellExtents(range.TopRow, range.LeftColumn, true);
+            IReadOnlyList<GeoPoint3> topRight = table.GetCellExtents(range.TopRow, range.RightColumn, true);
+            IReadOnlyList<GeoPoint3> bottomRight = table.GetCellExtents(range.BottomRow, range.RightColumn, true);
+            IReadOnlyList<GeoPoint3> bottomLeft = table.GetCellExtents(range.BottomRow, range.LeftColumn, true);
+            return new[] { P(topLeft[0]), P(topRight[1]), P(bottomRight[2]), P(bottomLeft[3]) };
         }
 
         /// <summary>Gives a range of cells grown to take in every block of merged cells it meets, as a selection of cells takes them.</summary>
@@ -570,7 +573,324 @@ namespace GeometryHelper.Dxf.Viewer
             );
         }
 
-        /// <summary>One edit of a table: planned as a change of its property, written, and its block drawn anew.</summary>
+        /// <summary>
+        /// Fills cells from others, as the autofill grip of a cell does: <see cref="DxfTable.Fill"/> in one undo step,
+        /// "Autofill". A 1 in A3 filled down into A4 to A6 with <see cref="DxfTableFillOptions.GenerateSeries"/> and
+        /// <see cref="DxfTableFillOptions.CopyFormat"/>, as Fill Series fills, gives 2, 3 and 4, as AutoCAD 2021 filled them.
+        /// </summary>
+        /// <param name="document">The document.</param>
+        /// <param name="handle">The table's handle.</param>
+        /// <param name="fillRange">The cells filled.</param>
+        /// <param name="sourceRange">The cells filled from.</param>
+        /// <param name="options">How, of the flags of <see cref="DxfTableFillOptions"/>.</param>
+        /// <returns>What came of it: refused where a range is not all of the table, or the fill range holds rows (columns, along
+        /// the rows) of the source.</returns>
+        public static CadEditResult Fill(
+            CadDocument document,
+            string handle,
+            DxfCellRange fillRange,
+            DxfCellRange sourceRange,
+            DxfTableFillOptions options
+        )
+        {
+            DxfTable table = Find(document, handle, out CadEditResult refused);
+
+            if (table == null || !InTable(table, fillRange, out refused) || !InTable(table, sourceRange, out refused))
+            {
+                return refused;
+            }
+
+            bool along = (options & DxfTableFillOptions.Row) != 0;
+            int from = along ? fillRange.LeftColumn : fillRange.TopRow;
+            int to = along ? fillRange.RightColumn : fillRange.BottomRow;
+            int start = along ? sourceRange.LeftColumn : sourceRange.TopRow;
+            int end = along ? sourceRange.RightColumn : sourceRange.BottomRow;
+
+            if (from <= end && to >= start)
+            {
+                return CadEditResult.Refuse("The cells " + Name(fillRange) + " meet the cells filled from.");
+            }
+
+            return Edit(document, handle, "Autofill", "Autofill", Name(sourceRange), Name(fillRange), t =>
+                t.Fill(fillRange, sourceRange, options)
+            );
+        }
+
+        /// <summary>
+        /// Sets the widths of columns, from one on, in one undo step, "Column Width", as a drag of a column's line does; the
+        /// rows then grow to hold text that wraps anew. A width below <see cref="MinimumColumnWidth"/> is taken as that, as
+        /// AutoCAD 2021 holds a column there: columns of 30 and 22.5 given 38 and 14.5 keep the table's width, and one given 1
+        /// in AutoCAD's Standard is 9 wide.
+        /// </summary>
+        /// <param name="document">The document.</param>
+        /// <param name="handle">The table's handle.</param>
+        /// <param name="column">The first column, from nought.</param>
+        /// <param name="widths">The widths of it and the columns after it.</param>
+        /// <returns>What came of it; nothing written where every width is as it was.</returns>
+        public static CadEditResult SetColumnWidths(
+            CadDocument document,
+            string handle,
+            int column,
+            IReadOnlyList<double> widths
+        )
+        {
+            if (widths == null)
+            {
+                throw new ArgumentNullException(nameof(widths));
+            }
+
+            DxfTable table = Find(document, handle, out CadEditResult refused);
+
+            if (table == null)
+            {
+                return refused;
+            }
+
+            if (column < 0 || widths.Count == 0 || column + widths.Count > table.NumColumns)
+            {
+                return CadEditResult.Refuse("The table has no such columns.");
+            }
+
+            double[] all = Sizes(table.NumColumns, table.ColumnWidth);
+
+            for (int k = 0; k < widths.Count; k++)
+            {
+                if (!(widths[k] > 0.0) || double.IsInfinity(widths[k]))
+                {
+                    return CadEditResult.Refuse("A column's width is above nought.");
+                }
+
+                all[column + k] = Math.Max(widths[k], MinimumColumnWidth(table, column + k));
+            }
+
+            return Resize(document, handle, "Column Width", all, null, default);
+        }
+
+        /// <summary>
+        /// Sets the heights of rows, from one on, in one undo step, "Row Height", as a drag of a row's line does; a row is never
+        /// lower than its text needs, grown back to it as the table is drawn anew.
+        /// </summary>
+        /// <param name="document">The document.</param>
+        /// <param name="handle">The table's handle.</param>
+        /// <param name="row">The first row, from nought.</param>
+        /// <param name="heights">The heights of it and the rows after it, each above nought.</param>
+        /// <returns>What came of it; nothing written where every height is as it was.</returns>
+        public static CadEditResult SetRowHeights(
+            CadDocument document,
+            string handle,
+            int row,
+            IReadOnlyList<double> heights
+        )
+        {
+            if (heights == null)
+            {
+                throw new ArgumentNullException(nameof(heights));
+            }
+
+            DxfTable table = Find(document, handle, out CadEditResult refused);
+
+            if (table == null)
+            {
+                return refused;
+            }
+
+            if (row < 0 || heights.Count == 0 || row + heights.Count > table.NumRows)
+            {
+                return CadEditResult.Refuse("The table has no such rows.");
+            }
+
+            double[] all = Sizes(table.NumRows, table.RowHeight);
+
+            for (int k = 0; k < heights.Count; k++)
+            {
+                if (!(heights[k] > 0.0) || double.IsInfinity(heights[k]))
+                {
+                    return CadEditResult.Refuse("A row's height is above nought.");
+                }
+
+                all[row + k] = heights[k];
+            }
+
+            return Resize(document, handle, "Row Height", null, all, default);
+        }
+
+        /// <summary>
+        /// Takes away what the cells of a range hold of their own over the table style, as Remove All Property Overrides does
+        /// (<see cref="DxfTable.RemoveAllOverrides"/>): their text, values and merges kept.
+        /// </summary>
+        /// <param name="document">The document.</param>
+        /// <param name="handle">The table's handle.</param>
+        /// <param name="range">The cells.</param>
+        /// <returns>What came of it.</returns>
+        public static CadEditResult RemoveOverrides(CadDocument document, string handle, DxfCellRange range)
+        {
+            DxfTable table = Find(document, handle, out CadEditResult refused);
+
+            if (table == null || !InTable(table, range, out refused))
+            {
+                return refused;
+            }
+
+            return Edit(document, handle, "TABLEDIT", "Remove All Property Overrides", Name(range), null, t =>
+                Each(range, (r, c) => t.RemoveAllOverrides(r, c))
+            );
+        }
+
+        /// <summary>
+        /// Gets the cell of a table nearest a point of the plan: the cell it falls in, or where it falls outside the table, the
+        /// cell of the last row or column on that side, as a drag across cells holds the range at the table's edge.
+        /// </summary>
+        /// <param name="table">The table.</param>
+        /// <param name="point">The point.</param>
+        /// <param name="row">The row, from nought.</param>
+        /// <param name="column">The column, from nought.</param>
+        /// <returns>False for a table of no cells.</returns>
+        public static bool CellNear(DxfTable table, GeoPoint2 point, out int row, out int column)
+        {
+            if (table == null)
+            {
+                throw new ArgumentNullException(nameof(table));
+            }
+
+            row = -1;
+            column = -1;
+
+            if (table.NumRows < 1 || table.NumColumns < 1)
+            {
+                return false;
+            }
+
+            GeoPoint2[] corners = Corners(table, new DxfCellRange(0, 0, 0, 0));
+            GeoVector2 across = corners[1] - corners[0];
+            GeoVector2 down = corners[3] - corners[0];
+            across = across.Length > 0.0 ? across / across.Length : new GeoVector2(1.0, 0.0);
+            down = down.Length > 0.0 ? down / down.Length : new GeoVector2(0.0, -1.0);
+            GeoVector2 way = point - corners[0];
+            row = Nearest(table.NumRows, table.RowHeight, way.X * down.X + way.Y * down.Y);
+            column = Nearest(table.NumColumns, table.ColumnWidth, way.X * across.X + way.Y * across.Y);
+            return true;
+        }
+
+        /// <summary>
+        /// Gets the least width a column of a table may be dragged to, as AutoCAD 2021's <c>MinimumColumnWidth</c>: its two
+        /// horizontal margins and the tallest text height of its cells. AutoCAD's Standard of margins 1.5 and a title of 6 gives
+        /// 9.
+        /// </summary>
+        /// <param name="table">The table.</param>
+        /// <param name="column">The column, from nought.</param>
+        /// <returns>The width.</returns>
+        public static double MinimumColumnWidth(DxfTable table, int column)
+        {
+            if (table == null)
+            {
+                throw new ArgumentNullException(nameof(table));
+            }
+
+            var style = table.TableStyle as DxfTableStyle;
+            double tallest = 0.0;
+
+            for (int r = 0; r < table.NumRows; r++)
+            {
+                tallest = Math.Max(tallest, TextHeightOf(table, style, r, column, table.RowType(r)));
+            }
+
+            return 2.0 * table.HorizontalCellMargin + tallest;
+        }
+
+        /// <summary>
+        /// Gets the height each row of a table needs to hold its cells, as <see cref="FitRows"/> grows them, a block of merged
+        /// cells across rows left out: the least a drag of a row's line goes to.
+        /// </summary>
+        internal static double[] RowNeeds(CadDocument document, DxfTable table)
+        {
+            var style = table.TableStyle as DxfTableStyle;
+            double hMargin = table.HorizontalCellMargin;
+            double vMargin = table.VerticalCellMargin;
+            var needs = new double[table.NumRows];
+
+            for (int r = 0; r < table.NumRows; r++)
+            {
+                for (int c = 0; c < table.NumColumns; c++)
+                {
+                    DxfCellRange block = table.GetMergeRange(r, c);
+
+                    if (
+                        block.TopRow != r
+                        || block.BottomRow != r
+                        || block.LeftColumn != c
+                        || table.CellType(r, c) == DxfTableCellType.BlockCell
+                    )
+                    {
+                        continue;
+                    }
+
+                    needs[r] = Math.Max(
+                        needs[r],
+                        CellNeeds(document, table, style, r, c, block, hMargin) + 2.0 * vMargin
+                    );
+                }
+            }
+
+            return needs;
+        }
+
+        /// <summary>
+        /// Sets every width and height of a table and moves it along its plane, one undo step of the name given, as the drags of
+        /// its lines and grips make them; null keeps the widths (or heights), and nothing is written where all are as they were.
+        /// </summary>
+        internal static CadEditResult Resize(
+            CadDocument document,
+            string handle,
+            string step,
+            double[] widths,
+            double[] heights,
+            GeoVector2 shift
+        )
+        {
+            DxfTable table = Find(document, handle, out CadEditResult refused);
+
+            if (table == null)
+            {
+                return refused;
+            }
+
+            double[] oldWidths = Sizes(table.NumColumns, table.ColumnWidth);
+            double[] oldHeights = Sizes(table.NumRows, table.RowHeight);
+            bool moves = shift.Length > 0.0;
+
+            if (!moves && (widths == null || Same(widths, oldWidths)) && (heights == null || Same(heights, oldHeights)))
+            {
+                return CadEditResult.Done(Array.Empty<CadEditRecord>());
+            }
+
+            string was = widths != null ? Join(oldWidths) : Join(oldHeights);
+            string went = widths != null ? Join(widths) : Join(heights);
+            return Edit(document, handle, step, step, was, went, t =>
+            {
+                if (moves)
+                {
+                    t.TransformBy(GeoTransform3.Translation(new GeoVector3(shift.X, shift.Y, 0.0)));
+                }
+
+                for (int c = 0; widths != null && c < widths.Length; c++)
+                {
+                    if (widths[c] != t.ColumnWidth(c))
+                    {
+                        t.SetColumnWidth(c, widths[c]);
+                    }
+                }
+
+                for (int r = 0; heights != null && r < heights.Length; r++)
+                {
+                    if (heights[r] != t.RowHeight(r))
+                    {
+                        t.SetRowHeight(r, heights[r]);
+                    }
+                }
+            });
+        }
+
+        /// <summary>One edit of a table, a step of TABLEDIT: planned as a change of its property, written, and its block drawn anew.</summary>
         private static CadEditResult Edit(
             CadDocument document,
             string handle,
@@ -578,9 +898,20 @@ namespace GeometryHelper.Dxf.Viewer
             string oldValue,
             string newValue,
             Action<DxfTable> change
+        ) => Edit(document, handle, "TABLEDIT", property, oldValue, newValue, change);
+
+        /// <summary>One edit of a table, an undo step of the name given: planned as a change of its property, written, and its block drawn anew.</summary>
+        private static CadEditResult Edit(
+            CadDocument document,
+            string handle,
+            string step,
+            string property,
+            string oldValue,
+            string newValue,
+            Action<DxfTable> change
         ) =>
             document.ApplyEdit(
-                "TABLEDIT",
+                step,
                 new[] { new CadEditRecord(CadEditRecordKind.PropertyChanged, handle, property, oldValue, newValue) },
                 s =>
                 {
@@ -700,12 +1031,7 @@ namespace GeometryHelper.Dxf.Viewer
         )
         {
             DxfRowType kind = table.RowType(row);
-            double height = table.TextHeight(row, column)
-                ?? (
-                    style != null ? style.TextHeight(kind)
-                    : kind == DxfRowType.TitleRow ? 6.0
-                    : 4.5
-                );
+            double height = TextHeightOf(table, style, row, column, kind);
             double oneLine = height * 4.0 / 3.0;
             string words = table.TextString(row, column);
 
@@ -735,6 +1061,69 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             return Math.Max(oneLine, document.LayoutOf(text).ActualHeight);
+        }
+
+        /// <summary>The text height of a cell of a row of a kind: its own, else its style's for the kind, else AutoCAD's Standard (6 for a title, else 4.5).</summary>
+        private static double TextHeightOf(DxfTable table, DxfTableStyle style, int row, int column, DxfRowType kind)
+        {
+            return table.TextHeight(row, column)
+                ?? (
+                    style != null ? style.TextHeight(kind)
+                    : kind == DxfRowType.TitleRow ? 6.0
+                    : 4.5
+                );
+        }
+
+        /// <summary>The widths of the columns, or the heights of the rows, as they are.</summary>
+        private static double[] Sizes(int count, Func<int, double> size)
+        {
+            var sizes = new double[count];
+
+            for (int k = 0; k < count; k++)
+            {
+                sizes[k] = size(k);
+            }
+
+            return sizes;
+        }
+
+        private static bool Same(double[] a, double[] b)
+        {
+            if (a.Length != b.Length)
+            {
+                return false;
+            }
+
+            for (int k = 0; k < a.Length; k++)
+            {
+                if (a[k] != b[k])
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private static string Join(double[] sizes) =>
+            string.Join(",", Array.ConvertAll(sizes, s => s.ToString("R", CultureInfo.InvariantCulture)));
+
+        /// <summary>The row (or column) a distance from the table's top (or left) edge falls in, held at the first and the last.</summary>
+        private static int Nearest(int count, Func<int, double> size, double at)
+        {
+            double edge = 0.0;
+
+            for (int k = 0; k < count - 1; k++)
+            {
+                edge += size(k);
+
+                if (at < edge)
+                {
+                    return k;
+                }
+            }
+
+            return count - 1;
         }
 
         private static DxfTable Find(CadDocument document, string handle, out CadEditResult refused)

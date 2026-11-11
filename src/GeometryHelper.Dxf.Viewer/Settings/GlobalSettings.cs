@@ -104,6 +104,7 @@ namespace GeometryHelper.Dxf.Viewer
         private int _hiddenLines = 0x9AA4B1;
         private int _selection = 0x3D9BFF;
         private int _grip = 0x3D9BFF;
+        private int _tableIndicator = 0x5B6573;
         private double _crosshairPercent = 5.0;
         private int _pickboxPixels = 5;
         private int _aperturePixels = 10;
@@ -213,6 +214,24 @@ namespace GeometryHelper.Dxf.Viewer
             get => _grip;
             set => _grip = Colour(value, nameof(Grip));
         }
+
+        /// <summary>
+        /// Gets or sets the fill of the bands of column letters and row numbers drawn round a table while its cells are
+        /// selected, as AutoCAD's Table Indicator Color: #5B6573 by default. The letters stay white.
+        /// </summary>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the value is not a colour of 0 to 0xFFFFFF.</exception>
+        public int TableIndicatorColor
+        {
+            get => _tableIndicator;
+            set => _tableIndicator = Colour(value, nameof(TableIndicatorColor));
+        }
+
+        /// <summary>
+        /// Gets or sets whether the column letters and row numbers are drawn round a table while its cells are selected, as
+        /// AutoCAD's TABLEINDICATOR 1, kept on this machine as AutoCAD keeps it in the registry: on by default, as AutoCAD 2021
+        /// starts.
+        /// </summary>
+        public bool TableIndicator { get; set; } = true;
 
         /// <summary>Gets or sets the size of the crosshair in per cent of the screen, 1 to 100: 5 by default.</summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the value is out of range.</exception>
@@ -857,6 +876,8 @@ namespace GeometryHelper.Dxf.Viewer
             w.Value("hiddenLines", Hex(_hiddenLines));
             w.Value("selection", Hex(_selection));
             w.Value("grip", Hex(_grip));
+            w.Value("tableIndicatorColor", Hex(_tableIndicator));
+            w.Value("tableIndicator", TableIndicator);
             w.Value("crosshairPercent", _crosshairPercent);
             w.Value("pickboxPixels", _pickboxPixels);
             w.Value("grid", Grid);
@@ -1093,6 +1114,8 @@ namespace GeometryHelper.Dxf.Viewer
                 Colour("appearance", "hiddenLines", v => _s.HiddenLines = v);
                 Colour("appearance", "selection", v => _s.Selection = v);
                 Colour("appearance", "grip", v => _s.Grip = v);
+                Colour("appearance", "tableIndicatorColor", v => _s.TableIndicatorColor = v);
+                Flag("appearance", "tableIndicator", v => _s.TableIndicator = v);
                 Number("appearance", "crosshairPercent", v => _s.CrosshairPercent = v);
                 Number("appearance", "pickboxPixels", v => _s.PickboxPixels = Whole(v));
                 Flag("appearance", "grid", v => _s.Grid = v);

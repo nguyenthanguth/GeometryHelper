@@ -114,6 +114,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             CanvasView.CellDoubleClicked = point => _model != null && _model.EditTableCellAt(point);
             CanvasView.CellOutline = () => _model?.TableCellOutline();
             CanvasView.CellsLetGo = () => _model?.ClearTableCell();
+
+            // A press in a cell dragged selects a range; the grips of the cells and of a whole table drag their lines, stretch
+            // it or autofill, one undo step each; a right click while the autofill grip is dragged shows the ways to fill.
+            CanvasView.CellRangeDragged = (anchor, cursor) => _model != null && _model.SelectTableRange(anchor, cursor);
+            CanvasView.CellGripPressed = grip => _model?.StartTableCellDrag(grip);
+            CanvasView.TableDragEnded = drag => _model?.EndTableDrag(drag);
+            CanvasView.TableFillMenuRequested += (s, e) =>
+                ShowMenu(_model?.TableFillMenu(CanvasView.TableDrag), CanvasView);
             CanvasView.ViewChanged += (s, e) => PlaceInPlace(false);
             CanvasView.PixelSizeChanged += (s, e) => PlaceInPlace(false);
             CanvasView.PreviewMouseDown += OnCanvasDownWhileEditing;
@@ -287,7 +295,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                 (Keyboard.FocusedElement is TextBox box && box != CommandBox)
                 || Keyboard.FocusedElement is CadMTextEditBox;
 
-            if (!inEditor && DynamicInputKey(key))
+            if (!inEditor && CanvasView.TableDragKey(key))
+            {
+                // A drag of a table's line takes the width typed into its field, Enter and Esc.
+                e.Handled = true;
+            }
+            else if (!inEditor && DynamicInputKey(key))
             {
                 e.Handled = true;
             }
@@ -966,6 +979,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             CanvasView.Options.VisibleLineColor = settings.VisibleLines;
             CanvasView.Options.HiddenLineColor = settings.HiddenLines;
             CanvasView.Options.GripColor = settings.Grip;
+            CanvasView.TableIndicator = settings.TableIndicator;
+            CanvasView.TableIndicatorColor = settings.TableIndicatorColor;
             CanvasView.CrosshairPercent = settings.CrosshairPercent;
 
             if (CanvasView.PixelWidth > 0 && CanvasView.PixelHeight > 0)

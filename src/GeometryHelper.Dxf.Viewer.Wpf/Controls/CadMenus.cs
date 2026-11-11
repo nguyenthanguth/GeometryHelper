@@ -86,6 +86,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     IsEnabled = item.IsEnabled,
                     IsChecked = item.IsChecked,
                     ToolTip = item.ToolTip,
+                    InputGestureText = item.Shortcut,
                 };
                 Fill(menuItem, item.Items);
                 menu.Items.Add(menuItem);

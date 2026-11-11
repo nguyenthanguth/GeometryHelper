@@ -6,6 +6,30 @@ GeometryHelper.TeklaConvert and GeometryHelper.CadConvert carry their own notes 
 
 ## Unreleased
 
+**NEW.** The presenter edits a table's cells on the canvas as AutoCAD 2021 does. Cells selected are framed by the column
+letters and row numbers, those of the selection on amber (TABLEINDICATOR 0 or 1, kept on the machine; Table Indicator
+Color on the right-click menu of a table and in Global settings › Appearance, `GlobalSettings.TableIndicator` and
+`TableIndicatorColor`). A press in a cell dragged selects a range, held at the table's edge and grown to merged blocks.
+The cells' edge grips move a line of the table and their autofill diamond fills the cells it is dragged over, a 1
+dragged three cells down giving 2, 3 and 4, with a right-click choice of Fill Series, Copy Cells and the rest. A whole
+table has AutoCAD's grips (`CadGripKind.TableColumn`, `TableWidth`, `TableHeight`, `TableSize`, `TableBreak`): move,
+column lines with the width kept or with Ctrl the table growing, and stretch; the breaking grip is drawn but not offered.
+Each drag shows its new line, outline or values, takes a width typed with dynamic input, and is one undo step: Autofill,
+Column Width, Row Height or Table Size (`CadTableDrag`). No column goes narrower than AutoCAD's `MinimumColumnWidth`, its
+two margins and its tallest text, 9 in Standard. The cells' right-click menu is AutoCAD's, its working items wired and the
+rest grey (`TableCellViewModel.Menu`). New in `CadTableEditor`: `Fill`, `SetColumnWidths`, `SetRowHeights`,
+`RemoveOverrides`, `CellNear` and `MinimumColumnWidth`; Columns and Rows › Size Equally and Remove All Property
+Overrides work.
+
+**FIXED.** The presenter's selection of several rows of a table's cells was drawn as a slanted shape:
+`CadTableEditor.Corners` took the top right and bottom left corners from the wrong cells. B3:C4 of the Standard schedule
+now runs from (63.5, -20) to (190.5, -38).
+
+**FIXED.** A click in an empty cell of a table, with no object under the pick box, opened a selection box instead of
+selecting the cell; it selects the cell.
+
+**FIXED.** Merge › By Row and By Column of the Table Cell tab made one undo step per row or column merged; they make one.
+
 **NEW.** The presenter's Quick Select (QSELECT) has AutoCAD's Select objects button at the right of Apply to: it hides the
 dialog while `Select objects:` asks on the command line, and the dialog comes back over the objects picked, Apply to:
 Current selection, so a line of DOORS and a text picked offer Multiple, Line and Text. It is greyed while Exclude or

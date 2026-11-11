@@ -956,6 +956,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                         Colour("Hidden lines", () => s.HiddenLines, v => s.HiddenLines = v),
                         Colour("Selected objects", () => s.Selection, v => s.Selection = v),
                         Colour("Grip", () => s.Grip, v => s.Grip = v),
+                        Colour("Table indicator", () => s.TableIndicatorColor, v => s.TableIndicatorColor = v),
                     }
                 ),
                 new GlobalSettingSection(
