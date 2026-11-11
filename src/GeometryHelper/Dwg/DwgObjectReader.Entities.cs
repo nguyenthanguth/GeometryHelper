@@ -1816,11 +1816,6 @@ namespace GeometryHelper.Dwg
         /// </summary>
         private bool ReadTable()
         {
-            if (R2010Plus)
-            {
-                return false;
-            }
-
             double[] insertion = _data.Point3();
             double[] scale = { 1.0, 1.0, 1.0 };
 
@@ -1852,6 +1847,13 @@ namespace GeometryHelper.Dwg
             {
                 ReadOwnedHandles(owned);
                 _object.SeqEnd = H();
+            }
+
+            if (R2010Plus)
+            {
+                AddTableReference(attributes, block, insertion, scale, rotation, extrusion);
+                ReadTable2010(block);
+                return true;
             }
 
             int flags = _data.BitShort();
@@ -1890,26 +1892,7 @@ namespace GeometryHelper.Dwg
             int borderWeights = _data.Bit() ? ReadBorderOverrides(overrides, 1) : 0;
             int borderVisibility = _data.Bit() ? ReadBorderOverrides(overrides, 2) : 0;
 
-            _object.Add(100, "AcDbBlockReference");
-
-            if (attributes)
-            {
-                _object.Add(66, 1);
-            }
-
-            _object.Add(2, new DwgName(block));
-            _object.AddPoint(10, insertion);
-
-            for (int i = 0; i < 3; i++)
-            {
-                if (scale[i] != 1.0)
-                {
-                    _object.Add(41 + i, scale[i]);
-                }
-            }
-
-            AddNonZero(50, Degrees(rotation));
-            AddExtrusion(extrusion);
+            AddTableReference(attributes, block, insertion, scale, rotation, extrusion);
             _object.Add(100, "AcDbTable");
             _object.Add(342, style);
             _object.Add(343, block);
@@ -1935,6 +1918,38 @@ namespace GeometryHelper.Dwg
             _object.Body.AddRange(cells);
             _object.Body.AddRange(overrides);
             return true;
+        }
+
+        /// <summary>The block reference a table is, as DXF writes it before the table's own groups.</summary>
+        private void AddTableReference(
+            bool attributes,
+            ulong block,
+            double[] insertion,
+            double[] scale,
+            double rotation,
+            double[] extrusion
+        )
+        {
+            _object.Add(100, "AcDbBlockReference");
+
+            if (attributes)
+            {
+                _object.Add(66, 1);
+            }
+
+            _object.Add(2, new DwgName(block));
+            _object.AddPoint(10, insertion);
+
+            for (int i = 0; i < 3; i++)
+            {
+                if (scale[i] != 1.0)
+                {
+                    _object.Add(41 + i, scale[i]);
+                }
+            }
+
+            AddNonZero(50, Degrees(rotation));
+            AddExtrusion(extrusion);
         }
 
         /// <summary>One cell of a table before R2007: its kind, edges, merging and size, its overrides, and its text or block.</summary>

@@ -182,11 +182,17 @@ namespace GeometryHelper.Dwg
             }
         }
 
-        /// <summary>A TEXT (<paramref name="kind"/> 0), an ATTRIB (1) or an ATTDEF (2), of one line.</summary>
+        /// <summary>A TEXT (<paramref name="kind"/> 0), an ATTRIB (1) or an ATTDEF (2), of one line or, from R2018, of several.</summary>
         private void WriteText(int kind)
         {
             DwgGroups text = _record.Of("AcDbText");
-            DwgGroups attribute = _record.Of(kind == 2 ? "AcDbAttributeDefinition" : "AcDbAttribute");
+            int embedded = kind == 0 ? -1 : _record.Body.FindIndex(g => g.Key == 101);
+
+            // The groups of an attribute of several lines end where those of its MTEXT begin, after 101.
+            DwgGroups attribute = new DwgGroups(
+                embedded < 0 ? _record.Body : _record.Body.GetRange(0, embedded),
+                kind == 2 ? "AcDbAttributeDefinition" : "AcDbAttribute"
+            );
             DwgGroups second = kind == 0 ? new DwgGroups(_record.Body.GetRange(0, 0), null) : attribute;
 
             if (kind == 0)
@@ -284,7 +290,18 @@ namespace GeometryHelper.Dwg
                     _data.RawChar(versions.Count > 0 ? DwgRecord.Int(versions[0]) : 0);
                 }
 
-                if (R2018Plus)
+                if (R2018Plus && embedded >= 0)
+                {
+                    // An attribute of several lines (2, or 4 for a definition) holds an MTEXT of its own after its text's
+                    // style: the MTEXT's entity data as the attribute's, its groups those after 101, no annotative data.
+                    _data.RawChar(attribute.Int(71, kind == 2 ? 4 : 2));
+                    H(5, style);
+                    WriteEmbeddedEntity();
+                    var groups = _record.Body.GetRange(embedded + 1, _record.Body.Count - embedded - 1);
+                    WriteMText(new DwgGroups(groups, null), true);
+                    _data.BitShort(0);
+                }
+                else if (R2018Plus)
                 {
                     _data.RawChar(1);
                 }
@@ -308,14 +325,74 @@ namespace GeometryHelper.Dwg
 
                     T(attribute.Text(3));
                 }
+
+                if (R2018Plus && embedded >= 0)
+                {
+                    return;
+                }
             }
 
             H(5, style);
         }
 
-        private void WriteMText()
+        /// <summary>
+        /// The entity data of the MTEXT of an attribute of several lines, as AutoCAD 2021 writes it: no proxy graphics, owner,
+        /// reactors or extension dictionary, the attribute's colour, layer and lineweight, its linetype named by its record
+        /// (ByLayer too) and its material where that is written.
+        /// </summary>
+        private void WriteEmbeddedEntity()
         {
-            DwgGroups text = _record.Of("AcDbMText");
+            DwgGroups all = _record.Of("AcDbEntity");
+            _data.Bits2(0);
+            _handles.Handle(4, 0);
+            _data.BitLong(0);
+            _data.Bit(true);
+            _data.Bit(false);
+            WriteEntityColour(all);
+            _data.BitDouble(all.Double(48, 1.0));
+            H(5, _drawing.HandleOf("LAYER", all.Text(8, "0")));
+            ulong linetype = _drawing.HandleOf("LTYPE", all.Text(6, "ByLayer").Trim());
+            bool named = _written.Contains(linetype);
+            _data.Bits2(named ? 3 : 0);
+
+            if (named)
+            {
+                H(5, linetype);
+            }
+
+            ulong material = all.Handle(347);
+
+            if (material == 0)
+            {
+                DwgRecord byLayer = _drawing.Objects.Find(record =>
+                    record.Type == "MATERIAL"
+                    && string.Equals(record.Of("AcDbMaterial").Text(1).Trim(), "ByLayer", StringComparison.Ordinal)
+                );
+                material = byLayer?.Handle ?? 0;
+            }
+
+            bool hasMaterial = _written.Contains(material);
+            _data.Bits2(hasMaterial ? 3 : 0);
+
+            if (hasMaterial)
+            {
+                H(5, material);
+            }
+
+            _data.RawChar(0);
+            _data.Bits2(0);
+            _data.Bit(false);
+            _data.Bit(false);
+            _data.Bit(false);
+            _data.BitShort(all.Int(60, 0));
+            _data.RawChar(LineWeightIndex(all.Int(370, -1)));
+        }
+
+        private void WriteMText() => WriteMText(_record.Of("AcDbMText"), false);
+
+        /// <summary>The data of an MTEXT of <paramref name="text"/>, its own or, <paramref name="embedded"/>, an attribute's.</summary>
+        private void WriteMText(DwgGroups text, bool embedded)
+        {
             double[] insertion = text.Point(10);
             double[] direction = text.Point(11, 1);
 
@@ -343,7 +420,7 @@ namespace GeometryHelper.Dwg
             double extentsHeight = text.Double(43);
             double extentsWidth = text.Double(42);
 
-            if (!text.Has(43) && LeaderOf(_record.Handle) is DwgRecord leader)
+            if (!embedded && !text.Has(43) && LeaderOf(_record.Handle) is DwgRecord leader)
             {
                 extentsHeight = leader.Of("AcDbLeader").Double(40);
                 extentsWidth = leader.Of("AcDbLeader").Double(41);

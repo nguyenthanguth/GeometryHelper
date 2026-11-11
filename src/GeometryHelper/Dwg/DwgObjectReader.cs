@@ -1059,6 +1059,12 @@ namespace GeometryHelper.Dwg
                 case "DBCOLOR":
                     ReadBookColour();
                     return true;
+                case "RASTERVARIABLES":
+                    ReadRasterVariables();
+                    return true;
+                case "WIPEOUTVARIABLES":
+                    ReadWipeoutVariables();
+                    return true;
                 case "ACAD_TABLE":
                     return ReadTable();
                 case "TABLESTYLE":

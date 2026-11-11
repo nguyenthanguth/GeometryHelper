@@ -60,6 +60,23 @@ namespace GeometryHelper.Dwg
             _object.Add(330, _object.Owner);
         }
 
+        /// <summary>The RASTERVARIABLES of the drawing: its class version, whether frames show, the quality and the unit of images.</summary>
+        private void ReadRasterVariables()
+        {
+            _object.Add(100, "AcDbRasterVariables");
+            _object.Add(90, _data.BitLong());
+            _object.Add(70, _data.BitShort());
+            _object.Add(71, _data.BitShort());
+            _object.Add(72, _data.BitShort());
+        }
+
+        /// <summary>The WIPEOUTVARIABLES of the drawing: whether the frames of wipeouts show.</summary>
+        private void ReadWipeoutVariables()
+        {
+            _object.Add(100, "AcDbWipeoutVariables");
+            _object.Add(70, _data.BitShort());
+        }
+
         /// <summary>
         /// A DBCOLOR, a colour of a book: from R2004 a CMC colour with its name and its book, which DXF writes as 62, 420
         /// and 430; before R2004 an index, which DXF does not write.
@@ -87,7 +104,8 @@ namespace GeometryHelper.Dwg
         {
             if (R2010Plus)
             {
-                return false;
+                ReadTableStyle2010();
+                return true;
             }
 
             _object.Add(100, "AcDbTableStyle");

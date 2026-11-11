@@ -456,7 +456,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
         }
 
         [Fact]
-        public void ADrawingSavedAsADwg_SaysWhatItHoldsThatTheDwgWriterLeavesOut()
+        public void ADrawingWithAPictureSavedAsADwg_LeavesNothingOut_AndSaysNoLeftOutLine()
         {
             CadDocument document = Host();
             CadCommandSession session = Session(document);
@@ -472,13 +472,15 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
             document.SaveAs(dwg);
 
-            // What is left out depends on what the writer covers: today the picture's RASTERVARIABLES.
-            Assert.Matches("^[A-Z_0-9]+ [0-9]+(, [A-Z_0-9]+ [0-9]+)*$", document.LeftOutOfDwg);
+            // What is left out depends on what the writer covers: since W5b the picture's RASTERVARIABLES is written too.
+            Assert.Equal(string.Empty, document.LeftOutOfDwg);
 
             Run(session, "QSAVE");
 
             Assert.Contains("Saved " + dwg + ".", session.History);
-            Assert.Contains("Left out of the DWG, not written yet: " + document.LeftOutOfDwg + ".", session.History);
+            Assert.DoesNotContain(session.History, line =>
+                line.StartsWith("Left out of the DWG", StringComparison.Ordinal)
+            );
 
             document.SaveAs(Path.Combine(_folder, "host-again.dxf"));
 

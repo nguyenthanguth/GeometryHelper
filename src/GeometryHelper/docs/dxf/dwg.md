@@ -84,13 +84,19 @@ A type that is not read is left out, with what it owns, and counted: one Debug l
 (`DwgReader: types that are not read yet were left out: MATERIAL 3 VISUALSTYLE 24 …`), and one Info line sums the
 call.
 
-- Entities: ACAD_TABLE from AutoCAD 2010 (its content is a TABLECONTENT of its own, which DXF writes in the form of
-  AutoCAD 2007), SHAPE (DXF names the shape, and only the SHX file of its style gives the name of its number), REGION,
+- Entities: SHAPE (DXF names the shape, and only the SHX file of its style gives the name of its number), REGION,
   3DSOLID and BODY of AutoCAD 2004 to 2010 (see above), the OLE frames, proxies, and every entity of a class the list
   above does not name.
-- Objects: MATERIAL, VISUALSTYLE, TABLESTYLE from AutoCAD 2010, CELLSTYLEMAP, TABLECONTENT, TABLEGEOMETRY, DATATABLE,
-  RASTERVARIABLES, WIPEOUTVARIABLES, the detail and section view styles, the data of dynamic blocks, and the other
-  objects of classes. AutoCAD makes most of these anew in a drawing that lacks them.
+- Objects: MATERIAL, VISUALSTYLE, the TABLECONTENT and TABLEGEOMETRY a table keeps for a round trip, DATATABLE, the
+  detail and section view styles, the data of dynamic blocks, and the other objects of classes. AutoCAD makes most of
+  these anew in a drawing that lacks them. A CELLSTYLEMAP is in DXF alone: a TABLESTYLE of a DWG holds its cell
+  styles.
+- An ACAD_TABLE from AutoCAD 2010 holds its content itself, rows, columns, cells, merged ranges; it is given in the
+  groups DXF keeps of AutoCAD 2007, as AutoCAD writes it: its sizes, then each cell with how it is merged (173, 175,
+  176) and its value. A table of 3 by 3 with its title merged across comes out as AutoCAD's own DXF of it, group for
+  group. What a cell of AutoCAD 2010 has beyond those groups, several contents, overrides of its cell style, a cell
+  style of the table style's own, is not given. Its TABLESTYLE is given the same way: its direction and margins, then
+  the rows of data, title and header from the cell styles _DATA, _TITLE and _HEADER.
 - A true colour does not exist in the format of AutoCAD 2000. AutoCAD keeps one as round-trip data: extended data of
   the application `ACAD` that starts with `RTT` on an entity, and an extension dictionary holding `ACAD_XREC_ROUNDTRIP`
   on a layer. That data is passed on as the file has it; it is not turned into the entity's true colour, so the entity
@@ -169,17 +175,30 @@ drawing gives the same bytes every time.
 |---|---|
 | Header | every header variable of the version; those a DXF does not give (a drawing of `DxfWriter` gives few) as AutoCAD 2021 gives a new drawing |
 | Tables | VPORT, LTYPE, LAYER, STYLE, VIEW, UCS, APPID, DIMSTYLE, BLOCK_RECORD |
-| Entities | LINE, POINT, CIRCLE, ARC, ELLIPSE, SPLINE, RAY, XLINE, LWPOLYLINE, POLYLINE (2D, 3D, polygon mesh, polyface mesh) with its vertices, TEXT, MTEXT, ATTDEF, INSERT, alone or as an array, with its ATTRIBs of one line, SOLID, TRACE, 3DFACE, DIMENSION (every kind), VIEWPORT, HATCH, LEADER, TOLERANCE, MLINE, IMAGE, WIPEOUT |
-| Objects | DICTIONARY, XRECORD, LAYOUT, GROUP, MLINESTYLE, DBCOLOR, IMAGEDEF, IMAGEDEF_REACTOR, and the small objects a new drawing holds (ACDBDICTIONARYWDFLT, DICTIONARYVAR, ACDBPLACEHOLDER, SCALE) |
+| Entities | LINE, POINT, CIRCLE, ARC, ELLIPSE, SPLINE, RAY, XLINE, LWPOLYLINE, POLYLINE (2D, 3D, polygon mesh, polyface mesh) with its vertices, TEXT, MTEXT, ATTDEF, INSERT, alone or as an array, with its ATTRIBs, of one line or of several, SOLID, TRACE, 3DFACE, DIMENSION (every kind), VIEWPORT, HATCH, LEADER, MULTILEADER, TOLERANCE, MLINE, IMAGE, WIPEOUT, ACAD_TABLE |
+| Objects | DICTIONARY, XRECORD, LAYOUT, GROUP, MLINESTYLE, MLEADERSTYLE, TABLESTYLE, DBCOLOR, IMAGEDEF, IMAGEDEF_REACTOR, RASTERVARIABLES, WIPEOUTVARIABLES, the TABLECONTENT and TABLEGEOMETRY a table keeps for a round trip, and the small objects a new drawing holds (ACDBDICTIONARYWDFLT, DICTIONARYVAR, ACDBPLACEHOLDER, SCALE) |
 | Of each | layer, linetype, colour (index, true colour, transparency, a colour of a book through its DBCOLOR), linetype scale, visibility, lineweight, material, plot style, owner, reactors, extension dictionary, extended data, proxy graphics |
 
 A record of another type is left out and counted: one Warn line of `GeometryHelperLog` names the types with the count of
 each (`DwgWriter: types that are not written yet were left out: MATERIAL 3 VISUALSTYLE 24 …`). Every handle to a record
 left out is written as 0, every dictionary entry naming one is dropped, and the vertices and attributes it owns go
-with it. Left out so far: MATERIAL, VISUALSTYLE, TABLESTYLE, the detail and section view styles,
-CELLSTYLEMAP, which the reader does not read either and AutoCAD makes anew in a drawing that lacks them; and of the
-types the reader does read, MULTILEADER and MLEADERSTYLE, ACAD_TABLE, REGION, 3DSOLID, BODY, SHAPE and the
-ATTRIB and ATTDEF of several lines.
+with it. Left out so far: MATERIAL, VISUALSTYLE and the detail and section view styles, which the reader does not read
+either and AutoCAD makes anew in a drawing that lacks them; and of the types the reader does read, REGION, 3DSOLID,
+BODY and SHAPE.
+
+A table is written in the form of AutoCAD 2010, its content inside the ACAD_TABLE, made of the groups DXF keeps of
+AutoCAD 2007: the sizes of its rows and columns, each cell's value, and a merged range for each cell that spans others
+(175 and 176); its first row takes the title's cell style and its second the header's, unless its table style
+suppresses them. A table style is written with its rows of data, title and header as the cell styles _DATA, _TITLE
+and _HEADER beside Table, its margins kept where they are not AutoCAD's 0.06, a border where it is not by block, of the
+default lineweight and shown. The CELLSTYLEMAP AutoCAD writes in DXF, with the extension dictionary of the table style
+that holds it, is not written, as a DWG of AutoCAD has none. The overrides of a cell (its alignment, colours, text style
+and height, borders) and of the whole table (93 to 96) are not written yet, and AutoCAD works out the places of the
+cells' words again as it opens the file.
+
+An attribute of several lines is written with its MTEXT, as AutoCAD writes it, the text's extents left for AutoCAD to
+work out; a multileader with its context, its leaders before its content; RASTERVARIABLES and WIPEOUTVARIABLES, which a
+drawing with images or wipeouts made in code holds, with their settings.
 
 Proof: the eight drawings of the reader's tests and the eight of hatches, viewports, leaders, images, multilines, tables,
 solids and meshes, each as AutoCAD 2021 wrote its DXF, written by `DwgWriter`:
@@ -192,6 +211,14 @@ solids and meshes, each as AutoCAD 2021 wrote its DXF, written by `DwgWriter`:
 - object for object, the bits are AutoCAD's own for 848 of the 953 objects of the first eight and 835 of the 908 of
   the second; the others differ where the DXF does not carry what the file does: the last bit of a double of 16
   places, a normal of (0, 0, 1) that AutoCAD writes whole for some entities, the extents of an MTEXT.
+
+The same proof for the types written since: three multileaders and two multileader styles, an attribute definition and
+an attribute of two lines each, two tables of 3 by 3 and 2 by 4 with merged cells and two table styles, and a drawing
+with an image and a wipeout made in code. Each reads back to the records it was written from; the table styles, the
+multileader styles and the TABLECONTENT are AutoCAD's own bits, and of the multileaders and attributes all but the last
+bit of a double of 16 places and the extents of the words. AutoCAD opens each, and its own DXF of each is the DXF it was
+written from. `AUDIT` finds 0 errors in each but the drawing of tables, where it finds the same 6 in the table style of
+the second table as in AutoCAD's own file of that drawing.
 
 A drawing of 100 to 450 records is written in about 0.1 s, in some 10 KB: AutoCAD's own file of the same drawing is
 13 to 17 KB. A drawing of 100 000 lines is written in 1.1 s from its `DxfDatabase`, in 2.1 MB to AutoCAD's 1.9 MB.
