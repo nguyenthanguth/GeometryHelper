@@ -408,6 +408,29 @@ namespace GeometryHelper.UnitTest.Dxf
             Assert.Throws<ArgumentException>(() => db.Cecolor = DxfColor.FromRgb(1, 2, 3));
         }
 
+        [Fact]
+        public void AHeaderWithoutAuprecOrMirrtext_IsReadAsAutoCadReadsIt_NoPlacesAndTextsKeptReadable()
+        {
+            // AutoCAD 2021 (mirror-3 GHM3A): a DXF whose header gives no $AUPREC and no $MIRRTEXT is read as 0 for both.
+            var db = new DxfDatabase("AC1027");
+            Assert.Null(db.GetHeader("$AUPREC"));
+            Assert.Null(db.GetHeader("$MIRRTEXT"));
+
+            Assert.Equal(0, db.Auprec);
+            Assert.False(db.Mirrtext);
+
+            // Set to what is read, nothing is written; set otherwise, the header says so.
+            string before = db.ToText();
+            db.Auprec = 0;
+            db.Mirrtext = false;
+            Assert.Equal(before, db.ToText());
+            db.Auprec = 2;
+            db.Mirrtext = true;
+            DxfDatabase again = DxfDatabase.Parse(db.ToText());
+            Assert.Equal(2, again.Auprec);
+            Assert.True(again.Mirrtext);
+        }
+
         #endregion
 
         #region Extended data and colours

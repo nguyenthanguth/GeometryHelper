@@ -428,13 +428,14 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Equal("Enter an option [Distance/Radius/Angle/ARea/eXit] <eXit>:", session.PromptText);
 
             Run(session, "A", new[] { "A4" });
-            Assert.Equal("Angle = 90.00°", session.History.Last());
+            // Angles to the places of AUPREC, nought in a drawing whose header gives none, as AutoCAD 2021 reads it.
+            Assert.Equal("Angle = 90°", session.History.Last());
 
             Run(session, "A", new[] { "A1" }, new[] { "A2" });
-            Assert.Equal("Angle = 90.00°", session.History.Last());
+            Assert.Equal("Angle = 90°", session.History.Last());
 
             Run(session, "A", Enter, P(0, 0), P(10, 0), P(10, 10));
-            Assert.Equal("Angle = 45.00°", session.History.Last());
+            Assert.Equal("Angle = 45°", session.History.Last());
 
             Run(session, "D", P(0, 0), P(3, 4));
             Assert.Equal("Delta X = 3.0000,  Delta Y = 4.0000,  Delta Z = 0.0000", session.History.Last());

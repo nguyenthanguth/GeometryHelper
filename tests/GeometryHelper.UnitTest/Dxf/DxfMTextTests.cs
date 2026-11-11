@@ -946,5 +946,138 @@ namespace GeometryHelper.UnitTest.Dxf
         }
 
         #endregion
+
+        #region No direction written
+
+        /// <summary>
+        /// An MTEXT "GHNOAXIS" read from a file whose record gives a normal and, where said, an angle (50), but no direction
+        /// (11), as AutoCAD 2021 writes one along the world's x axis.
+        /// </summary>
+        private static DxfMText WithoutDirection(GeoVector3 normal, string degrees = null)
+        {
+            var db = new DxfDatabase("AC1027");
+            var made = new DxfMText();
+            db.ModelSpace.AppendEntity(made);
+            made.Contents = "GHNOAXIS";
+            made.Location = new GeoPoint3(20, 10, 0);
+            string text = db.ToText();
+            string end = text.Contains("\r\n") ? "\r\n" : "\n";
+            var lines = new List<string>(text.Replace("\r\n", "\n").Split('\n'));
+            int at = lines.FindIndex(l => l.Trim() == "GHNOAXIS");
+            var added = new List<string> { "210", R(normal.X), "220", R(normal.Y), "230", R(normal.Z) };
+
+            if (degrees != null)
+            {
+                added.AddRange(new[] { "50", degrees });
+            }
+
+            lines.InsertRange(at + 1, added);
+            return ByHandle<DxfMText>(DxfDatabase.Parse(string.Join(end, lines)), made.Handle);
+        }
+
+        [Fact]
+        public void AnMTextOfNoDirection_ReadsAlongTheWorldsXAxisPutIntoItsPlane_AsAutoCadReadsIt()
+        {
+            // AutoCAD 2021 (mirror-3 GHM3A), as normal, its Rotation and the direction it reads along: no 11 is read as the
+            // world's x axis, turned from the x axis of the plane's system; the normal (0, 0, -1), whose x axis is the world's
+            // -x, reads along (1, 0, 0) turned 180 degrees, not along (-1, 0, 0). Where the plane holds no part of the world's x
+            // axis, along the plane's x axis, turned nought.
+            object[][] cases =
+            {
+                new object[] { new GeoVector3(0, 0, 1), 0.0, new GeoVector3(1, 0, 0) },
+                new object[] { new GeoVector3(0, 0, -1), Math.PI, new GeoVector3(1, 0, 0) },
+                new object[] { new GeoVector3(0, 1, 0), Math.PI, new GeoVector3(1, 0, 0) },
+                new object[] { new GeoVector3(0, -1, 0), 0.0, new GeoVector3(1, 0, 0) },
+                new object[] { new GeoVector3(0, 0.6, 0.8), Math.PI, new GeoVector3(1, 0, 0) },
+                new object[] { new GeoVector3(0.6, 0, -0.8), Math.PI / 2.0, new GeoVector3(0.8, 0, 0.6) },
+                new object[] { new GeoVector3(1, 0, 0), 0.0, new GeoVector3(0, 1, 0) },
+                new object[] { new GeoVector3(-1, 0, 0), 0.0, new GeoVector3(0, -1, 0) },
+            };
+
+            foreach (object[] c in cases)
+            {
+                DxfMText mtext = WithoutDirection((GeoVector3)c[0]);
+
+                Assert.True(Math.Abs((double)c[1] - mtext.Rotation) < 1E-12, c[0] + ": " + mtext.Rotation);
+                Near((GeoVector3)c[2], mtext.Direction);
+            }
+
+            // An angle and no direction: the plane's x axis turned by it, as before (GHM3A negZ-a30).
+            DxfMText turned = WithoutDirection(new GeoVector3(0, 0, -1), "30");
+            Near(new GeoVector3(-Math.Sqrt(3.0) / 2.0, 0.5, 0), turned.Direction);
+            Assert.True(Math.Abs(Math.PI / 6.0 - turned.Rotation) < 1E-12);
+        }
+
+        [Fact]
+        public void AnMTextOfNoDirection_GivenANormal_IsWrittenAlongTheNewPlanesXAxis_AsAutoCadWritesIt()
+        {
+            // AutoCAD 2021 (mirror-3 GHM3C): an MTEXT of no direction given the normal (0, 0, -1) reads along (-1, 0, 0), turned
+            // nought, and is written with that direction (11 of -1, 0, 0); so too given (0, 0.6, 0.8).
+            foreach (GeoVector3 normal in new[] { new GeoVector3(0, 0, -1), new GeoVector3(0, 0.6, 0.8) })
+            {
+                var db = new DxfDatabase("AC1027");
+                var mtext = new DxfMText();
+                db.ModelSpace.AppendEntity(mtext);
+                mtext.Contents = "ABC";
+
+                mtext.Normal = normal;
+
+                DxfMText again = ByHandle<DxfMText>(DxfDatabase.Parse(db.ToText()), mtext.Handle);
+                Near(new GeoVector3(-1, 0, 0), again.Direction);
+                Assert.Equal(0.0, again.Rotation, 12);
+            }
+        }
+
+        [Fact]
+        public void AnMTextAlongX_MirroredAcrossALevelLine_IsWrittenWithNoDirection_AsAutoCadWritesIt()
+        {
+            // AutoCAD 2021 (mirror-3 GHM3B, MIRRTEXT 1 across y = 100): an MTEXT along x mirrored is of normal (0, 0, -1) and
+            // reads along (1, 0, 0) still, written with no 11, its Rotation 180 degrees.
+            var db = new DxfDatabase("AC1027");
+            var mtext = new DxfMText();
+            db.ModelSpace.AppendEntity(mtext);
+            mtext.Contents = "ABC\\PDEF";
+            mtext.Location = new GeoPoint3(100, 10, 0);
+
+            mtext.TransformBy(GeoTransform3.Mirror(new GeoPlane3(new GeoPoint3(0, 100, 0), new GeoVector3(0, 1, 0))));
+
+            DxfMText again = ByHandle<DxfMText>(DxfDatabase.Parse(db.ToText()), mtext.Handle);
+            Assert.DoesNotContain("\n 11\n", "\n" + string.Join("\n", Record(db, mtext.Handle)) + "\n");
+            Near(new GeoVector3(0, 0, -1), again.Normal);
+            Near(new GeoVector3(1, 0, 0), again.Direction);
+            Assert.True(Math.Abs(Math.PI - again.Rotation) < 1E-12);
+            Near(new GeoPoint3(100, 190, 0), again.Location);
+        }
+
+        private static string R(double value) => value.ToString("R", System.Globalization.CultureInfo.InvariantCulture);
+
+        /// <summary>The lines of the record of a handle, its codes padded to three as the file writes them.</summary>
+        private static List<string> Record(DxfDatabase db, string handle)
+        {
+            string[] lines = db.ToText().Replace("\r\n", "\n").Split('\n');
+            var record = new List<string>();
+            bool found = false;
+
+            for (int i = 0; i + 1 < lines.Length; i += 2)
+            {
+                string code = lines[i].Trim();
+
+                if (code == "0" && found)
+                {
+                    break;
+                }
+
+                found |= code == "5" && lines[i + 1].Trim() == handle;
+
+                if (found)
+                {
+                    record.Add(code.PadLeft(3));
+                }
+            }
+
+            return record;
+        }
+
+        #endregion
     }
 }

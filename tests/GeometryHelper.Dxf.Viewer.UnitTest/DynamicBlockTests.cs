@@ -304,7 +304,8 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
             Assert.Equal(Math.PI / 2, (double)ValueOf(document, handle, "Angle"), 9);
             Near(P(50, 55), CadGrips.Of(Insert(document, handle))[1].Point);
-            Assert.Equal("90.00", Row(Group(document, handle, CadProperties.CustomGroup), "Angle").Value);
+            // The angle to the places of AUPREC, nought in a drawing whose header gives none, as AutoCAD 2021 reads it.
+            Assert.Equal("90", Row(Group(document, handle, CadProperties.CustomGroup), "Angle").Value);
 
             Assert.True(CadDynamicBlocks.SetProperty(document, new[] { handle }, "Angle", "180").Succeeded);
             Assert.Equal(Math.PI, (double)ValueOf(document, handle, "Angle"), 9);

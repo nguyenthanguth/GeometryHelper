@@ -62,11 +62,12 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 model.Open(folder.Write("room.dxf", TestFiles.Room(out _, out _)));
 
                 model.Execute("SNAPANG");
-                Assert.Equal("Enter new value for SNAPANG <0.00>:", model.Prompt);
+                // In the units of the drawing, to the places of AUPREC, nought where the header gives none as AutoCAD 2021 reads it.
+                Assert.Equal("Enter new value for SNAPANG <0>:", model.Prompt);
                 model.Execute("400");
                 Assert.Equal(40.0 * Math.PI / 180.0, model.Snap.SnapAngle, 12);
                 model.Execute("SNAPANG");
-                Assert.Equal("Enter new value for SNAPANG <40.00>:", model.Prompt);
+                Assert.Equal("Enter new value for SNAPANG <40>:", model.Prompt);
                 model.Execute("-30");
                 Assert.Equal(330.0 * Math.PI / 180.0, model.SnapAngle, 12);
                 Assert.Equal(330.0 * Math.PI / 180.0, model.Document.Database.ViewportTable["*Active"].SnapAngle, 12);

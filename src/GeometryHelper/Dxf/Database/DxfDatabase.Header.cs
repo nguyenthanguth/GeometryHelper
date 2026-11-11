@@ -369,11 +369,11 @@ namespace GeometryHelper.Dxf
             set => SetWhole("$AUNITS", 70, value == Aunits ? value : InRange(value, 0, 4, nameof(value)), Aunits);
         }
 
-        /// <summary>Gets or sets how many places angles are shown to (<c>$AUPREC</c>): 2 where the header gives none.</summary>
+        /// <summary>Gets or sets how many places angles are shown to (<c>$AUPREC</c>): 0 where the header gives none, as AutoCAD 2021 reads it.</summary>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when the number set is not 0 to 8.</exception>
         public int Auprec
         {
-            get => Whole("$AUPREC", 70, 2);
+            get => Whole("$AUPREC", 70, 0);
             set => SetWhole("$AUPREC", 70, value == Auprec ? value : InRange(value, 0, 8, nameof(value)), Auprec);
         }
 
@@ -417,10 +417,10 @@ namespace GeometryHelper.Dxf
             set => SetFlag("$FILLMODE", value, Fillmode);
         }
 
-        /// <summary>Gets or sets whether texts are mirrored with what they are in (<c>$MIRRTEXT</c> of 1); true where the header gives none.</summary>
+        /// <summary>Gets or sets whether texts are mirrored with what they are in (<c>$MIRRTEXT</c> of 1); false where the header gives none, as AutoCAD 2021 reads it.</summary>
         public bool Mirrtext
         {
-            get => Whole("$MIRRTEXT", 70, 1) != 0;
+            get => Whole("$MIRRTEXT", 70, 0) != 0;
             set => SetFlag("$MIRRTEXT", value, Mirrtext);
         }
 

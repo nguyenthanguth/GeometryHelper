@@ -184,7 +184,9 @@ namespace GeometryHelper.Dxf.Viewer
         /// <see cref="InPlane"/> leave them, and the INSERT written with its
         /// x factor turned the other way rather than its y, turned to its mirrored y axis less a quarter turn. One turned nought
         /// mirrored across a level line is written x factor -1 turned 180 degrees; across an upright, -1 turned nought; one
-        /// scaled 2 by 3, -2 by 3. A MINSERT, and an INSERT whose plane is not the drawing's, is mirrored as it is.
+        /// scaled 2 by 3, -2 by 3. A MINSERT is written so too, its columns spaced the other way (mirror-3 GHM3B); an annotative
+        /// one so in its record and in each of its contexts. An INSERT whose plane
+        /// is not the drawing's is mirrored as it is.
         /// </summary>
         private static ReadableMirror InsertMirror(
             CadDocument document,
@@ -198,19 +200,16 @@ namespace GeometryHelper.Dxf.Viewer
                 ? InPlane(insert, mirror, tolerance)
                 : Readable(document, insert, mirror, tolerance);
 
-            if (insert is DxfMInsertBlock || !Flat(insert.Normal, tolerance))
+            if (!Flat(insert.Normal, tolerance))
             {
                 return attributes;
             }
 
-            GeoVector3 scale = insert.ScaleFactors;
-            double turn = insert.Rotation;
-            GeoVector3 up = mirror.Transform(new GeoVector3(-Math.Sin(turn), Math.Cos(turn), 0.0));
-            double degrees = (Math.Atan2(up.Y, up.X) * (180.0 / Math.PI)) - 90.0;
+            DxfBlockReference.MirrorSource before = insert.BeforeMirror();
             return new ReadableMirror(attributes?.Transform ?? mirror, null, null, then: moved =>
             {
                 attributes?.Finish(moved);
-                ((DxfBlockReference)moved).FinishMirror(scale, degrees);
+                ((DxfBlockReference)moved).FinishMirror(before, mirror);
             });
         }
 

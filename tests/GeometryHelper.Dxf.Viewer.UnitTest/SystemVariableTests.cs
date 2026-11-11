@@ -142,11 +142,11 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
 
             CadCommandSession session = Start(document, "SETVAR", "LTSCALE");
             Assert.Equal("Enter new value for LTSCALE <1.0000>:", session.PromptText);
-            Run(session, "2", "PSLTSCALE", "0", "MIRRTEXT", "0", "CHAMFERA", "4", "CLAYER", "steel", "CELWEIGHT", "35");
+            Run(session, "2", "PSLTSCALE", "0", "MIRRTEXT", "1", "CHAMFERA", "4", "CLAYER", "steel", "CELWEIGHT", "35");
 
             Assert.Equal("40=2", Header(document, "$LTSCALE"));
             Assert.Equal("70=0", Header(document, "$PSLTSCALE"));
-            Assert.Equal("70=0", Header(document, "$MIRRTEXT"));
+            Assert.Equal("70=1", Header(document, "$MIRRTEXT"));
             Assert.Equal("40=4", Header(document, "$CHAMFERA"));
             Assert.Equal("8=Steel", Header(document, "$CLAYER"));
             Assert.Equal("370=35", Header(document, "$CELWEIGHT"));

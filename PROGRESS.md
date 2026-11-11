@@ -86,7 +86,8 @@ the ones wanted.
 - [x] MIRRTEXT for tables and dimensions (MIRROR keeps a dimension in the plane, as AutoCAD)
 - [x] MIRRTEXT: MLEADER under MIRROR, MIRRTEXT 1 TEXT/ATTDEF/ATTRIB (71 = 2, +Z), TEXT placed by its font ink under MIRRTEXT 0
 - [x] MIRROR: INSERT (41 = -1, turn of the mirrored y axis), ATTRIBs without 210, rotations within 0..360, TEXT spaces kept, 45-degree multileaders
-- [ ] MIRROR follow-ups 2: MTEXT under MIRRTEXT 1 across a level line (reader's default 11 for normal -Z); MINSERT, annotative INSERT and dynamic-block flip under MIRROR; MLEADER scale rounding under a 30-degree mirror; core reads a missing $AUPREC as 2 where AutoCAD reads 0 (S)
+- [x] MIRROR follow-ups 2: MTEXT with no 11 read along world x, MINSERT, annotative INSERT, dynamic flip kept (and on COPY/ARRAY), MLEADER sizes exact, missing $AUPREC and $MIRRTEXT read as 0
+- [ ] MIRROR follow-ups 3: GeoTransform3.Mirror across 45 degrees gives 9.999999999999957 for 10 (plane from a normalized normal); annotative copy writes {ACAD_REACTORS where AutoCAD writes none; DWG writer's MTEXT with 50 and no 11 not turned into its plane (task dwg-tables) (S)
 - [x] Drafting aids: TK (TRACKING); check TT with OTRACK off, "(need YZ):" input and Enter at a modifier prompt
       against AutoCAD (S)
 - [x] Draw: AUDIT a drawing made with every ARC, CIRCLE, PLINE, TEXT and MTEXT option, and compare ARC and PLINE entity
