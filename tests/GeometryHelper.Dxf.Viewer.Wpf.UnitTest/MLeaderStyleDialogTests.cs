@@ -134,7 +134,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             Assert.Equal(new[] { "Leader Format", "Leader Structure", "Content" }, editor.Tabs);
             MLeaderFieldViewModel type = editor.FieldsOf("Content").Single(f => f.Label == "Type");
             Assert.Equal(new[] { "Mtext", "Block", "None" }, type.Choices.Select(c => c.Label));
-            Assert.False(type.Choices.Single(c => c.Label == "Block").IsEnabled);
+            Assert.True(type.Choices.Single(c => c.Label == "Block").IsEnabled);
             MLeaderFieldViewModel annotative = editor.FieldsOf("Leader Structure").Single(f => f.Label == "Annotative");
             Assert.True(annotative.IsLeadEnabled);
             Assert.False(annotative.LeadChecked);
@@ -168,6 +168,56 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
             Assert.Equal(DxfAngleConstraint.Degrees045, style.FirstSegmentAngleConstraint);
             Assert.Equal(0.0, style.Scale);
             Assert.Equal(DxfTextAttachmentDirection.AttachmentVertical, style.TextAttachmentDirection);
+        }
+
+        [Fact]
+        public void ABlockOfTheDrawing_IsTheContentOfAStyle_WithItsAttachmentColorAndScale()
+        {
+            MainViewModel model = Opened(out CadDocument document);
+            var tag = new DxfBlockTableRecord { Name = "TAG" };
+            document.Database.BlockTable.Add(tag);
+            tag.AppendEntity(new DxfCircle(GeoPoint3.Origin, new GeoVector3(0, 0, 1), 5));
+            MLeaderStyleEditViewModel editor = model.CreateMLeaderStyleManager().CreateModify();
+            Assert.False(editor.FieldsOf("Content").Single(f => f.Label == "Source block").IsShown);
+
+            MLeaderFieldViewModel type = editor.FieldsOf("Content").Single(f => f.Label == "Type");
+            type.SelectedChoice = type.Choices.Single(c => c.Label == "Block");
+
+            MLeaderFieldViewModel source = editor.FieldsOf("Content").Single(f => f.Label == "Source block");
+            Assert.True(source.IsShown);
+            Assert.Equal(new[] { "TAG" }, source.Choices.Select(c => c.Label));
+            Assert.Equal("TAG", source.SelectedChoice.Label);
+            MLeaderFieldViewModel attachment = editor.FieldsOf("Content").Single(f => f.Label == "Attachment");
+            Assert.Equal(new[] { "Center extents", "Insertion point" }, attachment.Choices.Select(c => c.Label));
+            attachment.SelectedChoice = attachment.Choices.Single(c => c.Label == "Insertion point");
+            editor.FieldsOf("Content").Single(f => f.Label == "Scale").Text = "2";
+            Assert.True(editor.Ok());
+
+            var style = (DxfMLeaderStyle)document.Database.MLeaderStyleDictionary["Standard"];
+            Assert.Equal(DxfContentType.BlockContent, style.ContentType);
+            Assert.Equal("TAG", style.Block.Name);
+            Assert.Equal(DxfBlockConnectionType.ConnectBase, style.BlockConnectionType);
+            Assert.Equal(new GeoVector3(2, 2, 2), style.BlockScale);
+        }
+
+        [Fact]
+        public void TheScaleOptions_AreGreyedWhileAnnotativeIsTicked_AsAutoCad2021GreysThem()
+        {
+            MainViewModel model = Opened(out _);
+            MLeaderStyleEditViewModel editor = model.CreateMLeaderStyleManager().CreateModify();
+            MLeaderFieldViewModel layout = editor
+                .FieldsOf("Leader Structure")
+                .Single(f => f.Label == "Scale multileaders to layout");
+            MLeaderFieldViewModel specify = editor.FieldsOf("Leader Structure").Single(f => f.Label == "Specify scale");
+            Assert.True(layout.IsLeadEnabled);
+            Assert.True(specify.IsLeadEnabled);
+            Assert.True(specify.IsEnabled);
+
+            editor.FieldsOf("Leader Structure").Single(f => f.Label == "Annotative").LeadChecked = true;
+
+            Assert.False(layout.IsLeadEnabled);
+            Assert.False(specify.IsLeadEnabled);
+            Assert.False(specify.IsEnabled);
         }
 
         [Fact]

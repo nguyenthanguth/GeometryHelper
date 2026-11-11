@@ -197,8 +197,7 @@ namespace GeometryHelper.Dxf.Viewer
 
         /// <summary>
         /// -XREF (-XR): "Enter an option [?/Bind/Detach/Path/pathType/Unload/Reload/Overlay/Attach] &lt;Attach&gt;:", each option
-        /// asking for the names of the external references it acts on, with wildcards and commas, as AutoCAD's does. Bind is
-        /// refused: a DXF external reference is shown, never written into the drawing.
+        /// asking for the names of the external references it acts on, with wildcards and commas, as AutoCAD's does.
         /// </summary>
         private static IEnumerable<CadPrompt> XrefTyped(CadCommandContext c)
         {
@@ -218,12 +217,6 @@ namespace GeometryHelper.Dxf.Viewer
                     yield return prompt;
                 }
 
-                yield break;
-            }
-
-            if (option == "Bind")
-            {
-                c.Write("Bind is not offered: a DXF external reference is shown, never written into the drawing.");
                 yield break;
             }
 
@@ -252,6 +245,9 @@ namespace GeometryHelper.Dxf.Viewer
                     break;
                 case "Detach":
                     DetachXrefs(c, blocks);
+                    break;
+                case "Bind":
+                    BindXrefs(c, blocks, names);
                     break;
                 case "Unload":
                     foreach (DxfBlockTableRecord block in blocks)
@@ -404,6 +400,205 @@ namespace GeometryHelper.Dxf.Viewer
                 }
             }
         }
+
+        /// <summary>
+        /// -XREF Bind: each external reference bound as AutoCAD 2021 binds it, by BINDTYPE: 0 Bind, its records renamed after it
+        /// (<c>grid$0$WALL</c>), 1 Insert, merged by name, each block the drawing has already said "Duplicate Block "BLK"
+        /// ignored."; the references its drawing places bound with it, each under its own name; all in one undo step (see
+        /// <see cref="DxfDatabase.BindXref"/>). Nothing is bound where one is unloaded ("Cannot bind unloaded xref(s).  Reload
+        /// them first:"), or its file or that of a reference it places is not found ("xref "N" is currently not found. Reload or
+        /// detach before binding."); a reference of a reference "is nested and cannot be bound".
+        /// </summary>
+        private static void BindXrefs(CadCommandContext c, List<DxfBlockTableRecord> blocks, string names)
+        {
+            CadXrefManager xrefs = c.Document.Xrefs;
+
+            if (blocks.Count == 0)
+            {
+                string[] patterns = names.Split(',').Select(p => p.Trim().Trim('"')).Where(p => p.Length > 0).ToArray();
+                var nested = new List<string>();
+
+                foreach (CadExternalReference reference in xrefs.GetReferences())
+                {
+                    if (
+                        !reference.IsImage
+                        && reference.Depth > 0
+                        && !nested.Contains(reference.Name, StringComparer.OrdinalIgnoreCase)
+                        && patterns.Any(p => CadWildcard.IsMatch(reference.Name, p, true))
+                    )
+                    {
+                        nested.Add(reference.Name);
+                    }
+                }
+
+                if (nested.Count == 0)
+                {
+                    c.Write("No matching xref names found.");
+                }
+
+                foreach (string name in nested)
+                {
+                    c.Write("Xref \"" + name + "\" is nested and cannot be bound.");
+                }
+
+                return;
+            }
+
+            List<DxfBlockTableRecord> unloaded = blocks.FindAll(b => xrefs.IsUnloaded(b.Name));
+
+            if (unloaded.Count > 0)
+            {
+                c.Write("Cannot bind unloaded xref(s).  Reload them first:");
+
+                foreach (DxfBlockTableRecord block in unloaded)
+                {
+                    c.Write("Xref \"" + block.Name + "\" is unloaded.");
+                }
+
+                return;
+            }
+
+            // Each reference with its drawing, those its drawing places after it, depth first.
+            var plan = new List<KeyValuePair<string, DxfDatabase>>();
+
+            foreach (DxfBlockTableRecord block in blocks)
+            {
+                if (!PlanBind(c, block.Name, block.PathName, c.Document.DrawingFolder, plan, new List<string>()))
+                {
+                    return;
+                }
+            }
+
+            bool insert = BindType(c.Session) == 1;
+
+            if (insert)
+            {
+                var said = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+                foreach (KeyValuePair<string, DxfDatabase> step in plan)
+                {
+                    foreach (DxfBlockTableRecord block in step.Value.BlockTable)
+                    {
+                        if (
+                            !block.IsLayout
+                            && !block.IsAnonymous
+                            && !block.Name.StartsWith("*", StringComparison.Ordinal)
+                            && !block.IsFromExternalReference
+                            && !block.IsDependent
+                            && c.Database.BlockTable.Has(block.Name)
+                            && said.Add(block.Name)
+                        )
+                        {
+                            c.Write("Duplicate Block \"" + block.Name + "\" ignored.");
+                        }
+                    }
+                }
+            }
+
+            var bound = plan.ConvertAll(p => p.Key);
+            CadEditResult result = c.Apply(
+                new[]
+                {
+                    new CadEditRecord(CadEditRecordKind.TableChanged, null, "Bind xref", string.Join(",", bound), null),
+                },
+                s =>
+                {
+                    foreach (KeyValuePair<string, DxfDatabase> step in plan)
+                    {
+                        DxfBlockTable table = s.Database.BlockTable;
+
+                        // A reference two of them place is bound once.
+                        if (table.Has(step.Key) && table[step.Key].IsFromExternalReference)
+                        {
+                            s.Database.BindXref(table[step.Key], step.Value, insert);
+                        }
+                    }
+                }
+            );
+
+            if (result.Succeeded)
+            {
+                foreach (string name in bound)
+                {
+                    xrefs.SetUnloaded(name, false);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Adds an external reference and its drawing to the references to bind, then each its drawing places, not overlaid,
+        /// found from the folder of that drawing; false, said as AutoCAD 2021 says it, where a file is not found or cannot be read.
+        /// </summary>
+        private static bool PlanBind(
+            CadCommandContext c,
+            string name,
+            string path,
+            string folder,
+            List<KeyValuePair<string, DxfDatabase>> plan,
+            List<string> chain
+        )
+        {
+            CadXrefManager xrefs = c.Document.Xrefs;
+            string found = xrefs.Locate(path, folder);
+
+            if (found == null)
+            {
+                c.Write("xref \"" + name + "\" is currently not found. Reload or detach before binding.");
+                return false;
+            }
+
+            DxfDatabase database = xrefs.Read(found).Database;
+
+            if (database == null)
+            {
+                c.Write("Error: At least one of the specified xrefs failed to bind for an unknown reason.");
+                return false;
+            }
+
+            if (chain.Contains(found, StringComparer.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            plan.Add(new KeyValuePair<string, DxfDatabase>(name, database));
+            chain.Add(found);
+            var nested = new List<DxfBlockTableRecord>();
+
+            foreach (DxfBlockTableRecord block in database.BlockTable)
+            {
+                if (
+                    block.IsFromExternalReference
+                    && !block.IsLayout
+                    && !block.IsFromOverlayReference
+                    && block.GetBlockReferences(true).Count > 0
+                )
+                {
+                    nested.Add(block);
+                }
+            }
+
+            nested.Sort(
+                (a, b) =>
+                {
+                    int byName = string.Compare(a.Name, b.Name, StringComparison.OrdinalIgnoreCase);
+                    return byName != 0 ? byName : string.CompareOrdinal(a.Name, b.Name);
+                }
+            );
+
+            foreach (DxfBlockTableRecord block in nested)
+            {
+                if (!PlanBind(c, block.Name, block.PathName, Path.GetDirectoryName(found), plan, chain))
+                {
+                    return false;
+                }
+            }
+
+            chain.RemoveAt(chain.Count - 1);
+            return true;
+        }
+
+        /// <summary>BINDTYPE: how -XREF Bind binds, 0 Bind (the default) or 1 Insert, kept by the session as AutoCAD keeps it unsaved.</summary>
+        internal static int BindType(CadCommandSession session) => (int)Kept(session, "bindtype", 0.0);
 
         /// <summary>
         /// -XREF Reload: the file found again and read anew, in AutoCAD 2021's words; its layers and linetypes the drawing has

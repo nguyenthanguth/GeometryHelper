@@ -6,8 +6,8 @@ namespace GeometryHelper.Dxf
 {
     /// <summary>
     /// The RASTERVARIABLES of a DXF file, as AutoCAD's <c>RasterVariables</c>: how the images of the drawing are shown, the
-    /// entry ACAD_IMAGE_VARS of the named object dictionary, which AutoCAD 2021 writes once a drawing holds an image:
-    /// <c>db.NamedObjectsDictionary.GetAt("ACAD_IMAGE_VARS")</c>.
+    /// entry ACAD_IMAGE_VARS of the named object dictionary, which AutoCAD 2021 writes once a drawing holds an image or
+    /// IMAGEFRAME is first changed (<see cref="GetRasterVariables"/>): <c>db.NamedObjectsDictionary.GetAt("ACAD_IMAGE_VARS")</c>.
     /// </summary>
     /// <remarks>
     /// AutoCAD 2021 gives a drawing it opens with images frames shown (70 of 1), pictures shown finely (71 of 1) and no unit
@@ -105,6 +105,67 @@ namespace GeometryHelper.Dxf
                 }
 
                 Set(72, (int)value, UserScale == value);
+            }
+        }
+
+        /// <summary>
+        /// Gets the variables of images of a drawing, as AutoCAD's <c>RasterVariables.GetRasterVariables</c>: its entry
+        /// ACAD_IMAGE_VARS, made where it has none, as AutoCAD 2021 makes it when IMAGEFRAME is first changed in a drawing with
+        /// no image yet: frames shown (70 of 1), pictures shown finely (71 of 1), and the unit images are inserted in
+        /// (72) that of the drawing (<c>$INSUNITS</c>), as AutoCAD numbers it there: 1 for millimetres, 2 centimetres,
+        /// 3 metres, 4 kilometres, 5 inches, 6 feet, 7 yards, 8 miles, 0 for none or another unit; the class
+        /// RASTERVARIABLES listed. A metric drawing of millimetres is given <c>70 1, 71 1, 72 1</c>.
+        /// </summary>
+        /// <param name="database">The drawing.</param>
+        /// <returns>The variables.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the drawing is null.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the drawing has no named object dictionary, as one of R12.</exception>
+        public static DxfRasterVariables GetRasterVariables(DxfDatabase database)
+        {
+            if (database == null)
+            {
+                throw new ArgumentNullException(nameof(database));
+            }
+
+            DxfDBDictionary root = database.NamedObjectsDictionary
+                ?? throw new InvalidOperationException(
+                    "The drawing has no named object dictionary to keep the variables of images in."
+                );
+
+            if (!root.Contains("ACAD_IMAGE_VARS"))
+            {
+                database.File.ImageVariables(UnitNumber(database.Insunits));
+            }
+
+            return root.GetAt("ACAD_IMAGE_VARS") as DxfRasterVariables
+                ?? throw new InvalidOperationException(
+                    "The entry ACAD_IMAGE_VARS of the drawing is no RASTERVARIABLES."
+                );
+        }
+
+        /// <summary>The number RASTERVARIABLES gives a unit of the drawing in its 72, as AutoCAD 2021 writes it (1 for millimetres, 5 for inches).</summary>
+        private static int UnitNumber(DxfUnits units)
+        {
+            switch (units)
+            {
+                case DxfUnits.Millimeters:
+                    return 1;
+                case DxfUnits.Centimeters:
+                    return 2;
+                case DxfUnits.Meters:
+                    return 3;
+                case DxfUnits.Kilometers:
+                    return 4;
+                case DxfUnits.Inches:
+                    return 5;
+                case DxfUnits.Feet:
+                    return 6;
+                case DxfUnits.Yards:
+                    return 7;
+                case DxfUnits.Miles:
+                    return 8;
+                default:
+                    return 0;
             }
         }
 

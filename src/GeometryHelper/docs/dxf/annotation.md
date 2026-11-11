@@ -284,7 +284,9 @@ writes every group AutoCAD 2021 holds of a style, in its order, and lists its cl
 landing and words are set by the names AutoCAD gives them, each written into the record at once as AutoCAD 2021 holds it
 (checked by entget on styles its API made): `FirstSegmentAngleConstraint` of `Degrees045` as 0.785398 radians,
 `MaxLeaderSegmentsPoints` of 0 for no limit, a `Scale` of 0 for multileaders scaled to the layout, `ExtendLeaderToText`
-from R2013 and `DefaultMText` as its words. The multileaders of a style keep their own values until `SetFromStyle()` is
+from R2013 and `DefaultMText` as its words. A style of block content names its block by `Block`, with its `BlockColor`,
+`BlockScale` and `BlockConnectionType`, as AutoCAD 2021 writes them (343, 94, 47/49/140 and 177): the block TAG scaled 2
+is written `47 2.0, 49 2.0, 140 2.0`. The multileaders of a style keep their own values until `SetFromStyle()` is
 called on each. A drawing of R2013 with three styles made so, and multileaders drawn in them, is audited by AutoCAD 2021
 with no error. And
 `mleader.GetOverridedMLeaderStyle(style)`, AutoCAD's `getOverridedMLeaderStyle` named as the library names its members, gives

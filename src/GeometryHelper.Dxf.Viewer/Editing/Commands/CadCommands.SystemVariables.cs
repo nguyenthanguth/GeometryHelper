@@ -258,6 +258,11 @@ namespace GeometryHelper.Dxf.Viewer
                     (c, v) => c.Remember("attdia", v)
                 )
             );
+            // How -XREF Bind binds an external reference: 0 Bind, its records renamed after it, 1 Insert, kept by the session.
+            registry.AddVariable(
+                CadSystemVariable.Whole("BINDTYPE", false, 0, 1, s => BindType(s), (c, v) => c.Remember("bindtype", v))
+            );
+
             // Whether a command asks the window for a file (FILEDIA) or shows its dialog (CMDDIA, PLOT), 1, or asks on the command line, 0.
             registry.AddVariable(
                 CadSystemVariable.Whole(
@@ -357,7 +362,10 @@ namespace GeometryHelper.Dxf.Viewer
                         0,
                         2,
                         ImageFrameOf,
-                        (c, v) => ImageVariables(c.Database).ImageFrame = (DxfFrameSetting)v,
+                        (c, v) =>
+                            (
+                                ImageVariables(c.Database) ?? DxfRasterVariables.GetRasterVariables(c.Database)
+                            ).ImageFrame = FrameSettingOf(v),
                         "IMAGEFRAME",
                         ImageFrameRefused
                     )
@@ -700,15 +708,34 @@ namespace GeometryHelper.Dxf.Viewer
                 ? database.NamedObjectsDictionary.GetAt("ACAD_IMAGE_VARS") as DxfRasterVariables
                 : null;
 
-        private static int ImageFrameOf(CadCommandSession session)
+        /// <summary>
+        /// IMAGEFRAME as the drawing keeps it: 0 for frames off, 2 for frames shown and not plotted (70 of 3, as AutoCAD 2021
+        /// writes IMAGEFRAME 2), 1 otherwise, and where the drawing keeps no variables of images.
+        /// </summary>
+        internal static int ImageFrameOf(DxfDatabase database)
         {
-            DxfRasterVariables variables = ImageVariables(session.Document.Database);
-            return variables == null ? 1 : (int)variables.ImageFrame;
+            DxfRasterVariables variables = ImageVariables(database);
+            DxfFrameSetting frame = variables == null ? DxfFrameSetting.ImageFrameAbove : variables.ImageFrame;
+            return frame == DxfFrameSetting.ImageFrameOff ? 0
+                : frame == DxfFrameSetting.ImageFrameOnNoPlot ? 2
+                : 1;
         }
 
+        private static int ImageFrameOf(CadCommandSession session) => ImageFrameOf(session.Document.Database);
+
+        /// <summary>The setting of RASTERVARIABLES AutoCAD 2021 writes for an IMAGEFRAME: 0 off, 1 above, 2 shown and not plotted (3).</summary>
+        private static DxfFrameSetting FrameSettingOf(int value) =>
+            value == 0 ? DxfFrameSetting.ImageFrameOff
+            : value == 2 ? DxfFrameSetting.ImageFrameOnNoPlot
+            : DxfFrameSetting.ImageFrameAbove;
+
+        /// <summary>
+        /// A drawing with no objects, as one of R12, cannot keep IMAGEFRAME; any other is given its variables of images where it
+        /// has none, as AutoCAD 2021 makes them when IMAGEFRAME is first changed.
+        /// </summary>
         private static string ImageFrameRefused(CadCommandContext c, int value) =>
-            ImageVariables(c.Database) == null
-                ? "IMAGEFRAME is kept with the drawing's images: attach an image first."
+            c.Database.NamedObjectsDictionary == null
+                ? "IMAGEFRAME is kept in the drawing's objects, which a drawing of R12 has none of."
                 : null;
 
         /// <summary>The folder of the drawing's file with its separator, as AutoCAD's DWGPREFIX; the user's documents for a drawing not saved yet.</summary>

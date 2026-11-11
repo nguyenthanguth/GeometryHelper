@@ -118,6 +118,9 @@ namespace GeometryHelper.Dxf
 
         private static readonly string[] Naming = { "ENTITIES", "BLOCKS", "OBJECTS" };
 
+        /// <summary>Whether a group of a record names a text style by its name, as <see cref="Rename"/> renames it.</summary>
+        internal static bool NamesStyle(string type, int code) => code == 7 && Users.Contains(type);
+
         /// <summary>
         /// Initializes a style made in code, to be added to a <see cref="DxfTextStyleTable"/> with its
         /// <see cref="DxfSymbolTableRecord.Name"/> given.

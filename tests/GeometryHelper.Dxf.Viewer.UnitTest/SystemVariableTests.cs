@@ -217,6 +217,7 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
                 {
                     "ATTDIA",
                     "ATTREQ",
+                    "BINDTYPE",
                     "CANNOSCALE",
                     "CDATE",
                     "CECOLOR",

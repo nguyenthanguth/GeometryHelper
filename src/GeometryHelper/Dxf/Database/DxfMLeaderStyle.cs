@@ -448,16 +448,52 @@ namespace GeometryHelper.Dxf
         }
 
         /// <summary>
-        /// Gets the block the leaders point to (group 343), as AutoCAD's <c>BlockId</c> gives its id; null where the style names
-        /// none, or one the drawing has no block of.
+        /// Gets or sets the block the leaders point to (group 343), as AutoCAD's <c>BlockId</c> gives its id; null where the
+        /// style names none, or one the drawing has no block of.
         /// </summary>
-        public DxfBlockTableRecord Block => BlockOf(Text(343));
+        /// <value>Set, a block of the style's drawing, its handle written, as AutoCAD 2021 writes the block TAG of a style of
+        /// block content; null takes the group out.</value>
+        /// <exception cref="ArgumentException">Thrown when the block set is of no drawing, or of another than the style's.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the style is erased.</exception>
+        public DxfBlockTableRecord Block
+        {
+            get => BlockOf(Text(343));
+            set => SetRecord(343, value, "block");
+        }
 
-        /// <summary>Gets the colour of the block (group 94), as AutoCAD's <c>BlockColor</c>; BYBLOCK where the record gives none.</summary>
-        public DxfColor BlockColor => DxfMLeaderColors.Of(Text(94) ?? ByBlock);
+        /// <summary>Gets or sets the colour of the block (group 94), as AutoCAD's <c>BlockColor</c>; BYBLOCK where the record gives none.</summary>
+        /// <exception cref="ArgumentNullException">Thrown when the colour set is null.</exception>
+        /// <exception cref="ArgumentException">Thrown when the colour set is by pen, or a layer's off or frozen.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the style is erased.</exception>
+        public DxfColor BlockColor
+        {
+            get => DxfMLeaderColors.Of(Text(94) ?? ByBlock);
+            set => Set(94, DxfMLeaderColors.Text(value, nameof(value)));
+        }
 
-        /// <summary>Gets how the block is scaled along its axes (groups 47, 49 and 140), as AutoCAD's <c>BlockScale</c>; 1 each way where the record gives none.</summary>
-        public GeoVector3 BlockScale => new GeoVector3(Num(Text(47), 1.0), Num(Text(49), 1.0), Num(Text(140), 1.0));
+        /// <summary>Gets or sets how the block is scaled along its axes (groups 47, 49 and 140), as AutoCAD's <c>BlockScale</c>; 1 each way where the record gives none.</summary>
+        /// <value>Set, each scale written, 2 each way written <c>47 2.0, 49 2.0, 140 2.0</c>.</value>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when a scale set is not a finite number above nought.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the style is erased.</exception>
+        public GeoVector3 BlockScale
+        {
+            get => new GeoVector3(Num(Text(47), 1.0), Num(Text(49), 1.0), Num(Text(140), 1.0));
+            set
+            {
+                foreach (double scale in new[] { value.X, value.Y, value.Z })
+                {
+                    Guard.Positive(
+                        scale,
+                        nameof(value),
+                        "The scale of the block of a multileader style is above nought."
+                    );
+                }
+
+                Set(47, DxfTable.AsReal(value.X));
+                Set(49, DxfTable.AsReal(value.Y));
+                Set(140, DxfTable.AsReal(value.Z));
+            }
+        }
 
         /// <summary>Gets whether the block is turned as <see cref="BlockRotation"/> says (group 294), as AutoCAD's <c>EnableBlockRotation</c>; true where the record gives none.</summary>
         public bool EnableBlockRotation => Whole(Text(294), 1) != 0;
@@ -465,8 +501,15 @@ namespace GeometryHelper.Dxf
         /// <summary>Gets how far the block is turned (group 141), as AutoCAD's <c>BlockRotation</c>, in radians; nought where the record gives none.</summary>
         public double BlockRotation => Num(Text(141), 0.0);
 
-        /// <summary>Gets where the leaders meet the block (group 177), as AutoCAD's <c>BlockConnectionType</c>; at its box where the record gives none.</summary>
-        public DxfBlockConnectionType BlockConnectionType => (DxfBlockConnectionType)Whole(Text(177), 0);
+        /// <summary>Gets or sets where the leaders meet the block (group 177), as AutoCAD's <c>BlockConnectionType</c>; at its box where the record gives none.</summary>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when the type set is not one of <see cref="DxfBlockConnectionType"/>.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the style is erased.</exception>
+        public DxfBlockConnectionType BlockConnectionType
+        {
+            get => (DxfBlockConnectionType)Whole(Text(177), 0);
+            set =>
+                SetWhole(177, (int)value, 0, 1, "Leaders meet the block at its box (0) or at its insertion point (1).");
+        }
 
         /// <summary>
         /// Gets or sets the scale of the style (group 142), as AutoCAD's <c>Scale</c>; 1 where the record gives none, and 0

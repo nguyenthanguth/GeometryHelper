@@ -182,12 +182,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 ComboBox box = Descendants(StripOf(workspace, model.InsertTab.TabContent)).OfType<ComboBox>().Single();
                 Assert.True(box.IsEnabled);
 
-                // No image yet: 1 shown, and a choice refused as IMAGEFRAME refuses it.
+                // No image yet: 1 shown; a choice gives the drawing its variables of images, as AutoCAD 2021 makes them, and
+                // undone takes them out again.
                 Assert.Equal("Display and Plot Frames", box.SelectedValue);
                 box.SelectedValue = "Hide Frames";
-                Assert.Contains(model.History, l =>
-                    l.StartsWith("IMAGEFRAME is kept with the drawing's images", StringComparison.Ordinal)
-                );
+                Assert.Equal(DxfFrameSetting.ImageFrameOff, ImageVariables(model).ImageFrame);
+                Assert.Equal("Hide Frames", model.CurrentImageFrame);
+                Assert.True(model.Undo());
+                Assert.False(model.Document.Database.NamedObjectsDictionary.Contains("ACAD_IMAGE_VARS"));
                 Assert.Equal("Display and Plot Frames", model.CurrentImageFrame);
 
                 // An image attached: Hide Frames sets 0, ticked; Display but Not Plot Frames 2.
@@ -209,7 +211,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf.UnitTest
                 );
 
                 box.SelectedValue = "Display but Not Plot Frames";
-                Assert.Equal(2, (int)ImageVariables(model).ImageFrame);
+                Assert.Equal(DxfFrameSetting.ImageFrameOnNoPlot, ImageVariables(model).ImageFrame);
 
                 // Undone, the box reads the drawing again.
                 Assert.True(model.Undo());

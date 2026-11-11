@@ -597,10 +597,29 @@ namespace GeometryHelper.Dxf.Viewer
         {
             if (!HasMLeaderStyle(c.Database))
             {
-                c.Write(
-                    "The drawing has no multileader style to draw in: one made by AutoCAD's MLEADERSTYLE is needed."
+                // A drawing that can hold multileaders is given Standard, as AutoCAD 2021's always has it.
+                if (string.CompareOrdinal(c.Database.Version ?? string.Empty, "AC1021") < 0)
+                {
+                    c.Write(
+                        "The drawing has no multileader style to draw in: one made by AutoCAD's MLEADERSTYLE is needed."
+                    );
+                    yield break;
+                }
+
+                c.Document.EnsureNamedObjectsDictionary();
+                c.Apply(
+                    new[]
+                    {
+                        new CadEditRecord(
+                            CadEditRecordKind.TableChanged,
+                            null,
+                            "New multileader style",
+                            null,
+                            "Standard"
+                        ),
+                    },
+                    s => CadMLeaderStyleEditor.MakeStandard(s.Database)
                 );
-                yield break;
             }
 
             yield return CadPrompt.ForPoint("Specify leader arrowhead location");
@@ -633,7 +652,10 @@ namespace GeometryHelper.Dxf.Viewer
                                     scale,
                                     P3(arrow),
                                     P3(input.Point),
-                                    " "
+                                    CadMLeaderStyleEditor.Find(c.Database, style).ContentType
+                                    == DxfContentType.NoneContent
+                                        ? null
+                                        : " "
                                 )
                             )
                             : null
@@ -646,25 +668,75 @@ namespace GeometryHelper.Dxf.Viewer
             }
 
             GeoPoint2 landing = c.Input.Point;
-            yield return CadPrompt.ForString("Enter text");
+            string name = CadMLeaderStyleEditor.Current(c.Database);
 
-            if (c.Input.Kind != CadInputKind.Text || c.Input.Text.Length == 0)
+            // A style of no content asks for nothing more, as AutoCAD 2021's MLEADER ends at the landing; one of a block asks
+            // the values of its attributes, "Enter attribute values" then "Enter tag number <TAGNUMBER>:", as it asks them.
+            DxfMLeaderStyle current = CadMLeaderStyleEditor.Find(c.Database, name);
+            bool none = current.ContentType == DxfContentType.NoneContent;
+            string block =
+                current.ContentType == DxfContentType.BlockContent && current.Block != null ? current.Block.Name : null;
+            string words = null;
+            var values = new List<string>();
+
+            if (block != null)
             {
-                yield break;
+                foreach (CadPrompt prompt in AttributeValues(c, c.Database.BlockTable[block], values))
+                {
+                    yield return prompt;
+                }
+            }
+            else if (!none)
+            {
+                yield return CadPrompt.ForString("Enter text");
+
+                if (c.Input.Kind != CadInputKind.Text || c.Input.Text.Length == 0)
+                {
+                    yield break;
+                }
+
+                words = c.Input.Text;
             }
 
             // Drawn in the current multileader style (CMLEADERSTYLE, else Standard): its text height, landing, arrows and the
             // rest of its values, as AutoCAD's MLEADER draws one. A scale other than the style's is the multileader's own (its
             // bit 24), as AutoCAD 2021 writes MLEADERSCALE 2 in a style of scale 5.
-            string words = c.Input.Text;
-            string name = CadMLeaderStyleEditor.Current(c.Database);
             c.Apply(null, s =>
             {
                 DxfMLeaderStyle found = CadMLeaderStyleEditor.Find(s.Database, name);
                 DxfMLeader mleader = CadMLeaderStyleEditor.Make(found, scale, P3(arrow), P3(landing), words);
                 s.Append(c.Space, Current(c, mleader));
                 mleader.MLeaderStyle = name;
+
+                // The block taken first, so that the style gives it its scale, colour and connection, then placed past the
+                // landing and given its leader and the values of its attributes.
+                DxfBlockTableRecord record = block == null ? null : s.Database.BlockTable[block];
+
+                if (record != null)
+                {
+                    mleader.BlockContent = record;
+                }
+
                 mleader.SetFromStyle();
+
+                if (record != null)
+                {
+                    CadMLeaderStyleEditor.PlaceBlock(mleader, record, P3(arrow), P3(landing));
+                    List<DxfAttributeDefinition> definitions = Definitions(record);
+
+                    for (int i = 0; i < definitions.Count; i++)
+                    {
+                        mleader.SetBlockAttribute(
+                            definitions[i],
+                            new DxfAttributeReference { Tag = definitions[i].Tag, TextString = values[i] }
+                        );
+                    }
+                }
+
+                if (none)
+                {
+                    mleader.ContentType = DxfContentType.NoneContent;
+                }
 
                 if (!scale.Equals(found.Scale))
                 {
@@ -779,8 +851,8 @@ namespace GeometryHelper.Dxf.Viewer
             try
             {
                 DxfDBDictionary styles = database.MLeaderStyleDictionary;
-                string name = database.MLeaderstyle;
-                return styles != null && !string.IsNullOrEmpty(name) && styles.Contains(name);
+                return styles != null
+                    && CadMLeaderStyleEditor.Find(database, CadMLeaderStyleEditor.Current(database)) != null;
             }
             catch (Exception)
             {

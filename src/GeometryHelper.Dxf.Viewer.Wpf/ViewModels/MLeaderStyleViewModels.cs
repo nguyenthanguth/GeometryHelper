@@ -44,7 +44,7 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
         /// <summary>Gets the value it sets.</summary>
         public object Value { get; }
 
-        /// <summary>Gets whether it can be chosen: false for Block of the Multileader type, which MLEADER does not place.</summary>
+        /// <summary>Gets whether it can be chosen; false for an item shown greyed.</summary>
         public bool IsEnabled { get; }
 
         /// <inheritdoc/>
@@ -232,9 +232,14 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
             Func<bool> leadEnabled = null
         ) => new MLeaderFieldViewModel(this, enabled, "check", get, set, leadEnabled, _shown, More);
 
-        /// <summary>The field with a button of a pair before its label.</summary>
-        internal MLeaderFieldViewModel Paired(string group, Func<bool> get, Action set, Func<bool> enabled = null) =>
-            new MLeaderFieldViewModel(this, enabled, group, get, v => set(), null, _shown, More);
+        /// <summary>The field with a button of a pair before its label, the button greyed while <paramref name="leadEnabled"/> does not hold.</summary>
+        internal MLeaderFieldViewModel Paired(
+            string group,
+            Func<bool> get,
+            Action set,
+            Func<bool> enabled = null,
+            Func<bool> leadEnabled = null
+        ) => new MLeaderFieldViewModel(this, enabled, group, get, v => set(), leadEnabled, _shown, More);
 
         /// <summary>The field greyed while a condition does not hold.</summary>
         internal MLeaderFieldViewModel When(Func<bool> enabled) =>
@@ -634,8 +639,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
     /// <summary>
     /// The Modify Multileader Style dialog, as the design lays it: three tabs, Leader Format, Leader Structure and Content,
     /// each field a value of the style; the preview drawn as MLEADER draws one, a description of the tab shown and a notice of
-    /// what OK does. Block of the Multileader type, the annotative box and the "…" of the default text are greyed: MLEADER does
-    /// not place a block, the library does not write the annotative flag, and the default text is typed in its box.
+    /// what OK does. Block of the Multileader type shows the block options (Source block, one of the drawing's blocks,
+    /// Attachment, Color and Scale); the "…" of the default text is greyed, the default text typed in its box; Scale
+    /// multileaders to layout and Specify scale are greyed while Annotative is ticked, as AutoCAD 2021 greys them.
     /// </summary>
     public sealed class MLeaderStyleEditViewModel : ObservableObject
     {
@@ -1018,6 +1024,48 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
 
         private bool Words => _settings.ContentType == DxfContentType.MTextContent;
 
+        private bool Blocks => _settings.ContentType == DxfContentType.BlockContent;
+
+        /// <summary>The blocks of the drawing a style of block content can point to: named, no layout's, no reference's, in ordinal order, letters of either case alike first.</summary>
+        private List<string> BlockNames()
+        {
+            var names = new List<string>();
+
+            foreach (DxfBlockTableRecord block in _document.Database.BlockTable)
+            {
+                if (
+                    !block.IsLayout
+                    && !block.IsAnonymous
+                    && !block.Name.StartsWith("*", StringComparison.Ordinal)
+                    && !block.IsFromExternalReference
+                    && !block.IsDependent
+                )
+                {
+                    names.Add(block.Name);
+                }
+            }
+
+            names.Sort(
+                (a, b) =>
+                {
+                    int byName = string.Compare(a, b, StringComparison.OrdinalIgnoreCase);
+                    return byName != 0 ? byName : string.CompareOrdinal(a, b);
+                }
+            );
+            return names;
+        }
+
+        /// <summary>The content type set, a style turned to block content given the first block of the drawing where it names none.</summary>
+        private void SetContentType(DxfContentType type)
+        {
+            _settings.ContentType = type;
+
+            if (type == DxfContentType.BlockContent && string.IsNullOrEmpty(_settings.BlockName))
+            {
+                _settings.BlockName = BlockNames().FirstOrDefault() ?? string.Empty;
+            }
+        }
+
         /// <summary>The fields of the three tabs, in the design's order and words.</summary>
         private void BuildTabs()
         {
@@ -1121,7 +1169,9 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     ),
                 Header("Scale"),
                 Flag("Annotative").Checked(() => s.Annotative, on => s.Annotative = on),
-                Flag("Scale multileaders to layout").Paired("mlscale", () => s.Scale == 0.0, () => s.Scale = 0.0),
+                // Both greyed while Annotative is ticked, as AutoCAD 2021's dialog greys them.
+                Flag("Scale multileaders to layout")
+                    .Paired("mlscale", () => s.Scale == 0.0, () => s.Scale = 0.0, null, () => !s.Annotative),
                 Field(
                         MLeaderFieldKind.Number,
                         "Specify scale",
@@ -1132,7 +1182,8 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                         "mlscale",
                         () => s.Scale != 0.0,
                         () => s.Scale = Original.Scale > 0.0 ? Original.Scale : 1.0,
-                        () => s.Scale != 0.0
+                        () => s.Scale != 0.0 && !s.Annotative,
+                        () => !s.Annotative
                     ),
             };
 
@@ -1143,14 +1194,46 @@ namespace GeometryHelper.Dxf.Viewer.Wpf
                     MLeaderFieldKind.Choice,
                     "Type",
                     () => s.ContentType,
-                    v => s.ContentType = (DxfContentType)v,
+                    v => SetContentType((DxfContentType)v),
                     new[]
                     {
                         new MLeaderChoice("Mtext", DxfContentType.MTextContent),
-                        new MLeaderChoice("Block", DxfContentType.BlockContent, false),
+                        new MLeaderChoice("Block", DxfContentType.BlockContent),
                         new MLeaderChoice("None", DxfContentType.NoneContent),
                     }
                 ),
+                Header("Block options").ShownWhen(() => Blocks),
+                Field(
+                        MLeaderFieldKind.Choice,
+                        "Source block",
+                        () => s.BlockName,
+                        v => s.BlockName = (string)v,
+                        BlockNames().Select(n => new MLeaderChoice(n, n)).ToList()
+                    )
+                    .ShownWhen(() => Blocks),
+                Field(
+                        MLeaderFieldKind.Choice,
+                        "Attachment",
+                        () => s.BlockConnection,
+                        v => s.BlockConnection = (DxfBlockConnectionType)v,
+                        C(
+                            "Center extents",
+                            DxfBlockConnectionType.ConnectExtents,
+                            "Insertion point",
+                            DxfBlockConnectionType.ConnectBase
+                        )
+                    )
+                    .ShownWhen(() => Blocks),
+                Field(
+                        MLeaderFieldKind.Choice,
+                        "Color",
+                        () => s.BlockColor,
+                        v => s.BlockColor = (DxfColor)v,
+                        Colours(s.BlockColor)
+                    )
+                    .ShownWhen(() => Blocks),
+                Field(MLeaderFieldKind.Number, "Scale", () => s.BlockScale, v => s.BlockScale = (double)v)
+                    .ShownWhen(() => Blocks),
                 Header("Text options"),
                 Field(MLeaderFieldKind.Text, "Default text", () => s.DefaultText, v => s.DefaultText = (string)v)
                     .When(() => Words)

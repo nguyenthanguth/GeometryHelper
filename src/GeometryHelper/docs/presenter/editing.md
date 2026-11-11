@@ -417,8 +417,16 @@ multileader style is given Standard first, metric: arrows 2.5, a break of 3.75, 
 landing gap of 2. Modify writes the Leader Format, Leader Structure and Content tabs into the drawing's MLEADERSTYLE and
 gives every multileader of the style its values, those it has of its own kept: a style's text made 2.5 high leaves a
 multileader whose words were set 6 high at 6. MLEADER draws in the current style (CMLEADERSTYLE, else Standard): a
-multileader of a style of words and arrows 4 high has words and arrows 4 high. Each change is one undo step. Block
-content is not offered, as MLEADER places words only, and the annotative box is greyed.
+multileader of a style of words and arrows 4 high has words and arrows 4 high. Each change is one undo step. In a drawing
+of R2007 or later with no style to draw in, MLEADER first makes Standard current, metric as above, or in an imperial
+drawing (MEASUREMENT 0) AutoCAD 2021's own: text and arrows 0.18, a landing of 0.36, a gap of 0.09 and a break of 0.125,
+in the same undo step. A style of no content draws the leader alone, asking no text, its dogleg from the landing away from
+the arrow, as AutoCAD 2021 draws it. A style of block content (Type Block on the Content tab: Source block, one of the
+drawing's own blocks, Attachment Center extents or Insertion point, Color and Scale) asks "Enter attribute values" and
+each attribute's prompt with its default, "Enter tag number <TAGNUMBER>:", and places the block past the end of the
+dogleg, its box met on the side towards the arrow: the circle of radius 5 of TAG, landed at (20, 10) with a dogleg of 0.36,
+stands at (25.36, 10), as AutoCAD 2021 placed it. AutoCAD's own blocks of the list (Detail callout, Slot, Circle, Box,
+Hexagon, Triangle) are not offered. Scale multileaders to layout and Specify scale are greyed while Annotative is ticked.
 
 MLEADERSCALE is the scale of the multileaders drawn next, as in AutoCAD 2021: making a style current, by Set Current or
 `CMLEADERSTYLE`, gives it the style's scale (nought for an annotative style), even for the style already current; set by
@@ -567,7 +575,16 @@ Unload flags the reference's layers and linetypes 16 and its block 4, as AutoCAD
 flags them 48 and 36 again and writes those of layers and linetypes the file has gained, each an undo step where anything
 changes; a record the drawing has keeps what it has. Detach takes them out with the block. No DXF says a reference is
 unloaded. One
-not found shows its path at its insertion point. -XREF ? prints AutoCAD 2021's table, and Bind is refused. XOPEN asks
+not found shows its path at its insertion point. -XREF ? prints AutoCAD 2021's table. -XREF Bind binds the references
+named, as AutoCAD 2021 binds them, by BINDTYPE (0 Bind, the default, 1 Insert, kept by the session): Bind brings the
+drawing's layers, linetypes, text and dimension styles and blocks under the reference's name, `grid$0$GRID`, the number
+raised past a name the drawing has; Insert merges them by name, the drawing's own kept, and says each block it has already
+("Duplicate Block "TAG" ignored."). The reference's block becomes an ordinary block drawn where the reference was, and the
+references its drawing places are bound with it under their own names (`column$0$GRID`), its overlays left out; one undo
+step. A reference unloaded is refused ("Cannot bind unloaded xref(s).  Reload them first:"), one whose file, or that of a
+reference it places, is not found too ("xref "column" is currently not found. Reload or detach before binding."), and a
+nested one alone "is nested and cannot be bound". The palette's Bind… stays greyed: its Bind Xrefs dialog is not built.
+XOPEN asks
 "Select Xref:" and opens the drawing of the reference picked in a tab of its own; a line picked is answered "Object is not
 an Xref" and the question asked again, and Enter ends it, as AutoCAD 2021's console answers them. A layer of a
 reference the drawing keeps a record of, as AutoCAD writes `grid|GRID` (flags 48), is changed in the drawing as AutoCAD
@@ -585,7 +602,7 @@ not write the records again from the file when it opens a drawing of VISRETAIN 0
 and -IMAGE Attach place a PNG, JPEG or BMP at AutoCAD's size: 40 by 30 pixels saved at 3 779 pixels a metre are
 10.584811 by 7.938608 mm, one of no resolution one unit wide. The picture is drawn by its pixels, decoded once off the
 window's thread, clipped by IMAGECLIP (Rectangular, Polygonal, Select polyline, Invert clip), its frame shown by
-IMAGEFRAME 1 or 2, its transparent pixels showing what is under it with TRANSPARENCY ON; one not found is its frame with
+IMAGEFRAME 1 or 2 (2 kept as frames shown and not plotted, 70 of 3, as AutoCAD 2021 writes it; a drawing with no image yet given its RASTERVARIABLES when IMAGEFRAME is first changed, 72 the unit of the drawing, 1 for millimetres), its transparent pixels showing what is under it with TRANSPARENCY ON; one not found is its frame with
 its file's name. A drawing of 100 000 entities shown as a reference is read and drawn in 0.90 s, where opening it alone
 takes 0.87 s (.NET Framework 4.8). AutoCAD 2021 reads no DXF as an external reference ("Unable to load"): it keeps the
 block and the INSERTs of a drawing the presenter saved, AUDIT finds no error, and its -XREF ? lists them.
@@ -648,7 +665,7 @@ and set where the presenter keeps it, listed in [`CadCommandRegistry.Variables`]
 | Kept in | Variables | A change |
 |---|---|---|
 | the header of the drawing, written as AutoCAD writes it | CLAYER, CECOLOR, CELTYPE, CELWEIGHT, CELTSCALE, LTSCALE, PSLTSCALE, MSLTSCALE, DIMSCALE, DIMASSOC, CMLEADERSTYLE, MLEADERSCALE, TEXTSIZE, TEXTSTYLE, FILLETRAD, CHAMFERA, CHAMFERB, PDMODE, PDSIZE, MIRRTEXT, SORTENTS, IMAGEFRAME, CANNOSCALE, INSBASE, LIMMIN, LIMMAX | one undo step |
-| the document or the session | PICKSTYLE, SELECTIONCYCLING, PICKFIRST, PICKADD, ATTREQ, ATTDIA, FILEDIA, CMDDIA, PEDITACCEPT, PLINETYPE, REVCLOUDAPPROXARCLEN, REVCLOUDARCVARIANCE, REVCLOUDCREATEMODE, OFFSETDIST, TILEMODE (the space shown) | at once, no undo step |
+| the document or the session | PICKSTYLE, SELECTIONCYCLING, PICKFIRST, PICKADD, ATTREQ, ATTDIA, BINDTYPE, FILEDIA, CMDDIA, PEDITACCEPT, PLINETYPE, REVCLOUDAPPROXARCLEN, REVCLOUDARCVARIANCE, REVCLOUDCREATEMODE, OFFSETDIST, TILEMODE (the space shown) | at once, no undo step |
 | the window: the status bar, the snaps and Global settings | OSMODE, POLARANG, POLARMODE, POLARADDANG, POLARDIST, SNAPTYPE, GRIDSTYLE, AUTOSNAP, DYNMODE, PICKBOX, APERTURE | at once, no undo step; kept in the settings file |
 | the window's toggles and snap of the drawing shown | ORTHOMODE, SNAPMODE, GRIDMODE, LWDISPLAY, SNAPUNIT, GRIDUNIT, GRIDDISPLAY, SNAPBASE, SNAPANG, GRIDMAJOR, SNAPSTYL, SNAPISOPAIR | at once, no undo step; written into the drawing, as AutoCAD saves them there |
 | read only | DIMSTYLE, EXTMIN, EXTMAX, UCSNAME, UCSORG, DWGNAME, DWGPREFIX, DATE, CDATE | |

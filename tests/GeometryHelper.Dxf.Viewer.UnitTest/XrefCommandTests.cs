@@ -204,11 +204,8 @@ namespace GeometryHelper.Dxf.Viewer.UnitTest
             Assert.Single(Items<DisplayArc2>(document));
             Assert.True(document.Database.LayerTable["grid|GRID"].IsResolved);
 
-            Run(session, "-XREF", "B", "grid");
-            Assert.Contains(
-                "Bind is not offered: a DXF external reference is shown, never written into the drawing.",
-                session.History
-            );
+            Run(session, "-XREF", "B", "nothing");
+            Assert.Contains("No matching xref names found.", session.History);
 
             Run(session, "-XREF", "D", "grid");
             Assert.False(document.Database.BlockTable.Has("grid"));

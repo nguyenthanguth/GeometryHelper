@@ -9,8 +9,8 @@ namespace GeometryHelper.Dxf.Viewer
     /// <summary>
     /// The external references and images of a document as the presenter shows them: each file found where AutoCAD looks
     /// for it, an external reference read once and drawn as the content of its block, and what was unloaded. Nothing it reads
-    /// is written into the drawing: an external reference is shown, never bound, and saving writes its block and INSERTs
-    /// alone, as AutoCAD writes them.
+    /// is written into the drawing but by -XREF Bind (<see cref="DxfDatabase.BindXref"/>): an external reference is shown, and
+    /// saving writes its block and INSERTs alone, as AutoCAD writes them.
     /// </summary>
     /// <remarks>
     /// <para>

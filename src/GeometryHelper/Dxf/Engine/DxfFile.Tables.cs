@@ -226,6 +226,25 @@ namespace GeometryHelper.Dxf
             string from,
             string to,
             bool arrows = false
+        ) =>
+            Rename(
+                sections,
+                names,
+                dataCode,
+                new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { { from, to } },
+                arrows
+            );
+
+        /// <summary>
+        /// Writes new names in one walk of the file, as the <c>Rename</c> of one name writes one: each group that names one of
+        /// the old names, letters of either case the same, given the new name the map gives it.
+        /// </summary>
+        internal int Rename(
+            ICollection<string> sections,
+            Func<string, int, bool> names,
+            int dataCode,
+            IDictionary<string, string> renamed,
+            bool arrows = false
         )
         {
             int written = 0;
@@ -253,6 +272,7 @@ namespace GeometryHelper.Dxf
                     for (int i = 0; i < pairs.Count; i++)
                     {
                         Pair pair = pairs[i];
+                        string to;
                         overrides = dimensions && i >= data && DimensionOverrides(record, pairs, i, overrides);
 
                         if (i > 0 && pair.Code == 102)
@@ -266,19 +286,12 @@ namespace GeometryHelper.Dxf
                                     (i < data && !braced && names(record.Type, pair.Code))
                                     || (i >= data && pair.Code == dataCode)
                                 )
-                                && string.Equals(
-                                    DxfReader.NameOf(Text(record, pair)),
-                                    from,
-                                    StringComparison.OrdinalIgnoreCase
-                                )
+                                && renamed.TryGetValue(DxfReader.NameOf(Text(record, pair)), out to)
                             )
                             || (
                                 overrides
-                                && string.Equals(
-                                    OverrideArrow(record, pairs, i),
-                                    from,
-                                    StringComparison.OrdinalIgnoreCase
-                                )
+                                && OverrideArrow(record, pairs, i) is string arrow
+                                && renamed.TryGetValue(arrow, out to)
                             )
                         )
                         {
@@ -487,7 +500,7 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Whether a group of the records of the sections given names something by a name, letters of either case the same, as
-        /// <see cref="Rename"/> finds one.
+        /// <see cref="Rename(ICollection{string}, Func{string, int, bool}, int, string, string, bool)"/> finds one.
         /// </summary>
         internal bool Names(ICollection<string> sections, Func<string, int, bool> names, string name)
         {
@@ -763,7 +776,7 @@ namespace GeometryHelper.Dxf
 
         /// <summary>
         /// Gives a block a new name in the file's list of blocks, its entities named as of it: its records are renamed by
-        /// <see cref="Rename"/>.
+        /// <see cref="Rename(ICollection{string}, Func{string, int, bool}, int, string, string, bool)"/>.
         /// </summary>
         internal void Renamed(DxfFileBlock block, string name)
         {

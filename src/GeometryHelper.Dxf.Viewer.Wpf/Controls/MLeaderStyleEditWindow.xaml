@@ -54,7 +54,7 @@
                 </Setter>
             </Style>
 
-            <!-- An item of a list, greyed and not chosen where it cannot be: Block of the Multileader type. -->
+            <!-- An item of a list, greyed and not chosen where it cannot be. -->
             <Style x:Key="ChoiceItem" TargetType="ComboBoxItem">
                 <Setter Property="Foreground" Value="{StaticResource GhText}" />
                 <Setter Property="IsEnabled" Value="{Binding IsEnabled}" />
